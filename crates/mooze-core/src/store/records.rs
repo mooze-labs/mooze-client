@@ -12,7 +12,9 @@ use serde::{Deserialize, Serialize};
 use crate::ports::KvStore;
 use crate::{Error, Result};
 
-use super::json::{bump_seq, delete_key, delete_prefix, get_json, id_key, list_json, next_id, put_json};
+use super::json::{
+    bump_seq, delete_key, delete_prefix, get_json, id_key, list_json, next_id, put_json,
+};
 
 /// Wallet id of rows that predate wallet scoping.
 pub const UNKNOWN_WALLET_ID: &str = "unknown";
@@ -21,7 +23,9 @@ fn check_len(field: &str, value: &str, min: usize, max: usize) -> Result<()> {
     // Drift `withLength` counts characters.
     let n = value.chars().count();
     if n < min || n > max {
-        return Err(Error::invalid(format!("{field} length {n} outside {min}..={max}")));
+        return Err(Error::invalid(format!(
+            "{field} length {n} outside {min}..={max}"
+        )));
     }
     Ok(())
 }
@@ -35,7 +39,11 @@ fn like_ci(haystack: Option<&str>, needle_lower: &str) -> bool {
 }
 
 async fn rows<K: KvStore, T: serde::de::DeserializeOwned>(kv: &K, prefix: &str) -> Result<Vec<T>> {
-    Ok(list_json(kv, prefix).await?.into_iter().map(|(_, v)| v).collect())
+    Ok(list_json(kv, prefix)
+        .await?
+        .into_iter()
+        .map(|(_, v)| v)
+        .collect())
 }
 
 // ───────────────────────────── swaps
@@ -125,7 +133,10 @@ impl<K: KvStore> SwapAuditStore<K> {
         check_len("send_asset", &rec.send_asset, 1, 128)?;
         check_len("receive_asset", &rec.receive_asset, 1, 128)?;
         if rec.id <= 0 {
-            return Err(Error::invalid(format!("swap id {} must be positive", rec.id)));
+            return Err(Error::invalid(format!(
+                "swap id {} must be positive",
+                rec.id
+            )));
         }
         put_json(&self.kv, &id_key(SWAP_ROWS, rec.id), rec).await?;
         bump_seq(&self.kv, SWAP_SEQ, rec.id).await
@@ -163,15 +174,24 @@ impl<K: KvStore> SwapAuditStore<K> {
     /// Rows of `wallet_id`, in id order.
     pub async fn get_all(&self, wallet_id: &str) -> Result<Vec<SwapRecord>> {
         let all: Vec<SwapRecord> = rows(&self.kv, SWAP_ROWS).await?;
-        Ok(all.into_iter().filter(|s| s.wallet_id == wallet_id).collect())
+        Ok(all
+            .into_iter()
+            .filter(|s| s.wallet_id == wallet_id)
+            .collect())
     }
 
     /// True if a row of `(wallet_id, provider)` has `tx_id` equal to `tx_id`
     /// or metadata containing it (case-insensitive).
-    pub async fn exists_for_tx_id(&self, wallet_id: &str, provider: &str, tx_id: &str) -> Result<bool> {
+    pub async fn exists_for_tx_id(
+        &self,
+        wallet_id: &str,
+        provider: &str,
+        tx_id: &str,
+    ) -> Result<bool> {
         let needle = tx_id.to_lowercase();
         Ok(self.get_all(wallet_id).await?.iter().any(|s| {
-            s.provider == provider && (s.tx_id.as_deref() == Some(tx_id) || like_ci(s.metadata.as_deref(), &needle))
+            s.provider == provider
+                && (s.tx_id.as_deref() == Some(tx_id) || like_ci(s.metadata.as_deref(), &needle))
         }))
     }
 
@@ -187,7 +207,11 @@ impl<K: KvStore> SwapAuditStore<K> {
             .get_all(wallet_id)
             .await?
             .into_iter()
-            .filter(|s| s.provider == provider && s.status == "pending" && like_ci(s.metadata.as_deref(), &needle))
+            .filter(|s| {
+                s.provider == provider
+                    && s.status == "pending"
+                    && like_ci(s.metadata.as_deref(), &needle)
+            })
             .collect();
         hits.sort_by_key(|x| std::cmp::Reverse(x.created_at_ms));
         Ok(hits.into_iter().next())
@@ -262,7 +286,12 @@ impl<K: KvStore> SyncMetadataStore<K> {
 
     /// Inserts or replaces the row of `rec.datasource`.
     pub async fn upsert(&self, rec: &SyncMetadataRecord) -> Result<()> {
-        put_json(&self.kv, &format!("{SYNC_META_PREFIX}{}", rec.datasource), rec).await
+        put_json(
+            &self.kv,
+            &format!("{SYNC_META_PREFIX}{}", rec.datasource),
+            rec,
+        )
+        .await
     }
 
     /// Every row.
@@ -326,12 +355,22 @@ impl<K: KvStore> AppLogStore<K> {
 
     /// Lines of one level.
     pub async fn by_level(&self, level: &str) -> Result<Vec<AppLogRecord>> {
-        Ok(self.get_all().await?.into_iter().filter(|l| l.level == level).collect())
+        Ok(self
+            .get_all()
+            .await?
+            .into_iter()
+            .filter(|l| l.level == level)
+            .collect())
     }
 
     /// Lines with `start <= timestamp <= end`.
     pub async fn by_time_range(&self, start_ms: u64, end_ms: u64) -> Result<Vec<AppLogRecord>> {
-        Ok(self.get_all().await?.into_iter().filter(|l| l.timestamp_ms >= start_ms && l.timestamp_ms <= end_ms).collect())
+        Ok(self
+            .get_all()
+            .await?
+            .into_iter()
+            .filter(|l| l.timestamp_ms >= start_ms && l.timestamp_ms <= end_ms)
+            .collect())
     }
 
     /// Deletes lines older than `cutoff_ms`. Returns the count.
@@ -406,9 +445,22 @@ mod tests {
     fn swaps_defaults_scoping_and_queries() {
         block_on(async {
             let s = SwapAuditStore::new(MemoryKv::new());
-            let id = s.insert(NewSwap { send_asset: "A".into(), receive_asset: "B".into(), ..Default::default() }, 9).await.unwrap();
+            let id = s
+                .insert(
+                    NewSwap {
+                        send_asset: "A".into(),
+                        receive_asset: "B".into(),
+                        ..Default::default()
+                    },
+                    9,
+                )
+                .await
+                .unwrap();
             let r = s.get(id).await.unwrap().unwrap();
-            assert_eq!((r.provider.as_str(), r.status.as_str(), r.direction.as_str()), ("unknown", "completed", "asset_swap"));
+            assert_eq!(
+                (r.provider.as_str(), r.status.as_str(), r.direction.as_str()),
+                ("unknown", "completed", "asset_swap")
+            );
             assert_eq!((r.wallet_id.as_str(), r.created_at_ms), ("unknown", 9));
 
             let mut p = swap("w1", "sideswap", 10);
@@ -419,21 +471,45 @@ mod tests {
             s.insert(swap("w2", "breez", 30), 0).await.unwrap();
 
             assert_eq!(s.count("w1").await.unwrap(), 2);
-            assert!(s.exists_for_tx_id("w1", "sideswap", "bc1qxyz").await.unwrap());
-            assert!(!s.exists_for_tx_id("w2", "sideswap", "bc1qxyz").await.unwrap());
-            let hit = s.find_pending_peg_in_by_deposit_address("w1", "sideswap", "bc1qXyz").await.unwrap().unwrap();
+            assert!(s
+                .exists_for_tx_id("w1", "sideswap", "bc1qxyz")
+                .await
+                .unwrap());
+            assert!(!s
+                .exists_for_tx_id("w2", "sideswap", "bc1qxyz")
+                .await
+                .unwrap());
+            let hit = s
+                .find_pending_peg_in_by_deposit_address("w1", "sideswap", "bc1qXyz")
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(hit.id, pid);
 
             let page = s.paginated("w1", 10, 0, None, None).await.unwrap();
-            assert_eq!(page.iter().map(|r| r.created_at_ms).collect::<Vec<_>>(), [20, 10]);
-            let page = s.paginated("w1", 10, 0, Some("breez"), Some("")).await.unwrap();
+            assert_eq!(
+                page.iter().map(|r| r.created_at_ms).collect::<Vec<_>>(),
+                [20, 10]
+            );
+            let page = s
+                .paginated("w1", 10, 0, Some("breez"), Some(""))
+                .await
+                .unwrap();
             assert_eq!(page.len(), 1);
             let page = s.paginated("w1", 1, 1, None, Some("lbtc")).await.unwrap();
             assert_eq!(page[0].id, pid);
 
-            assert_eq!(s.update_status(pid, "completed", Some("tx1"), None).await.unwrap(), 1);
+            assert_eq!(
+                s.update_status(pid, "completed", Some("tx1"), None)
+                    .await
+                    .unwrap(),
+                1
+            );
             let u = s.get(pid).await.unwrap().unwrap();
-            assert_eq!((u.status.as_str(), u.tx_id.as_deref()), ("completed", Some("tx1")));
+            assert_eq!(
+                (u.status.as_str(), u.tx_id.as_deref()),
+                ("completed", Some("tx1"))
+            );
             assert!(u.metadata.is_some());
             assert_eq!(s.update_status(999, "failed", None, None).await.unwrap(), 0);
             assert!(s.insert(NewSwap::default(), 0).await.is_err());
@@ -445,7 +521,11 @@ mod tests {
         block_on(async {
             let kv = MemoryKv::new();
             let logs = AppLogStore::new(kv.clone());
-            for (ts, lvl, msg) in [(1, "info", "boot ok"), (2, "error", "SocketException"), (3, "info", "sync")] {
+            for (ts, lvl, msg) in [
+                (1, "info", "boot ok"),
+                (2, "error", "SocketException"),
+                (3, "info", "sync"),
+            ] {
                 let rec = AppLogRecord {
                     id: 0,
                     timestamp_ms: ts,
@@ -457,18 +537,31 @@ mod tests {
                 };
                 logs.insert(rec).await.unwrap();
             }
-            assert_eq!(logs.paginated(10, 0, None, Some("socket")).await.unwrap().len(), 1);
-            assert_eq!(logs.paginated(1, 0, Some("info"), None).await.unwrap()[0].timestamp_ms, 3);
+            assert_eq!(
+                logs.paginated(10, 0, None, Some("socket"))
+                    .await
+                    .unwrap()
+                    .len(),
+                1
+            );
+            assert_eq!(
+                logs.paginated(1, 0, Some("info"), None).await.unwrap()[0].timestamp_ms,
+                3
+            );
             assert_eq!(logs.by_time_range(2, 3).await.unwrap().len(), 2);
             assert_eq!(logs.delete_old(2).await.unwrap(), 1);
             assert_eq!(logs.count().await.unwrap(), 2);
 
             let m = SyncMetadataStore::new(kv.clone());
-            let rec = SyncMetadataRecord { datasource: "lwk".into(), last_sync_time_ms: 5, transaction_count: 3, sync_status: "ok".into() };
+            let rec = SyncMetadataRecord {
+                datasource: "lwk".into(),
+                last_sync_time_ms: 5,
+                transaction_count: 3,
+                sync_status: "ok".into(),
+            };
             m.upsert(&rec).await.unwrap();
             assert_eq!(m.get("lwk").await.unwrap(), Some(rec));
             assert_eq!(m.delete_all().await.unwrap(), 1);
-
         });
     }
 }

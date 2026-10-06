@@ -37,6 +37,10 @@ pub struct StartConfigDto {
     /// Periodic refresh cadence. `None` uses the core default (60 s).
     pub sync_tick_ms: Option<u64>,
     /// Per-chain sync timeout. `None` uses the core default (60 s).
+    ///
+    /// The timeout drops the sync future. Esplora requests stop with it.
+    /// An Electrum call runs on the blocking pool and finishes on its own;
+    /// the next tick may then wait on the same client.
     pub sync_timeout_ms: Option<u64>,
     /// Run one refresh inside `start`.
     pub startup_sync: bool,

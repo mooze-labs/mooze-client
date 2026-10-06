@@ -46,7 +46,13 @@ pub struct PriceQuotes {
 impl PriceQuotes {
     /// State before boot.
     pub fn initial(currency: Currency) -> Self {
-        Self { currency, quotes: BTreeMap::new(), last_success_at_ms: None, warming: true, refreshing: false }
+        Self {
+            currency,
+            quotes: BTreeMap::new(),
+            last_success_at_ms: None,
+            warming: true,
+            refreshing: false,
+        }
     }
 
     /// Price of `asset`, if known.
@@ -67,7 +73,12 @@ pub struct PriceQuotesStore<S, K, C> {
 impl<S: PriceService, K: KvStore, C: Clock> PriceQuotesStore<S, K, C> {
     /// Store in the initial (warming, BRL) state. `cache` must use the store the service writes.
     pub fn new(service: S, cache: PriceCacheService<K, C>) -> Self {
-        Self { service, cache, state: Mutex::new(PriceQuotes::initial(Currency::Brl)), generation: AtomicU64::new(0) }
+        Self {
+            service,
+            cache,
+            state: Mutex::new(PriceQuotes::initial(Currency::Brl)),
+            generation: AtomicU64::new(0),
+        }
     }
 
     /// Snapshot of the state.
@@ -80,7 +91,15 @@ impl<S: PriceService, K: KvStore, C: Clock> PriceQuotesStore<S, K, C> {
         for asset in QUOTE_ASSETS {
             if let Ok(Some(d)) = self.cache.get_cached_price(asset, currency).await {
                 let fetched_at_ms = u64::try_from(d.timestamp).unwrap_or(0);
-                out.insert(asset, PriceQuote { asset, currency, price: d.price, fetched_at_ms });
+                out.insert(
+                    asset,
+                    PriceQuote {
+                        asset,
+                        currency,
+                        price: d.price,
+                        fetched_at_ms,
+                    },
+                );
             }
         }
         out
@@ -127,7 +146,15 @@ impl<S: PriceService, K: KvStore, C: Clock> PriceQuotesStore<S, K, C> {
         let mut any_fresh = false;
         for (asset, result) in QUOTE_ASSETS.into_iter().zip(results) {
             if let Ok(Some(price)) = result {
-                s.quotes.insert(asset, PriceQuote { asset, currency, price, fetched_at_ms: now });
+                s.quotes.insert(
+                    asset,
+                    PriceQuote {
+                        asset,
+                        currency,
+                        price,
+                        fetched_at_ms: now,
+                    },
+                );
                 any_fresh = true;
             }
         }
@@ -159,7 +186,10 @@ mod tests {
         let store = PriceQuotesStore::new(svc.clone(), cache.clone());
         assert!(store.state().warming);
         block_on(async {
-            cache.cache_price(Asset::Btc, 500_000.0, Currency::Brl).await.unwrap();
+            cache
+                .cache_price(Asset::Btc, 500_000.0, Currency::Brl)
+                .await
+                .unwrap();
             let s = store.initialize(Currency::Brl).await;
             assert!(!s.warming);
             assert_eq!(s.price_for(Asset::Btc), Some(500_000.0));
@@ -177,7 +207,10 @@ mod tests {
 
             // USD has no cache: quotes stay, currency changes.
             let s = store.swap_currency(Currency::Usd).await;
-            assert_eq!((s.currency, s.price_for(Asset::Usdt)), (Currency::Usd, Some(7.0)));
+            assert_eq!(
+                (s.currency, s.price_for(Asset::Usdt)),
+                (Currency::Usd, Some(7.0))
+            );
             let s = store.refresh().await;
             assert_eq!(s.quotes[&Asset::Depix].currency, Currency::Usd);
         });

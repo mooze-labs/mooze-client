@@ -47,7 +47,10 @@ pub struct BootState {
 impl BootState {
     /// True for ready, needs-setup and error.
     pub fn is_terminal(&self) -> bool {
-        matches!(self.phase, BootPhase::Ready | BootPhase::NeedsSetup | BootPhase::Error)
+        matches!(
+            self.phase,
+            BootPhase::Ready | BootPhase::NeedsSetup | BootPhase::Error
+        )
     }
 
     /// True when ready.
@@ -67,11 +70,18 @@ pub trait BootServices: MaybeSend + MaybeSync {
     /// Chains to connect, in Dart order (liquid, bitcoin).
     fn chains(&self) -> Vec<ChainId>;
     /// Connects one chain service. The platform enforces [`CONNECT_TIMEOUT_MS`].
-    fn connect(&self, chain: ChainId, credentials: &WalletCredentials) -> impl Future<Output = Result<()>> + MaybeSend;
+    fn connect(
+        &self,
+        chain: ChainId,
+        credentials: &WalletCredentials,
+    ) -> impl Future<Output = Result<()>> + MaybeSend;
     /// Disconnects one chain service. The platform enforces [`DISCONNECT_CAP_MS`].
     fn disconnect(&self, chain: ChainId) -> impl Future<Output = Result<()>> + MaybeSend;
     /// Ensures an API session. The platform enforces [`AUTH_TIMEOUT_MS`].
-    fn ensure_session(&self, credentials: &WalletCredentials) -> impl Future<Output = Result<()>> + MaybeSend;
+    fn ensure_session(
+        &self,
+        credentials: &WalletCredentials,
+    ) -> impl Future<Output = Result<()>> + MaybeSend;
 }
 
 /// Owns the boot state machine.
@@ -86,7 +96,12 @@ pub struct BootOrchestrator<B: BootServices, C: Clock> {
 impl<B: BootServices, C: Clock> BootOrchestrator<B, C> {
     /// Orchestrator in the idle phase.
     pub fn new(services: B, clock: C) -> Self {
-        Self { services, clock, state: BootState::default(), state_log: Vec::new() }
+        Self {
+            services,
+            clock,
+            state: BootState::default(),
+            state_log: Vec::new(),
+        }
     }
 
     /// Current state.
@@ -116,7 +131,10 @@ impl<B: BootServices, C: Clock> BootOrchestrator<B, C> {
     }
 
     fn fail(&mut self, phase_name: &str, cause: &Error, dur: u64) -> Error {
-        let f = Error::Boot { phase: phase_name.to_owned(), message: boot_message(cause) };
+        let f = Error::Boot {
+            phase: phase_name.to_owned(),
+            message: boot_message(cause),
+        };
         let mut s = self.state.clone();
         s.phase = BootPhase::Error;
         s.failure = Some(f.clone());
@@ -140,7 +158,11 @@ impl<B: BootServices, C: Clock> BootOrchestrator<B, C> {
             return Ok(self.state.clone());
         }
         let started = self.clock.now_ms();
-        self.emit(BootState { phase: BootPhase::InitializingPlatform, started_at_ms: Some(started), ..Default::default() });
+        self.emit(BootState {
+            phase: BootPhase::InitializingPlatform,
+            started_at_ms: Some(started),
+            ..Default::default()
+        });
 
         // Platform.
         self.enter(BootPhase::InitializingPlatform);
@@ -161,7 +183,8 @@ impl<B: BootServices, C: Clock> BootOrchestrator<B, C> {
         let dur = self.clock.now_ms().saturating_sub(t0);
         match r {
             Err(e) => {
-                let cause = Error::Unexpected(format!("database open failed: {}", boot_message(&e)));
+                let cause =
+                    Error::Unexpected(format!("database open failed: {}", boot_message(&e)));
                 return Err(self.fail("database", &cause, dur));
             }
             Ok(()) => self.phase_ok(dur),
@@ -199,8 +222,14 @@ impl<B: BootServices, C: Clock> BootOrchestrator<B, C> {
             futures::future::join_all(chains.iter().map(|c| services.connect(*c, &creds))).await;
         let dur = self.clock.now_ms().saturating_sub(t0);
         if !results.is_empty() && results.iter().all(Result::is_err) {
-            let first = results.into_iter().find_map(Result::err).unwrap_or_else(|| Error::Unexpected("all services failed".into()));
-            let cause = Error::Unexpected(format!("all chain services failed: {}", boot_message(&first)));
+            let first = results
+                .into_iter()
+                .find_map(Result::err)
+                .unwrap_or_else(|| Error::Unexpected("all services failed".into()));
+            let cause = Error::Unexpected(format!(
+                "all chain services failed: {}",
+                boot_message(&first)
+            ));
             return Err(self.fail("connectingServices", &cause, dur));
         }
         self.phase_ok(dur);
@@ -263,7 +292,11 @@ mod tests {
     impl BootServices for Fake {
         fn init_platform(&self) -> impl Future<Output = Result<()>> + MaybeSend {
             self.log.lock().unwrap().push("platform".into());
-            std::future::ready(if self.platform_fails { Err(Error::Unexpected("no fs".into())) } else { Ok(()) })
+            std::future::ready(if self.platform_fails {
+                Err(Error::Unexpected("no fs".into()))
+            } else {
+                Ok(())
+            })
         }
         fn open_database(&self) -> impl Future<Output = Result<()>> + MaybeSend {
             self.log.lock().unwrap().push("db".into());
@@ -271,43 +304,89 @@ mod tests {
         }
         fn load_credentials(&self) -> impl Future<Output = Result<WalletCredentials>> + MaybeSend {
             self.log.lock().unwrap().push("creds".into());
-            std::future::ready(Ok(self.creds.clone().unwrap_or(WalletCredentials::absent(AppNetwork::Mainnet))))
+            std::future::ready(Ok(self
+                .creds
+                .clone()
+                .unwrap_or(WalletCredentials::absent(AppNetwork::Mainnet))))
         }
         fn chains(&self) -> Vec<ChainId> {
             vec![ChainId::Liquid, ChainId::Bitcoin]
         }
-        fn connect(&self, chain: ChainId, _c: &WalletCredentials) -> impl Future<Output = Result<()>> + MaybeSend {
-            self.log.lock().unwrap().push(format!("connect:{}", chain.as_str()));
+        fn connect(
+            &self,
+            chain: ChainId,
+            _c: &WalletCredentials,
+        ) -> impl Future<Output = Result<()>> + MaybeSend {
+            self.log
+                .lock()
+                .unwrap()
+                .push(format!("connect:{}", chain.as_str()));
             let fail = self.failing_chains.contains(&chain);
-            std::future::ready(if fail { Err(Error::service(chain, format!("{} down", chain.as_str()))) } else { Ok(()) })
+            std::future::ready(if fail {
+                Err(Error::service(chain, format!("{} down", chain.as_str())))
+            } else {
+                Ok(())
+            })
         }
         fn disconnect(&self, chain: ChainId) -> impl Future<Output = Result<()>> + MaybeSend {
-            self.log.lock().unwrap().push(format!("disconnect:{}", chain.as_str()));
+            self.log
+                .lock()
+                .unwrap()
+                .push(format!("disconnect:{}", chain.as_str()));
             std::future::ready(Err(Error::Timeout("wedged".into())))
         }
-        fn ensure_session(&self, _c: &WalletCredentials) -> impl Future<Output = Result<()>> + MaybeSend {
+        fn ensure_session(
+            &self,
+            _c: &WalletCredentials,
+        ) -> impl Future<Output = Result<()>> + MaybeSend {
             self.log.lock().unwrap().push("session".into());
-            std::future::ready(if self.session_fails { Err(Error::Session("401".into())) } else { Ok(()) })
+            std::future::ready(if self.session_fails {
+                Err(Error::Session("401".into()))
+            } else {
+                Ok(())
+            })
         }
     }
 
     fn creds() -> Option<WalletCredentials> {
-        Some(WalletCredentials { mnemonic: "words".into(), network: AppNetwork::Mainnet })
+        Some(WalletCredentials {
+            mnemonic: "words".into(),
+            network: AppNetwork::Mainnet,
+        })
     }
 
     #[test]
     fn happy_path_runs_phases_in_order() {
         block_on(async {
-            let mut b = BootOrchestrator::new(Fake { creds: creds(), session_fails: true, ..Default::default() }, Arc::new(FixedClock::new(7)));
+            let mut b = BootOrchestrator::new(
+                Fake {
+                    creds: creds(),
+                    session_fails: true,
+                    ..Default::default()
+                },
+                Arc::new(FixedClock::new(7)),
+            );
             let s = b.start().await.unwrap();
             assert!(s.is_ready());
             assert_eq!(s.started_at_ms, Some(7));
             assert_eq!(
                 *b.services().log.lock().unwrap(),
-                ["platform", "db", "creds", "connect:liquid", "connect:bitcoin", "session"]
+                [
+                    "platform",
+                    "db",
+                    "creds",
+                    "connect:liquid",
+                    "connect:bitcoin",
+                    "session"
+                ]
             );
             let phases: Vec<BootPhase> = b.take_state_changes().iter().map(|s| s.phase).collect();
-            for p in [BootPhase::InitializingDatabase, BootPhase::LoadingCredentials, BootPhase::ConnectingServices, BootPhase::AuthenticatingSession] {
+            for p in [
+                BootPhase::InitializingDatabase,
+                BootPhase::LoadingCredentials,
+                BootPhase::ConnectingServices,
+                BootPhase::AuthenticatingSession,
+            ] {
                 assert!(phases.contains(&p));
             }
             assert_eq!(phases.last(), Some(&BootPhase::Ready));
@@ -331,9 +410,22 @@ mod tests {
     #[test]
     fn platform_failure_is_terminal_error() {
         block_on(async {
-            let mut b = BootOrchestrator::new(Fake { platform_fails: true, creds: creds(), ..Default::default() }, FixedClock::new(0));
+            let mut b = BootOrchestrator::new(
+                Fake {
+                    platform_fails: true,
+                    creds: creds(),
+                    ..Default::default()
+                },
+                FixedClock::new(0),
+            );
             let e = b.start().await.unwrap_err();
-            assert_eq!(e, Error::Boot { phase: "platform".into(), message: "no fs".into() });
+            assert_eq!(
+                e,
+                Error::Boot {
+                    phase: "platform".into(),
+                    message: "no fs".into()
+                }
+            );
             assert_eq!(b.state().phase, BootPhase::Error);
             assert_eq!(*b.services().log.lock().unwrap(), ["platform"]);
         });
@@ -343,19 +435,30 @@ mod tests {
     fn one_chain_down_degrades_all_down_fails() {
         block_on(async {
             let mut b = BootOrchestrator::new(
-                Fake { creds: creds(), failing_chains: vec![ChainId::Bitcoin], ..Default::default() },
+                Fake {
+                    creds: creds(),
+                    failing_chains: vec![ChainId::Bitcoin],
+                    ..Default::default()
+                },
                 FixedClock::new(0),
             );
             assert!(b.start().await.unwrap().is_ready());
 
             let mut b = BootOrchestrator::new(
-                Fake { creds: creds(), failing_chains: vec![ChainId::Liquid, ChainId::Bitcoin], ..Default::default() },
+                Fake {
+                    creds: creds(),
+                    failing_chains: vec![ChainId::Liquid, ChainId::Bitcoin],
+                    ..Default::default()
+                },
                 FixedClock::new(0),
             );
             let e = b.start().await.unwrap_err();
             assert_eq!(
                 e,
-                Error::Boot { phase: "connectingServices".into(), message: "all chain services failed: liquid down".into() }
+                Error::Boot {
+                    phase: "connectingServices".into(),
+                    message: "all chain services failed: liquid down".into()
+                }
             );
         });
     }
@@ -363,12 +466,21 @@ mod tests {
     #[test]
     fn shutdown_resets_to_idle_even_on_errors() {
         block_on(async {
-            let mut b = BootOrchestrator::new(Fake { creds: creds(), ..Default::default() }, FixedClock::new(0));
+            let mut b = BootOrchestrator::new(
+                Fake {
+                    creds: creds(),
+                    ..Default::default()
+                },
+                FixedClock::new(0),
+            );
             b.start().await.unwrap();
             b.shutdown().await;
             assert_eq!(b.state().phase, BootPhase::Idle);
             let log = b.services().log.lock().unwrap().clone();
-            assert_eq!(&log[log.len() - 2..], ["disconnect:bitcoin", "disconnect:liquid"]);
+            assert_eq!(
+                &log[log.len() - 2..],
+                ["disconnect:bitcoin", "disconnect:liquid"]
+            );
         });
     }
 }

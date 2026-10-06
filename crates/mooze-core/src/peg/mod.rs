@@ -10,7 +10,9 @@ pub mod tracker;
 pub mod validation;
 
 pub use entities::{PegDirection, PegError, PegOrder, PegPhase, PegProgress, PegServerLimits};
-pub use orchestrator::{PegExecution, PegFundingQuote, PegOrchestrator, PegQuote, PegStore, PegWallet};
+pub use orchestrator::{
+    PegExecution, PegFundingQuote, PegOrchestrator, PegQuote, PegStore, PegWallet,
+};
 pub use repository::{PegRepository, SideSwapPegRepository};
 pub use store::{KvPegStore, SwapAudit};
 pub use tracker::{PegRecoverySource, PegTracker, TrackedPeg};

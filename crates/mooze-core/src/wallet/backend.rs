@@ -44,7 +44,12 @@ pub struct ElectrumConfig {
 impl ElectrumConfig {
     /// Dart defaults: 30 s timeout, 5 retries, domain validation on.
     pub fn new(spawner: Arc<dyn BlockingSpawner>) -> Self {
-        Self { spawner, timeout_s: ELECTRUM_TIMEOUT_S, retry: ELECTRUM_RETRY, validate_domain: true }
+        Self {
+            spawner,
+            timeout_s: ELECTRUM_TIMEOUT_S,
+            retry: ELECTRUM_RETRY,
+            validate_domain: true,
+        }
     }
 }
 
@@ -170,7 +175,11 @@ mod electrum {
             })
             .await?
             .map_err(net)?;
-            Ok(Self { url: url.to_owned(), config: config.clone(), client: Arc::new(BdkElectrumClient::new(client)) })
+            Ok(Self {
+                url: url.to_owned(),
+                config: config.clone(),
+                client: Arc::new(BdkElectrumClient::new(client)),
+            })
         }
 
         /// Server URL as configured, before normalization.
@@ -194,31 +203,40 @@ mod electrum {
         }
 
         /// Sync of the revealed scripts.
-        pub async fn sync(&self, request: SyncRequest<(KeychainKind, u32)>) -> Result<bdk_wallet::Update> {
+        pub async fn sync(
+            &self,
+            request: SyncRequest<(KeychainKind, u32)>,
+        ) -> Result<bdk_wallet::Update> {
             let client = self.client.clone();
-            let response =
-                run_blocking(self.config.spawner.as_ref(), move || client.sync(request, ELECTRUM_BATCH_SIZE, true))
-                    .await?
-                    .map_err(net)?;
+            let response = run_blocking(self.config.spawner.as_ref(), move || {
+                client.sync(request, ELECTRUM_BATCH_SIZE, true)
+            })
+            .await?
+            .map_err(net)?;
             Ok(response.into())
         }
 
         /// Broadcasts a signed transaction. Returns the txid.
         pub async fn broadcast(&self, tx: BtcTransaction) -> Result<String> {
             let client = self.client.clone();
-            let txid = run_blocking(self.config.spawner.as_ref(), move || client.transaction_broadcast(&tx))
-                .await?
-                .map_err(net)?;
+            let txid = run_blocking(self.config.spawner.as_ref(), move || {
+                client.transaction_broadcast(&tx)
+            })
+            .await?
+            .map_err(net)?;
             Ok(txid.to_string())
         }
 
         /// Chain tip height.
         pub async fn tip_height(&self) -> Result<u32> {
             let client = self.client.clone();
-            let header = run_blocking(self.config.spawner.as_ref(), move || client.inner.block_headers_subscribe())
-                .await?
-                .map_err(net)?;
-            u32::try_from(header.height).map_err(|_| Error::protocol("electrum tip height out of range"))
+            let header = run_blocking(self.config.spawner.as_ref(), move || {
+                client.inner.block_headers_subscribe()
+            })
+            .await?
+            .map_err(net)?;
+            u32::try_from(header.height)
+                .map_err(|_| Error::protocol("electrum tip height out of range"))
         }
 
         /// Fee rates in sat/vB per confirmation target.
@@ -230,7 +248,10 @@ mod electrum {
             run_blocking(self.config.spawner.as_ref(), move || {
                 let mut out = HashMap::new();
                 for target in FEE_TARGETS {
-                    let btc_per_kvb = client.inner.estimate_fee(usize::from(target), None).map_err(net)?;
+                    let btc_per_kvb = client
+                        .inner
+                        .estimate_fee(usize::from(target), None)
+                        .map_err(net)?;
                     if btc_per_kvb > 0.0 {
                         out.insert(target, btc_per_kvb * 100_000.0);
                     }
@@ -255,11 +276,17 @@ mod electrum {
             let normalized = normalize_electrum_url(url);
             let timeout = Duration::from_secs(u64::from(config.timeout_s));
             let client = run_blocking(config.spawner.as_ref(), move || {
-                ElectrumClientBuilder::new(&normalized).timeout(timeout).build()
+                ElectrumClientBuilder::new(&normalized)
+                    .timeout(timeout)
+                    .build()
             })
             .await?
             .map_err(net)?;
-            Ok(Self { url: url.to_owned(), config: config.clone(), client: Arc::new(Mutex::new(client)) })
+            Ok(Self {
+                url: url.to_owned(),
+                config: config.clone(),
+                client: Arc::new(Mutex::new(client)),
+            })
         }
 
         /// Server URL as configured, before normalization.
@@ -272,14 +299,18 @@ mod electrum {
         /// The scan works on a snapshot of the wollet state taken now, so the
         /// returned future does not borrow the wollet. LWK does not export the
         /// snapshot type, so it stays inferred inside this function.
-        pub fn full_scan(&self, wollet: &Wollet) -> impl std::future::Future<Output = Result<Option<Update>>> + Send + 'static {
+        pub fn full_scan(
+            &self,
+            wollet: &Wollet,
+        ) -> impl std::future::Future<Output = Result<Option<Update>>> + Send + 'static {
             let state = wollet.state();
             let client = self.client.clone();
             let spawner = self.config.spawner.clone();
             async move {
                 run_blocking(spawner.as_ref(), move || {
-                    let mut guard =
-                        client.lock().map_err(|_| Error::Unexpected("electrum client lock poisoned".into()))?;
+                    let mut guard = client
+                        .lock()
+                        .map_err(|_| Error::Unexpected("electrum client lock poisoned".into()))?;
                     guard.full_scan(&state).map_err(net)
                 })
                 .await?
@@ -290,7 +321,9 @@ mod electrum {
         pub async fn broadcast(&self, tx: LiquidTransaction) -> Result<String> {
             let client = self.client.clone();
             run_blocking(self.config.spawner.as_ref(), move || {
-                let guard = client.lock().map_err(|_| Error::Unexpected("electrum client lock poisoned".into()))?;
+                let guard = client
+                    .lock()
+                    .map_err(|_| Error::Unexpected("electrum client lock poisoned".into()))?;
                 guard.broadcast(&tx).map(|t| t.to_string()).map_err(net)
             })
             .await?
@@ -308,14 +341,28 @@ mod tests {
         assert_eq!(btc[0], "ssl://electrum.blockstream.info:50002");
         assert_eq!(btc.len(), 4);
         let lq = default_electrum_urls(ChainId::Liquid, AppNetwork::Mainnet);
-        assert_eq!(lq, ["blockstream.info:995", "electrs.blockstream.info:995", "liquid.network:995", "les.bullbitcoin.com:995"]);
+        assert_eq!(
+            lq,
+            [
+                "blockstream.info:995",
+                "electrs.blockstream.info:995",
+                "liquid.network:995",
+                "les.bullbitcoin.com:995"
+            ]
+        );
         assert!(default_electrum_urls(ChainId::Lightning, AppNetwork::Mainnet).is_empty());
     }
 
     #[test]
     fn normalizes_bare_hosts_to_tls() {
-        assert_eq!(normalize_electrum_url("blockstream.info:995"), "ssl://blockstream.info:995");
-        assert_eq!(normalize_electrum_url(" tcp://10.0.0.2:50001 "), "tcp://10.0.0.2:50001");
+        assert_eq!(
+            normalize_electrum_url("blockstream.info:995"),
+            "ssl://blockstream.info:995"
+        );
+        assert_eq!(
+            normalize_electrum_url(" tcp://10.0.0.2:50001 "),
+            "tcp://10.0.0.2:50001"
+        );
         assert_eq!(normalize_electrum_url("ssl://x:1"), "ssl://x:1");
     }
 

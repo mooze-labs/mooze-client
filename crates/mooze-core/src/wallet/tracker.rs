@@ -24,7 +24,8 @@ impl TxTracker {
     /// Records the list without emitting events (cold restore priming).
     pub fn prime(&mut self, txs: &[Transaction]) {
         for tx in txs {
-            self.seen.insert(tx.id.clone(), (tx.status, tx.confirmations));
+            self.seen
+                .insert(tx.id.clone(), (tx.status, tx.confirmations));
         }
     }
 
@@ -43,14 +44,16 @@ impl TxTracker {
                 Some(&(status, conf)) if status != tx.status => {
                     Some((TransactionEventKind::StatusChanged, Some((status, conf))))
                 }
-                Some(&(status, conf)) if conf != tx.confirmations => {
-                    Some((TransactionEventKind::ConfirmationsChanged, Some((status, conf))))
-                }
+                Some(&(status, conf)) if conf != tx.confirmations => Some((
+                    TransactionEventKind::ConfirmationsChanged,
+                    Some((status, conf)),
+                )),
                 Some(_) => None,
             };
             if let Some((kind, prev)) = kind {
                 changes += 1;
-                self.seen.insert(tx.id.clone(), (tx.status, tx.confirmations));
+                self.seen
+                    .insert(tx.id.clone(), (tx.status, tx.confirmations));
                 self.outbox.push(TransactionEvent {
                     kind,
                     transaction: tx.clone(),
@@ -69,7 +72,8 @@ impl TxTracker {
         if self.seen.contains_key(&tx.id) {
             return false;
         }
-        self.seen.insert(tx.id.clone(), (tx.status, tx.confirmations));
+        self.seen
+            .insert(tx.id.clone(), (tx.status, tx.confirmations));
         self.outbox.push(TransactionEvent {
             kind: TransactionEventKind::Created,
             transaction: tx.clone(),
@@ -110,7 +114,15 @@ mod tests {
     use crate::domain::{ChainId, TransactionDirection};
 
     fn tx(id: &str, status: TransactionStatus, conf: u32) -> Transaction {
-        let mut t = Transaction::new(id, ChainId::Bitcoin, TransactionDirection::Incoming, status, 10, 1, 5);
+        let mut t = Transaction::new(
+            id,
+            ChainId::Bitcoin,
+            TransactionDirection::Incoming,
+            status,
+            10,
+            1,
+            5,
+        );
         t.confirmations = conf;
         t
     }

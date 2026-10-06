@@ -27,7 +27,9 @@ pub const MIN_PIN_LENGTH: usize = 4;
 
 /// Hex SHA-256 of `pin + salt`, as Dart stores it.
 pub fn hash_pin(pin: &str, salt: &str) -> String {
-    sha256::Hash::hash(format!("{pin}{salt}").as_bytes()).to_byte_array().to_lower_hex_string()
+    sha256::Hash::hash(format!("{pin}{salt}").as_bytes())
+        .to_byte_array()
+        .to_lower_hex_string()
 }
 
 /// PIN creation and checks.
@@ -40,7 +42,11 @@ pub struct PinService<S: SecureStore, K: KvStore, C: Clock> {
 impl<S: SecureStore, K: KvStore, C: Clock> PinService<S, K, C> {
     /// New service.
     pub fn new(secure: S, prefs: K, clock: C) -> Self {
-        Self { secure, prefs, clock }
+        Self {
+            secure,
+            prefs,
+            clock,
+        }
     }
 
     /// True if a PIN hash is stored.
@@ -62,8 +68,12 @@ impl<S: SecureStore, K: KvStore, C: Clock> PinService<S, K, C> {
             return Ok(false);
         }
         let salt = b64::encode(salt);
-        self.secure.put(PIN_SALT_KEY, salt.as_bytes().to_vec()).await?;
-        self.secure.put(HASHED_PIN_KEY, hash_pin(pin, &salt).into_bytes()).await?;
+        self.secure
+            .put(PIN_SALT_KEY, salt.as_bytes().to_vec())
+            .await?;
+        self.secure
+            .put(HASHED_PIN_KEY, hash_pin(pin, &salt).into_bytes())
+            .await?;
         self.put_int(PIN_ATTEMPTS_KEY, 0).await?;
         self.update_last_auth_time().await?;
         Ok(true)
@@ -72,8 +82,14 @@ impl<S: SecureStore, K: KvStore, C: Clock> PinService<S, K, C> {
     /// Checks `pin`. Updates the attempt counter and, on success, the last
     /// auth time. Errors if no PIN or salt is stored.
     pub async fn authenticate(&self, pin: &str) -> Result<bool> {
-        let hashed = self.read_secret(HASHED_PIN_KEY).await?.ok_or_else(|| Error::Credential("No pin set".into()))?;
-        let salt = self.read_secret(PIN_SALT_KEY).await?.ok_or_else(|| Error::Credential("No salt set".into()))?;
+        let hashed = self
+            .read_secret(HASHED_PIN_KEY)
+            .await?
+            .ok_or_else(|| Error::Credential("No pin set".into()))?;
+        let salt = self
+            .read_secret(PIN_SALT_KEY)
+            .await?
+            .ok_or_else(|| Error::Credential("No salt set".into()))?;
         let success = hash_pin(pin, &salt) == hashed;
         if success {
             self.update_last_auth_time().await?;
@@ -95,7 +111,11 @@ impl<S: SecureStore, K: KvStore, C: Clock> PinService<S, K, C> {
         let Some(last) = self.get_int(LAST_AUTH_TIME_KEY).await? else {
             return Ok(false);
         };
-        let timeout = SessionLockTimeout::from_storage(self.get_text(SessionLockTimeout::PREFS_KEY).await?.as_deref());
+        let timeout = SessionLockTimeout::from_storage(
+            self.get_text(SessionLockTimeout::PREFS_KEY)
+                .await?
+                .as_deref(),
+        );
         let elapsed = self.clock.now_ms() as i64 - last;
         Ok(elapsed < timeout.duration_ms() as i64)
     }
@@ -106,7 +126,8 @@ impl<S: SecureStore, K: KvStore, C: Clock> PinService<S, K, C> {
     }
 
     async fn update_last_auth_time(&self) -> Result<()> {
-        self.put_int(LAST_AUTH_TIME_KEY, self.clock.now_ms() as i64).await
+        self.put_int(LAST_AUTH_TIME_KEY, self.clock.now_ms() as i64)
+            .await
     }
 
     async fn read_secret(&self, key: &str) -> Result<Option<String>> {
@@ -141,16 +162,29 @@ mod tests {
     use crate::testing::{block_on, FixedClock, MemoryKv};
     use std::sync::Arc;
 
-    fn service() -> (PinService<MemoryKv, MemoryKv, Arc<FixedClock>>, MemoryKv, Arc<FixedClock>) {
+    fn service() -> (
+        PinService<MemoryKv, MemoryKv, Arc<FixedClock>>,
+        MemoryKv,
+        Arc<FixedClock>,
+    ) {
         let prefs = MemoryKv::new();
         let clock = Arc::new(FixedClock::new(1_000_000));
-        (PinService::new(MemoryKv::new(), prefs.clone(), clock.clone()), prefs, clock)
+        (
+            PinService::new(MemoryKv::new(), prefs.clone(), clock.clone()),
+            prefs,
+            clock,
+        )
     }
 
     #[test]
     fn hash_format() {
         // sha256("1234salt")
-        assert_eq!(hash_pin("1234", "salt"), sha256::Hash::hash(b"1234salt").to_byte_array().to_lower_hex_string());
+        assert_eq!(
+            hash_pin("1234", "salt"),
+            sha256::Hash::hash(b"1234salt")
+                .to_byte_array()
+                .to_lower_hex_string()
+        );
         assert_eq!(hash_pin("1234", "salt").len(), 64);
     }
 
@@ -159,7 +193,10 @@ mod tests {
         let (svc, _, _) = service();
         block_on(async {
             assert!(!svc.is_pin_setup().await.unwrap());
-            assert!(matches!(svc.authenticate("1234").await, Err(Error::Credential(_))));
+            assert!(matches!(
+                svc.authenticate("1234").await,
+                Err(Error::Credential(_))
+            ));
             assert!(!svc.create_pin_with_salt("123", &[1; 16]).await.unwrap());
             assert!(svc.create_pin_with_salt("1234", &[1; 16]).await.unwrap());
             assert!(svc.is_pin_setup().await.unwrap());
@@ -181,7 +218,10 @@ mod tests {
             svc.create_pin_with_salt("1234", &[0; 16]).await.unwrap();
             // Immediate timeout: never valid.
             assert!(!svc.has_valid_session().await.unwrap());
-            prefs.put(SessionLockTimeout::PREFS_KEY, b"seconds30".to_vec()).await.unwrap();
+            prefs
+                .put(SessionLockTimeout::PREFS_KEY, b"seconds30".to_vec())
+                .await
+                .unwrap();
             clock.advance(29_999);
             assert!(svc.has_valid_session().await.unwrap());
             clock.advance(1);

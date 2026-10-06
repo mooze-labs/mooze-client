@@ -287,6 +287,10 @@ export type StartConfigDto = {
 sync_tick_ms: number | null, 
 /**
  * Per-chain sync timeout. `None` uses the core default (60 s).
+ *
+ * The timeout drops the sync future. Esplora requests stop with it.
+ * An Electrum call runs on the blocking pool and finishes on its own;
+ * the next tick may then wait on the same client.
  */
 sync_timeout_ms: number | null, 
 /**

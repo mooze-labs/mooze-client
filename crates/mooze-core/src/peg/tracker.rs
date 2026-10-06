@@ -37,7 +37,13 @@ impl TrackedPeg {
     }
 
     /// Dart `copyWith`: `None` keeps the old value.
-    fn merged(&self, phase: PegPhase, payout: Option<&str>, confs: Option<u32>, required: Option<u32>) -> Self {
+    fn merged(
+        &self,
+        phase: PegPhase,
+        payout: Option<&str>,
+        confs: Option<u32>,
+        required: Option<u32>,
+    ) -> Self {
         let mut n = self.clone();
         n.phase = phase;
         if let Some(p) = payout {
@@ -95,7 +101,10 @@ impl PegTracker {
 
     /// Tracker with custom intervals (tests).
     pub fn with_interval(f: fn(PegPhase) -> u64) -> Self {
-        Self { interval_override: Some(f), ..Self::default() }
+        Self {
+            interval_override: Some(f),
+            ..Self::default()
+        }
     }
 
     /// Everything tracked, in insertion order.
@@ -114,7 +123,8 @@ impl PegTracker {
     }
 
     fn interval(&self, phase: PegPhase) -> u64 {
-        self.interval_override.map_or_else(|| poll_interval_ms(phase), |f| f(phase))
+        self.interval_override
+            .map_or_else(|| poll_interval_ms(phase), |f| f(phase))
     }
 
     fn upsert(&mut self, peg: TrackedPeg) {
@@ -128,7 +138,9 @@ impl PegTracker {
         if self.disposed || self.offline {
             return;
         }
-        let Some(phase) = self.get(order_id).map(|p| p.phase) else { return };
+        let Some(phase) = self.get(order_id).map(|p| p.phase) else {
+            return;
+        };
         if phase.is_terminal() {
             return;
         }
@@ -137,7 +149,8 @@ impl PegTracker {
         if delay == 0 {
             return;
         }
-        self.next_poll_at.insert(order_id.to_owned(), now_ms + delay);
+        self.next_poll_at
+            .insert(order_id.to_owned(), now_ms + delay);
     }
 
     /// Adds restored pegs that are not tracked yet and schedules them.
@@ -196,7 +209,11 @@ impl PegTracker {
 
     /// Order ids whose poll time has come.
     pub fn due(&self, now_ms: u64) -> Vec<String> {
-        self.next_poll_at.iter().filter(|(_, at)| **at <= now_ms).map(|(id, _)| id.clone()).collect()
+        self.next_poll_at
+            .iter()
+            .filter(|(_, at)| **at <= now_ms)
+            .map(|(id, _)| id.clone())
+            .collect()
     }
 
     /// Earliest scheduled poll, for the platform timer.
@@ -222,7 +239,9 @@ impl PegTracker {
         if self.disposed {
             return TrackerUpdate::default();
         }
-        let Some(peg) = self.get(order_id).cloned() else { return TrackerUpdate::default() };
+        let Some(peg) = self.get(order_id).cloned() else {
+            return TrackerUpdate::default();
+        };
         if peg.is_terminal() {
             return TrackerUpdate::default();
         }
@@ -245,7 +264,9 @@ impl PegTracker {
                     first.and_then(|d| d.detected_confirmations),
                     first.and_then(|d| d.total_confirmations),
                 );
-                if !updated.phase.is_terminal() && updated.phase.progress_rank() < peg.phase.progress_rank() {
+                if !updated.phase.is_terminal()
+                    && updated.phase.progress_rank() < peg.phase.progress_rank()
+                {
                     self.schedule(order_id, now_ms);
                     return TrackerUpdate::default();
                 }
@@ -254,7 +275,10 @@ impl PegTracker {
                 } else {
                     self.upsert(updated);
                     self.schedule(order_id, now_ms);
-                    TrackerUpdate { changed: true, terminal: None }
+                    TrackerUpdate {
+                        changed: true,
+                        terminal: None,
+                    }
                 }
             }
         }
@@ -263,7 +287,10 @@ impl PegTracker {
     fn finalise(&mut self, peg: TrackedPeg) -> TrackerUpdate {
         self.next_poll_at.remove(&peg.order_id);
         self.upsert(peg.clone());
-        TrackerUpdate { changed: true, terminal: Some(peg) }
+        TrackerUpdate {
+            changed: true,
+            terminal: Some(peg),
+        }
     }
 
     /// Polls `order_id` once and persists a terminal state (best-effort).
@@ -288,14 +315,23 @@ impl PegTracker {
         if let Some(t) = &update.terminal {
             // A write failure must not crash the tracker; restore re-polls.
             let _ = store
-                .record_terminal(&t.order_id, t.phase, t.payout_tx_id.as_deref(), t.error_message.as_deref())
+                .record_terminal(
+                    &t.order_id,
+                    t.phase,
+                    t.payout_tx_id.as_deref(),
+                    t.error_message.as_deref(),
+                )
                 .await;
         }
         update
     }
 
     /// Loads persisted pegs and resumes them.
-    pub async fn restore_from<P: PegRecoverySource>(&mut self, source: &P, now_ms: u64) -> Result<bool> {
+    pub async fn restore_from<P: PegRecoverySource>(
+        &mut self,
+        source: &P,
+        now_ms: u64,
+    ) -> Result<bool> {
         if self.disposed {
             return Ok(false);
         }
@@ -334,7 +370,12 @@ mod tests {
         }
     }
 
-    fn progress(id: &str, phase: PegPhase, payout: Option<&str>, confs: Option<(u32, u32)>) -> PegProgress {
+    fn progress(
+        id: &str,
+        phase: PegPhase,
+        payout: Option<&str>,
+        confs: Option<(u32, u32)>,
+    ) -> PegProgress {
         PegProgress {
             order_id: id.into(),
             direction: PegDirection::PegOut,
@@ -357,8 +398,14 @@ mod tests {
         let log: Log = Arc::default();
         (
             PegTracker::new(),
-            FakeRepo { log: log.clone(), status: None },
-            LogStore { log: log.clone(), fail: false },
+            FakeRepo {
+                log: log.clone(),
+                status: None,
+            },
+            LogStore {
+                log: log.clone(),
+                fail: false,
+            },
             log,
         )
     }
@@ -368,7 +415,13 @@ mod tests {
         let mut t = PegTracker::new();
         t.restore(vec![pending("order-1"), pending("order-2")], 0);
         t.restore(vec![pending("order-1")], 0);
-        assert_eq!(t.current().iter().map(|p| p.order_id.as_str()).collect::<Vec<_>>(), ["order-1", "order-2"]);
+        assert_eq!(
+            t.current()
+                .iter()
+                .map(|p| p.order_id.as_str())
+                .collect::<Vec<_>>(),
+            ["order-1", "order-2"]
+        );
         assert!(t.due(299_999).is_empty());
         assert_eq!(t.due(300_000).len(), 2);
         assert_eq!(t.next_wakeup_ms(), Some(300_000));
@@ -385,11 +438,22 @@ mod tests {
             assert_eq!(t.current()[0].phase, phase);
         }
         assert_eq!(t.due(30_000), ["order-1"]);
-        repo.status = Some(Ok(progress("order-1", PegPhase::Completed, Some("btc-payout"), None)));
+        repo.status = Some(Ok(progress(
+            "order-1",
+            PegPhase::Completed,
+            Some("btc-payout"),
+            None,
+        )));
         block_on(t.refresh(&mut repo, &store, "order-1", 0));
         block_on(t.refresh(&mut repo, &store, "order-1", 0));
         assert_eq!(t.current()[0].payout_tx_id.as_deref(), Some("btc-payout"));
-        let terminals: Vec<_> = log.lock().unwrap().iter().filter(|l| l.starts_with("terminal")).cloned().collect();
+        let terminals: Vec<_> = log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|l| l.starts_with("terminal"))
+            .cloned()
+            .collect();
         assert_eq!(terminals, ["terminal:order-1:completed"]);
         assert!(t.due(u64::MAX).is_empty());
     }
@@ -399,21 +463,39 @@ mod tests {
         let mut t = PegTracker::new();
         t.track(pending("o"), 0);
         t.apply_status("o", Ok(progress("o", PegPhase::Processing, None, None)), 0);
-        let u = t.apply_status("o", Ok(progress("o", PegPhase::Detected, None, Some((1, 2)))), 0);
+        let u = t.apply_status(
+            "o",
+            Ok(progress("o", PegPhase::Detected, None, Some((1, 2)))),
+            0,
+        );
         assert!(!u.changed);
         assert_eq!(t.current()[0].phase, PegPhase::Processing);
 
         let mut t = PegTracker::new();
         t.track(pending("o"), 0);
-        t.apply_status("o", Ok(progress("o", PegPhase::Detected, None, Some((1, 2)))), 0);
-        assert_eq!((t.current()[0].confirmations, t.current()[0].required_confirmations), (Some(1), Some(2)));
+        t.apply_status(
+            "o",
+            Ok(progress("o", PegPhase::Detected, None, Some((1, 2)))),
+            0,
+        );
+        assert_eq!(
+            (
+                t.current()[0].confirmations,
+                t.current()[0].required_confirmations
+            ),
+            (Some(1), Some(2))
+        );
     }
 
     #[test]
     fn insufficient_amount_is_terminal() {
         let mut t = PegTracker::new();
         t.track(pending("o"), 0);
-        let u = t.apply_status("o", Ok(progress("o", PegPhase::InsufficientAmount, None, None)), 0);
+        let u = t.apply_status(
+            "o",
+            Ok(progress("o", PegPhase::InsufficientAmount, None, None)),
+            0,
+        );
         assert_eq!(u.terminal.unwrap().phase, PegPhase::InsufficientAmount);
     }
 
@@ -427,14 +509,22 @@ mod tests {
         assert_eq!(t.next_wakeup_ms(), Some(10 + 300_000));
         let u = t.apply_status("o", Err(PegError::OrderNotFound("o".into())), 10);
         let term = u.terminal.unwrap();
-        assert_eq!((term.phase, term.error_message.as_deref()), (PegPhase::Failed, Some("Ordem não encontrada")));
+        assert_eq!(
+            (term.phase, term.error_message.as_deref()),
+            (PegPhase::Failed, Some("Ordem não encontrada"))
+        );
 
         // Store failure does not crash.
         let log: Log = Arc::default();
-        let mut repo = FakeRepo { log: log.clone(), status: Some(Ok(progress("p", PegPhase::Completed, None, None))) };
+        let mut repo = FakeRepo {
+            log: log.clone(),
+            status: Some(Ok(progress("p", PegPhase::Completed, None, None))),
+        };
         let store = LogStore { log, fail: true };
         t.track(pending("p"), 0);
-        assert!(block_on(t.refresh(&mut repo, &store, "p", 0)).terminal.is_some());
+        assert!(block_on(t.refresh(&mut repo, &store, "p", 0))
+            .terminal
+            .is_some());
     }
 
     #[test]

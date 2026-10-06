@@ -14,7 +14,12 @@ pub struct SyncOutcome {
 impl SyncOutcome {
     /// Outcome with zero counts.
     pub fn empty(chain: ChainId) -> Self {
-        Self { chain, fetched: 0, changed: 0, duration_ms: 0 }
+        Self {
+            chain,
+            fetched: 0,
+            changed: 0,
+            duration_ms: 0,
+        }
     }
 }
 
@@ -44,15 +49,23 @@ impl TransactionEvent {
     }
 
     /// Compares a fresh record with the stored one. `None` if nothing changed.
-    pub fn diff(previous: Option<&Transaction>, current: &Transaction, now_ms: u64) -> Option<Self> {
+    pub fn diff(
+        previous: Option<&Transaction>,
+        current: &Transaction,
+        now_ms: u64,
+    ) -> Option<Self> {
         let (kind, prev_status, prev_conf) = match previous {
             None => (TransactionEventKind::Created, None, None),
-            Some(p) if p.status != current.status => {
-                (TransactionEventKind::StatusChanged, Some(p.status), Some(p.confirmations))
-            }
-            Some(p) if p.confirmations != current.confirmations => {
-                (TransactionEventKind::ConfirmationsChanged, Some(p.status), Some(p.confirmations))
-            }
+            Some(p) if p.status != current.status => (
+                TransactionEventKind::StatusChanged,
+                Some(p.status),
+                Some(p.confirmations),
+            ),
+            Some(p) if p.confirmations != current.confirmations => (
+                TransactionEventKind::ConfirmationsChanged,
+                Some(p.status),
+                Some(p.confirmations),
+            ),
             Some(_) => return None,
         };
         Some(Self {

@@ -34,13 +34,18 @@ impl<K: KvStore> NodeSettings<K> {
         match chain {
             ChainId::Bitcoin => Ok(BITCOIN_NODE_URL_KEY),
             ChainId::Liquid => Ok(LIQUID_NODE_URL_KEY),
-            other => Err(Error::invalid(format!("no node setting for {}", other.as_str()))),
+            other => Err(Error::invalid(format!(
+                "no node setting for {}",
+                other.as_str()
+            ))),
         }
     }
 
     /// Custom node URL, or an empty string in default mode.
     pub async fn node_url(&self, chain: ChainId) -> Result<String> {
-        Ok(get_json::<K, String>(&self.kv, Self::key(chain)?).await?.unwrap_or_default())
+        Ok(get_json::<K, String>(&self.kv, Self::key(chain)?)
+            .await?
+            .unwrap_or_default())
     }
 
     /// Sets the custom node URL. A blank URL returns to default mode.
@@ -68,8 +73,13 @@ mod tests {
         let s = NodeSettings::new(MemoryKv::new());
         block_on(async {
             assert_eq!(s.node_url(ChainId::Bitcoin).await.unwrap(), "");
-            s.set_node_url(ChainId::Bitcoin, " ssl://my.node:50002 ").await.unwrap();
-            assert_eq!(s.node_url(ChainId::Bitcoin).await.unwrap(), "ssl://my.node:50002");
+            s.set_node_url(ChainId::Bitcoin, " ssl://my.node:50002 ")
+                .await
+                .unwrap();
+            assert_eq!(
+                s.node_url(ChainId::Bitcoin).await.unwrap(),
+                "ssl://my.node:50002"
+            );
             assert_eq!(s.node_url(ChainId::Liquid).await.unwrap(), "");
             s.set_node_url(ChainId::Bitcoin, "   ").await.unwrap();
             assert_eq!(s.node_url(ChainId::Bitcoin).await.unwrap(), "");

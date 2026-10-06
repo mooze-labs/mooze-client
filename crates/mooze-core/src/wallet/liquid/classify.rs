@@ -3,8 +3,8 @@
 //! `applyOptimisticBalanceDelta` in `liquid_wallet_service_impl.dart`.
 
 use crate::domain::{
-    AssetBalance, Balance, ChainId, Transaction, TransactionDirection, TransactionSource, TransactionStatus,
-    LBTC_ASSET_ID,
+    AssetBalance, Balance, ChainId, Transaction, TransactionDirection, TransactionSource,
+    TransactionStatus, LBTC_ASSET_ID,
 };
 
 const CHAIN: ChainId = ChainId::Liquid;
@@ -45,14 +45,24 @@ pub struct LwkTxView {
 impl LwkTxView {
     /// Builds the view from an LWK wallet transaction.
     pub fn from_wallet_tx(t: &lwk_wollet::WalletTx) -> Self {
-        let txout = |o: &lwk_wollet::WalletTxOut| LwkTxOut { asset_id: o.unblinded.asset.to_string(), value: o.unblinded.value };
+        let txout = |o: &lwk_wollet::WalletTxOut| LwkTxOut {
+            asset_id: o.unblinded.asset.to_string(),
+            value: o.unblinded.value,
+        };
         Self {
             txid: t.txid.to_string(),
             height: t.height,
             timestamp_s: t.timestamp.map(u64::from),
             fee: t.fee,
             kind: t.type_.clone(),
-            balances: t.balance.iter().map(|(a, v)| LwkBalance { asset_id: a.to_string(), value: *v }).collect(),
+            balances: t
+                .balance
+                .iter()
+                .map(|(a, v)| LwkBalance {
+                    asset_id: a.to_string(),
+                    value: *v,
+                })
+                .collect(),
             inputs: t.inputs.iter().flatten().map(txout).collect(),
             outputs: t.outputs.iter().flatten().map(txout).collect(),
         }
@@ -76,7 +86,11 @@ fn pick_main<'a>(balances: &[&'a LwkBalance]) -> &'a LwkBalance {
     if balances.len() == 1 {
         return balances[0];
     }
-    let non_lbtc: Vec<&LwkBalance> = balances.iter().copied().filter(|b| b.asset_id != LBTC_ASSET_ID).collect();
+    let non_lbtc: Vec<&LwkBalance> = balances
+        .iter()
+        .copied()
+        .filter(|b| b.asset_id != LBTC_ASSET_ID)
+        .collect();
     if !non_lbtc.is_empty() {
         return reduce_max(&non_lbtc, |b| b.value.abs());
     }
@@ -100,7 +114,12 @@ fn self_transfer_subject(t: &LwkTxView) -> Option<(String, i64)> {
     let mut winner: Option<&str> = None;
     let mut winner_gross: i64 = 0;
     for id in candidates {
-        let sum = |v: &[LwkTxOut]| v.iter().filter(|o| o.asset_id == id).map(|o| o.value as i64).sum::<i64>();
+        let sum = |v: &[LwkTxOut]| {
+            v.iter()
+                .filter(|o| o.asset_id == id)
+                .map(|o| o.value as i64)
+                .sum::<i64>()
+        };
         let gross = sum(&t.inputs).max(sum(&t.outputs));
         if gross > winner_gross {
             winner_gross = gross;
@@ -119,7 +138,11 @@ fn self_transfer_subject(t: &LwkTxView) -> Option<(String, i64)> {
 /// network, as the Dart code does.
 pub fn map_tx(t: &LwkTxView, now_ms: u64) -> Transaction {
     let fee = t.fee as i64;
-    let status = if t.height.is_some() { TransactionStatus::Confirmed } else { TransactionStatus::Pending };
+    let status = if t.height.is_some() {
+        TransactionStatus::Confirmed
+    } else {
+        TransactionStatus::Pending
+    };
     let ts = t.timestamp_s.map(|s| s * 1000).unwrap_or(now_ms);
 
     let non_zero: Vec<&LwkBalance> = t.balances.iter().filter(|b| b.value != 0).collect();
@@ -140,48 +163,97 @@ pub fn map_tx(t: &LwkTxView, now_ms: u64) -> Transaction {
     let self_transfer = || {
         let subject = self_transfer_subject(t);
         let amount = subject.as_ref().map(|s| s.1).unwrap_or(fee);
-        let asset = subject.map(|s| s.0).unwrap_or_else(|| LBTC_ASSET_ID.to_owned());
+        let asset = subject
+            .map(|s| s.0)
+            .unwrap_or_else(|| LBTC_ASSET_ID.to_owned());
         (TransactionDirection::SelfTransfer, amount, Some(asset))
     };
 
-    let (direction, amount, main_asset): (TransactionDirection, i64, Option<String>) = if t.kind == "redeposit" {
-        // P1: explicit LWK redeposit.
-        self_transfer()
-    } else if non_zero.is_empty() && fee > 0 {
-        // P2: nothing moved net, a fee was paid.
-        self_transfer()
-    } else if non_zero.len() == 1 && non_zero[0].asset_id == LBTC_ASSET_ID && non_zero[0].value == -fee && fee > 0 {
-        // P3: only the L-BTC fee left the wallet.
-        self_transfer()
-    } else if !positives.is_empty() && !negatives.is_empty() && unique.len() >= 2 {
-        // P4: mixed signs over two or more assets: swap.
-        let pos_non_lbtc: Vec<&LwkBalance> = positives.iter().copied().filter(|b| b.asset_id != LBTC_ASSET_ID).collect();
-        let neg_non_lbtc: Vec<&LwkBalance> = negatives.iter().copied().filter(|b| b.asset_id != LBTC_ASSET_ID).collect();
-        let to = reduce_max(if pos_non_lbtc.is_empty() { &positives } else { &pos_non_lbtc }, |b| b.value);
-        let from = reduce_max(if neg_non_lbtc.is_empty() { &negatives } else { &neg_non_lbtc }, |b| b.value.abs());
-        from_asset = Some(from.asset_id.clone());
-        to_asset = Some(to.asset_id.clone());
-        sent = Some(from.value.abs());
-        received = Some(to.value);
-        (TransactionDirection::Swap, from.value.abs(), Some(from.asset_id.clone()))
-    } else if !non_zero.is_empty() && non_zero.iter().all(|b| b.value > 0) {
-        // P5: pure incoming.
-        let main = pick_main(&non_zero);
-        (TransactionDirection::Incoming, main.value.abs(), Some(main.asset_id.clone()))
-    } else if !non_zero.is_empty() && non_zero.iter().all(|b| b.value < 0) {
-        // P6: pure outgoing.
-        let main = pick_main(&non_zero);
-        (TransactionDirection::Outgoing, main.value.abs(), Some(main.asset_id.clone()))
-    } else {
-        // P7: catch-all (issuance, burn, unknown).
-        let source: Vec<&LwkBalance> = if non_zero.is_empty() { t.balances.iter().collect() } else { non_zero.clone() };
-        if source.is_empty() {
-            (TransactionDirection::Internal, 0, None)
+    let (direction, amount, main_asset): (TransactionDirection, i64, Option<String>) =
+        if t.kind == "redeposit" {
+            // P1: explicit LWK redeposit.
+            self_transfer()
+        } else if non_zero.is_empty() && fee > 0 {
+            // P2: nothing moved net, a fee was paid.
+            self_transfer()
+        } else if non_zero.len() == 1
+            && non_zero[0].asset_id == LBTC_ASSET_ID
+            && non_zero[0].value == -fee
+            && fee > 0
+        {
+            // P3: only the L-BTC fee left the wallet.
+            self_transfer()
+        } else if !positives.is_empty() && !negatives.is_empty() && unique.len() >= 2 {
+            // P4: mixed signs over two or more assets: swap.
+            let pos_non_lbtc: Vec<&LwkBalance> = positives
+                .iter()
+                .copied()
+                .filter(|b| b.asset_id != LBTC_ASSET_ID)
+                .collect();
+            let neg_non_lbtc: Vec<&LwkBalance> = negatives
+                .iter()
+                .copied()
+                .filter(|b| b.asset_id != LBTC_ASSET_ID)
+                .collect();
+            let to = reduce_max(
+                if pos_non_lbtc.is_empty() {
+                    &positives
+                } else {
+                    &pos_non_lbtc
+                },
+                |b| b.value,
+            );
+            let from = reduce_max(
+                if neg_non_lbtc.is_empty() {
+                    &negatives
+                } else {
+                    &neg_non_lbtc
+                },
+                |b| b.value.abs(),
+            );
+            from_asset = Some(from.asset_id.clone());
+            to_asset = Some(to.asset_id.clone());
+            sent = Some(from.value.abs());
+            received = Some(to.value);
+            (
+                TransactionDirection::Swap,
+                from.value.abs(),
+                Some(from.asset_id.clone()),
+            )
+        } else if !non_zero.is_empty() && non_zero.iter().all(|b| b.value > 0) {
+            // P5: pure incoming.
+            let main = pick_main(&non_zero);
+            (
+                TransactionDirection::Incoming,
+                main.value.abs(),
+                Some(main.asset_id.clone()),
+            )
+        } else if !non_zero.is_empty() && non_zero.iter().all(|b| b.value < 0) {
+            // P6: pure outgoing.
+            let main = pick_main(&non_zero);
+            (
+                TransactionDirection::Outgoing,
+                main.value.abs(),
+                Some(main.asset_id.clone()),
+            )
         } else {
-            let main = pick_main(&source);
-            (TransactionDirection::Internal, main.value.abs(), Some(main.asset_id.clone()))
-        }
-    };
+            // P7: catch-all (issuance, burn, unknown).
+            let source: Vec<&LwkBalance> = if non_zero.is_empty() {
+                t.balances.iter().collect()
+            } else {
+                non_zero.clone()
+            };
+            if source.is_empty() {
+                (TransactionDirection::Internal, 0, None)
+            } else {
+                let main = pick_main(&source);
+                (
+                    TransactionDirection::Internal,
+                    main.value.abs(),
+                    Some(main.asset_id.clone()),
+                )
+            }
+        };
 
     let mut tx = Transaction::new(t.txid.clone(), CHAIN, direction, status, amount, fee, ts);
     tx.confirmations = if t.height.is_some() { 1 } else { 0 };
@@ -227,7 +299,10 @@ pub fn apply_optimistic_delta(prev: &Balance, deltas: &[(String, i64)], now_ms: 
         }
     }
     for (asset_id, delta) in deltas {
-        match by_id.iter_mut().find(|x| x.asset_id.as_deref() == Some(asset_id.as_str())) {
+        match by_id
+            .iter_mut()
+            .find(|x| x.asset_id.as_deref() == Some(asset_id.as_str()))
+        {
             Some(existing) => {
                 let next = existing.amount_sat as i64 + delta;
                 existing.amount_sat = next.max(0) as u64;
@@ -237,13 +312,20 @@ pub fn apply_optimistic_delta(prev: &Balance, deltas: &[(String, i64)], now_ms: 
                 asset_id: Some(asset_id.clone()),
                 amount_sat: *delta as u64,
                 precision: 8,
-                ticker: if asset_id == LBTC_ASSET_ID { Some("L-BTC".to_owned()) } else { None },
+                ticker: if asset_id == LBTC_ASSET_ID {
+                    Some("L-BTC".to_owned())
+                } else {
+                    None
+                },
                 pending_sat: 0,
             }),
             None => {}
         }
     }
-    Balance { assets: by_id, snapshot_at_ms: now_ms }
+    Balance {
+        assets: by_id,
+        snapshot_at_ms: now_ms,
+    }
 }
 
 #[cfg(test)]
@@ -252,10 +334,16 @@ mod tests {
     use crate::domain::{DEPIX_ASSET_ID, USDT_ASSET_ID};
 
     fn bal(id: &str, v: i64) -> LwkBalance {
-        LwkBalance { asset_id: id.into(), value: v }
+        LwkBalance {
+            asset_id: id.into(),
+            value: v,
+        }
     }
     fn out(id: &str, v: u64) -> LwkTxOut {
-        LwkTxOut { asset_id: id.into(), value: v }
+        LwkTxOut {
+            asset_id: id.into(),
+            value: v,
+        }
     }
     fn view(kind: &str, fee: u64, balances: Vec<LwkBalance>) -> LwkTxView {
         LwkTxView {
@@ -273,12 +361,32 @@ mod tests {
     #[test]
     fn incoming_and_outgoing_prefer_non_lbtc() {
         let t = map_tx(&view("incoming", 0, vec![bal(LBTC_ASSET_ID, 5_000)]), 1);
-        assert_eq!((t.direction, t.amount_sat, t.asset_id.as_deref()), (TransactionDirection::Incoming, 5_000, Some(LBTC_ASSET_ID)));
-        assert_eq!((t.status, t.confirmations, t.timestamp_ms), (TransactionStatus::Confirmed, 1, 1_700_000_000_000));
+        assert_eq!(
+            (t.direction, t.amount_sat, t.asset_id.as_deref()),
+            (TransactionDirection::Incoming, 5_000, Some(LBTC_ASSET_ID))
+        );
+        assert_eq!(
+            (t.status, t.confirmations, t.timestamp_ms),
+            (TransactionStatus::Confirmed, 1, 1_700_000_000_000)
+        );
         assert_eq!(t.source, Some(TransactionSource::Lwk));
 
-        let t = map_tx(&view("outgoing", 30, vec![bal(LBTC_ASSET_ID, -30), bal(USDT_ASSET_ID, -100_000_000)]), 1);
-        assert_eq!((t.direction, t.amount_sat, t.asset_id.as_deref()), (TransactionDirection::Outgoing, 100_000_000, Some(USDT_ASSET_ID)));
+        let t = map_tx(
+            &view(
+                "outgoing",
+                30,
+                vec![bal(LBTC_ASSET_ID, -30), bal(USDT_ASSET_ID, -100_000_000)],
+            ),
+            1,
+        );
+        assert_eq!(
+            (t.direction, t.amount_sat, t.asset_id.as_deref()),
+            (
+                TransactionDirection::Outgoing,
+                100_000_000,
+                Some(USDT_ASSET_ID)
+            )
+        );
         assert_eq!(t.fee_sat, 30);
     }
 
@@ -288,40 +396,78 @@ mod tests {
         v.height = None;
         v.timestamp_s = None;
         let t = map_tx(&v, 42);
-        assert_eq!((t.status, t.confirmations, t.timestamp_ms), (TransactionStatus::Pending, 0, 42));
+        assert_eq!(
+            (t.status, t.confirmations, t.timestamp_ms),
+            (TransactionStatus::Pending, 0, 42)
+        );
     }
 
     #[test]
     fn redeposit_and_fee_only_are_self_transfers() {
         let t = map_tx(&view("redeposit", 26, vec![bal(LBTC_ASSET_ID, -26)]), 1);
-        assert_eq!((t.direction, t.amount_sat, t.asset_id.as_deref()), (TransactionDirection::SelfTransfer, 26, Some(LBTC_ASSET_ID)));
+        assert_eq!(
+            (t.direction, t.amount_sat, t.asset_id.as_deref()),
+            (TransactionDirection::SelfTransfer, 26, Some(LBTC_ASSET_ID))
+        );
 
         let t = map_tx(&view("unknown", 26, vec![]), 1);
-        assert_eq!((t.direction, t.amount_sat), (TransactionDirection::SelfTransfer, 26));
+        assert_eq!(
+            (t.direction, t.amount_sat),
+            (TransactionDirection::SelfTransfer, 26)
+        );
 
         // P3 with a USDT subject on inputs/outputs.
-        let mut v = view("outgoing", 26, vec![bal(LBTC_ASSET_ID, -26), bal(USDT_ASSET_ID, 0)]);
+        let mut v = view(
+            "outgoing",
+            26,
+            vec![bal(LBTC_ASSET_ID, -26), bal(USDT_ASSET_ID, 0)],
+        );
         v.inputs = vec![out(USDT_ASSET_ID, 700), out(LBTC_ASSET_ID, 1_000)];
-        v.outputs = vec![out(USDT_ASSET_ID, 300), out(USDT_ASSET_ID, 400), out(LBTC_ASSET_ID, 974)];
+        v.outputs = vec![
+            out(USDT_ASSET_ID, 300),
+            out(USDT_ASSET_ID, 400),
+            out(LBTC_ASSET_ID, 974),
+        ];
         let t = map_tx(&v, 1);
-        assert_eq!((t.direction, t.amount_sat, t.asset_id.as_deref()), (TransactionDirection::SelfTransfer, 700, Some(USDT_ASSET_ID)));
+        assert_eq!(
+            (t.direction, t.amount_sat, t.asset_id.as_deref()),
+            (TransactionDirection::SelfTransfer, 700, Some(USDT_ASSET_ID))
+        );
     }
 
     #[test]
     fn mixed_signs_are_swaps() {
         let t = map_tx(
-            &view("unknown", 40, vec![bal(LBTC_ASSET_ID, -100_040), bal(USDT_ASSET_ID, 60_000_000)]),
+            &view(
+                "unknown",
+                40,
+                vec![bal(LBTC_ASSET_ID, -100_040), bal(USDT_ASSET_ID, 60_000_000)],
+            ),
             1,
         );
         assert_eq!(t.direction, TransactionDirection::Swap);
         assert_eq!(t.from_asset_id.as_deref(), Some(LBTC_ASSET_ID));
         assert_eq!(t.to_asset_id.as_deref(), Some(USDT_ASSET_ID));
-        assert_eq!((t.sent_amount_sat, t.received_amount_sat), (Some(100_040), Some(60_000_000)));
-        assert_eq!((t.amount_sat, t.asset_id.as_deref()), (100_040, Some(LBTC_ASSET_ID)));
+        assert_eq!(
+            (t.sent_amount_sat, t.received_amount_sat),
+            (Some(100_040), Some(60_000_000))
+        );
+        assert_eq!(
+            (t.amount_sat, t.asset_id.as_deref()),
+            (100_040, Some(LBTC_ASSET_ID))
+        );
 
         // Non-L-BTC legs win over the L-BTC fee leg.
         let t = map_tx(
-            &view("unknown", 40, vec![bal(LBTC_ASSET_ID, -40), bal(DEPIX_ASSET_ID, -500), bal(USDT_ASSET_ID, 90)]),
+            &view(
+                "unknown",
+                40,
+                vec![
+                    bal(LBTC_ASSET_ID, -40),
+                    bal(DEPIX_ASSET_ID, -500),
+                    bal(USDT_ASSET_ID, 90),
+                ],
+            ),
             1,
         );
         assert_eq!(t.from_asset_id.as_deref(), Some(DEPIX_ASSET_ID));
@@ -332,24 +478,45 @@ mod tests {
     fn catch_all_and_ties() {
         // Zero balances, zero fee: internal with the first-picked zero entry.
         let t = map_tx(&view("unknown", 0, vec![bal(LBTC_ASSET_ID, 0)]), 1);
-        assert_eq!((t.direction, t.amount_sat, t.asset_id.as_deref()), (TransactionDirection::Internal, 0, Some(LBTC_ASSET_ID)));
+        assert_eq!(
+            (t.direction, t.amount_sat, t.asset_id.as_deref()),
+            (TransactionDirection::Internal, 0, Some(LBTC_ASSET_ID))
+        );
         let t = map_tx(&view("unknown", 0, vec![]), 1);
-        assert_eq!((t.direction, t.asset_id), (TransactionDirection::Internal, None));
+        assert_eq!(
+            (t.direction, t.asset_id),
+            (TransactionDirection::Internal, None)
+        );
         // Tie between two non-L-BTC incoming assets keeps the later one.
-        let t = map_tx(&view("incoming", 0, vec![bal(DEPIX_ASSET_ID, 5), bal(USDT_ASSET_ID, 5)]), 1);
+        let t = map_tx(
+            &view(
+                "incoming",
+                0,
+                vec![bal(DEPIX_ASSET_ID, 5), bal(USDT_ASSET_ID, 5)],
+            ),
+            1,
+        );
         assert_eq!(t.asset_id.as_deref(), Some(USDT_ASSET_ID));
     }
 
     #[test]
     fn balance_and_optimistic_delta() {
-        let b = map_balance(&[(LBTC_ASSET_ID.into(), 1_000), (USDT_ASSET_ID.into(), 50)], 3);
+        let b = map_balance(
+            &[(LBTC_ASSET_ID.into(), 1_000), (USDT_ASSET_ID.into(), 50)],
+            3,
+        );
         assert_eq!(b.amount_for_asset(LBTC_ASSET_ID), 1_000);
         assert_eq!(b.assets[0].precision, 8);
         assert_eq!(apply_optimistic_delta(&b, &[], 9), b);
 
         let d = apply_optimistic_delta(
             &b,
-            &[(LBTC_ASSET_ID.into(), -2_000), (USDT_ASSET_ID.into(), 25), (DEPIX_ASSET_ID.into(), 7), ("x".into(), -1)],
+            &[
+                (LBTC_ASSET_ID.into(), -2_000),
+                (USDT_ASSET_ID.into(), 25),
+                (DEPIX_ASSET_ID.into(), 7),
+                ("x".into(), -1),
+            ],
             9,
         );
         assert_eq!(d.amount_for_asset(LBTC_ASSET_ID), 0);

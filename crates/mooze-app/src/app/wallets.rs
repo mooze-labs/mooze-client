@@ -1,7 +1,9 @@
 //! Bitcoin and Liquid wallet methods. Port of the bridge wallet calls.
 //!
 //! The Liquid signing methods read the mnemonic from the secure store,
-//! so no host ever passes it across the boundary.
+//! so no host ever passes it across the boundary. They check the wallet
+//! first, so a missing wallet reports `InvalidState` before any credential
+//! error.
 
 use mooze_core::domain::{ChainId, WalletCredentials};
 use mooze_core::store::CredentialStore;
@@ -14,9 +16,9 @@ use crate::{AppError, ErrorCode, Platform, Result};
 
 /// Mnemonic from the secure store (`mnemonic_mainWallet`).
 pub(crate) async fn load_mnemonic<P: Platform>(inner: &Inner<P>) -> Result<String> {
-    let store = inner.platform.secure();
-    super::probe_secure_store(&store).await?;
-    let credentials = CredentialStore::new(store, inner.network).load().await?;
+    let credentials = CredentialStore::new(inner.platform.secure(), inner.network)
+        .load()
+        .await?;
     if credentials.is_absent() {
         return Err(AppError::new(
             ErrorCode::Credential,
@@ -394,11 +396,11 @@ impl<P: Platform> App<P> {
 
     /// Builds, signs and broadcasts a send. Signs with the stored mnemonic.
     pub async fn liquid_send(&self, request: SendRequestDto) -> Result<BroadcastResultDto> {
-        let mnemonic = load_mnemonic(&self.inner).await?;
         let mut guard = self.inner.liquid.lock().await;
         let w = guard
             .as_mut()
             .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let mnemonic = load_mnemonic(&self.inner).await?;
         Ok((&w
             .send_onchain(&send_request(&request, ChainId::Liquid), &mnemonic)
             .await?)
@@ -407,21 +409,21 @@ impl<P: Platform> App<P> {
 
     /// Signs a PSET with the stored mnemonic and broadcasts it. Returns the txid.
     pub async fn liquid_sign_and_broadcast(&self, pset: String) -> Result<String> {
-        let mnemonic = load_mnemonic(&self.inner).await?;
         let mut guard = self.inner.liquid.lock().await;
         let w = guard
             .as_mut()
             .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let mnemonic = load_mnemonic(&self.inner).await?;
         Ok(w.sign_and_broadcast_pset(&pset, &mnemonic).await?)
     }
 
     /// Signs a SideSwap swap PSET with the stored mnemonic. Returns the signed PSET.
     pub async fn liquid_sign_swap_pset(&self, pset: String) -> Result<String> {
-        let mnemonic = load_mnemonic(&self.inner).await?;
         let guard = self.inner.liquid.lock().await;
         let w = guard
             .as_ref()
             .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let mnemonic = load_mnemonic(&self.inner).await?;
         Ok(w.sign_swap_pset(&pset, &mnemonic)?)
     }
 }
@@ -481,6 +483,14 @@ mod tests {
         block_on(app.liquid_connect(ABANDON.into())).unwrap();
         let err = block_on(app.liquid_apply_balance_delta(vec!["a".into()], vec![])).unwrap_err();
         assert_eq!(err.code, ErrorCode::InvalidInput);
+    }
+
+    #[test]
+    fn liquid_signing_without_wallet_reports_invalid_state_before_credentials() {
+        let (app, _plat) = open_test_app();
+        let err = block_on(app.liquid_sign_swap_pset("cHNldP8=".into())).unwrap_err();
+        assert_eq!(err.code, ErrorCode::InvalidState);
+        assert_eq!(err.message, "liquid wallet not connected");
     }
 
     #[test]

@@ -31,7 +31,9 @@ impl<K: KvStore> MerchantModeStore<K> {
 
     /// True if merchant mode is on. Absent means off.
     pub async fn is_active(&self) -> Result<bool> {
-        Ok(get_json(&self.kv, MERCHANT_MODE_ACTIVE_KEY).await?.unwrap_or(false))
+        Ok(get_json(&self.kv, MERCHANT_MODE_ACTIVE_KEY)
+            .await?
+            .unwrap_or(false))
     }
 
     /// Sets the flag. Saves `origin` only when activating.
@@ -45,12 +47,15 @@ impl<K: KvStore> MerchantModeStore<K> {
 
     /// Activates with `origin`, default [`DEFAULT_ORIGIN`]. Port of `ActivateMerchantModeUseCase`.
     pub async fn activate(&self, origin: Option<&str>) -> Result<()> {
-        self.set_active(true, origin.unwrap_or(DEFAULT_ORIGIN)).await
+        self.set_active(true, origin.unwrap_or(DEFAULT_ORIGIN))
+            .await
     }
 
     /// Saved origin, default [`DEFAULT_ORIGIN`].
     pub async fn origin(&self) -> Result<String> {
-        Ok(get_json(&self.kv, MERCHANT_MODE_ORIGIN_KEY).await?.unwrap_or_else(|| DEFAULT_ORIGIN.to_owned()))
+        Ok(get_json(&self.kv, MERCHANT_MODE_ORIGIN_KEY)
+            .await?
+            .unwrap_or_else(|| DEFAULT_ORIGIN.to_owned()))
     }
 
     /// Removes flag and origin. Port of `DeactivateMerchantModeUseCase`.

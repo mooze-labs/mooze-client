@@ -22,7 +22,8 @@ use futures::lock::{Mutex, MutexGuard};
 
 use crate::api::SessionProvider;
 use crate::domain::{
-    ChainId, LiquidSendDraft, LiquidUtxo, SendRequest, ServiceLifecycle, SyncOutcome, Transaction, WalletCredentials,
+    ChainId, LiquidSendDraft, LiquidUtxo, SendRequest, ServiceLifecycle, SyncOutcome, Transaction,
+    WalletCredentials,
 };
 use crate::peg::{PegError, PegFundingQuote, PegWallet};
 use crate::pix::{AddressProvider, TokenProvider};
@@ -53,7 +54,10 @@ struct Slot<W> {
 
 impl<W> Slot<W> {
     fn new() -> Self {
-        Self { wallet: Mutex::new(None), lifecycle: StdMutex::new(ServiceLifecycle::Uninitialized) }
+        Self {
+            wallet: Mutex::new(None),
+            lifecycle: StdMutex::new(ServiceLifecycle::Uninitialized),
+        }
     }
 
     fn lifecycle(&self) -> ServiceLifecycle {
@@ -88,8 +92,20 @@ pub struct LiquidService<K: KvStore + Clone, C: Clock + Clone, S: SecureStore> {
 
 impl<K: KvStore + Clone, C: Clock + Clone, S: SecureStore> LiquidService<K, C, S> {
     /// Service without a connected wallet. Call [`ChainSyncer::connect`].
-    pub fn new(kv: K, clock: C, endpoints: EndpointResolver, credentials: CredentialStore<S>) -> Self {
-        Self { slot: Slot::new(), kv, clock, endpoints, backend: ChainBackend::Esplora, credentials }
+    pub fn new(
+        kv: K,
+        clock: C,
+        endpoints: EndpointResolver,
+        credentials: CredentialStore<S>,
+    ) -> Self {
+        Self {
+            slot: Slot::new(),
+            kv,
+            clock,
+            endpoints,
+            backend: ChainBackend::Esplora,
+            credentials,
+        }
     }
 
     /// Uses `backend` for every wallet this service connects.
@@ -104,14 +120,18 @@ impl<K: KvStore + Clone, C: Clock + Clone, S: SecureStore> LiquidService<K, C, S
     /// Runs `f` with the connected wallet.
     pub async fn with_wallet<T>(&self, f: impl FnOnce(&mut LiquidWallet<K, C>) -> T) -> Result<T> {
         let mut guard = self.slot.guard().await;
-        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let wallet = guard
+            .as_mut()
+            .ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok(f(wallet))
     }
 
     /// Fresh receive address.
     pub async fn receive_address(&self) -> Result<String> {
         let mut guard = self.slot.guard().await;
-        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let wallet = guard
+            .as_mut()
+            .ok_or_else(|| not_connected(ChainId::Liquid))?;
         wallet.receive_address().await
     }
 
@@ -124,16 +144,24 @@ impl<K: KvStore + Clone, C: Clock + Clone, S: SecureStore> LiquidService<K, C, S
         drain: bool,
     ) -> Result<LiquidSendDraft> {
         let mut guard = self.slot.guard().await;
-        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
-        wallet.build_lbtc_send(destination, amount_sat, fee_rate_sat_per_vb, drain).await
+        let wallet = guard
+            .as_mut()
+            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        wallet
+            .build_lbtc_send(destination, amount_sat, fee_rate_sat_per_vb, drain)
+            .await
     }
 
     /// Signs with the stored mnemonic and broadcasts. Returns the txid.
     pub async fn sign_and_broadcast(&self, pset: &str) -> Result<String> {
         let credentials = self.credentials.load().await?;
         let mut guard = self.slot.guard().await;
-        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
-        wallet.sign_and_broadcast_pset(pset, &credentials.mnemonic).await
+        let wallet = guard
+            .as_mut()
+            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        wallet
+            .sign_and_broadcast_pset(pset, &credentials.mnemonic)
+            .await
     }
 }
 
@@ -155,7 +183,9 @@ where
     fn sync(&self, _timeout_ms: u64) -> impl Future<Output = Result<SyncOutcome>> + MaybeSend {
         async move {
             let mut guard = self.slot.guard().await;
-            let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+            let wallet = guard
+                .as_mut()
+                .ok_or_else(|| not_connected(ChainId::Liquid))?;
             wallet.sync().await
         }
     }
@@ -164,12 +194,20 @@ where
         self.with_wallet(|w| w.list_transactions().to_vec())
     }
 
-    fn connect(&self, credentials: &WalletCredentials) -> impl Future<Output = Result<()>> + MaybeSend {
+    fn connect(
+        &self,
+        credentials: &WalletCredentials,
+    ) -> impl Future<Output = Result<()>> + MaybeSend {
         let credentials = credentials.clone();
         async move {
             self.slot.set_lifecycle(ServiceLifecycle::Connecting);
-            let made = LiquidWallet::connect(&credentials, self.kv.clone(), self.clock.clone(), self.endpoints.clone())
-                .await;
+            let made = LiquidWallet::connect(
+                &credentials,
+                self.kv.clone(),
+                self.clock.clone(),
+                self.endpoints.clone(),
+            )
+            .await;
             let made = made.and_then(|mut wallet| {
                 if self.backend.is_electrum() {
                     wallet.set_backend(self.backend.clone(), self.endpoints.clone())?;
@@ -218,7 +256,8 @@ where
         let pset = pset_b64.to_owned();
         async move {
             let credentials = self.credentials.load().await?;
-            self.with_wallet(|w| w.sign_swap_pset(&pset, &credentials.mnemonic)).await?
+            self.with_wallet(|w| w.sign_swap_pset(&pset, &credentials.mnemonic))
+                .await?
         }
     }
 }
@@ -247,7 +286,13 @@ pub struct BitcoinService<K: KvStore + Clone, C: Clock + Clone> {
 impl<K: KvStore + Clone, C: Clock + Clone> BitcoinService<K, C> {
     /// Service without a connected wallet. Call [`ChainSyncer::connect`].
     pub fn new(kv: K, clock: C, endpoints: EndpointResolver) -> Self {
-        Self { slot: Slot::new(), kv, clock, endpoints, backend: ChainBackend::Esplora }
+        Self {
+            slot: Slot::new(),
+            kv,
+            clock,
+            endpoints,
+            backend: ChainBackend::Esplora,
+        }
     }
 
     /// Uses `backend` for every wallet this service connects.
@@ -262,16 +307,21 @@ impl<K: KvStore + Clone, C: Clock + Clone> BitcoinService<K, C> {
     /// Runs `f` with the connected wallet.
     pub async fn with_wallet<T>(&self, f: impl FnOnce(&mut BitcoinWallet<K, C>) -> T) -> Result<T> {
         let mut guard = self.slot.guard().await;
-        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let wallet = guard
+            .as_mut()
+            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok(f(wallet))
     }
 
     /// Fresh receive address.
     pub async fn receive_address(&self) -> Result<String> {
         let mut guard = self.slot.guard().await;
-        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let wallet = guard
+            .as_mut()
+            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         let r = wallet.next_receive_address(None, None).await?;
-        r.address.ok_or_else(|| Error::service(ChainId::Bitcoin, "wallet returned no address"))
+        r.address
+            .ok_or_else(|| Error::service(ChainId::Bitcoin, "wallet returned no address"))
     }
 
     /// Sizes a send without signing it.
@@ -283,14 +333,20 @@ impl<K: KvStore + Clone, C: Clock + Clone> BitcoinService<K, C> {
         fee_rate_sat_per_vbyte: Option<u64>,
     ) -> Result<PreparedBitcoinSend> {
         let mut guard = self.slot.guard().await;
-        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
-        wallet.prepare_send(destination, amount_sat, drain, fee_rate_sat_per_vbyte).await
+        let wallet = guard
+            .as_mut()
+            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        wallet
+            .prepare_send(destination, amount_sat, drain, fee_rate_sat_per_vbyte)
+            .await
     }
 
     /// Builds, signs and broadcasts. Returns the txid.
     pub async fn send(&self, request: &SendRequest) -> Result<String> {
         let mut guard = self.slot.guard().await;
-        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let wallet = guard
+            .as_mut()
+            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok(wallet.send_onchain(request).await?.tx_id)
     }
 }
@@ -312,7 +368,9 @@ where
     fn sync(&self, _timeout_ms: u64) -> impl Future<Output = Result<SyncOutcome>> + MaybeSend {
         async move {
             let mut guard = self.slot.guard().await;
-            let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+            let wallet = guard
+                .as_mut()
+                .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
             wallet.sync().await
         }
     }
@@ -321,12 +379,20 @@ where
         self.with_wallet(|w| w.list_transactions().to_vec())
     }
 
-    fn connect(&self, credentials: &WalletCredentials) -> impl Future<Output = Result<()>> + MaybeSend {
+    fn connect(
+        &self,
+        credentials: &WalletCredentials,
+    ) -> impl Future<Output = Result<()>> + MaybeSend {
         let credentials = credentials.clone();
         async move {
             self.slot.set_lifecycle(ServiceLifecycle::Connecting);
-            let made = BitcoinWallet::connect(&credentials, self.kv.clone(), self.clock.clone(), self.endpoints.clone())
-                .await;
+            let made = BitcoinWallet::connect(
+                &credentials,
+                self.kv.clone(),
+                self.clock.clone(),
+                self.endpoints.clone(),
+            )
+            .await;
             let made = made.and_then(|mut wallet| {
                 if self.backend.is_electrum() {
                     wallet.set_backend(self.backend.clone(), self.endpoints.clone())?;
@@ -399,12 +465,26 @@ where
 {
     type Handle = PegFunding;
 
-    fn liquid_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
-        async move { self.liquid.receive_address().await.map_err(peg_wallet_error) }
+    fn liquid_payout_address(
+        &self,
+    ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
+        async move {
+            self.liquid
+                .receive_address()
+                .await
+                .map_err(peg_wallet_error)
+        }
     }
 
-    fn bitcoin_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
-        async move { self.bitcoin.receive_address().await.map_err(peg_wallet_error) }
+    fn bitcoin_payout_address(
+        &self,
+    ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
+        async move {
+            self.bitcoin
+                .receive_address()
+                .await
+                .map_err(peg_wallet_error)
+        }
     }
 
     fn quote_bitcoin_funding(
@@ -413,14 +493,20 @@ where
         amount_sat: u64,
         fee_rate_sat_per_vbyte: Option<u32>,
         drain: bool,
-    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend {
+    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend
+    {
         let destination = destination.to_owned();
         async move {
             // BDK rejects addresses of other networks, so a Liquid
             // destination fails here instead of burning funds.
             let prepared = self
                 .bitcoin
-                .prepare_send(&destination, amount_sat, drain, fee_rate_sat_per_vbyte.map(u64::from))
+                .prepare_send(
+                    &destination,
+                    amount_sat,
+                    drain,
+                    fee_rate_sat_per_vbyte.map(u64::from),
+                )
                 .await
                 .map_err(peg_wallet_error)?;
             Ok(PegFundingQuote {
@@ -437,7 +523,8 @@ where
         amount_sat: u64,
         fee_rate_sat_per_vb: Option<f64>,
         drain: bool,
-    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend {
+    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend
+    {
         let destination = destination.to_owned();
         async move {
             let draft = self
@@ -445,7 +532,11 @@ where
                 .build_lbtc_send(&destination, amount_sat, fee_rate_sat_per_vb, drain)
                 .await
                 .map_err(peg_wallet_error)?;
-            Ok(PegFundingQuote { amount_sat: draft.amount_sat, network_fee_sat: draft.fee_sat, handle: PegFunding::Liquid(draft) })
+            Ok(PegFundingQuote {
+                amount_sat: draft.amount_sat,
+                network_fee_sat: draft.fee_sat,
+                handle: PegFunding::Liquid(draft),
+            })
         }
     }
 
@@ -455,11 +546,15 @@ where
     ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let PegFunding::Bitcoin(prepared) = quote.handle else {
-                return Err(PegError::WalletFailure("expected a Bitcoin funding handle".into()));
+                return Err(PegError::WalletFailure(
+                    "expected a Bitcoin funding handle".into(),
+                ));
             };
-            let mut request = SendRequest::new(ChainId::Bitcoin, prepared.destination, prepared.amount_sat);
+            let mut request =
+                SendRequest::new(ChainId::Bitcoin, prepared.destination, prepared.amount_sat);
             request.drain = prepared.drain;
-            request.fee_rate_override_sat_per_vbyte = prepared.fee_rate_sat_per_vbyte.map(|r| r as f64);
+            request.fee_rate_override_sat_per_vbyte =
+                prepared.fee_rate_sat_per_vbyte.map(|r| r as f64);
             self.bitcoin.send(&request).await.map_err(peg_wallet_error)
         }
     }
@@ -470,9 +565,14 @@ where
     ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let PegFunding::Liquid(draft) = quote.handle else {
-                return Err(PegError::WalletFailure("expected a Liquid funding handle".into()));
+                return Err(PegError::WalletFailure(
+                    "expected a Liquid funding handle".into(),
+                ));
             };
-            self.liquid.sign_and_broadcast(&draft.pset).await.map_err(peg_wallet_error)
+            self.liquid
+                .sign_and_broadcast(&draft.pset)
+                .await
+                .map_err(peg_wallet_error)
         }
     }
 }
@@ -488,7 +588,10 @@ mod tests {
         "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     fn credentials() -> WalletCredentials {
-        WalletCredentials { mnemonic: MNEMONIC.into(), network: AppNetwork::Mainnet }
+        WalletCredentials {
+            mnemonic: MNEMONIC.into(),
+            network: AppNetwork::Mainnet,
+        }
     }
 
     fn liquid() -> LiquidService<MemoryKv, Arc<FixedClock>, MemoryKv> {
@@ -508,7 +611,10 @@ mod tests {
         let svc = liquid();
         block_on(async {
             assert_eq!(svc.lifecycle(), ServiceLifecycle::Uninitialized);
-            assert!(matches!(svc.receive_address().await, Err(Error::InvalidState(_))));
+            assert!(matches!(
+                svc.receive_address().await,
+                Err(Error::InvalidState(_))
+            ));
 
             svc.connect(&credentials()).await.unwrap();
             assert_eq!(svc.lifecycle(), ServiceLifecycle::Connected);
@@ -544,13 +650,19 @@ mod tests {
         );
         block_on(async {
             svc.connect(&credentials()).await.unwrap();
-            assert_eq!(svc.receive_address().await.unwrap(), "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
+            assert_eq!(
+                svc.receive_address().await.unwrap(),
+                "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
+            );
         });
     }
 
     #[test]
     fn peg_error_mapping() {
-        let e = peg_wallet_error(Error::service(ChainId::Bitcoin, "Insufficient funds: 10 sat available"));
+        let e = peg_wallet_error(Error::service(
+            ChainId::Bitcoin,
+            "Insufficient funds: 10 sat available",
+        ));
         assert!(matches!(e, PegError::InsufficientFunds(_)));
         let e = peg_wallet_error(Error::service(ChainId::Bitcoin, "bad address"));
         assert!(matches!(e, PegError::WalletFailure(_)));
@@ -564,11 +676,14 @@ mod tests {
             Arc::new(FixedClock::new(1_759_686_400_000)),
             EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet),
         )
-        .with_backend(ChainBackend::Electrum(crate::wallet::ElectrumConfig::new(Arc::new(
-            crate::testing::InlineSpawner,
-        ))));
+        .with_backend(ChainBackend::Electrum(crate::wallet::ElectrumConfig::new(
+            Arc::new(crate::testing::InlineSpawner),
+        )));
         block_on(async {
-            assert!(matches!(svc.connect(&credentials()).await, Err(Error::InvalidState(_))));
+            assert!(matches!(
+                svc.connect(&credentials()).await,
+                Err(Error::InvalidState(_))
+            ));
             assert_eq!(svc.lifecycle(), ServiceLifecycle::Errored);
         });
     }
@@ -583,39 +698,60 @@ mod tests {
         const CLOSED: &str = "tcp://127.0.0.1:1";
 
         fn config() -> ElectrumConfig {
-            ElectrumConfig { spawner: Arc::new(InlineSpawner), timeout_s: 2, retry: 0, validate_domain: true }
+            ElectrumConfig {
+                spawner: Arc::new(InlineSpawner),
+                timeout_s: 2,
+                retry: 0,
+                validate_domain: true,
+            }
         }
 
         #[test]
         fn bitcoin_electrum_failure_keeps_service_usable() {
-            let endpoints =
-                EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet).with_custom_node(ChainId::Bitcoin, CLOSED);
-            let svc = BitcoinService::new(MemoryKv::new(), Arc::new(FixedClock::new(1_759_686_400_000)), endpoints)
-                .with_backend(ChainBackend::Electrum(config()));
+            let endpoints = EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet)
+                .with_custom_node(ChainId::Bitcoin, CLOSED);
+            let svc = BitcoinService::new(
+                MemoryKv::new(),
+                Arc::new(FixedClock::new(1_759_686_400_000)),
+                endpoints,
+            )
+            .with_backend(ChainBackend::Electrum(config()));
             block_on(async {
                 svc.connect(&credentials()).await.unwrap();
                 let err = svc.sync(60_000).await.unwrap_err();
                 assert!(err.to_string().contains("bdk sync failed"), "{err}");
                 // Offline work still runs after a network failure.
-                assert_eq!(svc.receive_address().await.unwrap(), "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
+                assert_eq!(
+                    svc.receive_address().await.unwrap(),
+                    "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
+                );
                 assert_eq!(svc.lifecycle(), ServiceLifecycle::Connected);
             });
         }
 
         #[test]
         fn liquid_electrum_failure_is_reported() {
-            let endpoints =
-                EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet).with_custom_node(ChainId::Liquid, CLOSED);
+            let endpoints = EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet)
+                .with_custom_node(ChainId::Liquid, CLOSED);
             let secure = MemoryKv::new();
             let store = CredentialStore::new(secure, AppNetwork::Mainnet);
             block_on(store.save(&credentials())).unwrap();
-            let svc = LiquidService::new(MemoryKv::new(), Arc::new(FixedClock::new(1_759_686_400_000)), endpoints, store)
-                .with_backend(ChainBackend::Electrum(config()));
+            let svc = LiquidService::new(
+                MemoryKv::new(),
+                Arc::new(FixedClock::new(1_759_686_400_000)),
+                endpoints,
+                store,
+            )
+            .with_backend(ChainBackend::Electrum(config()));
             block_on(async {
                 svc.connect(&credentials()).await.unwrap();
                 let err = svc.sync(60_000).await.unwrap_err();
                 assert!(err.to_string().contains("lwk sync failed"), "{err}");
-                assert!(svc.liquid_receive_address().await.unwrap().starts_with("lq1"));
+                assert!(svc
+                    .liquid_receive_address()
+                    .await
+                    .unwrap()
+                    .starts_with("lq1"));
             });
         }
 
@@ -624,7 +760,12 @@ mod tests {
         #[test]
         #[ignore = "needs network"]
         fn live_electrum_scan_both_chains() {
-            let config = ElectrumConfig { spawner: Arc::new(InlineSpawner), timeout_s: 30, retry: 2, validate_domain: true };
+            let config = ElectrumConfig {
+                spawner: Arc::new(InlineSpawner),
+                timeout_s: 30,
+                retry: 2,
+                validate_domain: true,
+            };
             let clock = Arc::new(FixedClock::new(1_759_686_400_000));
             let btc = BitcoinService::new(
                 MemoryKv::new(),
@@ -647,7 +788,10 @@ mod tests {
                 let outcome = btc.sync(60_000).await.unwrap();
                 eprintln!("bitcoin electrum: {outcome:?}");
                 // The well-known test mnemonic has public mainnet history.
-                assert!(outcome.fetched > 0, "expected history for the abandon wallet");
+                assert!(
+                    outcome.fetched > 0,
+                    "expected history for the abandon wallet"
+                );
                 lq.connect(&credentials()).await.unwrap();
                 let outcome = lq.sync(60_000).await.unwrap();
                 eprintln!("liquid electrum: {outcome:?}");
@@ -667,6 +811,9 @@ mod tests {
 
     #[test]
     fn session_tokens_forward() {
-        assert_eq!(block_on(SessionTokens(FakeSession).token()).unwrap(), "jwt-1");
+        assert_eq!(
+            block_on(SessionTokens(FakeSession).token()).unwrap(),
+            "jwt-1"
+        );
     }
 }

@@ -14,7 +14,10 @@ pub struct WalletCredentials {
 impl WalletCredentials {
     /// Credentials with an empty mnemonic.
     pub fn absent(network: AppNetwork) -> Self {
-        Self { mnemonic: String::new(), network }
+        Self {
+            mnemonic: String::new(),
+            network,
+        }
     }
 
     /// True if no mnemonic is set.
@@ -38,7 +41,10 @@ mod tests {
 
     #[test]
     fn debug_redacts() {
-        let c = WalletCredentials { mnemonic: "secret words".into(), network: AppNetwork::Mainnet };
+        let c = WalletCredentials {
+            mnemonic: "secret words".into(),
+            network: AppNetwork::Mainnet,
+        };
         assert!(!format!("{c:?}").contains("secret"));
     }
 }

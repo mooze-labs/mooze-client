@@ -11,7 +11,9 @@
 
 use std::collections::BTreeSet;
 
-use super::entities::{DepositStatus, PixDeposit, PixStatusEvent, PixTransactionDetails, WithdrawStatus};
+use super::entities::{
+    DepositStatus, PixDeposit, PixStatusEvent, PixTransactionDetails, WithdrawStatus,
+};
 
 // ---------------------------------------------------------------- fees
 
@@ -34,7 +36,11 @@ pub const FEE_TIER_BOUNDS: [(f64, f64); 3] = [(20.0, 55.0), (55.0, 500.0), (500.
 
 /// Percent fee rate for a deposit amount in BRL.
 pub fn fee_rate_percent(deposit_amount: f64, has_referral: bool) -> f64 {
-    let mut rate = if deposit_amount < FEE_RATE_TIER_LIMIT { FEE_RATE_LOW_PERCENT } else { FEE_RATE_HIGH_PERCENT };
+    let mut rate = if deposit_amount < FEE_RATE_TIER_LIMIT {
+        FEE_RATE_LOW_PERCENT
+    } else {
+        FEE_RATE_HIGH_PERCENT
+    };
     if has_referral {
         rate *= REFERRAL_FEE_FACTOR;
     }
@@ -85,7 +91,11 @@ pub fn active_fee_tier(amount: f64) -> Option<usize> {
 // Dart does the same. Negative or NaN input returns 0.
 pub fn amount_in_cents(amount_brl: f64) -> u64 {
     let c = amount_brl * 100.0;
-    if c.is_finite() && c > 0.0 { c as u64 } else { 0 }
+    if c.is_finite() && c > 0.0 {
+        c as u64
+    } else {
+        0
+    }
 }
 
 // ---------------------------------------------------------------- validation
@@ -128,11 +138,17 @@ impl DepositValidation {
     }
 
     fn valid() -> Self {
-        Self { error: None, limit_amount: None }
+        Self {
+            error: None,
+            limit_amount: None,
+        }
     }
 
     fn err(error: DepositValidationError, limit: Option<f64>) -> Self {
-        Self { error: Some(error), limit_amount: limit }
+        Self {
+            error: Some(error),
+            limit_amount: limit,
+        }
     }
 }
 
@@ -144,12 +160,20 @@ pub fn validate_deposit_amount(amount: f64, limits: Option<&DepositLimits>) -> D
     if amount <= 0.0 || amount.is_nan() {
         return DepositValidation::err(DepositValidationError::InvalidAmount, None);
     }
-    let Some(l) = limits else { return DepositValidation::valid() };
+    let Some(l) = limits else {
+        return DepositValidation::valid();
+    };
     if amount < l.absolute_min_limit {
-        return DepositValidation::err(DepositValidationError::BelowMinimum, Some(l.absolute_min_limit));
+        return DepositValidation::err(
+            DepositValidationError::BelowMinimum,
+            Some(l.absolute_min_limit),
+        );
     }
     if amount > l.allowed_spending {
-        return DepositValidation::err(DepositValidationError::AboveTransaction, Some(l.allowed_spending));
+        return DepositValidation::err(
+            DepositValidationError::AboveTransaction,
+            Some(l.allowed_spending),
+        );
     }
     DepositValidation::valid()
 }
@@ -199,7 +223,11 @@ pub struct DepositPoll {
 impl DepositPoll {
     /// Starts polling at `now_ms`.
     pub fn new(deposit_id: impl Into<String>, now_ms: u64) -> Self {
-        Self { deposit_id: deposit_id.into(), started_ms: now_ms, finished: false }
+        Self {
+            deposit_id: deposit_id.into(),
+            started_ms: now_ms,
+            finished: false,
+        }
     }
 
     /// True after expiry, a status change or an empty answer.
@@ -224,7 +252,10 @@ impl DepositPoll {
         }
         if now_ms.saturating_sub(self.started_ms) > DEPOSIT_POLL_MAX_DURATION_MS {
             self.finished = true;
-            return PollTick::Expired(PixStatusEvent::new(self.deposit_id.clone(), DepositStatus::Expired));
+            return PollTick::Expired(PixStatusEvent::new(
+                self.deposit_id.clone(),
+                DepositStatus::Expired,
+            ));
         }
         PollTick::Fetch
     }
@@ -236,7 +267,9 @@ impl DepositPoll {
         if self.finished {
             return PollStep::Stop;
         }
-        let Some(list) = result else { return PollStep::Continue };
+        let Some(list) = result else {
+            return PollStep::Continue;
+        };
         let Some(first) = list.first() else {
             self.finished = true;
             return PollStep::Stop;
@@ -264,12 +297,18 @@ pub enum PixNotification {
     /// Show the success screen and refresh user data.
     Success { deposit_id: String },
     /// Show the error screen and refresh user data.
-    Failure { deposit_id: String, error_message: Option<String> },
+    Failure {
+        deposit_id: String,
+        error_message: Option<String>,
+    },
 }
 
 /// Statuses that trigger the success screen.
-pub const SUCCESS_NOTIFY_STATUSES: [DepositStatus; 3] =
-    [DepositStatus::UnderReview, DepositStatus::DepixSent, DepositStatus::Paid];
+pub const SUCCESS_NOTIFY_STATUSES: [DepositStatus; 3] = [
+    DepositStatus::UnderReview,
+    DepositStatus::DepixSent,
+    DepositStatus::Paid,
+];
 
 /// Deduplicating status listener. Port of `PixStatusListener` logic.
 #[derive(Debug, Clone, Default)]
@@ -290,7 +329,9 @@ impl PixNotificationFilter {
         }
         if SUCCESS_NOTIFY_STATUSES.contains(&event.status) {
             self.processed.insert(event.deposit_id.clone());
-            Some(PixNotification::Success { deposit_id: event.deposit_id.clone() })
+            Some(PixNotification::Success {
+                deposit_id: event.deposit_id.clone(),
+            })
         } else if event.status == DepositStatus::Failed {
             self.processed.insert(event.deposit_id.clone());
             Some(PixNotification::Failure {
@@ -306,7 +347,8 @@ impl PixNotificationFilter {
 // ---------------------------------------------------------------- history
 
 /// Statuses the history screen does not refresh from the backend.
-pub const HISTORY_TERMINAL_STATUSES: [DepositStatus; 2] = [DepositStatus::Expired, DepositStatus::Refunded];
+pub const HISTORY_TERMINAL_STATUSES: [DepositStatus; 2] =
+    [DepositStatus::Expired, DepositStatus::Refunded];
 
 /// History page size.
 pub const HISTORY_PAGE_SIZE: u64 = 50;
@@ -454,15 +496,24 @@ mod tests {
 
     #[test]
     fn validation() {
-        let l = DepositLimits { absolute_min_limit: 20.0, allowed_spending: 3000.0 };
-        assert_eq!(validate_deposit_amount(0.0, Some(&l)).error, Some(DepositValidationError::InvalidAmount));
+        let l = DepositLimits {
+            absolute_min_limit: 20.0,
+            allowed_spending: 3000.0,
+        };
+        assert_eq!(
+            validate_deposit_amount(0.0, Some(&l)).error,
+            Some(DepositValidationError::InvalidAmount)
+        );
         assert!(validate_deposit_amount(1.0, None).is_valid());
         let v = validate_deposit_amount(19.99, Some(&l));
         assert_eq!(v.error, Some(DepositValidationError::BelowMinimum));
         assert_eq!(v.limit_amount, Some(20.0));
         assert!(validate_deposit_amount(20.0, Some(&l)).is_valid());
         assert!(validate_deposit_amount(3000.0, Some(&l)).is_valid());
-        assert_eq!(validate_deposit_amount(3000.01, Some(&l)).error, Some(DepositValidationError::AboveTransaction));
+        assert_eq!(
+            validate_deposit_amount(3000.01, Some(&l)).error,
+            Some(DepositValidationError::AboveTransaction)
+        );
     }
 
     fn details(status: &str) -> PixTransactionDetails {
@@ -506,17 +557,28 @@ mod tests {
     #[test]
     fn notifications_dedupe() {
         let mut f = PixNotificationFilter::new();
-        assert_eq!(f.on_event(&PixStatusEvent::new("a", DepositStatus::Pending)), None);
+        assert_eq!(
+            f.on_event(&PixStatusEvent::new("a", DepositStatus::Pending)),
+            None
+        );
         assert_eq!(
             f.on_event(&PixStatusEvent::new("a", DepositStatus::Paid)),
-            Some(PixNotification::Success { deposit_id: "a".into() })
+            Some(PixNotification::Success {
+                deposit_id: "a".into()
+            })
         );
-        assert_eq!(f.on_event(&PixStatusEvent::new("a", DepositStatus::Failed)), None);
+        assert_eq!(
+            f.on_event(&PixStatusEvent::new("a", DepositStatus::Failed)),
+            None
+        );
         let mut e = PixStatusEvent::new("b", DepositStatus::Failed);
         e.error_message = Some("boom".into());
         assert_eq!(
             f.on_event(&e),
-            Some(PixNotification::Failure { deposit_id: "b".into(), error_message: Some("boom".into()) })
+            Some(PixNotification::Failure {
+                deposit_id: "b".into(),
+                error_message: Some("boom".into())
+            })
         );
     }
 
@@ -547,8 +609,14 @@ mod tests {
         assert_eq!(history_next_offset(50), 100);
 
         let ids = |v: Vec<PixDeposit>| v.into_iter().map(|d| d.deposit_id).collect::<Vec<_>>();
-        assert_eq!(ids(apply_filters(&list, &PixFilters::default())), vec!["b", "c", "a"]);
-        let f = PixFilters { status: Some("underReview".into()), ..Default::default() };
+        assert_eq!(
+            ids(apply_filters(&list, &PixFilters::default())),
+            vec!["b", "c", "a"]
+        );
+        let f = PixFilters {
+            status: Some("underReview".into()),
+            ..Default::default()
+        };
         assert_eq!(ids(apply_filters(&list, &f)), vec!["b"]);
         let f = PixFilters {
             asset_ids: vec![Asset::Depix.id().into()],
@@ -573,7 +641,10 @@ mod tests {
         assert!(p.should_poll());
         assert!(p.on_result(Some(&processing)));
         assert!(p.on_result(None));
-        let done = WithdrawStatus { status: "completed".into(), ..processing.clone() };
+        let done = WithdrawStatus {
+            status: "completed".into(),
+            ..processing.clone()
+        };
         assert!(!p.on_result(Some(&done)));
         assert!(!p.should_poll());
 

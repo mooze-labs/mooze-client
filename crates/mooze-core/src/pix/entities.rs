@@ -208,7 +208,13 @@ pub struct PixStatusEvent {
 impl PixStatusEvent {
     /// Event with only an id and a status.
     pub fn new(deposit_id: impl Into<String>, status: DepositStatus) -> Self {
-        Self { deposit_id: deposit_id.into(), status, blockchain_txid: None, asset_amount: None, error_message: None }
+        Self {
+            deposit_id: deposit_id.into(),
+            status,
+            blockchain_txid: None,
+            asset_amount: None,
+            error_message: None,
+        }
     }
 }
 
@@ -356,7 +362,10 @@ mod tests {
         assert_eq!(DepositStatus::from_api_str("weird"), DepositStatus::Unknown);
         let s: DepositStatus = serde_json::from_value(json!("processing_refund")).unwrap();
         assert_eq!(s, DepositStatus::ProcessingRefund);
-        assert_eq!(serde_json::to_value(DepositStatus::UnderReview).unwrap(), json!("under_review"));
+        assert_eq!(
+            serde_json::to_value(DepositStatus::UnderReview).unwrap(),
+            json!("under_review")
+        );
         assert_eq!(DepositStatus::FundsPrepared.dart_name(), "fundsPrepared");
     }
 
@@ -384,7 +393,10 @@ mod tests {
         let v = serde_json::to_value(&r).unwrap();
         assert!(v.get("tax_id").is_none());
         r.tax_id_number = Some("52998224725".into());
-        assert_eq!(serde_json::to_value(&r).unwrap()["tax_id"], json!("52998224725"));
+        assert_eq!(
+            serde_json::to_value(&r).unwrap()["tax_id"],
+            json!("52998224725")
+        );
     }
 
     #[test]
@@ -403,7 +415,11 @@ mod tests {
 
     #[test]
     fn masked_cpf() {
-        let p = FavoritePayer { id: None, label: "a".into(), cpf: "52998224725".into() };
+        let p = FavoritePayer {
+            id: None,
+            label: "a".into(),
+            cpf: "52998224725".into(),
+        };
         assert_eq!(p.masked_cpf(), "529.982.247-25");
     }
 }

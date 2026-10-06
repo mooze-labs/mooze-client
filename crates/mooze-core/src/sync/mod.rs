@@ -13,4 +13,6 @@ pub mod orchestrator;
 pub use boot::{BootOrchestrator, BootPhase, BootServices, BootState};
 pub use lifecycle::{AppLifecycle, AppPhase, AppState, BootOutcome, StartStep};
 pub use notifier::{TransactionNotifier, TxNotification};
-pub use orchestrator::{ChainSyncer, RefreshReport, SyncConfig, SyncOrchestrator, SyncPhase, SyncState, SyncStrategy};
+pub use orchestrator::{
+    ChainSyncer, RefreshReport, SyncConfig, SyncOrchestrator, SyncPhase, SyncState, SyncStrategy,
+};

@@ -49,7 +49,10 @@ impl User {
         Ok(Self {
             id: req_str(data, "user_id")?,
             verification_level: req_int(data, "verification_level")?,
-            referred_by: data.get("referred_by").and_then(Value::as_str).map(str::to_owned),
+            referred_by: data
+                .get("referred_by")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
             allowed_spending: req_num(data, "allowed_spending")?,
             daily_spending: req_num(data, "daily_spending")?,
             spending_level: req_int(data, "spending_level")?,
@@ -60,15 +63,22 @@ impl User {
 }
 
 fn req_str(v: &Value, key: &str) -> Result<String> {
-    v.get(key).and_then(Value::as_str).map(str::to_owned).ok_or_else(|| missing(key))
+    v.get(key)
+        .and_then(Value::as_str)
+        .map(str::to_owned)
+        .ok_or_else(|| missing(key))
 }
 
 fn req_int(v: &Value, key: &str) -> Result<i64> {
-    v.get(key).and_then(Value::as_i64).ok_or_else(|| missing(key))
+    v.get(key)
+        .and_then(Value::as_i64)
+        .ok_or_else(|| missing(key))
 }
 
 fn req_num(v: &Value, key: &str) -> Result<f64> {
-    v.get(key).and_then(Value::as_f64).ok_or_else(|| missing(key))
+    v.get(key)
+        .and_then(Value::as_f64)
+        .ok_or_else(|| missing(key))
 }
 
 fn missing(key: &str) -> Error {
@@ -98,8 +108,16 @@ pub struct LevelChange {
 impl LevelChange {
     /// New change. `new > old` is an upgrade, anything else a downgrade.
     pub fn new(old_level: i64, new_level: i64) -> Self {
-        let change_type = if new_level > old_level { LevelChangeType::Upgrade } else { LevelChangeType::Downgrade };
-        Self { old_level, new_level, change_type }
+        let change_type = if new_level > old_level {
+            LevelChangeType::Upgrade
+        } else {
+            LevelChangeType::Downgrade
+        };
+        Self {
+            old_level,
+            new_level,
+            change_type,
+        }
     }
 
     /// True for an upgrade.
@@ -152,7 +170,10 @@ mod tests {
         assert_eq!(u.daily_spending, 12345.0);
         assert_eq!(u.spending_level, 1);
         assert_eq!(u.values_to_receive.len(), 3);
-        assert_eq!(u.values_to_receive["6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d"], 2500);
+        assert_eq!(
+            u.values_to_receive["6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d"],
+            2500
+        );
     }
 
     #[test]

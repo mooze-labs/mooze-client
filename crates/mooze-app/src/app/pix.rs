@@ -14,6 +14,8 @@ use mooze_core::pix::tax_id;
 use mooze_core::pix::{DepositStore, FavoritePayerStore, PixClient, PixFlagsStore, PixService};
 use mooze_core::ports::Clock;
 
+use mooze_core::pix::rules::DepositPoll;
+
 use super::{auth, App, Inner, SerializedSession};
 use crate::dto::*;
 use crate::glue::LiquidPort;
@@ -77,6 +79,7 @@ impl<P: Platform> App<P> {
                     .pix_polls
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
+                    .polls
                     .push(outcome.poll);
                 Ok(outcome.deposit.into())
             }
@@ -95,8 +98,7 @@ impl<P: Platform> App<P> {
     /// returns the status changes. Expired and changed deposits stop polling.
     pub async fn pix_poll_tick(&self) -> Result<Vec<PixStatusEventDto>> {
         let inner = &self.inner;
-        let mut polls =
-            std::mem::take(&mut *inner.pix_polls.lock().unwrap_or_else(|e| e.into_inner()));
+        let (mut polls, generation) = self.pix_take_polls();
         if polls.is_empty() {
             return Ok(Vec::new());
         }
@@ -104,11 +106,7 @@ impl<P: Platform> App<P> {
             Ok(s) => s,
             Err(e) => {
                 // Keep the polls for the next tick.
-                inner
-                    .pix_polls
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .extend(polls);
+                self.pix_restore_polls(polls, generation);
                 return Err(e);
             }
         };
@@ -121,12 +119,30 @@ impl<P: Platform> App<P> {
             );
         }
         polls.retain(|p| !p.is_finished());
-        inner
+        self.pix_restore_polls(polls, generation);
+        Ok(events.into_iter().map(Into::into).collect())
+    }
+
+    /// Takes every active poll with the current cancel generation.
+    pub(crate) fn pix_take_polls(&self) -> (Vec<DepositPoll>, u64) {
+        let mut state = self
+            .inner
             .pix_polls
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .extend(polls);
-        Ok(events.into_iter().map(Into::into).collect())
+            .unwrap_or_else(|e| e.into_inner());
+        (std::mem::take(&mut state.polls), state.generation)
+    }
+
+    /// Puts polls back unless `pix_cancel_polls` ran since they were taken.
+    pub(crate) fn pix_restore_polls(&self, polls: Vec<DepositPoll>, generation: u64) {
+        let mut state = self
+            .inner
+            .pix_polls
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if state.generation == generation {
+            state.polls.extend(polls);
+        }
     }
 
     /// Number of deposits still polled.
@@ -136,16 +152,19 @@ impl<P: Platform> App<P> {
             .pix_polls
             .lock()
             .unwrap_or_else(|e| e.into_inner())
+            .polls
             .len() as u32)
     }
 
-    /// Stops polling every deposit.
+    /// Stops polling every deposit, including the ones a running tick holds.
     pub async fn pix_cancel_polls(&self) -> Result<()> {
-        self.inner
+        let mut state = self
+            .inner
             .pix_polls
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clear();
+            .unwrap_or_else(|e| e.into_inner());
+        state.polls.clear();
+        state.generation += 1;
         Ok(())
     }
 
@@ -391,6 +410,31 @@ mod tests {
         assert!(block_on(app.pix_list_deposits(None, None))
             .unwrap()
             .is_empty());
+    }
+
+    #[test]
+    fn cancel_during_an_in_flight_tick_wins() {
+        let (app, plat) = open_test_app();
+        ready_session(&plat);
+        let base = mooze_core::api::DEFAULT_BASE_URL;
+        plat.http.on_json(
+            HttpMethod::Post,
+            &format!("{base}/v2/transactions"),
+            200,
+            json!({"data": {"transaction_id": "dep-2", "qr_copy_paste": "qr", "qr_image_url": "https://img"}}),
+        );
+        block_on(app.pix_create_deposit(1000, DEPIX_ASSET_ID.into(), None, Some("lq1test".into())))
+            .unwrap();
+        // A tick takes the polls, then the user cancels before the tick puts them back.
+        let (polls, generation) = app.pix_take_polls();
+        assert_eq!(polls.len(), 1);
+        block_on(app.pix_cancel_polls()).unwrap();
+        app.pix_restore_polls(polls, generation);
+        assert_eq!(
+            block_on(app.pix_active_polls()).unwrap(),
+            0,
+            "the cancel must not be undone"
+        );
     }
 
     #[test]

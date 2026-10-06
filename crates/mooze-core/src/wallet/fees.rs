@@ -64,7 +64,9 @@ impl BitcoinFeeEstimate {
             .ok_or_else(|| crate::Error::protocol("bitgo: feeByBlockTarget missing"))?;
         let mut fee_by_block = BTreeMap::new();
         for (k, v) in raw {
-            let n = v.as_i64().ok_or_else(|| crate::Error::protocol("bitgo: fee is not an int"))?;
+            let n = v
+                .as_i64()
+                .ok_or_else(|| crate::Error::protocol("bitgo: fee is not an int"))?;
             fee_by_block.insert(k.clone(), n as f64 / 1000.0);
         }
         let fast = fee_by_block.get("1").map(|v| ceil_u64(*v)).unwrap_or(4);
@@ -193,22 +195,46 @@ mod tests {
         let body: BTreeMap<String, f64> =
             serde_json::from_str(r#"{"1":12.3,"2":10.0,"3":8.01,"6":5.0,"144":1.2}"#).unwrap();
         let e = BitcoinFeeEstimate::from_esplora(body);
-        assert_eq!((e.fast_fee_sat_per_vbyte, e.medium_fee_sat_per_vbyte, e.low_fee_sat_per_vbyte), (13, 9, 2));
+        assert_eq!(
+            (
+                e.fast_fee_sat_per_vbyte,
+                e.medium_fee_sat_per_vbyte,
+                e.low_fee_sat_per_vbyte
+            ),
+            (13, 9, 2)
+        );
         assert_eq!(e.rate_for(FeePriority::High), 13);
         assert_eq!(e.rate_for(FeePriority::Low), 2);
 
         let sparse: BTreeMap<String, f64> = serde_json::from_str(r#"{"2":7.5,"6":4.2}"#).unwrap();
         let e = BitcoinFeeEstimate::from_esplora(sparse);
-        assert_eq!((e.fast_fee_sat_per_vbyte, e.medium_fee_sat_per_vbyte, e.low_fee_sat_per_vbyte), (8, 5, 1));
+        assert_eq!(
+            (
+                e.fast_fee_sat_per_vbyte,
+                e.medium_fee_sat_per_vbyte,
+                e.low_fee_sat_per_vbyte
+            ),
+            (8, 5, 1)
+        );
         let empty = BitcoinFeeEstimate::from_esplora(BTreeMap::new());
-        assert_eq!((empty.fast_fee_sat_per_vbyte, empty.medium_fee_sat_per_vbyte), (4, 3));
+        assert_eq!(
+            (empty.fast_fee_sat_per_vbyte, empty.medium_fee_sat_per_vbyte),
+            (4, 3)
+        );
     }
 
     #[test]
     fn bitgo_parsing_divides_by_1000() {
         let body = serde_json::json!({"feeByBlockTarget": {"1": 15500, "3": 9000, "6": 4000}});
         let e = BitcoinFeeEstimate::from_bitgo(&body).unwrap();
-        assert_eq!((e.fast_fee_sat_per_vbyte, e.medium_fee_sat_per_vbyte, e.low_fee_sat_per_vbyte), (16, 9, 1));
+        assert_eq!(
+            (
+                e.fast_fee_sat_per_vbyte,
+                e.medium_fee_sat_per_vbyte,
+                e.low_fee_sat_per_vbyte
+            ),
+            (16, 9, 1)
+        );
         assert!(BitcoinFeeEstimate::from_bitgo(&serde_json::json!({})).is_err());
     }
 
@@ -216,14 +242,24 @@ mod tests {
     fn service_falls_back_to_bitgo_then_none() {
         let http = MockHttp::new();
         http.once_raw(HttpMethod::Get, BLOCKSTREAM_FEE_URL, 500, "down");
-        http.once_json(HttpMethod::Get, BITGO_FEE_URL, 200, serde_json::json!({"feeByBlockTarget": {"1": 2000}}));
+        http.once_json(
+            HttpMethod::Get,
+            BITGO_FEE_URL,
+            200,
+            serde_json::json!({"feeByBlockTarget": {"1": 2000}}),
+        );
         let svc = BitcoinFeeService::new(http.clone());
         let e = block_on(svc.fetch_fee_estimate()).unwrap();
         assert_eq!(e.fast_fee_sat_per_vbyte, 2);
         assert_eq!(http.requests()[0].timeout_ms, Some(FEE_PROVIDER_TIMEOUT_MS));
 
         let http = MockHttp::new();
-        http.once_json(HttpMethod::Get, BLOCKSTREAM_FEE_URL, 200, serde_json::json!({"1": 3.0}));
+        http.once_json(
+            HttpMethod::Get,
+            BLOCKSTREAM_FEE_URL,
+            200,
+            serde_json::json!({"1": 3.0}),
+        );
         let e = block_on(BitcoinFeeService::new(http).fetch_fee_estimate()).unwrap();
         assert_eq!(e.fast_fee_sat_per_vbyte, 3);
 
@@ -231,7 +267,10 @@ mod tests {
         http.once_raw(HttpMethod::Get, BLOCKSTREAM_FEE_URL, 404, "");
         http.once_raw(HttpMethod::Get, BITGO_FEE_URL, 404, "");
         assert!(block_on(BitcoinFeeService::new(http).fetch_fee_estimate()).is_none());
-        assert_eq!(BitcoinFeeEstimate::default_estimate().fast_fee_sat_per_vbyte, 5);
+        assert_eq!(
+            BitcoinFeeEstimate::default_estimate().fast_fee_sat_per_vbyte,
+            5
+        );
     }
 
     #[test]

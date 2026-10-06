@@ -13,9 +13,9 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use super::protocol::{
-    describe_rpc_error, AssetPairMarketData, Notification, PegOrderResponse, PegOrderStatus, Request, RequestIdGen,
-    ServerStatus, SideswapAsset, SideswapMarket, StartQuotes, StartQuotesResult, PEG_IN_WALLET_BALANCE,
-    PEG_OUT_WALLET_BALANCE, SIDESWAP_API_URL,
+    describe_rpc_error, AssetPairMarketData, Notification, PegOrderResponse, PegOrderStatus,
+    Request, RequestIdGen, ServerStatus, SideswapAsset, SideswapMarket, StartQuotes,
+    StartQuotesResult, PEG_IN_WALLET_BALANCE, PEG_OUT_WALLET_BALANCE, SIDESWAP_API_URL,
 };
 use crate::ports::{Clock, WsConnection, WsConnector, WsMessage};
 use crate::{Error, Result};
@@ -168,7 +168,9 @@ impl<C: WsConnector> SideSwapClient<C> {
         let id = self.ids.allocate();
         self.send_raw(req.encode(id)).await?;
         loop {
-            let Some(frame) = self.read_frame().await? else { continue };
+            let Some(frame) = self.read_frame().await? else {
+                continue;
+            };
             if frame.get("id").and_then(Value::as_u64) == Some(id) {
                 if let Some(err) = frame.get("error").filter(|e| !e.is_null()) {
                     // Dart also fans the error out to the market stream.
@@ -196,7 +198,10 @@ impl<C: WsConnector> SideSwapClient<C> {
     }
 
     async fn send_raw(&mut self, text: String) -> Result<()> {
-        let conn = self.conn.as_mut().ok_or_else(|| Error::Network("sideswap not connected".into()))?;
+        let conn = self
+            .conn
+            .as_mut()
+            .ok_or_else(|| Error::Network("sideswap not connected".into()))?;
         match conn.send_text(text).await {
             Ok(()) => Ok(()),
             Err(e) => {
@@ -209,7 +214,10 @@ impl<C: WsConnector> SideSwapClient<C> {
 
     /// Reads one frame. `None` for keepalive or non-JSON frames.
     async fn read_frame(&mut self) -> Result<Option<Value>> {
-        let conn = self.conn.as_mut().ok_or_else(|| Error::Network("sideswap not connected".into()))?;
+        let conn = self
+            .conn
+            .as_mut()
+            .ok_or_else(|| Error::Network("sideswap not connected".into()))?;
         let msg = match conn.recv().await {
             Ok(m) => m,
             Err(e) => {
@@ -272,8 +280,14 @@ impl<C: WsConnector> SideSwapClient<C> {
     }
 
     /// `assets`. Dart defaults: `all_assets` true, `embedded_icons` false.
-    pub async fn assets(&mut self, all_assets: bool, embedded_icons: bool) -> Result<Vec<SideswapAsset>> {
-        let v = self.call(&Request::assets(all_assets, embedded_icons)).await?;
+    pub async fn assets(
+        &mut self,
+        all_assets: bool,
+        embedded_icons: bool,
+    ) -> Result<Vec<SideswapAsset>> {
+        let v = self
+            .call(&Request::assets(all_assets, embedded_icons))
+            .await?;
         sub_field(&v, &["assets"])
     }
 
@@ -314,28 +328,48 @@ impl<C: WsConnector> SideSwapClient<C> {
 
     /// `market` / `chart_unsub`.
     pub async fn chart_unsub(&mut self, base: &str, quote: &str) -> Result<()> {
-        self.call(&Request::chart_unsub(base, quote)).await.map(|_| ())
+        self.call(&Request::chart_unsub(base, quote))
+            .await
+            .map(|_| ())
     }
 
     /// `peg`: creates a peg order.
-    pub async fn create_peg_order(&mut self, peg_in: bool, receive_address: &str) -> Result<PegOrderResponse> {
-        self.call_typed(&Request::peg(peg_in, receive_address)).await
+    pub async fn create_peg_order(
+        &mut self,
+        peg_in: bool,
+        receive_address: &str,
+    ) -> Result<PegOrderResponse> {
+        self.call_typed(&Request::peg(peg_in, receive_address))
+            .await
     }
 
     /// `peg_status` for one order.
-    pub async fn fetch_peg_status(&mut self, peg_in: bool, order_id: &str) -> Result<PegOrderStatus> {
-        self.call_typed(&Request::peg_status(peg_in, order_id)).await
+    pub async fn fetch_peg_status(
+        &mut self,
+        peg_in: bool,
+        order_id: &str,
+    ) -> Result<PegOrderStatus> {
+        self.call_typed(&Request::peg_status(peg_in, order_id))
+            .await
     }
 
     /// Subscribes to `PegInWalletBalance` or `PegOutWalletBalance`.
     pub async fn subscribe_wallet_balance(&mut self, peg_in: bool) -> Result<Value> {
-        let name = if peg_in { PEG_IN_WALLET_BALANCE } else { PEG_OUT_WALLET_BALANCE };
+        let name = if peg_in {
+            PEG_IN_WALLET_BALANCE
+        } else {
+            PEG_OUT_WALLET_BALANCE
+        };
         self.call(&Request::subscribe_value(name)).await
     }
 
     /// Unsubscribes from a wallet balance value.
     pub async fn unsubscribe_wallet_balance(&mut self, peg_in: bool) -> Result<Value> {
-        let name = if peg_in { PEG_IN_WALLET_BALANCE } else { PEG_OUT_WALLET_BALANCE };
+        let name = if peg_in {
+            PEG_IN_WALLET_BALANCE
+        } else {
+            PEG_OUT_WALLET_BALANCE
+        };
         self.call(&Request::unsubscribe_value(name)).await
     }
 }
@@ -343,7 +377,9 @@ impl<C: WsConnector> SideSwapClient<C> {
 fn sub_field<T: DeserializeOwned>(v: &Value, path: &[&str]) -> Result<T> {
     let mut cur = v;
     for p in path {
-        cur = cur.get(*p).ok_or_else(|| Error::Protocol(format!("missing field {p}")))?;
+        cur = cur
+            .get(*p)
+            .ok_or_else(|| Error::Protocol(format!("missing field {p}")))?;
     }
     Ok(serde_json::from_value(cur.clone())?)
 }
@@ -357,15 +393,21 @@ mod tests {
     use crate::testing::{block_on, FixedClock, MockWs};
 
     fn id_of(frame: &str) -> u64 {
-        serde_json::from_str::<Value>(frame).unwrap()["id"].as_u64().unwrap()
+        serde_json::from_str::<Value>(frame).unwrap()["id"]
+            .as_u64()
+            .unwrap()
     }
     fn method_of(frame: &str) -> String {
-        serde_json::from_str::<Value>(frame).unwrap()["method"].as_str().unwrap().to_owned()
+        serde_json::from_str::<Value>(frame).unwrap()["method"]
+            .as_str()
+            .unwrap()
+            .to_owned()
     }
 
     fn login_ok(frame: &str) -> Option<Vec<String>> {
-        (method_of(frame) == "login_client")
-            .then(|| vec![json!({"id": id_of(frame), "method": "login_client", "result": {}}).to_string()])
+        (method_of(frame) == "login_client").then(|| {
+            vec![json!({"id": id_of(frame), "method": "login_client", "result": {}}).to_string()]
+        })
     }
 
     #[test]
@@ -423,7 +465,9 @@ mod tests {
         assert_eq!(n.len(), 3);
         assert!(matches!(&n[0], Notification::Other(v) if v["id"] == 999999));
         match &n[1] {
-            Notification::Quote(q) => assert!(matches!(q.outcome, QuoteOutcome::Success(ref s) if s.quote_id == 7)),
+            Notification::Quote(q) => {
+                assert!(matches!(q.outcome, QuoteOutcome::Success(ref s) if s.quote_id == 7))
+            }
             other => panic!("{other:?}"),
         }
         assert_eq!(n[2], Notification::PegInWalletBalance(5));
@@ -436,15 +480,27 @@ mod tests {
             login_ok(f).unwrap_or_else(|| {
                 let id = id_of(f);
                 if method_of(f) == "peg" {
-                    vec![json!({"id": id, "error": {"code": -1, "message": "peg disabled"}}).to_string()]
+                    vec![
+                        json!({"id": id, "error": {"code": -1, "message": "peg disabled"}})
+                            .to_string(),
+                    ]
                 } else {
-                    vec![json!({"id": id, "method": "peg_status", "result": "not-an-object"}).to_string()]
+                    vec![
+                        json!({"id": id, "method": "peg_status", "result": "not-an-object"})
+                            .to_string(),
+                    ]
                 }
             })
         });
         let mut c = SideSwapClient::new(ws, "k");
-        assert_eq!(block_on(c.call(&Request::peg(true, "x"))), Err(Error::Protocol("peg disabled".into())));
-        assert_eq!(block_on(c.call(&Request::peg_status(true, "x"))), Err(Error::Protocol(UNEXPECTED_RESULT.into())));
+        assert_eq!(
+            block_on(c.call(&Request::peg(true, "x"))),
+            Err(Error::Protocol("peg disabled".into()))
+        );
+        assert_eq!(
+            block_on(c.call(&Request::peg_status(true, "x"))),
+            Err(Error::Protocol(UNEXPECTED_RESULT.into()))
+        );
     }
 
     #[test]
@@ -452,10 +508,17 @@ mod tests {
         // Server answers login only, so the call sees the close.
         let ws = MockWs::new(|f| login_ok(f).unwrap_or_default());
         let mut c = SideSwapClient::new(ws.clone(), "k");
-        assert!(matches!(block_on(c.call(&Request::server_status())), Err(Error::Network(_))));
+        assert!(matches!(
+            block_on(c.call(&Request::server_status())),
+            Err(Error::Network(_))
+        ));
         assert!(!c.is_connected());
         let _ = block_on(c.call(&Request::server_status()));
-        let logins = ws.sent().iter().filter(|f| method_of(f) == "login_client").count();
+        let logins = ws
+            .sent()
+            .iter()
+            .filter(|f| method_of(f) == "login_client")
+            .count();
         assert_eq!(logins, 2);
     }
 
@@ -464,7 +527,10 @@ mod tests {
         let ws = MockWs::new(|f| login_ok(f).unwrap_or_default());
         let mut c = SideSwapClient::new(ws, "k");
         block_on(c.dispose());
-        assert_eq!(block_on(c.call(&Request::server_status())), Err(Error::Protocol(CLOSED_MESSAGE.into())));
+        assert_eq!(
+            block_on(c.call(&Request::server_status())),
+            Err(Error::Protocol(CLOSED_MESSAGE.into()))
+        );
     }
 
     #[test]
@@ -474,7 +540,10 @@ mod tests {
         .to_string()]);
         let mut c = SideSwapClient::new(ws, "k");
         // Login frame is answered after the preloaded push, which is buffered.
-        assert_eq!(block_on(c.next_event()).unwrap(), Notification::PegOutWalletBalance(9));
+        assert_eq!(
+            block_on(c.next_event()).unwrap(),
+            Notification::PegOutWalletBalance(9)
+        );
     }
 
     #[test]
@@ -502,7 +571,10 @@ mod tests {
         assert_eq!(block_on(c.get_quote_pset(7)).unwrap(), "cHNldA==");
         assert_eq!(block_on(c.taker_sign(7, "signed")).unwrap(), "deadbeef");
         let m = block_on(c.list_markets()).unwrap();
-        assert_eq!((m[0].base_asset_id(), m[0].market_type.as_str()), ("B", "Stablecoin"));
+        assert_eq!(
+            (m[0].base_asset_id(), m[0].market_type.as_str()),
+            ("B", "Stablecoin")
+        );
         let a = block_on(c.assets(true, false)).unwrap();
         assert_eq!(a[0].ticker, "USDt");
     }

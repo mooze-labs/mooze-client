@@ -47,7 +47,11 @@ pub struct PixService<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressPro
 impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService<H, T, K, A> {
     /// Builds the service.
     pub fn new(client: PixClient<H, T>, deposits: DepositStore<K>, addresses: A) -> Self {
-        Self { client, deposits, addresses }
+        Self {
+            client,
+            deposits,
+            addresses,
+        }
     }
 
     /// The deposit store.
@@ -70,15 +74,18 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
         tax_id_number: Option<String>,
         now_ms: u64,
     ) -> Result<NewDepositOutcome> {
-        let address = self
-            .addresses
-            .liquid_receive_address()
-            .await
-            .map_err(|e| Error::service(ChainId::Liquid, format!("Erro ao gerar endereço: {e}")))?;
+        let address =
+            self.addresses.liquid_receive_address().await.map_err(|e| {
+                Error::service(ChainId::Liquid, format!("Erro ao gerar endereço: {e}"))
+            })?;
         if address.is_empty() {
-            return Err(Error::service(ChainId::Liquid, "Erro ao gerar endereço: empty address"));
+            return Err(Error::service(
+                ChainId::Liquid,
+                "Erro ao gerar endereço: empty address",
+            ));
         }
-        self.new_deposit_to_address(amount_in_cents, &address, asset, tax_id_number, now_ms).await
+        self.new_deposit_to_address(amount_in_cents, &address, asset, tax_id_number, now_ms)
+            .await
     }
 
     /// Creates a deposit paying to `address` (Dart `PixRepository.newDeposit`).
@@ -99,7 +106,13 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
         };
         let resp = self.client.create_deposit(&req).await?;
         self.deposits
-            .add_new_deposit(&resp.deposit_id, &resp.qr_copy_paste, asset.id(), amount_in_cents, now_ms)
+            .add_new_deposit(
+                &resp.deposit_id,
+                &resp.qr_copy_paste,
+                asset.id(),
+                amount_in_cents,
+                now_ms,
+            )
             .await?;
         Ok(NewDepositOutcome {
             event: PixStatusEvent::new(resp.deposit_id.clone(), DepositStatus::Pending),
@@ -142,23 +155,44 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
     /// Persists a status event (Dart `_updateTransactionStatus`).
     pub async fn apply_status_event(&self, event: &PixStatusEvent) -> Result<()> {
         self.deposits
-            .update_deposit(&event.deposit_id, event.status.as_api_str(), event.asset_amount, event.blockchain_txid.as_deref())
+            .update_deposit(
+                &event.deposit_id,
+                event.status.as_api_str(),
+                event.asset_amount,
+                event.blockchain_txid.as_deref(),
+            )
             .await
     }
 
     /// Reads one deposit.
     pub async fn get_deposit(&self, deposit_id: &str) -> Result<Option<PixDeposit>> {
-        Ok(self.deposits.get_deposit(deposit_id).await?.map(|r| r.to_deposit()))
+        Ok(self
+            .deposits
+            .get_deposit(deposit_id)
+            .await?
+            .map(|r| r.to_deposit()))
     }
 
     /// Reads one deposit or fails with "Depósito não encontrado" (controller).
     pub async fn require_deposit(&self, deposit_id: &str) -> Result<PixDeposit> {
-        self.get_deposit(deposit_id).await?.ok_or_else(|| Error::invalid("Depósito não encontrado"))
+        self.get_deposit(deposit_id)
+            .await?
+            .ok_or_else(|| Error::invalid("Depósito não encontrado"))
     }
 
     /// Lists deposits, newest first.
-    pub async fn get_deposits(&self, limit: Option<usize>, offset: Option<usize>) -> Result<Vec<PixDeposit>> {
-        Ok(self.deposits.get_deposits(limit, offset).await?.iter().map(|r| r.to_deposit()).collect())
+    pub async fn get_deposits(
+        &self,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<PixDeposit>> {
+        Ok(self
+            .deposits
+            .get_deposits(limit, offset)
+            .await?
+            .iter()
+            .map(|r| r.to_deposit())
+            .collect())
     }
 
     /// Refreshes deposits from the backend and returns the stored ones with these ids.
@@ -169,16 +203,30 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
         let details = self.client.get_deposits_status(ids).await?;
         for d in &details {
             self.deposits
-                .update_deposit(&d.id, &d.status, Some(d.asset_amount.unwrap_or(0)), d.blockchain_txid.as_deref())
+                .update_deposit(
+                    &d.id,
+                    &d.status,
+                    Some(d.asset_amount.unwrap_or(0)),
+                    d.blockchain_txid.as_deref(),
+                )
                 .await?;
         }
-        Ok(self.get_deposits(None, None).await?.into_iter().filter(|d| ids.contains(&d.deposit_id)).collect())
+        Ok(self
+            .get_deposits(None, None)
+            .await?
+            .into_iter()
+            .filter(|d| ids.contains(&d.deposit_id))
+            .collect())
     }
 
     /// History page with a backend refresh of non-terminal deposits.
     ///
     /// A refresh failure returns the first local read, as in Dart.
-    pub async fn get_pix_history(&self, limit: Option<usize>, offset: Option<usize>) -> Result<Vec<PixDeposit>> {
+    pub async fn get_pix_history(
+        &self,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<PixDeposit>> {
         let deposits = self.get_deposits(limit, offset).await?;
         let pending = deposits_to_refresh(&deposits);
         if pending.is_empty() {
@@ -252,13 +300,18 @@ mod tests {
         let http = MockHttp::new();
         mock_create(&http);
         let s = svc(&http, "lq1qqaddr");
-        let out = block_on(s.new_deposit(1000, Asset::Depix, Some("52998224725".into()), 5_000)).unwrap();
+        let out =
+            block_on(s.new_deposit(1000, Asset::Depix, Some("52998224725".into()), 5_000)).unwrap();
         assert_eq!(out.deposit.pix_key, "qr-copy");
-        assert_eq!(out.event, PixStatusEvent::new("dep-1", DepositStatus::Pending));
+        assert_eq!(
+            out.event,
+            PixStatusEvent::new("dep-1", DepositStatus::Pending)
+        );
         assert_eq!(out.poll.first_tick_at_ms(), 35_000);
         let stored = block_on(s.get_deposit("dep-1")).unwrap().unwrap();
         assert_eq!(stored, out.deposit);
-        let body: serde_json::Value = serde_json::from_slice(http.last_request().unwrap().body.as_ref().unwrap()).unwrap();
+        let body: serde_json::Value =
+            serde_json::from_slice(http.last_request().unwrap().body.as_ref().unwrap()).unwrap();
         assert_eq!(body["address"], "lq1qqaddr");
         assert_eq!(body["network"], "liquid");
     }
@@ -292,7 +345,10 @@ mod tests {
         let events = block_on(s.poll_tick(&mut out.poll, 60_000));
         assert_eq!(events[0].status, DepositStatus::DepixSent);
         let d = block_on(s.require_deposit("dep-1")).unwrap();
-        assert_eq!((d.status, d.asset_amount, d.blockchain_txid.as_deref()), (DepositStatus::DepixSent, Some(970_000), Some("tx9")));
+        assert_eq!(
+            (d.status, d.asset_amount, d.blockchain_txid.as_deref()),
+            (DepositStatus::DepixSent, Some(970_000), Some("tx9"))
+        );
         assert!(block_on(s.poll_tick(&mut out.poll, 90_000)).is_empty());
     }
 
@@ -303,8 +359,14 @@ mod tests {
         let s = svc(&http, "lq1");
         let mut out = block_on(s.new_deposit(1000, Asset::Depix, None, 0)).unwrap();
         let events = block_on(s.poll_tick(&mut out.poll, 21 * 60_000 + 1));
-        assert_eq!(events, vec![PixStatusEvent::new("dep-1", DepositStatus::Expired)]);
-        assert_eq!(block_on(s.require_deposit("dep-1")).unwrap().status, DepositStatus::Expired);
+        assert_eq!(
+            events,
+            vec![PixStatusEvent::new("dep-1", DepositStatus::Expired)]
+        );
+        assert_eq!(
+            block_on(s.require_deposit("dep-1")).unwrap().status,
+            DepositStatus::Expired
+        );
         assert!(block_on(s.require_deposit("nope")).is_err());
     }
 
@@ -313,9 +375,18 @@ mod tests {
         let http = MockHttp::new();
         let s = svc(&http, "lq1");
         block_on(async {
-            s.store().add_new_deposit("a", "qa", crate::domain::DEPIX_ASSET_ID, 100, 10).await.unwrap();
-            s.store().add_new_deposit("b", "qb", crate::domain::DEPIX_ASSET_ID, 200, 20).await.unwrap();
-            s.store().update_deposit_status("a", "expired").await.unwrap();
+            s.store()
+                .add_new_deposit("a", "qa", crate::domain::DEPIX_ASSET_ID, 100, 10)
+                .await
+                .unwrap();
+            s.store()
+                .add_new_deposit("b", "qb", crate::domain::DEPIX_ASSET_ID, 200, 20)
+                .await
+                .unwrap();
+            s.store()
+                .update_deposit_status("a", "expired")
+                .await
+                .unwrap();
 
             // Backend down: local data comes back unchanged.
             let h = s.get_pix_history(Some(50), Some(0)).await.unwrap();

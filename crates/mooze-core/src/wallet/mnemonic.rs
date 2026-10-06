@@ -17,14 +17,20 @@ const ENTROPY_24_WORDS: usize = 32;
 /// Generates a fresh English mnemonic. `extended` selects 24 words, else 12.
 pub fn generate(extended: bool) -> String {
     let mut entropy = [0u8; ENTROPY_24_WORDS];
-    let len = if extended { ENTROPY_24_WORDS } else { ENTROPY_12_WORDS };
+    let len = if extended {
+        ENTROPY_24_WORDS
+    } else {
+        ENTROPY_12_WORDS
+    };
     thread_rng().fill_bytes(&mut entropy[..len]);
     from_entropy(&entropy[..len]).expect("16 or 32 bytes is valid BIP39 entropy")
 }
 
 /// Builds the mnemonic for raw entropy (16 to 32 bytes, multiple of 4).
 pub fn from_entropy(entropy: &[u8]) -> Result<String> {
-    Mnemonic::from_entropy(entropy).map(|m| m.to_string()).map_err(|e| Error::invalid(format!("mnemonic: {e}")))
+    Mnemonic::from_entropy(entropy)
+        .map(|m| m.to_string())
+        .map_err(|e| Error::invalid(format!("mnemonic: {e}")))
 }
 
 /// Trims the phrase and joins the words with single spaces.
@@ -34,7 +40,8 @@ pub fn normalize(phrase: &str) -> String {
 
 /// Parses and checks a phrase (word list and checksum).
 pub fn parse(phrase: &str) -> Result<Mnemonic> {
-    Mnemonic::parse_normalized(&normalize(phrase)).map_err(|e| Error::invalid(format!("mnemonic: {e}")))
+    Mnemonic::parse_normalized(&normalize(phrase))
+        .map_err(|e| Error::invalid(format!("mnemonic: {e}")))
 }
 
 /// True if the phrase is a valid English BIP39 mnemonic.

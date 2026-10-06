@@ -54,7 +54,10 @@ impl SessionLockTimeout {
 
     /// Parses a persisted token. Unknown or absent values give [`Self::DEFAULT`].
     pub fn from_storage(value: Option<&str>) -> Self {
-        Self::ALL.into_iter().find(|t| Some(t.storage_value()) == value).unwrap_or(Self::DEFAULT)
+        Self::ALL
+            .into_iter()
+            .find(|t| Some(t.storage_value()) == value)
+            .unwrap_or(Self::DEFAULT)
     }
 }
 
@@ -165,7 +168,10 @@ pub struct LockOverlay {
 
 /// Dart `resolveLockOverlay`.
 pub fn resolve_lock_overlay(privacy_shield_visible: bool, session_locked: bool) -> LockOverlay {
-    LockOverlay { show_cover: privacy_shield_visible || session_locked, show_authentication: session_locked }
+    LockOverlay {
+        show_cover: privacy_shield_visible || session_locked,
+        show_authentication: session_locked,
+    }
 }
 
 #[cfg(test)]
@@ -174,20 +180,38 @@ mod tests {
 
     #[test]
     fn timeout_storage() {
-        assert_eq!(SessionLockTimeout::from_storage(Some("minute1")), SessionLockTimeout::Minute1);
-        assert_eq!(SessionLockTimeout::from_storage(Some("bogus")), SessionLockTimeout::Immediate);
-        assert_eq!(SessionLockTimeout::from_storage(None), SessionLockTimeout::Immediate);
+        assert_eq!(
+            SessionLockTimeout::from_storage(Some("minute1")),
+            SessionLockTimeout::Minute1
+        );
+        assert_eq!(
+            SessionLockTimeout::from_storage(Some("bogus")),
+            SessionLockTimeout::Immediate
+        );
+        assert_eq!(
+            SessionLockTimeout::from_storage(None),
+            SessionLockTimeout::Immediate
+        );
     }
 
     #[test]
     fn lock_after_timeout() {
         let mut c = SessionLockController::new();
         c.on_backgrounded(1_000, true, false);
-        assert_eq!(c.on_resumed(10_000, true, false, SessionLockTimeout::Seconds15), SessionLockState::Unlocked);
+        assert_eq!(
+            c.on_resumed(10_000, true, false, SessionLockTimeout::Seconds15),
+            SessionLockState::Unlocked
+        );
         c.on_backgrounded(1_000, true, false);
-        assert_eq!(c.on_resumed(16_000, true, false, SessionLockTimeout::Seconds15), SessionLockState::Locked);
+        assert_eq!(
+            c.on_resumed(16_000, true, false, SessionLockTimeout::Seconds15),
+            SessionLockState::Locked
+        );
         // Stays locked until unlock.
-        assert_eq!(c.on_resumed(16_000, true, false, SessionLockTimeout::Seconds15), SessionLockState::Locked);
+        assert_eq!(
+            c.on_resumed(16_000, true, false, SessionLockTimeout::Seconds15),
+            SessionLockState::Locked
+        );
         c.unlock();
         assert_eq!(c.state(), SessionLockState::Unlocked);
     }
@@ -196,20 +220,50 @@ mod tests {
     fn lock_bypasses() {
         let mut c = SessionLockController::new();
         c.on_backgrounded(0, true, true); // auth prompt: ignored
-        assert_eq!(c.on_resumed(99_000, true, false, SessionLockTimeout::Immediate), SessionLockState::Unlocked);
+        assert_eq!(
+            c.on_resumed(99_000, true, false, SessionLockTimeout::Immediate),
+            SessionLockState::Unlocked
+        );
         c.on_backgrounded(0, true, false);
-        assert_eq!(c.on_resumed(99_000, true, true, SessionLockTimeout::Immediate), SessionLockState::Unlocked);
+        assert_eq!(
+            c.on_resumed(99_000, true, true, SessionLockTimeout::Immediate),
+            SessionLockState::Unlocked
+        );
         c.on_backgrounded(0, true, false);
-        assert_eq!(c.on_resumed(0, true, false, SessionLockTimeout::Immediate), SessionLockState::Locked);
+        assert_eq!(
+            c.on_resumed(0, true, false, SessionLockTimeout::Immediate),
+            SessionLockState::Locked
+        );
     }
 
     #[test]
     fn shield_and_overlay() {
         use PrivacyShieldState::*;
-        assert_eq!(privacy_shield_on_leaving_foreground(Hidden, false, false, true), Visible);
-        assert_eq!(privacy_shield_on_leaving_foreground(Hidden, true, true, true), Hidden);
-        assert_eq!(privacy_shield_on_leaving_foreground(Hidden, false, false, false), Hidden);
-        assert_eq!(resolve_lock_overlay(true, false), LockOverlay { show_cover: true, show_authentication: false });
-        assert_eq!(resolve_lock_overlay(false, true), LockOverlay { show_cover: true, show_authentication: true });
+        assert_eq!(
+            privacy_shield_on_leaving_foreground(Hidden, false, false, true),
+            Visible
+        );
+        assert_eq!(
+            privacy_shield_on_leaving_foreground(Hidden, true, true, true),
+            Hidden
+        );
+        assert_eq!(
+            privacy_shield_on_leaving_foreground(Hidden, false, false, false),
+            Hidden
+        );
+        assert_eq!(
+            resolve_lock_overlay(true, false),
+            LockOverlay {
+                show_cover: true,
+                show_authentication: false
+            }
+        );
+        assert_eq!(
+            resolve_lock_overlay(false, true),
+            LockOverlay {
+                show_cover: true,
+                show_authentication: true
+            }
+        );
     }
 }

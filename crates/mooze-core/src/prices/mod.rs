@@ -16,13 +16,15 @@ use std::future::Future;
 use serde::{Deserialize, Serialize};
 
 pub use binance::{
-    BinanceClient, BinanceDailyPriceVariationService, BinancePriceService, BINANCE_API_URL, BINANCE_CACHE_TTL_MS,
-    BINANCE_SYMBOLS,
+    BinanceClient, BinanceDailyPriceVariationService, BinancePriceService, BINANCE_API_URL,
+    BINANCE_CACHE_TTL_MS, BINANCE_SYMBOLS,
 };
 pub use cache::{CachedPriceData, CachedPriceService, PriceCacheService, CACHE_KEY_PREFIX};
 pub use coingecko::{CoingeckoPriceService, COINGECKO_BASE_URL};
 pub use hybrid::{Connectivity, HybridPriceService, StandardHybridPriceService};
-pub use quotes::{PriceQuote, PriceQuotes, PriceQuotesStore, PRICE_REFRESH_INTERVAL_MS, QUOTE_ASSETS};
+pub use quotes::{
+    PriceQuote, PriceQuotes, PriceQuotesStore, PRICE_REFRESH_INTERVAL_MS, QUOTE_ASSETS,
+};
 pub use settings::{CurrencyController, CurrencyItem, PriceSettingsRepository};
 
 use crate::domain::Asset;
@@ -30,7 +32,9 @@ use crate::ports::{MaybeSend, MaybeSync};
 use crate::Result;
 
 /// Fiat currency for prices. Dart `Currency`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, Default,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum Currency {
     #[default]
@@ -129,16 +133,22 @@ pub trait PriceService: MaybeSend + MaybeSync {
 
     /// Price of one whole unit of `asset`. `None` means no price is known.
     /// `currency` overrides the default currency.
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend;
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend;
 }
 
 impl<T: PriceService + ?Sized> PriceService for std::sync::Arc<T> {
     fn currency(&self) -> Currency {
         (**self).currency()
     }
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         (**self).get_coin_price(asset, currency)
     }
 }

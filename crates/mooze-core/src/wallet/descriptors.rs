@@ -24,7 +24,8 @@ use crate::domain::{AppNetwork, ChainId, LBTC_ASSET_ID};
 use crate::{Error, Result};
 
 /// L-BTC asset id on Liquid testnet (`lTestAssetId` in lwk-dart).
-pub const LIQUID_TESTNET_POLICY_ASSET: &str = "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49";
+pub const LIQUID_TESTNET_POLICY_ASSET: &str =
+    "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49";
 
 /// External (receive) derivation path of the BDK wallet.
 pub const BITCOIN_EXTERNAL_PATH: &str = "m/84'/0'/0'/0";
@@ -84,7 +85,9 @@ pub fn liquid_policy_asset(network: AppNetwork) -> &'static str {
 fn bitcoin_descriptor(root: &Xpriv, path: &str) -> Result<String> {
     let secp = Secp256k1::new();
     let path = DerivationPath::from_str(path).map_err(|e| Error::service(ChainId::Bitcoin, e))?;
-    let derived = root.derive_priv(&secp, &path).map_err(|e| Error::service(ChainId::Bitcoin, e))?;
+    let derived = root
+        .derive_priv(&secp, &path)
+        .map_err(|e| Error::service(ChainId::Bitcoin, e))?;
     let fingerprint = root.fingerprint(&secp);
     let origin = path.to_string();
     let origin = origin.trim_start_matches("m/");
@@ -106,7 +109,8 @@ pub fn bitcoin_descriptors(phrase: &str, network: AppNetwork) -> Result<BitcoinD
 pub fn liquid_signer(phrase: &str, network: AppNetwork) -> Result<SwSigner> {
     // Validate first so the error carries the BIP39 reason.
     mnemonic::parse(phrase)?;
-    SwSigner::new(&mnemonic::normalize(phrase), network.is_mainnet()).map_err(|e| Error::service(ChainId::Liquid, e))
+    SwSigner::new(&mnemonic::normalize(phrase), network.is_mainnet())
+        .map_err(|e| Error::service(ChainId::Liquid, e))
 }
 
 /// Confidential LWK descriptor string (with checksum) for a mnemonic.
@@ -143,15 +147,21 @@ mod tests {
         let w = btc_wallet(AppNetwork::Mainnet);
         // BIP84 test vectors for "abandon ... about".
         assert_eq!(
-            w.peek_address(KeychainKind::External, 0).address.to_string(),
+            w.peek_address(KeychainKind::External, 0)
+                .address
+                .to_string(),
             "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
         );
         assert_eq!(
-            w.peek_address(KeychainKind::External, 1).address.to_string(),
+            w.peek_address(KeychainKind::External, 1)
+                .address
+                .to_string(),
             "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g"
         );
         assert_eq!(
-            w.peek_address(KeychainKind::Internal, 0).address.to_string(),
+            w.peek_address(KeychainKind::Internal, 0)
+                .address
+                .to_string(),
             "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el"
         );
     }
@@ -159,11 +169,21 @@ mod tests {
     #[test]
     fn bitcoin_testnet_keeps_coin_type_zero() {
         let d = bitcoin_descriptors(ABANDON, AppNetwork::Testnet).unwrap();
-        assert!(d.external.starts_with("wpkh([73c5da0a/84'/0'/0'/0]tprv"), "{}", d.external);
+        assert!(
+            d.external.starts_with("wpkh([73c5da0a/84'/0'/0'/0]tprv"),
+            "{}",
+            d.external
+        );
         let w = btc_wallet(AppNetwork::Testnet);
-        let addr = w.peek_address(KeychainKind::External, 0).address.to_string();
+        let addr = w
+            .peek_address(KeychainKind::External, 0)
+            .address
+            .to_string();
         // Same key as mainnet index 0, testnet HRP.
-        assert!(addr.starts_with("tb1qcr8te4kr609gcawutmrza0j4xv80jy8z"), "{addr}");
+        assert!(
+            addr.starts_with("tb1qcr8te4kr609gcawutmrza0j4xv80jy8z"),
+            "{addr}"
+        );
     }
 
     #[test]
@@ -189,7 +209,9 @@ mod tests {
         // NOTE(port): still cross-check against the Flutter app output.
         let addr = |n| {
             let desc = liquid_descriptor(ABANDON, n).unwrap();
-            desc.address(0, liquid_network(n).address_params()).unwrap().to_string()
+            desc.address(0, liquid_network(n).address_params())
+                .unwrap()
+                .to_string()
         };
         let a = addr(AppNetwork::Mainnet);
         assert!(a.starts_with("lq1"), "{a}");

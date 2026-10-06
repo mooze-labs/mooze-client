@@ -76,13 +76,24 @@ impl<K: KvStore, C: Clock> PriceCacheService<K, C> {
             currency: currency.name().to_owned(),
             asset_id: asset.id().to_owned(),
         };
-        self.kv.put(&Self::cache_key(asset, currency), serde_json::to_vec(&data)?).await
+        self.kv
+            .put(
+                &Self::cache_key(asset, currency),
+                serde_json::to_vec(&data)?,
+            )
+            .await
     }
 
     /// Reads the entry. A corrupt entry is deleted and gives `None`.
-    pub async fn get_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<CachedPriceData>> {
+    pub async fn get_cached_price(
+        &self,
+        asset: Asset,
+        currency: Currency,
+    ) -> Result<Option<CachedPriceData>> {
         let key = Self::cache_key(asset, currency);
-        let Some(bytes) = self.kv.get(&key).await? else { return Ok(None) };
+        let Some(bytes) = self.kv.get(&key).await? else {
+            return Ok(None);
+        };
         match serde_json::from_slice(&bytes) {
             Ok(data) => Ok(Some(data)),
             Err(_) => {
@@ -92,23 +103,46 @@ impl<K: KvStore, C: Clock> PriceCacheService<K, C> {
         }
     }
 
-    async fn price_if(&self, asset: Asset, currency: Currency, ok: impl Fn(&CachedPriceData, u64) -> bool) -> Result<Option<f64>> {
+    async fn price_if(
+        &self,
+        asset: Asset,
+        currency: Currency,
+        ok: impl Fn(&CachedPriceData, u64) -> bool,
+    ) -> Result<Option<f64>> {
         let now = self.clock.now_ms();
-        Ok(self.get_cached_price(asset, currency).await?.filter(|d| ok(d, now)).map(|d| d.price))
+        Ok(self
+            .get_cached_price(asset, currency)
+            .await?
+            .filter(|d| ok(d, now))
+            .map(|d| d.price))
     }
 
     /// Price younger than 6 minutes. Dart `getValidCachedPrice`.
-    pub async fn get_valid_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<f64>> {
-        self.price_if(asset, currency, CachedPriceData::is_valid).await
+    pub async fn get_valid_cached_price(
+        &self,
+        asset: Asset,
+        currency: Currency,
+    ) -> Result<Option<f64>> {
+        self.price_if(asset, currency, CachedPriceData::is_valid)
+            .await
     }
 
     /// Price younger than 2 hours. Dart `getEmergencyCachedPrice`.
-    pub async fn get_emergency_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<f64>> {
-        self.price_if(asset, currency, CachedPriceData::is_recent_enough).await
+    pub async fn get_emergency_cached_price(
+        &self,
+        asset: Asset,
+        currency: Currency,
+    ) -> Result<Option<f64>> {
+        self.price_if(asset, currency, CachedPriceData::is_recent_enough)
+            .await
     }
 
     /// Any cached price. Dart `getAnyCachedPrice`.
-    pub async fn get_any_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<f64>> {
+    pub async fn get_any_cached_price(
+        &self,
+        asset: Asset,
+        currency: Currency,
+    ) -> Result<Option<f64>> {
         self.price_if(asset, currency, |_, _| true).await
     }
 
@@ -139,7 +173,11 @@ pub struct CachedPriceService<S, K, C> {
 impl<S: PriceService, K: KvStore, C: Clock> CachedPriceService<S, K, C> {
     /// Wraps `inner`.
     pub fn new(inner: S, cache: PriceCacheService<K, C>, currency: Currency) -> Self {
-        Self { inner, cache, currency }
+        Self {
+            inner,
+            cache,
+            currency,
+        }
     }
 
     /// The cache this service writes to.
@@ -154,13 +192,24 @@ impl<S: PriceService, K: KvStore, C: Clock> CachedPriceService<S, K, C> {
 
     /// True if any entry exists for the asset.
     pub async fn has_cached_price(&self, asset: Asset, currency: Option<Currency>) -> Result<bool> {
-        Ok(self.cache.get_cached_price(asset, currency.unwrap_or(self.currency)).await?.is_some())
+        Ok(self
+            .cache
+            .get_cached_price(asset, currency.unwrap_or(self.currency))
+            .await?
+            .is_some())
     }
 
     /// Age of the cached entry in whole minutes.
-    pub async fn get_cache_age_in_minutes(&self, asset: Asset, currency: Option<Currency>) -> Result<Option<i64>> {
+    pub async fn get_cache_age_in_minutes(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> Result<Option<i64>> {
         let now = self.cache.now_ms();
-        let data = self.cache.get_cached_price(asset, currency.unwrap_or(self.currency)).await?;
+        let data = self
+            .cache
+            .get_cached_price(asset, currency.unwrap_or(self.currency))
+            .await?;
         Ok(data.map(|d| d.age_minutes(now)))
     }
 }
@@ -170,8 +219,11 @@ impl<S: PriceService, K: KvStore, C: Clock> PriceService for CachedPriceService<
         self.currency
     }
 
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         let target = currency.unwrap_or(self.currency);
         async move {
             if let Ok(Some(fresh)) = self.inner.get_coin_price(asset, Some(target)).await {
@@ -207,7 +259,10 @@ pub(crate) mod tests {
 
     impl ScriptedPrices {
         pub(crate) fn new(answer: Result<Option<f64>>) -> Arc<Self> {
-            Arc::new(Self { answer: Mutex::new(Some(answer)), calls: AtomicUsize::new(0) })
+            Arc::new(Self {
+                answer: Mutex::new(Some(answer)),
+                calls: AtomicUsize::new(0),
+            })
         }
         pub(crate) fn set(&self, answer: Result<Option<f64>>) {
             *self.answer.lock().unwrap() = Some(answer);
@@ -218,7 +273,11 @@ pub(crate) mod tests {
         fn currency(&self) -> Currency {
             Currency::Brl
         }
-        fn get_coin_price(&self, _: Asset, _: Option<Currency>) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+        fn get_coin_price(
+            &self,
+            _: Asset,
+            _: Option<Currency>,
+        ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
             self.calls.fetch_add(1, Ordering::SeqCst);
             std::future::ready(self.answer.lock().unwrap().clone().unwrap_or(Ok(None)))
         }
@@ -229,20 +288,38 @@ pub(crate) mod tests {
     #[test]
     fn key_and_json_shape() {
         let key = PriceCacheService::<MemoryKv, FixedClock>::cache_key(Asset::Usdt, Currency::Brl);
-        assert_eq!(key, format!("cached_price_{}_brl", crate::domain::USDT_ASSET_ID));
+        assert_eq!(
+            key,
+            format!("cached_price_{}_brl", crate::domain::USDT_ASSET_ID)
+        );
         let kv = MemoryKv::new();
         let cache = PriceCacheService::new(kv.clone(), FixedClock::new(T0));
         block_on(async {
-            cache.cache_price(Asset::Btc, 600_000.5, Currency::Brl).await.unwrap();
-            let raw = kv.get("cached_price_btc-native-blockchain_brl").await.unwrap().unwrap();
+            cache
+                .cache_price(Asset::Btc, 600_000.5, Currency::Brl)
+                .await
+                .unwrap();
+            let raw = kv
+                .get("cached_price_btc-native-blockchain_brl")
+                .await
+                .unwrap()
+                .unwrap();
             let v: serde_json::Value = serde_json::from_slice(&raw).unwrap();
-            assert_eq!(v, serde_json::json!({"price": 600000.5, "timestamp": T0, "currency": "brl", "assetId": "btc-native-blockchain"}));
+            assert_eq!(
+                v,
+                serde_json::json!({"price": 600000.5, "timestamp": T0, "currency": "brl", "assetId": "btc-native-blockchain"})
+            );
         });
     }
 
     #[test]
     fn ttl_windows() {
-        let d = CachedPriceData { price: 1.0, timestamp: T0 as i64, currency: "brl".into(), asset_id: "x".into() };
+        let d = CachedPriceData {
+            price: 1.0,
+            timestamp: T0 as i64,
+            currency: "brl".into(),
+            asset_id: "x".into(),
+        };
         assert!(d.is_valid(T0 + 6 * 60_000 - 1));
         assert!(!d.is_valid(T0 + 6 * 60_000));
         assert!(d.is_recent_enough(T0 + 2 * 3_600_000 - 1));
@@ -256,11 +333,18 @@ pub(crate) mod tests {
         let kv = MemoryKv::new();
         let cache = PriceCacheService::new(kv.clone(), FixedClock::new(T0));
         block_on(async {
-            let key = PriceCacheService::<MemoryKv, FixedClock>::cache_key(Asset::Btc, Currency::Usd);
+            let key =
+                PriceCacheService::<MemoryKv, FixedClock>::cache_key(Asset::Btc, Currency::Usd);
             kv.put(&key, b"{oops".to_vec()).await.unwrap();
             kv.put("cached_price_bad", b"[]".to_vec()).await.unwrap();
             kv.put("other", b"x".to_vec()).await.unwrap();
-            assert_eq!(cache.get_cached_price(Asset::Btc, Currency::Usd).await.unwrap(), None);
+            assert_eq!(
+                cache
+                    .get_cached_price(Asset::Btc, Currency::Usd)
+                    .await
+                    .unwrap(),
+                None
+            );
             assert_eq!(kv.get(&key).await.unwrap(), None);
             cache.clean_expired_cache().await.unwrap();
             assert_eq!(kv.list_keys("").await.unwrap(), vec!["other"]);
@@ -271,15 +355,33 @@ pub(crate) mod tests {
     fn fresh_then_cache_fallback() {
         let clock = Arc::new(FixedClock::new(T0));
         let inner = ScriptedPrices::new(Ok(Some(100.0)));
-        let svc = CachedPriceService::new(inner.clone(), PriceCacheService::new(MemoryKv::new(), clock.clone()), Currency::Brl);
+        let svc = CachedPriceService::new(
+            inner.clone(),
+            PriceCacheService::new(MemoryKv::new(), clock.clone()),
+            Currency::Brl,
+        );
         block_on(async {
-            assert_eq!(svc.get_coin_price(Asset::Btc, None).await.unwrap(), Some(100.0));
+            assert_eq!(
+                svc.get_coin_price(Asset::Btc, None).await.unwrap(),
+                Some(100.0)
+            );
             inner.set(Err(Error::Network("down".into())));
             clock.advance(3 * 3_600_000);
-            assert_eq!(svc.get_coin_price(Asset::Btc, None).await.unwrap(), Some(100.0)); // any-age fallback
-            assert_eq!(svc.get_cache_age_in_minutes(Asset::Btc, None).await.unwrap(), Some(180));
+            assert_eq!(
+                svc.get_coin_price(Asset::Btc, None).await.unwrap(),
+                Some(100.0)
+            ); // any-age fallback
+            assert_eq!(
+                svc.get_cache_age_in_minutes(Asset::Btc, None)
+                    .await
+                    .unwrap(),
+                Some(180)
+            );
             assert!(svc.has_cached_price(Asset::Btc, None).await.unwrap());
-            assert!(!svc.has_cached_price(Asset::Btc, Some(Currency::Usd)).await.unwrap());
+            assert!(!svc
+                .has_cached_price(Asset::Btc, Some(Currency::Usd))
+                .await
+                .unwrap());
             inner.set(Ok(None));
             assert_eq!(svc.get_coin_price(Asset::Usdt, None).await.unwrap(), None);
         });

@@ -70,7 +70,12 @@ impl Cart {
     pub fn add_item(&mut self, product_id: i64, name: &str, price: f64) {
         match self.items.iter_mut().find(|i| i.product_id == product_id) {
             Some(i) => i.quantity += 1,
-            None => self.items.push(CartItem { product_id, name: name.to_owned(), price, quantity: 1 }),
+            None => self.items.push(CartItem {
+                product_id,
+                name: name.to_owned(),
+                price,
+                quantity: 1,
+            }),
         }
     }
 
@@ -114,7 +119,10 @@ impl Cart {
 
     /// Quantity of one product, 0 if absent.
     pub fn quantity_for(&self, product_id: i64) -> u32 {
-        self.items.iter().find(|i| i.product_id == product_id).map_or(0, |i| i.quantity)
+        self.items
+            .iter()
+            .find(|i| i.product_id == product_id)
+            .map_or(0, |i| i.quantity)
     }
 
     /// Lines in insertion order.
@@ -145,7 +153,10 @@ impl KeypadValue {
         if digit > 9 {
             return;
         }
-        let next = self.cents.saturating_mul(10).saturating_add(u64::from(digit));
+        let next = self
+            .cents
+            .saturating_mul(10)
+            .saturating_add(u64::from(digit));
         if next > MAX_KEYPAD_CENTS {
             return;
         }
@@ -205,11 +216,19 @@ pub struct MerchantValidation {
 impl MerchantValidation {
     /// Valid result.
     pub fn valid() -> Self {
-        Self { error: MerchantValidationError::None, amount: None, is_valid: true }
+        Self {
+            error: MerchantValidationError::None,
+            amount: None,
+            is_valid: true,
+        }
     }
 
     fn failure(error: MerchantValidationError, amount: f64) -> Self {
-        Self { error, amount: Some(amount), is_valid: false }
+        Self {
+            error,
+            amount: Some(amount),
+            is_valid: false,
+        }
     }
 }
 
@@ -231,10 +250,16 @@ pub fn validate_sale(total: f64, limits: Option<SaleLimits>) -> MerchantValidati
         return MerchantValidation::valid();
     }
     if total < l.absolute_min_limit {
-        return MerchantValidation::failure(MerchantValidationError::BelowMinimum, l.absolute_min_limit);
+        return MerchantValidation::failure(
+            MerchantValidationError::BelowMinimum,
+            l.absolute_min_limit,
+        );
     }
     if total > l.allowed_spending {
-        return MerchantValidation::failure(MerchantValidationError::AboveTransaction, l.allowed_spending);
+        return MerchantValidation::failure(
+            MerchantValidationError::AboveTransaction,
+            l.allowed_spending,
+        );
     }
     MerchantValidation::valid()
 }
@@ -261,7 +286,10 @@ mod tests {
         c.add_item(2, "Pão", 1.5);
         assert_eq!(c.quantity_for(2), 2);
         assert_eq!(c.total(), 7.0);
-        assert_eq!(c.items().iter().map(|i| i.product_id).collect::<Vec<_>>(), [2, 1]);
+        assert_eq!(
+            c.items().iter().map(|i| i.product_id).collect::<Vec<_>>(),
+            [2, 1]
+        );
         c.update_quantity(2, "Pão", 1.5, false);
         c.remove_item(1);
         c.remove_item(42);
@@ -273,12 +301,38 @@ mod tests {
 
     #[test]
     fn cart_item_validation() {
-        let i = CartItem { product_id: 1, name: "x".into(), price: 2.0, quantity: 3 };
+        let i = CartItem {
+            product_id: 1,
+            name: "x".into(),
+            price: 2.0,
+            quantity: 3,
+        };
         assert_eq!(i.total(), 6.0);
         assert!(i.is_valid());
-        assert_eq!(CartItem { quantity: 0, ..i.clone() }.validate(), Some(CART_ITEM_QUANTITY_INVALID));
-        assert_eq!(CartItem { price: 0.0, ..i.clone() }.validate(), Some(CART_ITEM_PRICE_INVALID));
-        assert_eq!(CartItem { name: String::new(), ..i }.validate(), Some(CART_ITEM_NAME_EMPTY));
+        assert_eq!(
+            CartItem {
+                quantity: 0,
+                ..i.clone()
+            }
+            .validate(),
+            Some(CART_ITEM_QUANTITY_INVALID)
+        );
+        assert_eq!(
+            CartItem {
+                price: 0.0,
+                ..i.clone()
+            }
+            .validate(),
+            Some(CART_ITEM_PRICE_INVALID)
+        );
+        assert_eq!(
+            CartItem {
+                name: String::new(),
+                ..i
+            }
+            .validate(),
+            Some(CART_ITEM_NAME_EMPTY)
+        );
     }
 
     #[test]
@@ -294,7 +348,11 @@ mod tests {
         for d in [9, 9, 9, 9] {
             k.add_digit(d);
         }
-        assert_eq!(k.display(), "1239.99", "the digit that would pass 9999.99 is rejected");
+        assert_eq!(
+            k.display(),
+            "1239.99",
+            "the digit that would pass 9999.99 is rejected"
+        );
         k.add_digit(9);
         assert_eq!(k.cents(), 123_999);
         let mut cart = Cart::new();
@@ -308,12 +366,21 @@ mod tests {
 
     #[test]
     fn sale_rules() {
-        let l = Some(SaleLimits { absolute_min_limit: 20.0, allowed_spending: 500.0 });
+        let l = Some(SaleLimits {
+            absolute_min_limit: 20.0,
+            allowed_spending: 500.0,
+        });
         assert!(validate_sale(0.0, l).is_valid);
         assert!(validate_sale(10.0, None).is_valid);
         let v = validate_sale(10.0, l);
-        assert_eq!((v.error, v.amount), (MerchantValidationError::BelowMinimum, Some(20.0)));
-        assert_eq!(validate_sale(600.0, l).error, MerchantValidationError::AboveTransaction);
+        assert_eq!(
+            (v.error, v.amount),
+            (MerchantValidationError::BelowMinimum, Some(20.0))
+        );
+        assert_eq!(
+            validate_sale(600.0, l).error,
+            MerchantValidationError::AboveTransaction
+        );
         assert!(validate_sale(100.0, l).is_valid);
         assert!(can_finish_sale(None));
         assert!(!can_finish_sale(Some(19.99)));

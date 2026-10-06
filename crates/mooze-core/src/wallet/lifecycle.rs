@@ -44,7 +44,9 @@ impl NamespaceGuard {
     /// executor, so it fails and the caller retries.
     pub fn acquire(&mut self, namespace: &str) -> Result<()> {
         if !self.held.insert(namespace.to_owned()) {
-            return Err(Error::InvalidState(format!("namespace {namespace} is in use")));
+            return Err(Error::InvalidState(format!(
+                "namespace {namespace} is in use"
+            )));
         }
         Ok(())
     }
@@ -98,6 +100,9 @@ mod tests {
         assert_eq!(block_on(g.wipe(&kv, BITCOIN_NAMESPACE)).unwrap(), 1);
         assert!(!g.is_held(BITCOIN_NAMESPACE));
         assert_eq!(block_on(wipe_wallet_state(&kv)).unwrap(), 1);
-        assert_eq!(block_on(kv.list_keys("")).unwrap(), vec!["tx/liquid/abc".to_owned()]);
+        assert_eq!(
+            block_on(kv.list_keys("")).unwrap(),
+            vec!["tx/liquid/abc".to_owned()]
+        );
     }
 }

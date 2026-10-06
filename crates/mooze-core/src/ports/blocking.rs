@@ -31,5 +31,6 @@ where
         // The receiver is gone only if the caller stopped waiting.
         let _ = tx.send(f());
     }));
-    rx.await.map_err(|_| Error::Unexpected("blocking task dropped before it finished".into()))
+    rx.await
+        .map_err(|_| Error::Unexpected("blocking task dropped before it finished".into()))
 }

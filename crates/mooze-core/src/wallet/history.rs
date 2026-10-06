@@ -16,7 +16,8 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::{
-    Asset, AssetBalance, Balance, ChainId, Transaction, TransactionDirection, TransactionStatus, LBTC_ASSET_ID,
+    Asset, AssetBalance, Balance, ChainId, Transaction, TransactionDirection, TransactionStatus,
+    LBTC_ASSET_ID,
 };
 use crate::{Error, Result};
 
@@ -66,7 +67,10 @@ pub fn pair_internal_swaps(transactions: &[Transaction]) -> Vec<Transaction> {
         }
         let mut paired = false;
         for (j, tx2) in transactions.iter().enumerate() {
-            if j == i || processed.contains(&tx2.id.as_str()) || tx2.direction != TransactionDirection::Incoming {
+            if j == i
+                || processed.contains(&tx2.id.as_str())
+                || tx2.direction != TransactionDirection::Incoming
+            {
                 continue;
             }
             let btc_to_lbtc = tx1.chain == ChainId::Bitcoin && is_lbtc_on_liquid(tx2);
@@ -76,19 +80,25 @@ pub fn pair_internal_swaps(transactions: &[Transaction]) -> Vec<Transaction> {
             }
             let sent = tx1.amount_sat;
             let received = tx2.amount_sat;
-            let valid_amount =
-                sent >= SWAP_MIN_AMOUNT_SAT && received >= sent * 90 / 100 && received <= sent * 101 / 100;
+            let valid_amount = sent >= SWAP_MIN_AMOUNT_SAT
+                && received >= sent * 90 / 100
+                && received <= sent * 101 / 100;
             let within_window = tx1.timestamp_ms.abs_diff(tx2.timestamp_ms) <= SWAP_MAX_DURATION_MS;
             if !(valid_amount && within_window) {
                 continue;
             }
-            let both_confirmed = tx1.status == TransactionStatus::Confirmed && tx2.status == TransactionStatus::Confirmed;
+            let both_confirmed = tx1.status == TransactionStatus::Confirmed
+                && tx2.status == TransactionStatus::Confirmed;
             let asset_id = |t: &Transaction| asset_of(t).map(|a| a.id().to_owned());
             let mut swap = Transaction::new(
                 format!("{}_{}_swap", tx1.id, tx2.id),
                 tx2.chain,
                 TransactionDirection::Swap,
-                if both_confirmed { TransactionStatus::Confirmed } else { TransactionStatus::Pending },
+                if both_confirmed {
+                    TransactionStatus::Confirmed
+                } else {
+                    TransactionStatus::Pending
+                },
                 received,
                 0,
                 tx1.timestamp_ms.min(tx2.timestamp_ms),
@@ -141,10 +151,18 @@ pub fn resolution_chains(asset: Asset) -> &'static [ChainId] {
 }
 
 fn extract_amount(balance: &Balance, asset: Asset, chain: ChainId) -> Option<u64> {
-    let want: Option<&str> = if asset.is_native_bitcoin() { None } else { Some(asset.id()) };
+    let want: Option<&str> = if asset.is_native_bitcoin() {
+        None
+    } else {
+        Some(asset.id())
+    };
     let mut sum = 0u64;
     let mut saw = false;
-    for ab in balance.assets.iter().filter(|ab| ab.chain == chain && ab.asset_id.as_deref() == want) {
+    for ab in balance
+        .assets
+        .iter()
+        .filter(|ab| ab.chain == chain && ab.asset_id.as_deref() == want)
+    {
         sum += ab.amount_sat;
         saw = true;
     }
@@ -218,7 +236,10 @@ pub fn aggregate_balance(snapshots: &[Result<Balance>], now_ms: u64) -> Result<B
             return Err(e);
         }
     }
-    Ok(Balance { assets, snapshot_at_ms: now_ms })
+    Ok(Balance {
+        assets,
+        snapshot_at_ms: now_ms,
+    })
 }
 
 /// Activity metrics of one asset. Port of `AssetActivitySummary`.
@@ -253,7 +274,10 @@ impl AssetActivitySummary {
 }
 
 fn is_swap_shaped(tx: &Transaction) -> bool {
-    tx.from_asset_id.is_some() && tx.to_asset_id.is_some() && tx.sent_amount_sat.is_some() && tx.received_amount_sat.is_some()
+    tx.from_asset_id.is_some()
+        && tx.to_asset_id.is_some()
+        && tx.sent_amount_sat.is_some()
+        && tx.received_amount_sat.is_some()
 }
 
 fn leg_asset(id: &Option<String>) -> Option<Asset> {
@@ -267,7 +291,8 @@ pub fn filter_for_asset(asset: Asset, transactions: &[Transaction]) -> Vec<Trans
         .filter(|tx| {
             asset_of(tx) == Some(asset)
                 || (is_swap_shaped(tx)
-                    && (leg_asset(&tx.from_asset_id) == Some(asset) || leg_asset(&tx.to_asset_id) == Some(asset)))
+                    && (leg_asset(&tx.from_asset_id) == Some(asset)
+                        || leg_asset(&tx.to_asset_id) == Some(asset)))
         })
         .cloned()
         .collect()
@@ -311,7 +336,9 @@ pub fn summarize_activity(asset: Asset, transactions: &[Transaction]) -> AssetAc
         match tx.direction {
             TransactionDirection::Incoming => receive(to_u64(tx.amount_sat), &mut s),
             TransactionDirection::Outgoing => send(to_u64(tx.amount_sat), &mut s),
-            TransactionDirection::Swap | TransactionDirection::SelfTransfer | TransactionDirection::Internal => {}
+            TransactionDirection::Swap
+            | TransactionDirection::SelfTransfer
+            | TransactionDirection::Internal => {}
         }
     }
     s.total_volume = s.total_received + s.total_sent;
@@ -323,7 +350,13 @@ mod tests {
     use super::*;
     use crate::domain::{BTC_ASSET_ID, USDT_ASSET_ID};
 
-    fn tx(id: &str, chain: ChainId, dir: TransactionDirection, amount: i64, ts: u64) -> Transaction {
+    fn tx(
+        id: &str,
+        chain: ChainId,
+        dir: TransactionDirection,
+        amount: i64,
+        ts: u64,
+    ) -> Transaction {
         let mut t = Transaction::new(id, chain, dir, TransactionStatus::Confirmed, amount, 10, ts);
         if chain == ChainId::Liquid {
             t.asset_id = Some(LBTC_ASSET_ID.into());
@@ -334,19 +367,47 @@ mod tests {
     #[test]
     fn pairs_btc_to_lbtc_peg() {
         let h = 3_600_000;
-        let send = tx("s", ChainId::Bitcoin, TransactionDirection::Outgoing, 100_000, 10 * h);
-        let recv = tx("r", ChainId::Liquid, TransactionDirection::Incoming, 99_000, 11 * h);
-        let other = tx("o", ChainId::Liquid, TransactionDirection::Incoming, 5_000, 12 * h);
+        let send = tx(
+            "s",
+            ChainId::Bitcoin,
+            TransactionDirection::Outgoing,
+            100_000,
+            10 * h,
+        );
+        let recv = tx(
+            "r",
+            ChainId::Liquid,
+            TransactionDirection::Incoming,
+            99_000,
+            11 * h,
+        );
+        let other = tx(
+            "o",
+            ChainId::Liquid,
+            TransactionDirection::Incoming,
+            5_000,
+            12 * h,
+        );
         let out = merge_and_pair(&[recv.clone(), other], std::slice::from_ref(&send));
         // Newest first: other, recv (emitted alone, Dart quirk), swap.
         assert_eq!(out.len(), 3);
         assert_eq!(out[1].id, "r");
         // Oldest-first input pairs without the duplicate.
         assert_eq!(pair_internal_swaps(&[send, recv]).len(), 1);
-        let swap = out.iter().find(|t| t.direction == TransactionDirection::Swap).unwrap();
+        let swap = out
+            .iter()
+            .find(|t| t.direction == TransactionDirection::Swap)
+            .unwrap();
         assert_eq!(swap.id, "s_r_swap");
         assert_eq!(swap.chain, ChainId::Liquid);
-        assert_eq!((swap.amount_sat, swap.sent_amount_sat, swap.received_amount_sat), (99_000, Some(100_000), Some(99_000)));
+        assert_eq!(
+            (
+                swap.amount_sat,
+                swap.sent_amount_sat,
+                swap.received_amount_sat
+            ),
+            (99_000, Some(100_000), Some(99_000))
+        );
         assert_eq!(swap.from_asset_id.as_deref(), Some(BTC_ASSET_ID));
         assert_eq!(swap.to_asset_id.as_deref(), Some(LBTC_ASSET_ID));
         assert_eq!(swap.timestamp_ms, 10 * h);
@@ -357,16 +418,52 @@ mod tests {
     #[test]
     fn rejects_bad_ratio_small_amount_and_late_legs() {
         let h = 3_600_000;
-        let s = tx("s", ChainId::Liquid, TransactionDirection::Outgoing, 100_000, 0);
-        let low = tx("r", ChainId::Bitcoin, TransactionDirection::Incoming, 89_999, h);
+        let s = tx(
+            "s",
+            ChainId::Liquid,
+            TransactionDirection::Outgoing,
+            100_000,
+            0,
+        );
+        let low = tx(
+            "r",
+            ChainId::Bitcoin,
+            TransactionDirection::Incoming,
+            89_999,
+            h,
+        );
         assert_eq!(pair_internal_swaps(&[s.clone(), low]).len(), 2);
-        let late = tx("r", ChainId::Bitcoin, TransactionDirection::Incoming, 95_000, 13 * h);
+        let late = tx(
+            "r",
+            ChainId::Bitcoin,
+            TransactionDirection::Incoming,
+            95_000,
+            13 * h,
+        );
         assert_eq!(pair_internal_swaps(&[s.clone(), late]).len(), 2);
-        let small = tx("s2", ChainId::Liquid, TransactionDirection::Outgoing, 24_999, 0);
-        let r = tx("r", ChainId::Bitcoin, TransactionDirection::Incoming, 24_999, 0);
+        let small = tx(
+            "s2",
+            ChainId::Liquid,
+            TransactionDirection::Outgoing,
+            24_999,
+            0,
+        );
+        let r = tx(
+            "r",
+            ChainId::Bitcoin,
+            TransactionDirection::Incoming,
+            24_999,
+            0,
+        );
         assert_eq!(pair_internal_swaps(&[small, r]).len(), 2);
         // Same chain never pairs.
-        let r = tx("r", ChainId::Liquid, TransactionDirection::Incoming, 99_000, 0);
+        let r = tx(
+            "r",
+            ChainId::Liquid,
+            TransactionDirection::Incoming,
+            99_000,
+            0,
+        );
         assert_eq!(pair_internal_swaps(&[s, r]).len(), 2);
     }
 
@@ -394,7 +491,10 @@ mod tests {
         assert_eq!(resolve_asset_balance(Asset::Usdt, &s).unwrap(), 9);
         assert_eq!(resolve_asset_balance(Asset::Lbtc, &s).unwrap(), 0);
 
-        let failed = ChainSnapshots { bitcoin: Some(Err(Error::Network("x".into()))), liquid: None };
+        let failed = ChainSnapshots {
+            bitcoin: Some(Err(Error::Network("x".into()))),
+            liquid: None,
+        };
         assert!(resolve_asset_balance(Asset::Btc, &failed).is_err());
         assert_eq!(resolve_asset_balance(Asset::Lbtc, &failed).unwrap(), 0);
         let m = balance_map(&[Asset::Btc, Asset::Lbtc], &failed).unwrap();
@@ -402,14 +502,27 @@ mod tests {
         assert_eq!(m[&Asset::Btc], 0);
         assert!(balance_map(&[Asset::Btc], &failed).is_err());
 
-        let agg = aggregate_balance(&[Ok(snap(ChainId::Bitcoin, None, 1)), Err(Error::Network("x".into()))], 5).unwrap();
+        let agg = aggregate_balance(
+            &[
+                Ok(snap(ChainId::Bitcoin, None, 1)),
+                Err(Error::Network("x".into())),
+            ],
+            5,
+        )
+        .unwrap();
         assert_eq!(agg.assets.len(), 1);
         assert!(aggregate_balance(&[Err(Error::Network("x".into()))], 5).is_err());
     }
 
     #[test]
     fn activity_summary() {
-        let mut fail = tx("f", ChainId::Bitcoin, TransactionDirection::Incoming, 1_000_000, 50);
+        let mut fail = tx(
+            "f",
+            ChainId::Bitcoin,
+            TransactionDirection::Incoming,
+            1_000_000,
+            50,
+        );
         fail.status = TransactionStatus::Failed;
         let mut swap = tx("w", ChainId::Liquid, TransactionDirection::Swap, 300, 40);
         swap.from_asset_id = Some(BTC_ASSET_ID.into());
@@ -417,20 +530,47 @@ mod tests {
         swap.sent_amount_sat = Some(300);
         swap.received_amount_sat = Some(290);
         let txs = vec![
-            tx("a", ChainId::Bitcoin, TransactionDirection::Incoming, 500, 10),
-            tx("b", ChainId::Bitcoin, TransactionDirection::Outgoing, 200, 20),
-            tx("c", ChainId::Bitcoin, TransactionDirection::SelfTransfer, 10, 30),
+            tx(
+                "a",
+                ChainId::Bitcoin,
+                TransactionDirection::Incoming,
+                500,
+                10,
+            ),
+            tx(
+                "b",
+                ChainId::Bitcoin,
+                TransactionDirection::Outgoing,
+                200,
+                20,
+            ),
+            tx(
+                "c",
+                ChainId::Bitcoin,
+                TransactionDirection::SelfTransfer,
+                10,
+                30,
+            ),
             swap,
             fail,
             tx("l", ChainId::Liquid, TransactionDirection::Incoming, 9, 60),
         ];
         let s = summarize_activity(Asset::Btc, &txs);
         assert_eq!(s.transaction_count, 5);
-        assert_eq!((s.total_received, s.total_sent, s.total_volume), (500, 500, 1_000));
+        assert_eq!(
+            (s.total_received, s.total_sent, s.total_volume),
+            (500, 500, 1_000)
+        );
         assert_eq!((s.largest_receive, s.largest_send), (500, 300));
-        assert_eq!((s.first_activity_ms, s.last_activity_ms), (Some(10), Some(50)));
+        assert_eq!(
+            (s.first_activity_ms, s.last_activity_ms),
+            (Some(10), Some(50))
+        );
         let l = summarize_activity(Asset::Lbtc, &txs);
         assert_eq!((l.transaction_count, l.total_received), (2, 299));
-        assert_eq!(summarize_activity(Asset::Depix, &txs), AssetActivitySummary::empty(Asset::Depix));
+        assert_eq!(
+            summarize_activity(Asset::Depix, &txs),
+            AssetActivitySummary::empty(Asset::Depix)
+        );
     }
 }

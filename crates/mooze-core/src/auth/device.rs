@@ -17,7 +17,9 @@ pub const DEVICE_ID_KEY: &str = "device_id";
 
 /// Hex SHA-256 of the raw id (Dart `_hashId`).
 pub fn hash_device_id(raw: &str) -> String {
-    sha256::Hash::hash(raw.as_bytes()).to_byte_array().to_lower_hex_string()
+    sha256::Hash::hash(raw.as_bytes())
+        .to_byte_array()
+        .to_lower_hex_string()
 }
 
 /// Hardware-based id (Dart `_getHardwareBasedId`).
@@ -37,7 +39,14 @@ pub fn uuid_v4_from_bytes(mut bytes: [u8; 16]) -> String {
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
     let h = bytes.to_lower_hex_string();
-    format!("{}-{}-{}-{}-{}", &h[0..8], &h[8..12], &h[12..16], &h[16..20], &h[20..32])
+    format!(
+        "{}-{}-{}-{}-{}",
+        &h[0..8],
+        &h[8..12],
+        &h[12..16],
+        &h[16..20],
+        &h[20..32]
+    )
 }
 
 /// Random UUID v4.
@@ -49,8 +58,18 @@ pub fn random_uuid_v4() -> String {
 ///
 /// Order (Dart `getDeviceId`): stored id, hardware-based id, random UUID.
 /// Storage errors return a fresh UUID that is not persisted.
-pub async fn get_device_id<S: SecureStore>(store: &S, serial: Option<&str>, platform_id: Option<&str>) -> String {
-    get_device_id_with_entropy(store, serial, platform_id, bdk_wallet::bitcoin::secp256k1::rand::random()).await
+pub async fn get_device_id<S: SecureStore>(
+    store: &S,
+    serial: Option<&str>,
+    platform_id: Option<&str>,
+) -> String {
+    get_device_id_with_entropy(
+        store,
+        serial,
+        platform_id,
+        bdk_wallet::bitcoin::secp256k1::rand::random(),
+    )
+    .await
 }
 
 /// [`get_device_id`] with caller-supplied randomness for the UUID fallback.
@@ -116,13 +135,22 @@ mod tests {
 
     #[test]
     fn hash_matches_sha256_hex() {
-        assert_eq!(hash_device_id("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        assert_eq!(
+            hash_device_id("abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 
     #[test]
     fn hardware_id_rules() {
-        assert_eq!(hardware_based_id(Some("abc"), Some("x")), Some(hash_device_id("abc")));
-        assert_eq!(hardware_based_id(Some("unknown"), Some("x")), Some(hash_device_id("x")));
+        assert_eq!(
+            hardware_based_id(Some("abc"), Some("x")),
+            Some(hash_device_id("abc"))
+        );
+        assert_eq!(
+            hardware_based_id(Some("unknown"), Some("x")),
+            Some(hash_device_id("x"))
+        );
         assert_eq!(hardware_based_id(Some(""), None), None);
     }
 
@@ -151,7 +179,11 @@ mod tests {
 
     #[test]
     fn metrics_shape() {
-        let info = DeviceInfo { battery_level: Some(80), screen_brightness: Some(0.5), boot_time: None };
+        let info = DeviceInfo {
+            battery_level: Some(80),
+            screen_brightness: Some(0.5),
+            boot_time: None,
+        };
         assert_eq!(
             metrics_json("d", &info),
             json!({"device_id": "d", "battery_level": 80, "screen_brightness": 0.5, "boot_time": null})

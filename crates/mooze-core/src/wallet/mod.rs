@@ -25,5 +25,7 @@ pub mod tracker;
 pub use backend::{ChainBackend, ElectrumConfig};
 pub use bitcoin::BitcoinWallet;
 pub use endpoints::EndpointResolver;
-pub use explorer::{AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo};
+pub use explorer::{
+    AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo,
+};
 pub use liquid::LiquidWallet;

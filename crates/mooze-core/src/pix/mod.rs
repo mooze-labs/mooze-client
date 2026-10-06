@@ -19,8 +19,11 @@ pub mod tax_id;
 
 pub use client::{PixClient, TokenProvider, DEFAULT_BACKEND_URL};
 pub use entities::{
-    DepositStatus, FavoritePayer, NewDepositRequest, PaymentDetails, PixDeposit, PixDepositResponse, PixPayment,
-    PixPaymentQuote, PixPaymentRequest, PixStatusEvent, PixTransactionDetails, WithdrawStatus,
+    DepositStatus, FavoritePayer, NewDepositRequest, PaymentDetails, PixDeposit,
+    PixDepositResponse, PixPayment, PixPaymentQuote, PixPaymentRequest, PixStatusEvent,
+    PixTransactionDetails, WithdrawStatus,
 };
 pub use service::{AddressProvider, PixService};
-pub use store::{DepositRecord, DepositStore, FavoritePayerSaveError, FavoritePayerStore, PixFlag, PixFlagsStore};
+pub use store::{
+    DepositRecord, DepositStore, FavoritePayerSaveError, FavoritePayerStore, PixFlag, PixFlagsStore,
+};

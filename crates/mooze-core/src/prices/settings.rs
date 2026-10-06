@@ -22,22 +22,32 @@ impl<K: KvStore> PriceSettingsRepository<K> {
     }
 
     async fn get_string(&self, key: &str) -> Result<Option<String>> {
-        Ok(self.kv.get(key).await?.map(|b| String::from_utf8_lossy(&b).into_owned()))
+        Ok(self
+            .kv
+            .get(key)
+            .await?
+            .map(|b| String::from_utf8_lossy(&b).into_owned()))
     }
 
     /// Saves the price source.
     pub async fn set_price_source(&self, source: PriceSource) -> Result<()> {
-        self.kv.put(KEY_SOURCE, source.name().as_bytes().to_vec()).await
+        self.kv
+            .put(KEY_SOURCE, source.name().as_bytes().to_vec())
+            .await
     }
 
     /// Saves the fiat currency.
     pub async fn set_price_currency(&self, currency: Currency) -> Result<()> {
-        self.kv.put(KEY_CURRENCY, currency.name().as_bytes().to_vec()).await
+        self.kv
+            .put(KEY_CURRENCY, currency.name().as_bytes().to_vec())
+            .await
     }
 
     /// Saves the balance visibility flag.
     pub async fn set_balance_visibility(&self, visible: bool) -> Result<()> {
-        self.kv.put(KEY_VISIBILITY, visible.to_string().into_bytes()).await
+        self.kv
+            .put(KEY_VISIBILITY, visible.to_string().into_bytes())
+            .await
     }
 
     /// Price source. NOTE(port): Dart always returns CoinGecko, even after `binance` is saved.
@@ -56,14 +66,20 @@ impl<K: KvStore> PriceSettingsRepository<K> {
 
     /// Balance visibility. Missing gives `true`.
     pub async fn get_balance_visibility(&self) -> Result<bool> {
-        Ok(self.get_string(KEY_VISIBILITY).await?.is_none_or(|v| v != "false"))
+        Ok(self
+            .get_string(KEY_VISIBILITY)
+            .await?
+            .is_none_or(|v| v != "false"))
     }
 
     /// Source and currency together.
     pub async fn get_price_service_config(&self) -> Result<PriceServiceConfig> {
         let price_source = self.get_price_source().await?;
         let currency = self.get_price_currency().await?;
-        Ok(PriceServiceConfig { currency, price_source })
+        Ok(PriceServiceConfig {
+            currency,
+            price_source,
+        })
     }
 }
 
@@ -85,7 +101,10 @@ pub struct CurrencyController<K> {
 impl<K: KvStore> CurrencyController<K> {
     /// Controller in its initial state (BRL). Call [`Self::load`] next.
     pub fn new(kv: K) -> Self {
-        Self { repo: PriceSettingsRepository::new(kv), state: Currency::Brl }
+        Self {
+            repo: PriceSettingsRepository::new(kv),
+            state: Currency::Brl,
+        }
     }
 
     /// Current currency.
@@ -95,7 +114,11 @@ impl<K: KvStore> CurrencyController<K> {
 
     /// Currencies the picker shows.
     pub fn available_currencies() -> [CurrencyItem; 2] {
-        [Currency::Brl, Currency::Usd].map(|c| CurrencyItem { icon: c.symbol(), code: c.code(), currency: c })
+        [Currency::Brl, Currency::Usd].map(|c| CurrencyItem {
+            icon: c.symbol(),
+            code: c.code(),
+            currency: c,
+        })
     }
 
     /// True if `item` is the current currency.
@@ -105,7 +128,11 @@ impl<K: KvStore> CurrencyController<K> {
 
     /// Loads the saved currency. A read error gives BRL.
     pub async fn load(&mut self) -> Currency {
-        self.state = self.repo.get_price_currency().await.unwrap_or(Currency::Brl);
+        self.state = self
+            .repo
+            .get_price_currency()
+            .await
+            .unwrap_or(Currency::Brl);
         self.state
     }
 
@@ -135,14 +162,23 @@ mod tests {
         let kv = MemoryKv::new();
         let repo = PriceSettingsRepository::new(kv.clone());
         block_on(async {
-            assert_eq!(repo.get_price_service_config().await.unwrap(), PriceServiceConfig { currency: Currency::Brl, price_source: PriceSource::Coingecko });
+            assert_eq!(
+                repo.get_price_service_config().await.unwrap(),
+                PriceServiceConfig {
+                    currency: Currency::Brl,
+                    price_source: PriceSource::Coingecko
+                }
+            );
             assert!(repo.get_balance_visibility().await.unwrap());
             repo.set_price_currency(Currency::Usd).await.unwrap();
             repo.set_price_source(PriceSource::Binance).await.unwrap();
             repo.set_balance_visibility(false).await.unwrap();
             assert_eq!(kv.get("price_currency").await.unwrap().unwrap(), b"usd");
             assert_eq!(repo.get_price_currency().await.unwrap(), Currency::Usd);
-            assert_eq!(repo.get_price_source().await.unwrap(), PriceSource::Coingecko);
+            assert_eq!(
+                repo.get_price_source().await.unwrap(),
+                PriceSource::Coingecko
+            );
             assert!(!repo.get_balance_visibility().await.unwrap());
             kv.put("price_currency", b"eur".to_vec()).await.unwrap();
             assert_eq!(repo.get_price_currency().await.unwrap(), Currency::Brl);

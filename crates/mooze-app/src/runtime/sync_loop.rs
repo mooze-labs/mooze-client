@@ -35,6 +35,13 @@ impl Cancel {
         self.wake.notify_one();
     }
 
+    /// Resolves once cancelled. Pokes do not resolve it.
+    pub async fn cancelled(&self) {
+        while !self.is_cancelled() {
+            self.wake.notified().await;
+        }
+    }
+
     /// Sleeps `ms`, or less when woken. True when cancelled.
     pub async fn sleep_or_cancel(&self, timer: &dyn Timer, ms: u64) -> bool {
         if self.is_cancelled() {
@@ -89,8 +96,15 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncLoop<S, K, C> {
     }
 
     /// Runs the startup refresh, then one light refresh per tick, until cancelled.
+    ///
+    /// Nothing is reported after `cancel`: a refresh that was in flight
+    /// finishes silently, so a host that stops and starts again hears only
+    /// the new loop.
     pub async fn run(mut self) {
         if let Some(report) = self.orchestrator.start().await {
+            if self.cancel.is_cancelled() {
+                return;
+            }
             (self.emit)(report, self.orchestrator.state().clone());
         }
         while !self.cancel.is_cancelled() {
@@ -105,9 +119,15 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncLoop<S, K, C> {
             }
             if self.refresh_requested.swap(false, Ordering::SeqCst) {
                 let report = self.orchestrator.refresh(SyncStrategy::Light).await;
+                if self.cancel.is_cancelled() {
+                    break;
+                }
                 (self.emit)(report, self.orchestrator.state().clone());
             }
             if let Some(report) = self.orchestrator.tick().await {
+                if self.cancel.is_cancelled() {
+                    break;
+                }
                 (self.emit)(report, self.orchestrator.state().clone());
             }
         }
@@ -273,6 +293,21 @@ mod tests {
             rig.liquid.load(Ordering::SeqCst),
             2,
             "no refresh after cancel"
+        );
+    }
+
+    #[test]
+    fn no_report_is_emitted_after_cancel_during_a_refresh() {
+        let mut rig = setup(true);
+        // Bitcoin hangs; cancel while the startup refresh is in flight.
+        let before = rig.states.lock().unwrap().len();
+        rig.cancel.cancel();
+        rig.exec.run_until_stalled();
+        pass(&mut rig, 10_000);
+        assert_eq!(
+            rig.states.lock().unwrap().len(),
+            before,
+            "a cancelled loop reports nothing more"
         );
     }
 

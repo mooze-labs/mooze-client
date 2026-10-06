@@ -51,7 +51,7 @@ pub(crate) struct Inner<P: Platform> {
     device_safe: AtomicBool,
     metrics: RwLock<Option<Value>>,
     /// PIX deposits being polled, see `pix_poll_tick`.
-    pub(crate) pix_polls: std::sync::Mutex<Vec<DepositPoll>>,
+    pub(crate) pix_polls: std::sync::Mutex<PixPolls>,
     /// SideSwap client, peg tracker and event driver.
     pub(crate) sideswap: Arc<SideSwapState<P>>,
     /// Event sinks of the hosts.
@@ -81,6 +81,14 @@ impl<P: Platform> Inner<P> {
     async fn reset_auth(&self) {
         *self.auth.lock().await = None;
     }
+}
+
+/// PIX polls plus a generation that `pix_cancel_polls` bumps, so a tick
+/// that took the polls before the cancel cannot put them back.
+#[derive(Default)]
+pub(crate) struct PixPolls {
+    pub(crate) polls: Vec<DepositPoll>,
+    pub(crate) generation: u64,
 }
 
 /// Session provider that runs one token operation at a time.
@@ -139,7 +147,6 @@ pub(crate) async fn auth<P: Platform>(inner: &Inner<P>) -> Result<Arc<Auth<P>>> 
         return Ok(auth.clone());
     }
     let store = inner.platform.secure();
-    probe_secure_store(&store).await?;
     let credentials = CredentialStore::new(store.clone(), inner.network)
         .load()
         .await?;
@@ -181,16 +188,6 @@ pub(crate) async fn auth<P: Platform>(inner: &Inner<P>) -> Result<Arc<Auth<P>>> 
     });
     *slot = Some(auth.clone());
     Ok(auth)
-}
-
-/// Surfaces the secure store's own error before credentials are read.
-///
-/// `CredentialStore::load` wraps every store failure as `Credential`. A
-/// store that is not registered yet (`InvalidState`) or locked (`Locked`)
-/// must report that instead, so hosts route to the right screen.
-pub(crate) async fn probe_secure_store<S: KvStore>(store: &S) -> Result<()> {
-    store.get(mooze_core::store::MNEMONIC_KEY).await?;
-    Ok(())
 }
 
 pub(crate) fn not_connected(chain: ChainId) -> AppError {
@@ -247,7 +244,7 @@ impl<P: Platform> App<P> {
                 api_base_url: RwLock::new(api_base_url),
                 device_safe: AtomicBool::new(true),
                 metrics: RwLock::new(None),
-                pix_polls: std::sync::Mutex::new(Vec::new()),
+                pix_polls: std::sync::Mutex::new(PixPolls::default()),
                 sideswap: Arc::new(SideSwapState::default()),
                 subscribers: Subscribers::default(),
                 runtime: RuntimeState::default(),

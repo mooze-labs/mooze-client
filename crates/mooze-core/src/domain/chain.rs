@@ -65,7 +65,9 @@ pub struct ChainFilter {
 impl ChainFilter {
     /// Filter that matches one chain.
     pub fn only(chain: ChainId) -> Self {
-        Self { chains: BTreeSet::from([chain]) }
+        Self {
+            chains: BTreeSet::from([chain]),
+        }
     }
 
     /// True if `chain` is in the filter.

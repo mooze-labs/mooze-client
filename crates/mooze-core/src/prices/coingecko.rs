@@ -30,8 +30,15 @@ impl<H: HttpClient> CoingeckoPriceService<H> {
     }
 
     /// `GET /simple/price`. A non-200 status gives `Ok(None)`, as in Dart.
-    pub async fn fetch_coin_prices(&self, coins: &[&str], currency: &str) -> Result<Option<CoinPrices>> {
-        let url = format!("{COINGECKO_BASE_URL}/simple/price?ids={}&vs_currencies={currency}&precision=full", coins.join(","));
+    pub async fn fetch_coin_prices(
+        &self,
+        coins: &[&str],
+        currency: &str,
+    ) -> Result<Option<CoinPrices>> {
+        let url = format!(
+            "{COINGECKO_BASE_URL}/simple/price?ids={}&vs_currencies={currency}&precision=full",
+            coins.join(",")
+        );
         let resp = self.http.send(HttpRequest::get(url)).await?;
         if resp.status != 200 {
             return Ok(None);
@@ -40,7 +47,10 @@ impl<H: HttpClient> CoingeckoPriceService<H> {
         let mut out = CoinPrices::new();
         for (coin, data) in raw {
             if let Value::Object(map) = data {
-                let prices = map.into_iter().filter_map(|(c, v)| v.as_f64().map(|p| (c, p))).collect();
+                let prices = map
+                    .into_iter()
+                    .filter_map(|(c, v)| v.as_f64().map(|p| (c, p)))
+                    .collect();
                 out.insert(coin, prices);
             }
         }
@@ -53,23 +63,32 @@ impl<H: HttpClient> PriceService for CoingeckoPriceService<H> {
         self.currency
     }
 
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         let currency = currency.unwrap_or(self.currency);
         async move {
             if let Some(p) = pegged_price(asset, currency) {
                 return Ok(Some(p));
             }
             if (asset, currency) == (Asset::Depix, Currency::Usd) {
-                let Some(prices) = self.fetch_coin_prices(&["tether"], "brl").await? else { return Ok(None) };
+                let Some(prices) = self.fetch_coin_prices(&["tether"], "brl").await? else {
+                    return Ok(None);
+                };
                 // NOTE(port): Dart casts a missing tether/brl to double and throws. This port errors.
                 let brl = prices.get("tether").and_then(|m| m.get("brl")).copied();
-                return brl.map(|b| Some(1.0 / b)).ok_or_else(|| Error::protocol("coingecko: tether/brl missing"));
+                return brl
+                    .map(|b| Some(1.0 / b))
+                    .ok_or_else(|| Error::protocol("coingecko: tether/brl missing"));
             }
             let ticker = match asset {
                 Asset::Btc | Asset::Lbtc => "bitcoin",
                 Asset::Usdt => "tether",
-                Asset::Depix => return Err(Error::invalid("Depix is not a valid Coingecko asset.")),
+                Asset::Depix => {
+                    return Err(Error::invalid("Depix is not a valid Coingecko asset."))
+                }
             };
             let prices = self.fetch_coin_prices(&[ticker], currency.name()).await?;
             Ok(prices.and_then(|p| p.get(ticker).and_then(|m| m.get(currency.name())).copied()))
@@ -91,17 +110,56 @@ mod tests {
     #[test]
     fn parses_simple_price() {
         let http = MockHttp::new();
-        http.on_json(HttpMethod::Get, &url("bitcoin", "brl"), 200, json!({"bitcoin": {"brl": 561234.123456789}}));
-        http.on_json(HttpMethod::Get, &url("bitcoin", "usd"), 200, json!({"bitcoin": {"usd": 102345}}));
-        http.on_json(HttpMethod::Get, &url("tether", "brl"), 200, json!({"tether": {"brl": 5.0}, "x": 1}));
+        http.on_json(
+            HttpMethod::Get,
+            &url("bitcoin", "brl"),
+            200,
+            json!({"bitcoin": {"brl": 561234.123456789}}),
+        );
+        http.on_json(
+            HttpMethod::Get,
+            &url("bitcoin", "usd"),
+            200,
+            json!({"bitcoin": {"usd": 102345}}),
+        );
+        http.on_json(
+            HttpMethod::Get,
+            &url("tether", "brl"),
+            200,
+            json!({"tether": {"brl": 5.0}, "x": 1}),
+        );
         let svc = CoingeckoPriceService::new(http.clone(), Currency::Brl);
         block_on(async {
-            assert_eq!(svc.get_coin_price(Asset::Btc, None).await.unwrap(), Some(561_234.123456789));
-            assert_eq!(svc.get_coin_price(Asset::Lbtc, Some(Currency::Usd)).await.unwrap(), Some(102_345.0));
-            assert_eq!(svc.get_coin_price(Asset::Usdt, None).await.unwrap(), Some(5.0));
-            assert_eq!(svc.get_coin_price(Asset::Depix, Some(Currency::Usd)).await.unwrap(), Some(0.2));
-            assert_eq!(svc.get_coin_price(Asset::Depix, None).await.unwrap(), Some(1.0));
-            assert_eq!(svc.get_coin_price(Asset::Usdt, Some(Currency::Usd)).await.unwrap(), Some(1.0));
+            assert_eq!(
+                svc.get_coin_price(Asset::Btc, None).await.unwrap(),
+                Some(561_234.123456789)
+            );
+            assert_eq!(
+                svc.get_coin_price(Asset::Lbtc, Some(Currency::Usd))
+                    .await
+                    .unwrap(),
+                Some(102_345.0)
+            );
+            assert_eq!(
+                svc.get_coin_price(Asset::Usdt, None).await.unwrap(),
+                Some(5.0)
+            );
+            assert_eq!(
+                svc.get_coin_price(Asset::Depix, Some(Currency::Usd))
+                    .await
+                    .unwrap(),
+                Some(0.2)
+            );
+            assert_eq!(
+                svc.get_coin_price(Asset::Depix, None).await.unwrap(),
+                Some(1.0)
+            );
+            assert_eq!(
+                svc.get_coin_price(Asset::Usdt, Some(Currency::Usd))
+                    .await
+                    .unwrap(),
+                Some(1.0)
+            );
         });
         assert_eq!(http.requests()[0].url, url("bitcoin", "brl"));
     }
@@ -109,13 +167,25 @@ mod tests {
     #[test]
     fn non_200_is_none_and_garbage_is_error() {
         let http = MockHttp::new();
-        http.on_json(HttpMethod::Get, &url("bitcoin", "brl"), 429, json!({"status": {"error_code": 429}}));
+        http.on_json(
+            HttpMethod::Get,
+            &url("bitcoin", "brl"),
+            429,
+            json!({"status": {"error_code": 429}}),
+        );
         http.once_raw(HttpMethod::Get, &url("tether", "brl"), 200, "not json");
         let svc = CoingeckoPriceService::new(http, Currency::Brl);
         block_on(async {
             assert_eq!(svc.get_coin_price(Asset::Btc, None).await.unwrap(), None);
-            assert!(matches!(svc.get_coin_price(Asset::Usdt, None).await, Err(Error::Protocol(_))));
-            assert!(svc.get_coin_price(Asset::Usdt, None).await.unwrap().is_none()); // 404 from mock
+            assert!(matches!(
+                svc.get_coin_price(Asset::Usdt, None).await,
+                Err(Error::Protocol(_))
+            ));
+            assert!(svc
+                .get_coin_price(Asset::Usdt, None)
+                .await
+                .unwrap()
+                .is_none()); // 404 from mock
         });
     }
 }

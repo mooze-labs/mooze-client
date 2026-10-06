@@ -60,13 +60,17 @@ pub struct ServerErrorInfo {
 pub fn detect_server_error(error: &Error) -> Option<ServerErrorInfo> {
     let text = error.to_string();
     let lower = text.to_lowercase();
-    let is_server = ["500", "502", "503", "504"].iter().any(|c| text.contains(c))
+    let is_server = ["500", "502", "503", "504"]
+        .iter()
+        .any(|c| text.contains(c))
         || lower.contains("server error")
         || lower.contains("service unavailable");
     if !is_server {
         return None;
     }
-    Some(ServerErrorInfo { status_code: first_5xx_word(&text) })
+    Some(ServerErrorInfo {
+        status_code: first_5xx_word(&text),
+    })
 }
 
 /// Finds the first `\b(5\d{2})\b` match.
@@ -93,25 +97,54 @@ mod tests {
 
     #[test]
     fn classify_http() {
-        let http = |status| Error::Http { status, body: String::new() };
+        let http = |status| Error::Http {
+            status,
+            body: String::new(),
+        };
         assert_eq!(classify_error(&http(401)), ErrorKind::AuthenticationFailed);
         assert_eq!(classify_error(&http(403)), ErrorKind::AccessDenied);
         assert_eq!(classify_error(&http(404)), ErrorKind::ServiceNotFound);
         assert_eq!(classify_error(&http(502)), ErrorKind::ServerUnavailable);
         assert_eq!(classify_error(&http(400)), ErrorKind::ServerCommunication);
-        assert_eq!(classify_error(&Error::Timeout("x".into())), ErrorKind::NoInternet);
-        assert_eq!(classify_error(&Error::Session("x".into())), ErrorKind::AuthenticationFailed);
+        assert_eq!(
+            classify_error(&Error::Timeout("x".into())),
+            ErrorKind::NoInternet
+        );
+        assert_eq!(
+            classify_error(&Error::Session("x".into())),
+            ErrorKind::AuthenticationFailed
+        );
     }
 
     #[test]
     fn server_error_detection() {
-        let e = Error::Http { status: 503, body: "down".into() };
-        assert_eq!(detect_server_error(&e), Some(ServerErrorInfo { status_code: Some(503) }));
+        let e = Error::Http {
+            status: 503,
+            body: "down".into(),
+        };
+        assert_eq!(
+            detect_server_error(&e),
+            Some(ServerErrorInfo {
+                status_code: Some(503)
+            })
+        );
         let e = Error::Network("Service Unavailable".into());
-        assert_eq!(detect_server_error(&e), Some(ServerErrorInfo { status_code: None }));
-        assert_eq!(detect_server_error(&Error::Http { status: 400, body: String::new() }), None);
+        assert_eq!(
+            detect_server_error(&e),
+            Some(ServerErrorInfo { status_code: None })
+        );
+        assert_eq!(
+            detect_server_error(&Error::Http {
+                status: 400,
+                body: String::new()
+            }),
+            None
+        );
         // "5000" contains "500" but has no whole-word 5xx.
         let e = Error::Unexpected("amount 5000".into());
-        assert_eq!(detect_server_error(&e), Some(ServerErrorInfo { status_code: None }));
+        assert_eq!(
+            detect_server_error(&e),
+            Some(ServerErrorInfo { status_code: None })
+        );
     }
 }

@@ -60,6 +60,13 @@ fn sync_state_dto(s: &SyncState) -> SyncStateDto {
 
 impl<P: Platform> App<P> {
     /// Starts the sync, PIX poll and peg loops. No-op while running.
+    ///
+    /// `stop()` cancels the loops and any chain sync in flight, and the old
+    /// loops report nothing more, so `stop()` then `start()` during a
+    /// refresh never doubles an event. Dropping the last `App` without
+    /// `stop()` cancels the same way, but a sync that is already running
+    /// holds the state until its request returns or times out. Call
+    /// `stop()` first when the state must go away now.
     pub async fn start(&self, config: StartConfigDto) -> Result<()> {
         let inner = self.inner.clone();
         let cancel = {
@@ -96,11 +103,13 @@ impl<P: Platform> App<P> {
                 inner: weak.clone(),
                 chain: ChainId::Liquid,
                 timer: timer.clone(),
+                cancel: cancel.clone(),
             },
             AppSyncer {
                 inner: weak.clone(),
                 chain: ChainId::Bitcoin,
                 timer: timer.clone(),
+                cancel: cancel.clone(),
             },
         ];
         let orchestrator = SyncOrchestrator::new(

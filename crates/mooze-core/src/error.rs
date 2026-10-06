@@ -64,7 +64,10 @@ pub enum Error {
 impl Error {
     /// Builds a [`Error::Service`] from any displayable cause.
     pub fn service(chain: ChainId, cause: impl std::fmt::Display) -> Self {
-        Error::Service { chain, message: cause.to_string() }
+        Error::Service {
+            chain,
+            message: cause.to_string(),
+        }
     }
 
     /// Builds a [`Error::Storage`] from any displayable cause.

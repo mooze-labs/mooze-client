@@ -89,7 +89,10 @@ pub enum PegPhase {
 impl PegPhase {
     /// True for completed, insufficient amount and failed.
     pub fn is_terminal(self) -> bool {
-        matches!(self, PegPhase::Completed | PegPhase::InsufficientAmount | PegPhase::Failed)
+        matches!(
+            self,
+            PegPhase::Completed | PegPhase::InsufficientAmount | PegPhase::Failed
+        )
     }
 
     /// Ordering used to refuse backward transitions.
@@ -161,7 +164,10 @@ impl PegProgress {
 
     /// Destination txid when exactly one payout exists.
     pub fn payout_tx_id(&self) -> Option<&str> {
-        let mut ids = self.deposits.iter().filter_map(|d| d.payout_tx_id.as_deref());
+        let mut ids = self
+            .deposits
+            .iter()
+            .filter_map(|d| d.payout_tx_id.as_deref());
         match (ids.next(), ids.next()) {
             (Some(id), None) => Some(id),
             _ => None,
@@ -174,7 +180,13 @@ pub fn aggregate_phase(deposits: &[PegDeposit]) -> PegPhase {
     deposits
         .iter()
         .map(|d| d.phase)
-        .reduce(|a, b| if a.progress_rank() <= b.progress_rank() { a } else { b })
+        .reduce(|a, b| {
+            if a.progress_rank() <= b.progress_rank() {
+                a
+            } else {
+                b
+            }
+        })
         .unwrap_or(PegPhase::AwaitingDeposit)
 }
 
@@ -245,7 +257,11 @@ pub enum PegError {
     /// Another Liquid spend holds the UTXO lock.
     WalletBusy(String),
     /// A write may or may not have happened.
-    UnknownOutcome { stage: String, detail: String, order_id: Option<String> },
+    UnknownOutcome {
+        stage: String,
+        detail: String,
+        order_id: Option<String>,
+    },
 }
 
 impl PegError {
@@ -278,7 +294,9 @@ impl From<PegError> for Error {
     fn from(e: PegError) -> Self {
         let msg = e.message();
         match e {
-            PegError::BelowMinimum { .. } | PegError::InsufficientFunds(_) => Error::InvalidInput(msg),
+            PegError::BelowMinimum { .. } | PegError::InsufficientFunds(_) => {
+                Error::InvalidInput(msg)
+            }
             PegError::ProviderRejected(_) | PegError::OrderNotFound(_) => Error::Protocol(msg),
             PegError::TransportFailure(_) => Error::Network(msg),
             PegError::WalletBusy(_) => Error::InvalidState(msg),
@@ -333,8 +351,14 @@ mod tests {
     #[test]
     fn aggregation_least_advanced_wins() {
         assert_eq!(aggregate_phase(&[]), PegPhase::AwaitingDeposit);
-        assert_eq!(aggregate_phase(&[dep(PegPhase::Completed), dep(PegPhase::Detected)]), PegPhase::Detected);
-        assert_eq!(aggregate_phase(&[dep(PegPhase::Completed), dep(PegPhase::Completed)]), PegPhase::Completed);
+        assert_eq!(
+            aggregate_phase(&[dep(PegPhase::Completed), dep(PegPhase::Detected)]),
+            PegPhase::Detected
+        );
+        assert_eq!(
+            aggregate_phase(&[dep(PegPhase::Completed), dep(PegPhase::Completed)]),
+            PegPhase::Completed
+        );
         assert_eq!(
             aggregate_phase(&[dep(PegPhase::Completed), dep(PegPhase::InsufficientAmount)]),
             PegPhase::InsufficientAmount
@@ -374,10 +398,25 @@ mod tests {
     fn wallet_helpers() {
         assert!(looks_like_liquid_address(" LQ1qq..."));
         assert!(!looks_like_liquid_address("bc1q..."));
-        assert!(matches!(classify_wallet_error("Saldo baixo"), PegError::InsufficientFunds(_)));
-        assert!(matches!(classify_wallet_error("boom"), PegError::WalletFailure(_)));
-        assert_eq!(PegError::BelowMinimum { minimum_sat: 10, actual_sat: 1 }.message(), "Valor mínimo é 10 sats");
-        assert!(PegError::TransportFailure("x".into()).to_string().starts_with("Falha"));
+        assert!(matches!(
+            classify_wallet_error("Saldo baixo"),
+            PegError::InsufficientFunds(_)
+        ));
+        assert!(matches!(
+            classify_wallet_error("boom"),
+            PegError::WalletFailure(_)
+        ));
+        assert_eq!(
+            PegError::BelowMinimum {
+                minimum_sat: 10,
+                actual_sat: 1
+            }
+            .message(),
+            "Valor mínimo é 10 sats"
+        );
+        assert!(PegError::TransportFailure("x".into())
+            .to_string()
+            .starts_with("Falha"));
     }
 
     #[test]

@@ -2,7 +2,8 @@
 //!
 //! Calls run on the shared tokio runtime (see [`crate::ports`]) because
 //! reqwest and the Electrum spawner need a tokio context. The Dart-facing
-//! names, parameters and error kinds are frozen; see the bridge README.
+//! names, parameters and error kinds are frozen; see
+//! `docs/superpowers/specs/2026-10-05-desktop-web-client-design.md`.
 
 use std::path::PathBuf;
 use std::sync::Mutex as StdMutex;
@@ -69,14 +70,33 @@ impl MoozeCore {
         })
     }
 
-    /// Writes `mnemonic` to the secure store when it holds none, so the
-    /// facade signing path finds it. The Dart app stores the mnemonic there
-    /// itself before it signs, so this is a no-op in practice.
-    async fn ensure_mnemonic(&self, mnemonic: String) -> Result<(), CoreError> {
-        if delegate!(self.secure_get(MNEMONIC_KEY.to_owned()))?.is_none() {
-            delegate!(self.secure_put(MNEMONIC_KEY.to_owned(), mnemonic))?;
+    /// Runs a Liquid signing call whose Dart signature still carries the
+    /// mnemonic. The facade signs with the stored mnemonic; this helper
+    /// keeps the parameter honest:
+    ///
+    /// - A stored mnemonic must equal the parameter, else `invalidInput`.
+    /// - With no stored mnemonic the call runs first, so a missing wallet
+    ///   reports `invalidState` without writing anything. Only a
+    ///   `credential` failure seeds the store from the parameter and retries.
+    async fn with_mnemonic<T, F, Fut>(&self, mnemonic: String, call: F) -> Result<T, CoreError>
+    where
+        F: Fn() -> Fut,
+        Fut: std::future::Future<Output = Result<T, CoreError>>,
+    {
+        match delegate!(self.secure_get(MNEMONIC_KEY.to_owned()))? {
+            Some(stored) if stored != mnemonic => Err(CoreError {
+                kind: CoreErrorKind::InvalidInput,
+                message: "mnemonic parameter does not match the stored wallet".into(),
+            }),
+            Some(_) => call().await,
+            None => match call().await {
+                Err(e) if e.kind == CoreErrorKind::Credential => {
+                    delegate!(self.secure_put(MNEMONIC_KEY.to_owned(), mnemonic))?;
+                    call().await
+                }
+                r => r,
+            },
         }
-        Ok(())
     }
 
     // ───────────────────────────── one-time import
@@ -427,37 +447,46 @@ impl MoozeCore {
         delegate!(self.liquid_build_lbtc_send(destination, amount_sat, fee_rate_sat_per_vb, drain))
     }
 
-    /// Builds, signs and broadcasts a send. `mnemonic` seeds the secure
-    /// store when it holds none; signing reads the store.
+    /// Builds, signs and broadcasts a send. Signing reads the stored
+    /// mnemonic; see `with_mnemonic` for the parameter rule.
     pub async fn liquid_send(
         &self,
         request: SendRequestDto,
         mnemonic: String,
     ) -> Result<BroadcastResultDto, CoreError> {
-        self.ensure_mnemonic(mnemonic).await?;
-        delegate!(self.liquid_send(request))
+        self.with_mnemonic(mnemonic, || {
+            let request = request.clone();
+            async move { delegate!(self.liquid_send(request)) }
+        })
+        .await
     }
 
-    /// Signs a PSET and broadcasts it. Returns the txid. `mnemonic` seeds
-    /// the secure store when it holds none; signing reads the store.
+    /// Signs a PSET and broadcasts it. Returns the txid. Signing reads the
+    /// stored mnemonic; see `with_mnemonic` for the parameter rule.
     pub async fn liquid_sign_and_broadcast(
         &self,
         pset: String,
         mnemonic: String,
     ) -> Result<String, CoreError> {
-        self.ensure_mnemonic(mnemonic).await?;
-        delegate!(self.liquid_sign_and_broadcast(pset))
+        self.with_mnemonic(mnemonic, || {
+            let pset = pset.clone();
+            async move { delegate!(self.liquid_sign_and_broadcast(pset)) }
+        })
+        .await
     }
 
-    /// Signs a SideSwap swap PSET. Returns the signed PSET. `mnemonic`
-    /// seeds the secure store when it holds none; signing reads the store.
+    /// Signs a SideSwap swap PSET. Returns the signed PSET. Signing reads
+    /// the stored mnemonic; see `with_mnemonic` for the parameter rule.
     pub async fn liquid_sign_swap_pset(
         &self,
         pset: String,
         mnemonic: String,
     ) -> Result<String, CoreError> {
-        self.ensure_mnemonic(mnemonic).await?;
-        delegate!(self.liquid_sign_swap_pset(pset))
+        self.with_mnemonic(mnemonic, || {
+            let pset = pset.clone();
+            async move { delegate!(self.liquid_sign_swap_pset(pset)) }
+        })
+        .await
     }
 }
 
@@ -618,6 +647,40 @@ pub(crate) mod tests {
         let err = runtime().block_on(core.auth_access_token()).unwrap_err();
         assert_eq!(err.kind, CoreErrorKind::Session);
         assert!(err.message.contains("Unsafe device"), "{}", err.message);
+    }
+
+    #[test]
+    fn liquid_signing_parameter_must_match_a_stored_mnemonic() {
+        let core = open_core("mismatch-mnemonic");
+        let map = with_memory_store(&core);
+        map.lock()
+            .unwrap()
+            .insert("mnemonic_mainWallet".into(), ABANDON.into());
+        runtime()
+            .block_on(core.liquid_connect(ABANDON.into()))
+            .unwrap();
+        let err = runtime()
+            .block_on(core.liquid_sign_swap_pset("not-a-pset".into(), "other words".into()))
+            .unwrap_err();
+        assert_eq!(err.kind, CoreErrorKind::InvalidInput);
+        assert_eq!(
+            map.lock()
+                .unwrap()
+                .get("mnemonic_mainWallet")
+                .map(String::as_str),
+            Some(ABANDON)
+        );
+    }
+
+    #[test]
+    fn liquid_signing_without_a_wallet_writes_nothing() {
+        let core = open_core("no-wallet-no-write");
+        let map = with_memory_store(&core);
+        let err = runtime()
+            .block_on(core.liquid_sign_swap_pset("not-a-pset".into(), ABANDON.into()))
+            .unwrap_err();
+        assert_eq!(err.kind, CoreErrorKind::InvalidState);
+        assert!(!map.lock().unwrap().contains_key("mnemonic_mainWallet"));
     }
 
     #[test]

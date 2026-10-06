@@ -44,8 +44,13 @@ impl JournalStore {
 
     /// Journal preloaded with clean entries.
     pub fn from_entries(entries: impl IntoIterator<Item = (String, Vec<u8>)>) -> Self {
-        let j = Journal { data: entries.into_iter().collect(), dirty: BTreeMap::new() };
-        Self { inner: Arc::new(Mutex::new(j)) }
+        let j = Journal {
+            data: entries.into_iter().collect(),
+            dirty: BTreeMap::new(),
+        };
+        Self {
+            inner: Arc::new(Mutex::new(j)),
+        }
     }
 
     fn lock(&self) -> std::result::Result<std::sync::MutexGuard<'_, Journal>, JournalError> {
@@ -64,7 +69,9 @@ impl JournalStore {
 
     /// Removes and returns the unsaved writes.
     pub fn take_dirty(&self) -> BTreeMap<String, Option<Vec<u8>>> {
-        self.lock().map(|mut j| std::mem::take(&mut j.dirty)).unwrap_or_default()
+        self.lock()
+            .map(|mut j| std::mem::take(&mut j.dirty))
+            .unwrap_or_default()
     }
 
     /// Puts unsaved writes back (after a failed flush). Newer writes win.
@@ -89,7 +96,11 @@ impl lwk_common::Store for JournalStore {
         Ok(self.lock()?.data.get(&k).cloned())
     }
 
-    fn put<K: AsRef<[u8]>, V: AsRef<[u8]>>(&self, key: K, value: V) -> std::result::Result<(), Self::Error> {
+    fn put<K: AsRef<[u8]>, V: AsRef<[u8]>>(
+        &self,
+        key: K,
+        value: V,
+    ) -> std::result::Result<(), Self::Error> {
         let k = key_str(key.as_ref())?;
         let v = value.as_ref().to_vec();
         let mut j = self.lock()?;
@@ -123,7 +134,11 @@ pub async fn load_journal<K: KvStore>(kv: &K, prefix: &str) -> Result<JournalSto
 }
 
 /// Writes the journal's unsaved changes under `prefix`. Returns the count.
-pub async fn flush_journal<K: KvStore>(kv: &K, prefix: &str, journal: &JournalStore) -> Result<usize> {
+pub async fn flush_journal<K: KvStore>(
+    kv: &K,
+    prefix: &str,
+    journal: &JournalStore,
+) -> Result<usize> {
     let dirty = journal.take_dirty();
     let total = dirty.len();
     let mut pending: Vec<(String, Option<Vec<u8>>)> = dirty.into_iter().collect();
@@ -169,7 +184,10 @@ mod tests {
         assert!(j.is_persisted());
         assert_eq!(block_on(flush_journal(&kv, STORE_PREFIX, &j)).unwrap(), 2);
         assert_eq!(block_on(flush_journal(&kv, STORE_PREFIX, &j)).unwrap(), 0);
-        assert_eq!(block_on(kv.list_keys(STORE_PREFIX)).unwrap(), vec![format!("{STORE_PREFIX}a")]);
+        assert_eq!(
+            block_on(kv.list_keys(STORE_PREFIX)).unwrap(),
+            vec![format!("{STORE_PREFIX}a")]
+        );
 
         let loaded = block_on(load_journal(&kv, STORE_PREFIX)).unwrap();
         assert_eq!(loaded.get("a").unwrap(), Some(b"1".to_vec()));
@@ -187,6 +205,9 @@ mod tests {
         let d = j.take_dirty();
         j.put("k", b"new").unwrap();
         j.restore_dirty(d);
-        assert_eq!(j.take_dirty().get("k").cloned().flatten(), Some(b"new".to_vec()));
+        assert_eq!(
+            j.take_dirty().get("k").cloned().flatten(),
+            Some(b"new".to_vec())
+        );
     }
 }

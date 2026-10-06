@@ -36,7 +36,11 @@ pub fn merge_transaction(existing: Option<&Transaction>, incoming: &Transaction)
     // source is NULL, so the CASE falls through to the incoming value.
     // A source-less write therefore overwrites an LWK row. Kept as in Dart.
     let locked = old_lwk && incoming.source.is_some() && !new_lwk;
-    let source = if new_lwk || old_lwk { Some(TransactionSource::Lwk) } else { incoming.source };
+    let source = if new_lwk || old_lwk {
+        Some(TransactionSource::Lwk)
+    } else {
+        incoming.source
+    };
     let auth = if locked { old } else { incoming };
     Transaction {
         id: incoming.id.clone(),
@@ -50,14 +54,29 @@ pub fn merge_transaction(existing: Option<&Transaction>, incoming: &Transaction)
         asset_id: auth.asset_id.clone(),
         address: incoming.address.clone().or_else(|| old.address.clone()),
         label: incoming.label.clone().or_else(|| old.label.clone()),
-        from_asset_id: incoming.from_asset_id.clone().or_else(|| old.from_asset_id.clone()),
-        to_asset_id: incoming.to_asset_id.clone().or_else(|| old.to_asset_id.clone()),
+        from_asset_id: incoming
+            .from_asset_id
+            .clone()
+            .or_else(|| old.from_asset_id.clone()),
+        to_asset_id: incoming
+            .to_asset_id
+            .clone()
+            .or_else(|| old.to_asset_id.clone()),
         sent_amount_sat: incoming.sent_amount_sat.or(old.sent_amount_sat),
         received_amount_sat: incoming.received_amount_sat.or(old.received_amount_sat),
         source,
-        swap_lockup_tx_id: incoming.swap_lockup_tx_id.clone().or_else(|| old.swap_lockup_tx_id.clone()),
-        swap_claim_tx_id: incoming.swap_claim_tx_id.clone().or_else(|| old.swap_claim_tx_id.clone()),
-        breez_swap_id: incoming.breez_swap_id.clone().or_else(|| old.breez_swap_id.clone()),
+        swap_lockup_tx_id: incoming
+            .swap_lockup_tx_id
+            .clone()
+            .or_else(|| old.swap_lockup_tx_id.clone()),
+        swap_claim_tx_id: incoming
+            .swap_claim_tx_id
+            .clone()
+            .or_else(|| old.swap_claim_tx_id.clone()),
+        breez_swap_id: incoming
+            .breez_swap_id
+            .clone()
+            .or_else(|| old.breez_swap_id.clone()),
     }
 }
 
@@ -80,14 +99,22 @@ impl<K: KvStore> TransactionStore<K> {
 
     /// Upserts one transaction. Returns the change event, if any.
     pub async fn upsert(&self, tx: &Transaction, now_ms: u64) -> Result<Option<TransactionEvent>> {
-        Ok(self.upsert_all(std::slice::from_ref(tx), now_ms).await?.into_iter().next())
+        Ok(self
+            .upsert_all(std::slice::from_ref(tx), now_ms)
+            .await?
+            .into_iter()
+            .next())
     }
 
     /// Upserts a batch with the merge rules of [`merge_transaction`].
     ///
     /// Returns one [`TransactionEvent`] per row that was created or changed
     /// status or confirmations, in input order.
-    pub async fn upsert_all(&self, txs: &[Transaction], now_ms: u64) -> Result<Vec<TransactionEvent>> {
+    pub async fn upsert_all(
+        &self,
+        txs: &[Transaction],
+        now_ms: u64,
+    ) -> Result<Vec<TransactionEvent>> {
         let mut events = Vec::new();
         for tx in txs {
             let key = tx_key(tx.chain, &tx.id);
@@ -125,10 +152,17 @@ impl<K: KvStore> TransactionStore<K> {
     /// Lists rows, newest first (`ORDER BY timestamp_ms DESC`).
     ///
     /// `filter` keeps only the chains it contains. `limit` caps the count.
-    pub async fn list(&self, filter: Option<&ChainFilter>, limit: Option<usize>) -> Result<Vec<Transaction>> {
+    pub async fn list(
+        &self,
+        filter: Option<&ChainFilter>,
+        limit: Option<usize>,
+    ) -> Result<Vec<Transaction>> {
         let rows: Vec<(String, Transaction)> = list_json(&self.kv, TX_PREFIX).await?;
-        let mut txs: Vec<Transaction> =
-            rows.into_iter().map(|(_, t)| t).filter(|t| filter.is_none_or(|f| f.matches(t.chain))).collect();
+        let mut txs: Vec<Transaction> = rows
+            .into_iter()
+            .map(|(_, t)| t)
+            .filter(|t| filter.is_none_or(|f| f.matches(t.chain)))
+            .collect();
         // Stable sort: ties keep ascending key order.
         txs.sort_by_key(|x| std::cmp::Reverse(x.timestamp_ms));
         if let Some(n) = limit {
@@ -150,7 +184,15 @@ mod tests {
     use crate::testing::{block_on, MemoryKv};
 
     fn tx(id: &str, chain: ChainId, ts: u64) -> Transaction {
-        Transaction::new(id, chain, TransactionDirection::Incoming, TransactionStatus::Pending, 1000, 10, ts)
+        Transaction::new(
+            id,
+            chain,
+            TransactionDirection::Incoming,
+            TransactionStatus::Pending,
+            1000,
+            10,
+            ts,
+        )
     }
 
     #[test]
@@ -159,14 +201,24 @@ mod tests {
             let store = TransactionStore::new(MemoryKv::new());
             store
                 .upsert_all(
-                    &[tx("a", ChainId::Liquid, 100), tx("b", ChainId::Bitcoin, 300), tx("c", ChainId::Liquid, 200)],
+                    &[
+                        tx("a", ChainId::Liquid, 100),
+                        tx("b", ChainId::Bitcoin, 300),
+                        tx("c", ChainId::Liquid, 200),
+                    ],
                     1,
                 )
                 .await
                 .unwrap();
             let all = store.list(None, None).await.unwrap();
-            assert_eq!(all.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(), ["b", "c", "a"]);
-            let liquid = store.list(Some(&ChainFilter::only(ChainId::Liquid)), Some(1)).await.unwrap();
+            assert_eq!(
+                all.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(),
+                ["b", "c", "a"]
+            );
+            let liquid = store
+                .list(Some(&ChainFilter::only(ChainId::Liquid)), Some(1))
+                .await
+                .unwrap();
             assert_eq!(liquid.len(), 1);
             assert_eq!(liquid[0].id, "c");
         });
@@ -198,10 +250,19 @@ mod tests {
     fn same_id_on_two_chains_are_two_rows() {
         block_on(async {
             let store = TransactionStore::new(MemoryKv::new());
-            let evs = store.upsert_all(&[tx("x", ChainId::Liquid, 1), tx("x", ChainId::Lightning, 2)], 0).await.unwrap();
+            let evs = store
+                .upsert_all(
+                    &[tx("x", ChainId::Liquid, 1), tx("x", ChainId::Lightning, 2)],
+                    0,
+                )
+                .await
+                .unwrap();
             assert_eq!(evs.len(), 2);
             assert_eq!(store.list(None, None).await.unwrap().len(), 2);
-            assert_eq!(store.find_by_id("x").await.unwrap().unwrap().chain, ChainId::Liquid);
+            assert_eq!(
+                store.find_by_id("x").await.unwrap().unwrap().chain,
+                ChainId::Liquid
+            );
             assert!(store.find_by_id("nope").await.unwrap().is_none());
         });
     }
@@ -262,7 +323,10 @@ mod tests {
             let kv = MemoryKv::new();
             kv.put("other", vec![1]).await.unwrap();
             let store = TransactionStore::new(kv.clone());
-            store.upsert(&tx("a", ChainId::Bitcoin, 1), 0).await.unwrap();
+            store
+                .upsert(&tx("a", ChainId::Bitcoin, 1), 0)
+                .await
+                .unwrap();
             store.delete_all().await.unwrap();
             assert!(store.list(None, None).await.unwrap().is_empty());
             assert_eq!(kv.len(), 1);

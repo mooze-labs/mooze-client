@@ -6,7 +6,8 @@ use std::future::Future;
 use serde::de::DeserializeOwned;
 
 use super::entities::{
-    aggregate_phase, PegDeposit, PegDirection, PegError, PegOrder, PegPhase, PegProgress, PegServerLimits,
+    aggregate_phase, PegDeposit, PegDirection, PegError, PegOrder, PegPhase, PegProgress,
+    PegServerLimits,
 };
 use crate::ports::{MaybeSend, WsConnector};
 use crate::sideswap::protocol::{PegOrderResponse, PegOrderStatus, Request, ServerStatus, TxState};
@@ -16,7 +17,8 @@ use crate::Error;
 /// Peg operations against the provider.
 pub trait PegRepository: MaybeSend {
     /// Minimums and fee percentages.
-    fn get_limits(&mut self) -> impl Future<Output = Result<PegServerLimits, PegError>> + MaybeSend;
+    fn get_limits(&mut self)
+        -> impl Future<Output = Result<PegServerLimits, PegError>> + MaybeSend;
 
     /// Creates an order paying out to `payout_address`.
     fn create_order(
@@ -115,12 +117,19 @@ fn decode<T: DeserializeOwned>(v: serde_json::Value) -> Result<T, PegError> {
 /// pegs: pass `&mut client` where a [`PegRepository`] is expected.
 impl<C: WsConnector> PegRepository for SideSwapClient<C> {
     async fn get_limits(&mut self) -> Result<PegServerLimits, PegError> {
-        let v = self.call(&Request::server_status()).await.map_err(read_failure)?;
+        let v = self
+            .call(&Request::server_status())
+            .await
+            .map_err(read_failure)?;
         let status: ServerStatus = decode(v)?;
         Ok(PegServerLimits::from(&status))
     }
 
-    async fn create_order(&mut self, direction: PegDirection, payout_address: &str) -> Result<PegOrder, PegError> {
+    async fn create_order(
+        &mut self,
+        direction: PegDirection,
+        payout_address: &str,
+    ) -> Result<PegOrder, PegError> {
         if payout_address.trim().is_empty() {
             return Err(PegError::WalletFailure("endereço de destino vazio".into()));
         }
@@ -129,7 +138,11 @@ impl<C: WsConnector> PegRepository for SideSwapClient<C> {
             Ok(v) => v,
             // A create is not idempotent: the order may exist server-side.
             Err(Error::Timeout(d)) => {
-                return Err(PegError::UnknownOutcome { stage: "createOrder".into(), detail: d, order_id: None })
+                return Err(PegError::UnknownOutcome {
+                    stage: "createOrder".into(),
+                    detail: d,
+                    order_id: None,
+                })
             }
             Err(Error::Protocol(m)) => return Err(PegError::ProviderRejected(m)),
             Err(e) => return Err(PegError::TransportFailure(e.to_string())),
@@ -145,7 +158,11 @@ impl<C: WsConnector> PegRepository for SideSwapClient<C> {
         })
     }
 
-    async fn get_status(&mut self, direction: PegDirection, order_id: &str) -> Result<PegProgress, PegError> {
+    async fn get_status(
+        &mut self,
+        direction: PegDirection,
+        order_id: &str,
+    ) -> Result<PegProgress, PegError> {
         let req = Request::peg_status(direction.as_peg_in_flag(), order_id);
         let v = match self.call(&req).await {
             Ok(v) => v,
@@ -160,7 +177,9 @@ impl<C: WsConnector> PegRepository for SideSwapClient<C> {
 }
 
 impl<C: WsConnector> PegRepository for SideSwapPegRepository<C> {
-    fn get_limits(&mut self) -> impl Future<Output = Result<PegServerLimits, PegError>> + MaybeSend {
+    fn get_limits(
+        &mut self,
+    ) -> impl Future<Output = Result<PegServerLimits, PegError>> + MaybeSend {
         self.client.get_limits()
     }
 
@@ -183,7 +202,9 @@ impl<C: WsConnector> PegRepository for SideSwapPegRepository<C> {
 
 /// A borrowed repository is a repository. Lets a caller keep ownership.
 impl<R: PegRepository> PegRepository for &mut R {
-    fn get_limits(&mut self) -> impl Future<Output = Result<PegServerLimits, PegError>> + MaybeSend {
+    fn get_limits(
+        &mut self,
+    ) -> impl Future<Output = Result<PegServerLimits, PegError>> + MaybeSend {
         (**self).get_limits()
     }
 
@@ -252,13 +273,19 @@ mod tests {
             "k",
         ));
         let o = block_on(r.create_order(PegDirection::PegOut, "bc1qpayout")).unwrap();
-        assert_eq!((o.deposit_address.as_str(), o.payout_address.as_str()), ("lq1qqgdcmfjrx", "bc1qpayout"));
+        assert_eq!(
+            (o.deposit_address.as_str(), o.payout_address.as_str()),
+            ("lq1qqgdcmfjrx", "bc1qpayout")
+        );
         assert_eq!((o.created_at_ms, o.expires_at_ms), (1786210521499, None));
         assert_eq!(
             block_on(r.create_order(PegDirection::PegOut, "bad")),
             Err(PegError::ProviderRejected("invalid address".into()))
         );
-        assert!(matches!(block_on(r.create_order(PegDirection::PegOut, "  ")), Err(PegError::WalletFailure(_))));
+        assert!(matches!(
+            block_on(r.create_order(PegDirection::PegOut, "  ")),
+            Err(PegError::WalletFailure(_))
+        ));
     }
 
     #[test]
@@ -281,7 +308,10 @@ mod tests {
         assert_eq!(p.phase, PegPhase::Detected);
         assert_eq!(p.total_deposited_sat(), 100_000);
         assert_eq!(p.payout_tx_id(), Some("pa"));
-        assert_eq!(block_on(r.get_status(PegDirection::PegIn, "gone")), Err(PegError::OrderNotFound("gone".into())));
+        assert_eq!(
+            block_on(r.get_status(PegDirection::PegIn, "gone")),
+            Err(PegError::OrderNotFound("gone".into()))
+        );
     }
 
     #[test]
@@ -303,14 +333,20 @@ mod tests {
     #[test]
     fn closed_socket_is_transport_failure() {
         let mut r = SideSwapPegRepository::new(SideSwapClient::new(MockWs::new(|_| vec![]), "k"));
-        assert!(matches!(block_on(r.get_limits()), Err(PegError::TransportFailure(_))));
+        assert!(matches!(
+            block_on(r.get_limits()),
+            Err(PegError::TransportFailure(_))
+        ));
     }
 
     #[test]
     fn every_tx_state_maps() {
         assert!(!tx_state_to_phase(TxState::Unknown).is_terminal());
         assert_eq!(tx_state_to_phase(TxState::Done), PegPhase::Completed);
-        assert_eq!(tx_state_to_phase(TxState::InsufficientAmount), PegPhase::InsufficientAmount);
+        assert_eq!(
+            tx_state_to_phase(TxState::InsufficientAmount),
+            PegPhase::InsufficientAmount
+        );
         assert_eq!(tx_state_to_phase(TxState::Processing), PegPhase::Processing);
     }
 }

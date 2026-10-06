@@ -83,7 +83,10 @@ pub struct Request {
 impl Request {
     /// Builds a request.
     pub fn new(method: &str, params: Value) -> Self {
-        Self { method: method.to_owned(), params }
+        Self {
+            method: method.to_owned(),
+            params,
+        }
     }
 
     /// Encodes the frame `{"id","method","params"}`.
@@ -106,12 +109,18 @@ impl Request {
 
     /// `peg`: creates an order. `peg_in` true means BTC to L-BTC.
     pub fn peg(peg_in: bool, recv_addr: &str) -> Self {
-        Self::new(method::PEG, json!({ "peg_in": peg_in, "recv_addr": recv_addr }))
+        Self::new(
+            method::PEG,
+            json!({ "peg_in": peg_in, "recv_addr": recv_addr }),
+        )
     }
 
     /// `peg_status` for one order.
     pub fn peg_status(peg_in: bool, order_id: &str) -> Self {
-        Self::new(method::PEG_STATUS, json!({ "peg_in": peg_in, "order_id": order_id }))
+        Self::new(
+            method::PEG_STATUS,
+            json!({ "peg_in": peg_in, "order_id": order_id }),
+        )
     }
 
     /// `subscribe_value`.
@@ -126,7 +135,10 @@ impl Request {
 
     /// `assets`.
     pub fn assets(all_assets: bool, embedded_icons: bool) -> Self {
-        Self::new(method::ASSETS, json!({ "all_assets": all_assets, "embedded_icons": embedded_icons }))
+        Self::new(
+            method::ASSETS,
+            json!({ "all_assets": all_assets, "embedded_icons": embedded_icons }),
+        )
     }
 
     /// `market` / `list_markets`.
@@ -141,12 +153,18 @@ impl Request {
 
     /// `market` / `get_quote`.
     pub fn get_quote(quote_id: u64) -> Self {
-        Self::new(method::MARKET, json!({ "get_quote": { "quote_id": quote_id } }))
+        Self::new(
+            method::MARKET,
+            json!({ "get_quote": { "quote_id": quote_id } }),
+        )
     }
 
     /// `market` / `taker_sign`.
     pub fn taker_sign(quote_id: u64, pset: &str) -> Self {
-        Self::new(method::MARKET, json!({ "taker_sign": { "quote_id": quote_id, "pset": pset } }))
+        Self::new(
+            method::MARKET,
+            json!({ "taker_sign": { "quote_id": quote_id, "pset": pset } }),
+        )
     }
 
     /// `market` / `stop_quotes`.
@@ -156,12 +174,18 @@ impl Request {
 
     /// `market` / `chart_sub`.
     pub fn chart_sub(base: &str, quote: &str) -> Self {
-        Self::new(method::MARKET, json!({ "chart_sub": { "asset_pair": { "base": base, "quote": quote } } }))
+        Self::new(
+            method::MARKET,
+            json!({ "chart_sub": { "asset_pair": { "base": base, "quote": quote } } }),
+        )
     }
 
     /// `market` / `chart_unsub`.
     pub fn chart_unsub(base: &str, quote: &str) -> Self {
-        Self::new(method::MARKET, json!({ "chart_unsub": { "asset_pair": { "base": base, "quote": quote } } }))
+        Self::new(
+            method::MARKET,
+            json!({ "chart_unsub": { "asset_pair": { "base": base, "quote": quote } } }),
+        )
     }
 }
 
@@ -465,8 +489,14 @@ impl QuoteResponse {
             outcome: QuoteOutcome::Error(UNKNOWN_QUOTE_RESPONSE.to_owned()),
             quote_sub_id: quote.get("quote_sub_id").and_then(Value::as_u64),
             requested_amount: quote.get("amount").and_then(Value::as_u64),
-            base_asset_id: pair.and_then(|p| p.get("base")).and_then(Value::as_str).map(str::to_owned),
-            quote_asset_id: pair.and_then(|p| p.get("quote")).and_then(Value::as_str).map(str::to_owned),
+            base_asset_id: pair
+                .and_then(|p| p.get("base"))
+                .and_then(Value::as_str)
+                .map(str::to_owned),
+            quote_asset_id: pair
+                .and_then(|p| p.get("quote"))
+                .and_then(Value::as_str)
+                .map(str::to_owned),
         };
         if let Some(status) = quote.get("status").and_then(Value::as_object) {
             if let Some(s) = status.get("Success") {
@@ -527,7 +557,12 @@ impl QuoteResponse {
     }
 
     /// Strict identity match. Missing identity fields never match.
-    pub fn matches_request(&self, base_asset_id: &str, quote_asset_id: &str, requested_amount: u64) -> bool {
+    pub fn matches_request(
+        &self,
+        base_asset_id: &str,
+        quote_asset_id: &str,
+        requested_amount: u64,
+    ) -> bool {
         self.base_asset_id.as_deref() == Some(base_asset_id)
             && self.quote_asset_id.as_deref() == Some(quote_asset_id)
             && self.requested_amount == Some(requested_amount)
@@ -536,10 +571,14 @@ impl QuoteResponse {
     /// Permissive match used by the swap controller: the pair in either order
     /// and the same amount.
     pub fn matches_intent(&self, send_asset: &str, receive_asset: &str, amount: u64) -> bool {
-        let (Some(b), Some(q)) = (self.base_asset_id.as_deref(), self.quote_asset_id.as_deref()) else {
+        let (Some(b), Some(q)) = (
+            self.base_asset_id.as_deref(),
+            self.quote_asset_id.as_deref(),
+        ) else {
             return false;
         };
-        let pair = (b == send_asset && q == receive_asset) || (b == receive_asset && q == send_asset);
+        let pair =
+            (b == send_asset && q == receive_asset) || (b == receive_asset && q == send_asset);
         pair && self.requested_amount == Some(amount)
     }
 
@@ -613,10 +652,16 @@ impl Notification {
             }
             Some(method::SUBSCRIBED_VALUE) => {
                 if let Some(v) = params.and_then(|p| p.get("value")) {
-                    if let Some(a) = v.get(PEG_IN_WALLET_BALANCE).and_then(|b| b.get("available")) {
+                    if let Some(a) = v
+                        .get(PEG_IN_WALLET_BALANCE)
+                        .and_then(|b| b.get("available"))
+                    {
                         return a.as_u64().map(Notification::PegInWalletBalance);
                     }
-                    if let Some(a) = v.get(PEG_OUT_WALLET_BALANCE).and_then(|b| b.get("available")) {
+                    if let Some(a) = v
+                        .get(PEG_OUT_WALLET_BALANCE)
+                        .and_then(|b| b.get("available"))
+                    {
                         return a.as_u64().map(Notification::PegOutWalletBalance);
                     }
                 }
@@ -655,12 +700,21 @@ mod tests {
     #[test]
     fn encodes_frames_exactly() {
         let f: Value = serde_json::from_str(&Request::peg(false, "bc1q").encode(7)).unwrap();
-        assert_eq!(f, json!({"id":7,"method":"peg","params":{"peg_in":false,"recv_addr":"bc1q"}}));
+        assert_eq!(
+            f,
+            json!({"id":7,"method":"peg","params":{"peg_in":false,"recv_addr":"bc1q"}})
+        );
         let f: Value = serde_json::from_str(&Request::server_status().encode(1)).unwrap();
         assert_eq!(f, json!({"id":1,"method":"server_status","params":null}));
         let f: Value = serde_json::from_str(&Request::login("k").encode(2)).unwrap();
-        assert_eq!(f["params"], json!({"api_key":"k","user_agent":"MoozeClient","version":"1.0.0"}));
-        assert_eq!(Request::taker_sign(5, "cHNl").params, json!({"taker_sign":{"quote_id":5,"pset":"cHNl"}}));
+        assert_eq!(
+            f["params"],
+            json!({"api_key":"k","user_agent":"MoozeClient","version":"1.0.0"})
+        );
+        assert_eq!(
+            Request::taker_sign(5, "cHNl").params,
+            json!({"taker_sign":{"quote_id":5,"pset":"cHNl"}})
+        );
         assert_eq!(Request::stop_quotes().params, json!({"stop_quotes":{}}));
         assert_eq!(Request::list_markets().params, json!({"list_markets":{}}));
         assert_eq!(
@@ -680,7 +734,10 @@ mod tests {
             value_blinding_factor: "vbf".into(),
         };
         let req = StartQuotes {
-            asset_pair: AssetPair { base: "lbtc".into(), quote: "usdt".into() },
+            asset_pair: AssetPair {
+                base: "lbtc".into(),
+                quote: "usdt".into(),
+            },
             asset_type: AssetType::Base,
             amount: 5000,
             trade_dir: TradeDir::Sell,
@@ -769,12 +826,20 @@ mod tests {
         assert!(QuoteResponse::from_json(&low).unwrap().is_low_balance());
 
         let err = json!({"status": {"Error": {"error_msg": "no liquidity"}}});
-        assert_eq!(QuoteResponse::from_json(&err).unwrap().error_message(), Some("no liquidity"));
+        assert_eq!(
+            QuoteResponse::from_json(&err).unwrap().error_message(),
+            Some("no liquidity")
+        );
 
         let unknown = json!({"status": {"Weird": {}}});
-        assert_eq!(QuoteResponse::from_json(&unknown).unwrap().error_message(), Some(UNKNOWN_QUOTE_RESPONSE));
+        assert_eq!(
+            QuoteResponse::from_json(&unknown).unwrap().error_message(),
+            Some(UNKNOWN_QUOTE_RESPONSE)
+        );
         // Missing identity never matches.
-        assert!(!QuoteResponse::from_json(&unknown).unwrap().matches_intent("B", "Q", 1));
+        assert!(!QuoteResponse::from_json(&unknown)
+            .unwrap()
+            .matches_intent("B", "Q", 1));
         // Broken success payload is an error (Dart drops it).
         assert!(QuoteResponse::from_json(&json!({"status":{"Success":{"quote_id":1}}})).is_err());
     }
@@ -784,7 +849,8 @@ mod tests {
         let n = Notification::from_frame(&json!({"method":"subscribed_value",
             "params":{"value":{"PegOutWalletBalance":{"available": 42}}}}));
         assert_eq!(n, Some(Notification::PegOutWalletBalance(42)));
-        let n = Notification::from_frame(&json!({"id": 3, "error": {"code": -1, "message": "boom"}}));
+        let n =
+            Notification::from_frame(&json!({"id": 3, "error": {"code": -1, "message": "boom"}}));
         match n {
             Some(Notification::Quote(q)) => assert_eq!(q.error_message(), Some("boom")),
             other => panic!("{other:?}"),

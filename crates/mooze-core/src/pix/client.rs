@@ -45,7 +45,11 @@ impl<H: HttpClient, T: TokenProvider> PixClient<H, T> {
     /// Client for `base_url` (no trailing slash needed).
     pub fn new(http: H, tokens: T, base_url: impl Into<String>) -> Self {
         let base_url = base_url.into().trim_end_matches('/').to_owned();
-        Self { http, tokens, base_url }
+        Self {
+            http,
+            tokens,
+            base_url,
+        }
     }
 
     /// Base URL in use.
@@ -54,9 +58,17 @@ impl<H: HttpClient, T: TokenProvider> PixClient<H, T> {
     }
 
     /// Builds the `POST /v2/transactions` request.
-    pub fn create_deposit_request(&self, req: &NewDepositRequest, token: &str) -> Result<HttpRequest> {
-        Ok(HttpRequest::json(HttpMethod::Post, format!("{}/v2/transactions", self.base_url), req)?
-            .header("Authorization", format!("Bearer {token}")))
+    pub fn create_deposit_request(
+        &self,
+        req: &NewDepositRequest,
+        token: &str,
+    ) -> Result<HttpRequest> {
+        Ok(HttpRequest::json(
+            HttpMethod::Post,
+            format!("{}/v2/transactions", self.base_url),
+            req,
+        )?
+        .header("Authorization", format!("Bearer {token}")))
     }
 
     /// Builds the `GET /transactions/status?ids=..` request.
@@ -78,7 +90,10 @@ impl<H: HttpClient, T: TokenProvider> PixClient<H, T> {
         let request = self.create_deposit_request(req, &token)?;
         let resp = self.http.send(request).await?;
         if resp.status != 200 {
-            return Err(Error::Http { status: resp.status, body: resp.text() });
+            return Err(Error::Http {
+                status: resp.status,
+                body: resp.text(),
+            });
         }
         let env: DataEnvelope<PixDepositResponse> = serde_json::from_slice(&resp.body)?;
         Ok(env.data)
@@ -87,9 +102,15 @@ impl<H: HttpClient, T: TokenProvider> PixClient<H, T> {
     /// Fetches the backend status of deposits. Missing `data` means no items.
     pub async fn get_deposits_status(&self, ids: &[String]) -> Result<Vec<PixTransactionDetails>> {
         let token = self.tokens.token().await?;
-        let resp = self.http.send(self.deposits_status_request(ids, &token)).await?;
+        let resp = self
+            .http
+            .send(self.deposits_status_request(ids, &token))
+            .await?;
         if resp.status != 200 {
-            return Err(Error::Http { status: resp.status, body: resp.text() });
+            return Err(Error::Http {
+                status: resp.status,
+                body: resp.text(),
+            });
         }
         let env: OptionalListEnvelope = serde_json::from_slice(&resp.body)?;
         Ok(env.data.unwrap_or_default())
@@ -191,16 +212,34 @@ pub(crate) mod tests {
     #[test]
     fn create_deposit_errors() {
         let http = MockHttp::new();
-        http.on_json(HttpMethod::Post, "https://test/v2/transactions", 400, json!({"error": "bad"}));
+        http.on_json(
+            HttpMethod::Post,
+            "https://test/v2/transactions",
+            400,
+            json!({"error": "bad"}),
+        );
         let err = block_on(client(&http).create_deposit(&req(None))).unwrap_err();
-        assert_eq!(create_deposit_error_message(&err), "Dados inválidos. Verifique o valor e tente novamente.");
+        assert_eq!(
+            create_deposit_error_message(&err),
+            "Dados inválidos. Verifique o valor e tente novamente."
+        );
 
-        http.on_json(HttpMethod::Post, "https://test/v2/transactions", 201, json!({}));
+        http.on_json(
+            HttpMethod::Post,
+            "https://test/v2/transactions",
+            201,
+            json!({}),
+        );
         let err = block_on(client(&http).create_deposit(&req(None))).unwrap_err();
         assert!(create_deposit_error_message(&err).starts_with("Não foi possível processar"));
 
-        assert!(create_deposit_error_message(&Error::Http { status: 418, body: String::new() }).starts_with("Erro 418"));
-        assert!(create_deposit_error_message(&Error::Network("x".into())).starts_with("Não foi possível conectar"));
+        assert!(create_deposit_error_message(&Error::Http {
+            status: 418,
+            body: String::new()
+        })
+        .starts_with("Erro 418"));
+        assert!(create_deposit_error_message(&Error::Network("x".into()))
+            .starts_with("Não foi possível conectar"));
     }
 
     #[test]
@@ -209,7 +248,10 @@ pub(crate) mod tests {
         let c = client(&http);
         let r = c.deposits_status_request(&["a b".into(), "c".into()], "t");
         assert_eq!(r.url, "https://test/transactions/status?ids=a%20b&ids=c");
-        assert_eq!(c.deposits_status_request(&[], "t").url, "https://test/transactions/status");
+        assert_eq!(
+            c.deposits_status_request(&[], "t").url,
+            "https://test/transactions/status"
+        );
     }
 
     #[test]
@@ -226,10 +268,22 @@ pub(crate) mod tests {
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].asset_amount, Some(980_000));
 
-        http.on_json(HttpMethod::Get, "https://test/transactions/status?ids=x", 200, json!({}));
-        assert!(block_on(client(&http).get_deposits_status(&["x".into()])).unwrap().is_empty());
+        http.on_json(
+            HttpMethod::Get,
+            "https://test/transactions/status?ids=x",
+            200,
+            json!({}),
+        );
+        assert!(block_on(client(&http).get_deposits_status(&["x".into()]))
+            .unwrap()
+            .is_empty());
 
-        http.on_json(HttpMethod::Get, "https://test/transactions/status?ids=y", 500, json!({}));
+        http.on_json(
+            HttpMethod::Get,
+            "https://test/transactions/status?ids=y",
+            500,
+            json!({}),
+        );
         let err = block_on(client(&http).get_deposits_status(&["y".into()])).unwrap_err();
         assert!(matches!(err, Error::Http { status: 500, .. }));
     }

@@ -1,7 +1,9 @@
 //! Base64 helpers that match `dart:convert`.
 
 use bdk_wallet::bitcoin::base64::alphabet;
-use bdk_wallet::bitcoin::base64::engine::general_purpose::{GeneralPurpose, GeneralPurposeConfig, STANDARD};
+use bdk_wallet::bitcoin::base64::engine::general_purpose::{
+    GeneralPurpose, GeneralPurposeConfig, STANDARD,
+};
 use bdk_wallet::bitcoin::base64::engine::DecodePaddingMode;
 use bdk_wallet::bitcoin::base64::Engine;
 
@@ -34,7 +36,9 @@ pub fn decode_jwt_segment(segment: &str) -> Result<Vec<u8>> {
         3 => text.push('='),
         _ => return Err(Error::Session("Illegal base64url string!".into())),
     }
-    STANDARD.decode(text).map_err(|e| Error::Session(format!("jwt base64: {e}")))
+    STANDARD
+        .decode(text)
+        .map_err(|e| Error::Session(format!("jwt base64: {e}")))
 }
 
 #[cfg(test)]

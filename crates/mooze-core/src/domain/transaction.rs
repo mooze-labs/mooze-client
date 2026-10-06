@@ -70,7 +70,9 @@ pub struct Transaction {
 }
 
 /// Unknown source names map to `None`, like the Dart `fromMap`.
-fn lenient_source<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<TransactionSource>, D::Error> {
+fn lenient_source<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<Option<TransactionSource>, D::Error> {
     let raw: Option<String> = Option::deserialize(d)?;
     Ok(raw.and_then(|s| serde_json::from_value(serde_json::Value::String(s)).ok()))
 }

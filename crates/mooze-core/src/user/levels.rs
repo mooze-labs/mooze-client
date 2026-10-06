@@ -12,7 +12,8 @@ use crate::ports::{HttpClient, HttpRequest};
 use crate::{Error, Result};
 
 /// Public JSON with the limits of each level.
-pub const WALLET_LEVELS_URL: &str = "https://mooze-public.s3.us-east-1.amazonaws.com/user_levels.json";
+pub const WALLET_LEVELS_URL: &str =
+    "https://mooze-public.s3.us-east-1.amazonaws.com/user_levels.json";
 
 /// Fixed daily limit in BRL (Dart `UserLevelsData.dailyLimit`).
 pub const DAILY_LIMIT_BRL: f64 = 5000.0;
@@ -124,7 +125,12 @@ impl WalletLevelsResponse {
     pub fn to_levels(&self) -> Vec<WalletLevel> {
         self.data
             .iter()
-            .filter_map(|(k, limits)| WalletLevelType::from_key(k).map(|t| WalletLevel { level_type: t, limits: *limits }))
+            .filter_map(|(k, limits)| {
+                WalletLevelType::from_key(k).map(|t| WalletLevel {
+                    level_type: t,
+                    limits: *limits,
+                })
+            })
             .collect()
     }
 
@@ -149,11 +155,17 @@ impl<'de> Deserialize<'de> for WalletLevelsResponse {
 }
 
 impl Serialize for WalletLevelsResponse {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
         use serde::ser::SerializeMap;
         struct Data<'a>(&'a [(String, WalletLevelLimits)]);
         impl Serialize for Data<'_> {
-            fn serialize<S: serde::Serializer>(&self, s: S) -> std::result::Result<S::Ok, S::Error> {
+            fn serialize<S: serde::Serializer>(
+                &self,
+                s: S,
+            ) -> std::result::Result<S::Ok, S::Error> {
                 let mut map = s.serialize_map(Some(self.0.len()))?;
                 for (k, v) in self.0 {
                     map.serialize_entry(k, v)?;
@@ -177,7 +189,10 @@ impl<'de> Deserialize<'de> for OrderedLimits {
             fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 f.write_str("a map of level limits")
             }
-            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> std::result::Result<OrderedLimits, A::Error> {
+            fn visit_map<A: MapAccess<'de>>(
+                self,
+                mut map: A,
+            ) -> std::result::Result<OrderedLimits, A::Error> {
                 let mut out = Vec::new();
                 while let Some((k, v)) = map.next_entry::<String, WalletLevelLimits>()? {
                     out.push((k, v));
@@ -254,9 +269,15 @@ pub fn compute_user_levels(user: &User, levels: &WalletLevelsResponse) -> Result
     let allowed_spending = user.allowed_spending / 100.0;
     let daily_spending = user.daily_spending / 100.0;
     let key = WalletLevelType::from_spending_level(user.spending_level).key();
-    let current = levels.get(key).ok_or_else(|| Error::protocol(format!("Data for level {key} not found")))?;
-    let diamond = levels.get("diamond").ok_or_else(|| Error::protocol("Data for diamond level not found"))?;
-    let bronze = levels.get("bronze").ok_or_else(|| Error::protocol("Data for bronze level not found"))?;
+    let current = levels
+        .get(key)
+        .ok_or_else(|| Error::protocol(format!("Data for level {key} not found")))?;
+    let diamond = levels
+        .get("diamond")
+        .ok_or_else(|| Error::protocol("Data for diamond level not found"))?;
+    let bronze = levels
+        .get("bronze")
+        .ok_or_else(|| Error::protocol("Data for bronze level not found"))?;
     Ok(UserLevelsData {
         spending_level: user.spending_level,
         level_progress: user.level_progress,
@@ -285,10 +306,30 @@ pub struct DefaultUserLevel {
 
 /// Built-in level table (Dart `UserLevels._defaultLevels`).
 pub const DEFAULT_USER_LEVELS: [DefaultUserLevel; 4] = [
-    DefaultUserLevel { order: 0, name: "Bronze", min_amount: 20.0, max_amount: 250.0 },
-    DefaultUserLevel { order: 1, name: "Silver", min_amount: 20.0, max_amount: 500.0 },
-    DefaultUserLevel { order: 2, name: "Gold", min_amount: 20.0, max_amount: 1000.0 },
-    DefaultUserLevel { order: 3, name: "Diamond", min_amount: 20.0, max_amount: 30000.0 },
+    DefaultUserLevel {
+        order: 0,
+        name: "Bronze",
+        min_amount: 20.0,
+        max_amount: 250.0,
+    },
+    DefaultUserLevel {
+        order: 1,
+        name: "Silver",
+        min_amount: 20.0,
+        max_amount: 500.0,
+    },
+    DefaultUserLevel {
+        order: 2,
+        name: "Gold",
+        min_amount: 20.0,
+        max_amount: 1000.0,
+    },
+    DefaultUserLevel {
+        order: 3,
+        name: "Diamond",
+        min_amount: 20.0,
+        max_amount: 30000.0,
+    },
 ];
 
 /// Default level by order. `None` out of range.
@@ -363,25 +404,44 @@ mod tests {
         assert_eq!(levels.len(), 4);
         assert_eq!(levels[3].level_type, WalletLevelType::Diamond);
         assert_eq!(levels[3].limits.max_limit_in_reais(), 30000.0);
-        assert_eq!(r.level_by_type(WalletLevelType::Gold).unwrap().limits.max_limit, 100000);
+        assert_eq!(
+            r.level_by_type(WalletLevelType::Gold)
+                .unwrap()
+                .limits
+                .max_limit,
+            100000
+        );
         // Round trip keeps the order.
-        let again = WalletLevelsResponse::from_json_str(&serde_json::to_string(&r).unwrap()).unwrap();
+        let again =
+            WalletLevelsResponse::from_json_str(&serde_json::to_string(&r).unwrap()).unwrap();
         assert_eq!(again, r);
     }
 
     #[test]
     fn rejects_bad_levels() {
-        assert!(WalletLevelsResponse::from_json_str(r#"{"data": {"bronze": {"max_limit": 1.5, "min_limit": 0}}}"#).is_err());
+        assert!(WalletLevelsResponse::from_json_str(
+            r#"{"data": {"bronze": {"max_limit": 1.5, "min_limit": 0}}}"#
+        )
+        .is_err());
         assert!(WalletLevelsResponse::from_json_str(r#"{"levels": {}}"#).is_err());
     }
 
     #[test]
     fn fetches_from_s3() {
         let http = MockHttp::new();
-        http.on_json(HttpMethod::Get, WALLET_LEVELS_URL, 200, serde_json::from_str(LEVELS_JSON).unwrap());
+        http.on_json(
+            HttpMethod::Get,
+            WALLET_LEVELS_URL,
+            200,
+            serde_json::from_str(LEVELS_JSON).unwrap(),
+        );
         let r = block_on(fetch_wallet_levels(&http)).unwrap();
         assert_eq!(r.data.len(), 5);
-        assert!(!http.last_request().unwrap().headers.contains_key("Authorization"));
+        assert!(!http
+            .last_request()
+            .unwrap()
+            .headers
+            .contains_key("Authorization"));
     }
 
     #[test]
@@ -415,8 +475,10 @@ mod tests {
         assert!(d.is_max_level());
         assert_eq!(d.next_level(), None);
 
-        let no_diamond =
-            WalletLevelsResponse::from_json_str(r#"{"data": {"bronze": {"max_limit": 1, "min_limit": 0}}}"#).unwrap();
+        let no_diamond = WalletLevelsResponse::from_json_str(
+            r#"{"data": {"bronze": {"max_limit": 1, "min_limit": 0}}}"#,
+        )
+        .unwrap();
         user.spending_level = 0;
         assert!(compute_user_levels(&user, &no_diamond).is_err());
     }
