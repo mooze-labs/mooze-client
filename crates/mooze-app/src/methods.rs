@@ -38,6 +38,8 @@ macro_rules! for_each_app_method {
             bitcoin_take_events() -> Vec<TransactionEventDto>;
             bitcoin_receive_address(label: Option<String>) -> ReceiveAddressDto;
             bitcoin_estimate_fee(request: SendRequestDto) -> FeeEstimateDto;
+            bitcoin_send_bounded(request: SendRequestDto, max_fee_sat: u64) -> BroadcastResultDto;
+            liquid_send_bounded(request: SendRequestDto, max_fee_sat: u64) -> BroadcastResultDto;
             bitcoin_send(request: SendRequestDto) -> BroadcastResultDto;
             bitcoin_block_height() -> u32;
             bitcoin_derived_addresses(keychain: KeychainDto, start: u32, count: u32) -> Vec<DerivedAddressDto>;

@@ -28,7 +28,7 @@ export type AppError = { code: ErrorCode, message: string,
  */
 details: string | null, };
 
-export type AppEvent = { "type": "side_swap", "data": SideSwapEventDto } | { "type": "transactions", "data": Array<TransactionEventDto> } | { "type": "pix_status", "data": Array<PixStatusEventDto> } | { "type": "sync_state", "data": SyncStateDto } | { "type": "peg_progress", "data": PegRefreshDto } | { "type": "session_lock", "data": SessionLockStateDto } | { "type": "auth_session", "data": AuthEnsureDto };
+export type AppEvent = { "type": "side_swap", "data": SideSwapEventDto } | { "type": "transactions", "data": Array<TransactionEventDto> } | { "type": "pix_status", "data": Array<PixStatusEventDto> } | { "type": "sync_state", "data": SyncStateDto } | { "type": "chain_sync_state", "data": ChainSyncStateDto } | { "type": "peg_progress", "data": PegRefreshDto } | { "type": "session_lock", "data": SessionLockStateDto } | { "type": "auth_session", "data": AuthEnsureDto };
 
 export type AssetBalanceDto = { chain: ChainDto, asset_id: string | null, amount_sat: number, precision: number, ticker: string | null, pending_sat: number, };
 
@@ -51,6 +51,8 @@ export type BalanceDto = { assets: Array<AssetBalanceDto>, snapshot_at_ms: numbe
 export type BroadcastResultDto = { chain: ChainDto, tx_id: string, transaction: TransactionDto, fee_paid_sat: number | null, };
 
 export type ChainDto = "Liquid" | "Bitcoin" | "Lightning" | "Aggregate";
+
+export type ChainSyncStateDto = { chain: ChainDto, succeeded: boolean, observed_at_ms: number, };
 
 export type CpfValidationErrorDto = "Empty" | "Incomplete" | "Invalid";
 

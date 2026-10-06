@@ -18,7 +18,7 @@ use lwk_wollet::elements::pset::PartiallySignedTransaction;
 use lwk_wollet::elements::{Address, AssetId, OutPoint, Txid};
 use lwk_wollet::{Chain, Wollet, WolletBuilder, WolletDescriptor};
 
-use self::classify::{apply_optimistic_delta, map_balance, map_tx, LwkTxView};
+use self::classify::{apply_optimistic_delta, map_balance, LwkTxView};
 use self::store::{flush_journal, load_journal, wipe_prefix, JournalStore, STORE_PREFIX};
 use super::descriptors::{liquid_descriptor, liquid_network, liquid_policy_asset, liquid_signer};
 use super::endpoints::EndpointResolver;
@@ -30,7 +30,7 @@ use super::tracker::{sort_newest_first, TxTracker};
 use crate::domain::{
     AppNetwork, Balance, BroadcastResult, ChainId, FeeEstimate, LiquidSendDraft, LiquidUtxo, ReceiveAddress,
     SendRequest, ServiceLifecycle, ServiceState, SyncOutcome, Transaction, TransactionDirection, TransactionEvent,
-    TransactionSource, TransactionStatus, WalletCredentials, LBTC_ASSET_ID,
+    TransactionSource, TransactionStatus, WalletCredentials,
 };
 use crate::ports::{Clock, KvStore};
 use crate::wallet::backend::ChainBackend;
@@ -315,7 +315,10 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         let txs = self.wollet.transactions().map_err(|e| svc(format!("lwk sync failed: {e}")))?;
         let balances = self.balances_raw()?;
         let now = self.clock.now_ms();
-        let mut mapped: Vec<Transaction> = txs.iter().map(|t| map_tx(&LwkTxView::from_wallet_tx(t), now)).collect();
+        let mut mapped: Vec<Transaction> = txs
+            .iter()
+            .map(|t| classify::map_tx_with_policy(&LwkTxView::from_wallet_tx(t), now, self.policy_asset()))
+            .collect();
         sort_newest_first(&mut mapped);
         let changed = self.tracker.diff(&mapped, now);
         self.last_list = mapped;
@@ -554,13 +557,13 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
                 let d = self
                     .build_lbtc_send(&destination, request.amount_sat, request.fee_rate_override_sat_per_vbyte, drain)
                     .await?;
-                // NOTE: L-BTC sends carry the mainnet id on every network, by design.
+                // Preserve the actual network policy asset in outgoing records.
                 return Ok(BuiltLiquidSend {
                     pset: d.pset,
                     amount_sat: d.amount_sat,
                     fee_sat: d.fee_sat,
                     fee_rate_sat_per_kvb: d.fee_rate_sat_per_kvb,
-                    asset_id: LBTC_ASSET_ID.to_owned(),
+                    asset_id: policy.to_owned(),
                 });
             }
         };
@@ -657,11 +660,54 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     /// Builds, signs and broadcasts a send. The caller passes the mnemonic
     /// per call; the wallet never stores it.
     pub async fn send_onchain(&mut self, request: &SendRequest, mnemonic: &str) -> Result<BroadcastResult> {
+        self.send_with_bound(request, mnemonic, None, || Ok(())).await
+    }
+
+    pub async fn send_onchain_bounded(
+        &mut self,
+        request: &SendRequest,
+        mnemonic: &str,
+        max_fee_sat: u64,
+    ) -> Result<BroadcastResult> {
+        self.send_onchain_authorized(request, mnemonic, max_fee_sat, || Ok(())).await
+    }
+
+    /// Checks host authorization after preparation, immediately before signing.
+    pub async fn send_onchain_authorized(
+        &mut self,
+        request: &SendRequest,
+        mnemonic: &str,
+        max_fee_sat: u64,
+        authorize: impl FnOnce() -> Result<()> + Send,
+    ) -> Result<BroadcastResult> {
+        self.send_with_bound(request, mnemonic, Some(max_fee_sat), authorize).await
+    }
+
+    async fn send_with_bound(
+        &mut self,
+        request: &SendRequest,
+        mnemonic: &str,
+        max_fee_sat: Option<u64>,
+        authorize: impl FnOnce() -> Result<()> + Send,
+    ) -> Result<BroadcastResult> {
         let send = self.build_send(request).await?;
+        if let Some(max_sat) = max_fee_sat {
+            if send.fee_sat > max_sat {
+                return Err(Error::FeeLimitExceeded { actual_sat: send.fee_sat, max_sat });
+            }
+        }
         if mnemonic.is_empty() {
             return Err(svc("mnemonic not available"));
         }
-        let txid = self.sign_and_broadcast_pset(&send.pset, mnemonic).await?;
+        authorize()?;
+        let signed = self.sign_pset(&send.pset, mnemonic)?;
+        let txid = self.broadcast_pset(&signed).await.map_err(|e| {
+            if max_fee_sat.is_some() {
+                Error::SubmissionUnknown { chain: CHAIN, message: e.to_string() }
+            } else {
+                e
+            }
+        })?;
         let now = self.clock.now_ms();
         let mut tx = Transaction::new(
             txid.clone(),
@@ -719,6 +765,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::LBTC_ASSET_ID;
     use crate::testing::{block_on, FixedClock, MemoryKv};
 
     const ABANDON: &str =
@@ -733,6 +780,94 @@ mod tests {
             EndpointResolver::with_defaults(AppNetwork::Mainnet),
         ))
         .unwrap()
+    }
+
+    #[test]
+    fn funded_testnet_build_preserves_policy_and_enforces_actual_fee() {
+        use lwk_wollet::{
+            elements::{
+                self,
+                confidential::{AssetBlindingFactor, ValueBlindingFactor},
+                hashes::Hash,
+            },
+            Chain, DownloadTxResult, Update,
+        };
+        let creds = WalletCredentials { mnemonic: ABANDON.into(), network: AppNetwork::Testnet };
+        // No endpoints: all sync/broadcast attempts fail locally, without network IO.
+        let mut w = block_on(LiquidWallet::connect(
+            &creds,
+            MemoryKv::new(),
+            FixedClock::new(1000),
+            EndpointResolver::new(Default::default(), 1),
+        ))
+        .unwrap();
+        let address = w.wollet.address(Some(0)).unwrap().address().clone();
+        let asset = AssetId::from_str(w.policy_asset()).unwrap();
+        let input_secrets =
+            elements::TxOutSecrets::new(asset, AssetBlindingFactor::zero(), 100_000, ValueBlindingFactor::zero());
+        let (output, abf, vbf, _) = elements::TxOut::new_not_last_confidential(
+            &mut elements::secp256k1_zkp::rand::thread_rng(),
+            &elements::secp256k1_zkp::Secp256k1::new(),
+            100_000,
+            address.clone(),
+            asset,
+            &[input_secrets],
+        )
+        .unwrap();
+        let tx = elements::Transaction {
+            version: 2,
+            lock_time: elements::LockTime::ZERO,
+            input: vec![elements::TxIn::default()],
+            output: vec![output],
+        };
+        let txid = tx.txid();
+        w.wollet
+            .apply_update(Update {
+                version: 2,
+                wollet_status: w.wollet.status(),
+                new_txs: DownloadTxResult {
+                    txs: vec![(txid, tx)],
+                    unblinds: vec![(OutPoint { txid, vout: 0 }, elements::TxOutSecrets::new(asset, abf, 100_000, vbf))],
+                },
+                txid_height_new: vec![(txid, Some(1))],
+                txid_height_delete: vec![],
+                timestamps: vec![(1, 1000)],
+                scripts_with_blinding_pubkey: vec![(
+                    Chain::External,
+                    0u32.into(),
+                    address.script_pubkey(),
+                    address.blinding_pubkey,
+                )],
+                tip: elements::BlockHeader {
+                    version: 0,
+                    prev_blockhash: elements::BlockHash::all_zeros(),
+                    merkle_root: elements::TxMerkleNode::all_zeros(),
+                    time: 1000,
+                    height: 1,
+                    ext: Default::default(),
+                },
+                unspent: vec![],
+                last_unused: Default::default(),
+            })
+            .unwrap();
+        let mut request = SendRequest::new(CHAIN, w.wollet.address(Some(1)).unwrap().address().to_string(), 10_000);
+        request.fee_rate_override_sat_per_vbyte = Some(0.1);
+        let built = block_on(w.build_send(&request)).unwrap();
+        assert_eq!(built.asset_id, super::super::descriptors::LIQUID_TESTNET_POLICY_ASSET);
+        assert!(built.fee_sat > 0);
+        assert!(w.sign_pset(&built.pset, ABANDON).is_ok());
+        assert!(matches!(block_on(w.send_onchain_bounded(&request, ABANDON, 0)), Err(Error::FeeLimitExceeded { .. })));
+        // Exact and looser bounds both reach the pre-sign authorization gate.
+        for bound in [built.fee_sat, built.fee_sat + 100] {
+            let result =
+                block_on(w.send_onchain_authorized(&request, ABANDON, bound, || Err(Error::Session("revoked".into()))));
+            assert!(matches!(result, Err(Error::Session(_))), "{result:?}");
+        }
+        let bounded = block_on(w.send_onchain_bounded(&request, ABANDON, built.fee_sat + 100));
+        assert!(matches!(bounded, Err(Error::SubmissionUnknown { .. })));
+        let legacy = block_on(w.send_onchain(&request, ABANDON));
+        assert!(legacy.is_err());
+        assert!(!matches!(legacy, Err(Error::SubmissionUnknown { .. })));
     }
 
     #[test]

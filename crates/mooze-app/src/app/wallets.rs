@@ -95,6 +95,47 @@ impl<P: Platform> App<P> {
         Ok((&w.send_onchain(&send_request(&request, ChainId::Bitcoin)).await?).into())
     }
 
+    pub async fn bitcoin_send_bounded(&self, request: SendRequestDto, max_fee_sat: u64) -> Result<BroadcastResultDto> {
+        let mut guard = self.inner.bitcoin.lock().await;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        Ok((&w.send_onchain_bounded(&send_request(&request, ChainId::Bitcoin), max_fee_sat).await?).into())
+    }
+
+    pub async fn liquid_send_bounded(&self, request: SendRequestDto, max_fee_sat: u64) -> Result<BroadcastResultDto> {
+        let mut guard = self.inner.liquid.lock().await;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let mnemonic = load_mnemonic(&self.inner).await?;
+        Ok((&w.send_onchain_bounded(&send_request(&request, ChainId::Liquid), &mnemonic, max_fee_sat).await?).into())
+    }
+
+    /// Native hosts may revoke authorization while preparation awaits storage or a wallet lock.
+    pub async fn bitcoin_send_authorized(
+        &self,
+        request: SendRequestDto,
+        max_fee_sat: u64,
+        authorize: impl FnOnce() -> mooze_core::Result<()> + Send,
+    ) -> Result<BroadcastResultDto> {
+        let mut guard = self.inner.bitcoin.lock().await;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        Ok((&w.send_onchain_authorized(&send_request(&request, ChainId::Bitcoin), max_fee_sat, authorize).await?)
+            .into())
+    }
+
+    pub async fn liquid_send_authorized(
+        &self,
+        request: SendRequestDto,
+        max_fee_sat: u64,
+        authorize: impl FnOnce() -> mooze_core::Result<()> + Send,
+    ) -> Result<BroadcastResultDto> {
+        let mut guard = self.inner.liquid.lock().await;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let mnemonic = load_mnemonic(&self.inner).await?;
+        Ok((&w
+            .send_onchain_authorized(&send_request(&request, ChainId::Liquid), &mnemonic, max_fee_sat, authorize)
+            .await?)
+            .into())
+    }
+
     /// Chain tip height.
     pub async fn bitcoin_block_height(&self) -> Result<u32> {
         let mut guard = self.inner.bitcoin.lock().await;

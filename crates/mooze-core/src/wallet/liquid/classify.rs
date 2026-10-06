@@ -73,11 +73,11 @@ fn reduce_max<'a, T>(items: &[&'a T], key: impl Fn(&T) -> i64) -> &'a T {
 
 /// Headline balance: the single entry, else the largest non-L-BTC entry,
 /// else the largest entry (by absolute value).
-fn pick_main<'a>(balances: &[&'a LwkBalance]) -> &'a LwkBalance {
+fn pick_main<'a>(balances: &[&'a LwkBalance], policy_asset: &str) -> &'a LwkBalance {
     if balances.len() == 1 {
         return balances[0];
     }
-    let non_lbtc: Vec<&LwkBalance> = balances.iter().copied().filter(|b| b.asset_id != LBTC_ASSET_ID).collect();
+    let non_lbtc: Vec<&LwkBalance> = balances.iter().copied().filter(|b| b.asset_id != policy_asset).collect();
     if !non_lbtc.is_empty() {
         return reduce_max(&non_lbtc, |b| b.value.abs());
     }
@@ -85,7 +85,7 @@ fn pick_main<'a>(balances: &[&'a LwkBalance]) -> &'a LwkBalance {
 }
 
 /// The non-L-BTC asset that moved the most (gross of inputs or outputs).
-fn self_transfer_subject(t: &LwkTxView) -> Option<(String, i64)> {
+fn self_transfer_subject(t: &LwkTxView, policy_asset: &str) -> Option<(String, i64)> {
     let mut candidates: Vec<&str> = Vec::new();
     let ids = t
         .balances
@@ -94,7 +94,7 @@ fn self_transfer_subject(t: &LwkTxView) -> Option<(String, i64)> {
         .chain(t.outputs.iter().map(|o| o.asset_id.as_str()))
         .chain(t.inputs.iter().map(|o| o.asset_id.as_str()));
     for id in ids {
-        if id != LBTC_ASSET_ID && !candidates.contains(&id) {
+        if id != policy_asset && !candidates.contains(&id) {
             candidates.push(id);
         }
     }
@@ -116,9 +116,12 @@ fn self_transfer_subject(t: &LwkTxView) -> Option<(String, i64)> {
 
 /// Classifies an LWK transaction with rules P1 to P7.
 ///
-/// NOTE: the rules compare against the mainnet L-BTC id on every network,
-/// by design.
 pub fn map_tx(t: &LwkTxView, now_ms: u64) -> Transaction {
+    map_tx_with_policy(t, now_ms, LBTC_ASSET_ID)
+}
+
+/// Maps transactions using the fee asset of the wallet's network.
+pub fn map_tx_with_policy(t: &LwkTxView, now_ms: u64, policy_asset: &str) -> Transaction {
     let fee = t.fee as i64;
     let status = if t.height.is_some() { TransactionStatus::Confirmed } else { TransactionStatus::Pending };
     let ts = t.timestamp_s.map(|s| s * 1000).unwrap_or(now_ms);
@@ -139,9 +142,9 @@ pub fn map_tx(t: &LwkTxView, now_ms: u64) -> Transaction {
     let mut received = None;
 
     let self_transfer = || {
-        let subject = self_transfer_subject(t);
+        let subject = self_transfer_subject(t, policy_asset);
         let amount = subject.as_ref().map(|s| s.1).unwrap_or(fee);
-        let asset = subject.map(|s| s.0).unwrap_or_else(|| LBTC_ASSET_ID.to_owned());
+        let asset = subject.map(|s| s.0).unwrap_or_else(|| policy_asset.to_owned());
         (TransactionDirection::SelfTransfer, amount, Some(asset))
     };
 
@@ -151,15 +154,13 @@ pub fn map_tx(t: &LwkTxView, now_ms: u64) -> Transaction {
     } else if non_zero.is_empty() && fee > 0 {
         // P2: nothing moved net, a fee was paid.
         self_transfer()
-    } else if non_zero.len() == 1 && non_zero[0].asset_id == LBTC_ASSET_ID && non_zero[0].value == -fee && fee > 0 {
+    } else if non_zero.len() == 1 && non_zero[0].asset_id == policy_asset && non_zero[0].value == -fee && fee > 0 {
         // P3: only the L-BTC fee left the wallet.
         self_transfer()
     } else if !positives.is_empty() && !negatives.is_empty() && unique.len() >= 2 {
         // P4: mixed signs over two or more assets: swap.
-        let pos_non_lbtc: Vec<&LwkBalance> =
-            positives.iter().copied().filter(|b| b.asset_id != LBTC_ASSET_ID).collect();
-        let neg_non_lbtc: Vec<&LwkBalance> =
-            negatives.iter().copied().filter(|b| b.asset_id != LBTC_ASSET_ID).collect();
+        let pos_non_lbtc: Vec<&LwkBalance> = positives.iter().copied().filter(|b| b.asset_id != policy_asset).collect();
+        let neg_non_lbtc: Vec<&LwkBalance> = negatives.iter().copied().filter(|b| b.asset_id != policy_asset).collect();
         let to = reduce_max(if pos_non_lbtc.is_empty() { &positives } else { &pos_non_lbtc }, |b| b.value);
         let from = reduce_max(if neg_non_lbtc.is_empty() { &negatives } else { &neg_non_lbtc }, |b| b.value.abs());
         from_asset = Some(from.asset_id.clone());
@@ -169,11 +170,11 @@ pub fn map_tx(t: &LwkTxView, now_ms: u64) -> Transaction {
         (TransactionDirection::Swap, from.value.abs(), Some(from.asset_id.clone()))
     } else if !non_zero.is_empty() && non_zero.iter().all(|b| b.value > 0) {
         // P5: pure incoming.
-        let main = pick_main(&non_zero);
+        let main = pick_main(&non_zero, policy_asset);
         (TransactionDirection::Incoming, main.value.abs(), Some(main.asset_id.clone()))
     } else if !non_zero.is_empty() && non_zero.iter().all(|b| b.value < 0) {
         // P6: pure outgoing.
-        let main = pick_main(&non_zero);
+        let main = pick_main(&non_zero, policy_asset);
         (TransactionDirection::Outgoing, main.value.abs(), Some(main.asset_id.clone()))
     } else {
         // P7: catch-all (issuance, burn, unknown).
@@ -181,7 +182,7 @@ pub fn map_tx(t: &LwkTxView, now_ms: u64) -> Transaction {
         if source.is_empty() {
             (TransactionDirection::Internal, 0, None)
         } else {
-            let main = pick_main(&source);
+            let main = pick_main(&source, policy_asset);
             (TransactionDirection::Internal, main.value.abs(), Some(main.asset_id.clone()))
         }
     };
@@ -271,6 +272,18 @@ mod tests {
             inputs: vec![],
             outputs: vec![],
         }
+    }
+
+    #[test]
+    fn testnet_policy_asset_is_used_for_fee_only_and_asset_selection() {
+        let policy = crate::wallet::descriptors::LIQUID_TESTNET_POLICY_ASSET;
+        let fee_only = map_tx_with_policy(&view("unknown", 26, vec![bal(policy, -26)]), 1, policy);
+        assert_eq!(fee_only.direction, TransactionDirection::SelfTransfer);
+        assert_eq!(fee_only.asset_id.as_deref(), Some(policy));
+        let outgoing =
+            map_tx_with_policy(&view("outgoing", 500, vec![bal(policy, -500), bal("custom", -20)]), 1, policy);
+        assert_eq!(outgoing.asset_id.as_deref(), Some("custom"));
+        assert_eq!(outgoing.amount_sat, 20);
     }
 
     #[test]

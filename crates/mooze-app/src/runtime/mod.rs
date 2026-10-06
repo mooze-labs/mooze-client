@@ -110,6 +110,13 @@ impl<P: Platform> App<P> {
                 if !report.events.is_empty() {
                     inner.subscribers.emit(AppEvent::Transactions(report.events.iter().map(Into::into).collect()));
                 }
+                for (chain, outcome) in &report.per_chain {
+                    inner.subscribers.emit(AppEvent::ChainSyncState(crate::dto::ChainSyncStateDto {
+                        chain: (*chain).into(),
+                        succeeded: outcome.is_ok(),
+                        observed_at_ms: inner.platform.clock().now_ms(),
+                    }));
+                }
                 inner.subscribers.emit(AppEvent::SyncState(sync_state_dto(&state)));
             }
         });

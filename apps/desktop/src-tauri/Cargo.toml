@@ -1,0 +1,33 @@
+[package]
+name = "mooze-desktop"
+version = "0.1.0"
+edition = "2021"
+default-run = "mooze-desktop"
+license = "GPL-3.0-only"
+[lib]
+name = "mooze_desktop"
+[features]
+codegen = ["dep:ts-rs", "mooze_app/codegen"]
+[[bin]]
+name = "codegen"
+path = "src/bin/codegen.rs"
+required-features = ["codegen"]
+[build-dependencies]
+tauri-build = { version = "=2.7.1", features = [] }
+[dependencies]
+tauri = { version = "=2.12.1", features = [] }
+tauri-plugin-single-instance = "=2.4.5"
+mooze_app = { path = "../../../crates/mooze-app", features = ["electrum", "http-reqwest"] }
+mooze-core = { path = "../../../crates/mooze-core", features = ["electrum", "http-reqwest"] }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+tokio = { version = "=1.53.2", features = ["rt-multi-thread", "sync", "time", "macros", "net"] }
+futures = "=0.3.34"
+tokio-tungstenite = { version = "=0.30.0", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+rustls = { version = "=0.23.45", default-features = false, features = ["ring", "std"] }
+keyring = { version = "=3.6.3", features = ["apple-native", "windows-native", "sync-secret-service"] }
+uuid = { version = "=1.27.0", features = ["v4"] }
+ts-rs = { version = "=12.0.1", optional = true, features = ["serde-compat"] }
+[dev-dependencies]
+tempfile = "=3.27.0"
+[workspace]

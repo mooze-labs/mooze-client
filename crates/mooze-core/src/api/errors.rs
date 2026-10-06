@@ -37,7 +37,9 @@ pub fn classify_error(error: &Error) -> ErrorKind {
         Error::Sync { .. } | Error::Service { .. } => ErrorKind::ServerCommunication,
         Error::Credential(_) | Error::Session(_) => ErrorKind::AuthenticationFailed,
         Error::Storage(_) => ErrorKind::LoadData,
-        Error::Boot { .. }
+        Error::FeeLimitExceeded { .. }
+        | Error::SubmissionUnknown { .. }
+        | Error::Boot { .. }
         | Error::Protocol(_)
         | Error::InvalidInput(_)
         | Error::InvalidState(_)

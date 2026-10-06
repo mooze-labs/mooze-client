@@ -1,0 +1,25 @@
+name: Desktop MVP
+on:
+  pull_request:
+    paths: ["apps/desktop/**", "apps/frontend/**", "crates/mooze-core/**", "crates/mooze-app/**", "package*.json", ".github/workflows/desktop.yml"]
+  push:
+    branches: [main, develop]
+    paths: ["apps/desktop/**", "apps/frontend/**", "crates/mooze-core/**", "crates/mooze-app/**", "package*.json", ".github/workflows/desktop.yml"]
+permissions:
+  contents: read
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run frontend:test
+      - run: npm run frontend:build
+      - run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --check
+      - run: cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --features codegen
+      - run: cargo test --locked --manifest-path crates/mooze-app/Cargo.toml --features codegen,electrum,http-reqwest
+      - run: cargo check --locked --manifest-path packages/mooze_core_bridge/rust/Cargo.toml

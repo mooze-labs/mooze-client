@@ -192,6 +192,7 @@ fn main() {
         DeviceMetricsDto,
         SyncPhaseDto,
         SyncStateDto,
+        ChainSyncStateDto,
         SessionLockStateDto,
         StartConfigDto,
         DepositStatusDto,
