@@ -1,6 +1,6 @@
 # Mooze everyday wallet — Quiet Navy
 
-Date: 2026-10-06. Status: visual direction and Home, Receive, Send entry/review, Settings, and transaction-result screens approved in conversation; consolidated written specification awaiting review. Activity, asset detail, setup, and lock treatments follow the written rules below rather than a separately approved screen mockup.
+Date: 2026-10-06. Status: visual direction and Home, Receive, Send entry/review, Settings, and transaction-result screens approved in conversation; consolidated written specification approved by the user’s “Proceed” after the final spec-review checkpoint. Activity, asset detail, setup, and lock treatments follow the written rules below rather than a separately approved screen mockup.
 
 ## Purpose
 
