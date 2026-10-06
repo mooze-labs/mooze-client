@@ -1,5 +1,4 @@
-//! Peg repository over SideSwap. Port of `domain/repositories/peg_repository.dart`
-//! and `data/repositories/peg_repository_impl.dart`.
+//! Peg repository over SideSwap.
 
 use std::future::Future;
 
@@ -105,8 +104,7 @@ fn read_failure(e: Error) -> PegError {
     }
 }
 
-// NOTE(port): Dart surfaces model parse failures (TypeError) through the
-// generic catch, so they become transport failures. Kept.
+// NOTE: model parse failures become transport failures by design.
 fn decode<T: DeserializeOwned>(v: serde_json::Value) -> Result<T, PegError> {
     serde_json::from_value(v).map_err(|e| PegError::TransportFailure(e.to_string()))
 }

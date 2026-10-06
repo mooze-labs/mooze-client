@@ -1,7 +1,6 @@
 //! SideSwap JSON-RPC wire types.
 //!
-//! Port of `lib/features/swap/data/models/**` and the frame builders in
-//! `lib/features/swap/data/datasources/sideswap.dart`. Field names match the wire.
+//! Field names match the wire.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -17,7 +16,7 @@ pub const USER_AGENT: &str = "MoozeClient";
 /// Client version sent in `login_client`.
 pub const CLIENT_VERSION: &str = "1.0.0";
 
-/// Default per-request timeout of the Dart client. The platform enforces it.
+/// Default per-request timeout. The platform enforces it.
 pub const DEFAULT_REQUEST_TIMEOUT_MS: u64 = 15_000;
 
 /// Fallback text for an RPC error without a message.
@@ -50,7 +49,7 @@ pub const PEG_IN_WALLET_BALANCE: &str = "PegInWalletBalance";
 /// Value name for the peg-out wallet balance subscription.
 pub const PEG_OUT_WALLET_BALANCE: &str = "PegOutWalletBalance";
 
-/// Allocates request ids. Starts at 1 and increments, like the Dart client.
+/// Allocates request ids. Starts at 1 and increments.
 #[derive(Debug, Clone)]
 pub struct RequestIdGen {
     next: u64,
@@ -165,7 +164,7 @@ impl Request {
     }
 }
 
-/// Text of a JSON-RPC `error` member. Port of `_describeRpcError`.
+/// Text of a JSON-RPC `error` member.
 pub fn describe_rpc_error(error: &Value) -> String {
     match error {
         Value::Object(m) => m
@@ -208,7 +207,7 @@ pub enum AssetType {
 }
 
 impl AssetType {
-    /// Parses a wire name. Invalid names fall back to `Base`, like the Dart service.
+    /// Parses a wire name. Invalid names fall back to `Base`.
     pub fn normalize(name: &str) -> Self {
         match name {
             "Quote" => AssetType::Quote,
@@ -456,9 +455,9 @@ pub struct QuoteResponse {
 }
 
 impl QuoteResponse {
-    /// Parses the `params.quote` object. Port of `QuoteResponse.fromJson`.
+    /// Parses the `params.quote` object.
     ///
-    /// Returns an error when a known status has missing fields. Dart drops those.
+    /// Returns an error when a known status has missing fields.
     pub fn from_json(quote: &Value) -> crate::Result<Self> {
         let pair = quote.get("asset_pair");
         let mut resp = QuoteResponse {
@@ -550,7 +549,6 @@ impl QuoteResponse {
 }
 
 /// True if a quote error message is a transient transport error.
-/// Port of the controller's `isTransient` check.
 pub fn is_transient_quote_error(message: &str) -> bool {
     let lower = message.to_lowercase();
     [
@@ -587,11 +585,11 @@ pub enum Notification {
 }
 
 impl Notification {
-    /// Decodes an uncorrelated frame. Mirrors the Dart per-method stream filters.
+    /// Decodes an uncorrelated frame by method.
     pub fn from_frame(frame: &Value) -> Option<Self> {
         if let Some(err) = frame.get("error") {
-            // NOTE(port): Dart rewraps every JSON-RPC error frame as a quote
-            // error on the market stream. Kept; consumers drop it by identity.
+            // NOTE: every JSON-RPC error frame becomes a quote error on the market stream.
+            // Consumers drop it by identity.
             let msg = describe_rpc_error(err);
             return Some(Notification::Quote(QuoteResponse {
                 outcome: QuoteOutcome::Error(msg),
@@ -607,7 +605,7 @@ impl Notification {
         match method {
             Some(method::MARKET) => {
                 if let Some(q) = params.and_then(|p| p.get("quote")) {
-                    // Parse failures are dropped, like the Dart listener.
+                    // Parse failures are dropped.
                     return QuoteResponse::from_json(q).ok().map(Notification::Quote);
                 }
             }
@@ -663,10 +661,7 @@ mod tests {
         assert_eq!(Request::taker_sign(5, "cHNl").params, json!({"taker_sign":{"quote_id":5,"pset":"cHNl"}}));
         assert_eq!(Request::stop_quotes().params, json!({"stop_quotes":{}}));
         assert_eq!(Request::list_markets().params, json!({"list_markets":{}}));
-        assert_eq!(
-            Request::subscribe_value(PEG_IN_WALLET_BALANCE).params,
-            json!({"value":"PegInWalletBalance"})
-        );
+        assert_eq!(Request::subscribe_value(PEG_IN_WALLET_BALANCE).params, json!({"value":"PegInWalletBalance"}));
     }
 
     #[test]
@@ -775,7 +770,7 @@ mod tests {
         assert_eq!(QuoteResponse::from_json(&unknown).unwrap().error_message(), Some(UNKNOWN_QUOTE_RESPONSE));
         // Missing identity never matches.
         assert!(!QuoteResponse::from_json(&unknown).unwrap().matches_intent("B", "Q", 1));
-        // Broken success payload is an error (Dart drops it).
+        // Broken success payload is an error.
         assert!(QuoteResponse::from_json(&json!({"status":{"Success":{"quote_id":1}}})).is_err());
     }
 

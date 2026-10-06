@@ -168,8 +168,8 @@ where
         let credentials = credentials.clone();
         async move {
             self.slot.set_lifecycle(ServiceLifecycle::Connecting);
-            let made = LiquidWallet::connect(&credentials, self.kv.clone(), self.clock.clone(), self.endpoints.clone())
-                .await;
+            let made =
+                LiquidWallet::connect(&credentials, self.kv.clone(), self.clock.clone(), self.endpoints.clone()).await;
             let made = made.and_then(|mut wallet| {
                 if self.backend.is_electrum() {
                     wallet.set_backend(self.backend.clone(), self.endpoints.clone())?;
@@ -325,8 +325,8 @@ where
         let credentials = credentials.clone();
         async move {
             self.slot.set_lifecycle(ServiceLifecycle::Connecting);
-            let made = BitcoinWallet::connect(&credentials, self.kv.clone(), self.clock.clone(), self.endpoints.clone())
-                .await;
+            let made =
+                BitcoinWallet::connect(&credentials, self.kv.clone(), self.clock.clone(), self.endpoints.clone()).await;
             let made = made.and_then(|mut wallet| {
                 if self.backend.is_electrum() {
                     wallet.set_backend(self.backend.clone(), self.endpoints.clone())?;
@@ -445,7 +445,11 @@ where
                 .build_lbtc_send(&destination, amount_sat, fee_rate_sat_per_vb, drain)
                 .await
                 .map_err(peg_wallet_error)?;
-            Ok(PegFundingQuote { amount_sat: draft.amount_sat, network_fee_sat: draft.fee_sat, handle: PegFunding::Liquid(draft) })
+            Ok(PegFundingQuote {
+                amount_sat: draft.amount_sat,
+                network_fee_sat: draft.fee_sat,
+                handle: PegFunding::Liquid(draft),
+            })
         }
     }
 
@@ -588,8 +592,8 @@ mod tests {
 
         #[test]
         fn bitcoin_electrum_failure_keeps_service_usable() {
-            let endpoints =
-                EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet).with_custom_node(ChainId::Bitcoin, CLOSED);
+            let endpoints = EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet)
+                .with_custom_node(ChainId::Bitcoin, CLOSED);
             let svc = BitcoinService::new(MemoryKv::new(), Arc::new(FixedClock::new(1_759_686_400_000)), endpoints)
                 .with_backend(ChainBackend::Electrum(config()));
             block_on(async {
@@ -609,8 +613,9 @@ mod tests {
             let secure = MemoryKv::new();
             let store = CredentialStore::new(secure, AppNetwork::Mainnet);
             block_on(store.save(&credentials())).unwrap();
-            let svc = LiquidService::new(MemoryKv::new(), Arc::new(FixedClock::new(1_759_686_400_000)), endpoints, store)
-                .with_backend(ChainBackend::Electrum(config()));
+            let svc =
+                LiquidService::new(MemoryKv::new(), Arc::new(FixedClock::new(1_759_686_400_000)), endpoints, store)
+                    .with_backend(ChainBackend::Electrum(config()));
             block_on(async {
                 svc.connect(&credentials()).await.unwrap();
                 let err = svc.sync(60_000).await.unwrap_err();
@@ -624,7 +629,8 @@ mod tests {
         #[test]
         #[ignore = "needs network"]
         fn live_electrum_scan_both_chains() {
-            let config = ElectrumConfig { spawner: Arc::new(InlineSpawner), timeout_s: 30, retry: 2, validate_domain: true };
+            let config =
+                ElectrumConfig { spawner: Arc::new(InlineSpawner), timeout_s: 30, retry: 2, validate_domain: true };
             let clock = Arc::new(FixedClock::new(1_759_686_400_000));
             let btc = BitcoinService::new(
                 MemoryKv::new(),

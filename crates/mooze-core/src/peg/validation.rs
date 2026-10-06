@@ -1,4 +1,4 @@
-//! Peg amount validation. Port of `domain/usecases/peg_amount_validation.dart`.
+//! Peg amount validation.
 
 use super::entities::{PegDirection, PegServerLimits};
 
@@ -30,7 +30,13 @@ impl PegAmountValidation {
     }
 
     fn invalid(reason: PegAmountIssue, min: u64, max: u64) -> Self {
-        Self { has_amount: true, is_valid: false, issue: Some(reason), minimum_sats: Some(min), maximum_sats: Some(max) }
+        Self {
+            has_amount: true,
+            is_valid: false,
+            issue: Some(reason),
+            minimum_sats: Some(min),
+            maximum_sats: Some(max),
+        }
     }
 
     /// True when an issue should be displayed.

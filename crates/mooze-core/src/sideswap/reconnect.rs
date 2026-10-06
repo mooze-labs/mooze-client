@@ -1,4 +1,4 @@
-//! Reconnect and keepalive policy. Port of `lib/utils/websocket.dart`.
+//! Reconnect and keepalive policy.
 //!
 //! The core never sleeps. The platform reads the delays and schedules.
 
@@ -45,7 +45,7 @@ impl Default for ReconnectPolicy {
 
 impl ReconnectPolicy {
     /// Backoff for 1-based `attempt`: `initial * 2^(attempt-1)`, capped.
-    /// The shift is clamped to 0..=20, like Dart.
+    /// The shift is clamped to 0..=20.
     pub fn backoff_delay_ms(&self, attempt: u32) -> u64 {
         let shift = attempt.saturating_sub(1).min(20);
         let exp = self.initial_reconnect_delay_ms.saturating_mul(1u64 << shift);

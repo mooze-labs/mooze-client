@@ -1,30 +1,29 @@
-//! Esplora endpoints and failover. Port of
-//! `lib/infra/network/electrum_endpoint_resolver_impl.dart`.
+//! Esplora endpoints and failover.
 //!
-//! The Dart resolver rotates Electrum `host:port` strings. The core talks
-//! esplora over HTTP, so the lists hold esplora base URLs instead. The
-//! rotation rules are unchanged: stick to the current endpoint, rotate
-//! after `failure_threshold` consecutive failures, reset on success.
+//! The lists hold esplora base URLs. The rotation rules: stick to the
+//! current endpoint, rotate after `failure_threshold` consecutive failures, reset on success.
 
 use std::collections::BTreeMap;
 
 use crate::domain::{AppNetwork, ChainId};
 use crate::{Error, Result};
 
-/// Default number of consecutive failures before rotation (legacy BDK value).
+/// Default number of consecutive failures before rotation.
 pub const DEFAULT_FAILURE_THRESHOLD: u32 = 2;
 
 /// Default esplora base URLs for a chain and network, preferred first.
 ///
-/// NOTE(port): the Dart lists are Electrum servers. These are the esplora
-/// APIs of the same operators where one exists (Blockstream, mempool.space).
+/// These are the esplora APIs of the default Electrum operators where one
+/// exists (Blockstream, mempool.space).
 pub fn default_esplora_urls(chain: ChainId, network: AppNetwork) -> Vec<String> {
     let urls: &[&str] = match (chain, network) {
         (ChainId::Bitcoin, AppNetwork::Mainnet) => &["https://blockstream.info/api", "https://mempool.space/api"],
         (ChainId::Bitcoin, AppNetwork::Testnet) => {
             &["https://blockstream.info/testnet/api", "https://mempool.space/testnet/api"]
         }
-        (ChainId::Liquid, AppNetwork::Mainnet) => &["https://blockstream.info/liquid/api", "https://liquid.network/api"],
+        (ChainId::Liquid, AppNetwork::Mainnet) => {
+            &["https://blockstream.info/liquid/api", "https://liquid.network/api"]
+        }
         (ChainId::Liquid, AppNetwork::Testnet) => {
             &["https://blockstream.info/liquidtestnet/api", "https://liquid.network/liquidtestnet/api"]
         }
@@ -52,10 +51,8 @@ impl EndpointResolver {
 
     /// Resolver with the default bitcoin and liquid lists for `network`.
     pub fn with_defaults(network: AppNetwork) -> Self {
-        let endpoints = [ChainId::Bitcoin, ChainId::Liquid]
-            .into_iter()
-            .map(|c| (c, default_esplora_urls(c, network)))
-            .collect();
+        let endpoints =
+            [ChainId::Bitcoin, ChainId::Liquid].into_iter().map(|c| (c, default_esplora_urls(c, network))).collect();
         Self::new(endpoints, DEFAULT_FAILURE_THRESHOLD)
     }
 
@@ -79,10 +76,10 @@ impl EndpointResolver {
 
     /// Applies the user's custom node setting for `chain`.
     ///
-    /// Port of the `bitcoin_node_url` and `liquid_node_url` settings. A
+    /// Backs the `bitcoin_node_url` and `liquid_node_url` settings. A
     /// non-empty URL replaces the whole list, so the wallet uses only that
     /// node and never rotates away from it. An empty or blank URL keeps the
-    /// defaults, which Dart calls "default mode".
+    /// defaults ("default mode").
     pub fn with_custom_node(mut self, chain: ChainId, url: &str) -> Self {
         let url = url.trim();
         if !url.is_empty() {
@@ -173,7 +170,7 @@ mod backend_tests {
     use crate::wallet::backend::ChainBackend;
 
     #[test]
-    fn electrum_defaults_follow_dart_order() {
+    fn electrum_defaults_order() {
         let r = EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet);
         assert_eq!(r.current(ChainId::Bitcoin).unwrap(), "ssl://electrum.blockstream.info:50002");
         assert_eq!(r.current(ChainId::Liquid).unwrap(), "blockstream.info:995");

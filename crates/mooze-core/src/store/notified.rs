@@ -1,7 +1,6 @@
 //! Persisted dedup ledger for transaction notifications.
 //!
-//! Port of `SqliteNotifiedTxRegistry` (`lib/infra/storage/notified_tx_registry_impl.dart`).
-//! Tables `notified_tx_ids` and `notification_meta` become two key prefixes.
+//! Two key prefixes hold the notified transaction ids and the notification metadata.
 
 use serde::{Deserialize, Serialize};
 
@@ -49,8 +48,8 @@ impl<K: KvStore> NotifiedTxRegistry<K> {
 
     /// Returns `true` the first time `(chain, tx_id)` is seen, `false` after.
     ///
-    /// NOTE(port): Dart relies on SQLite `INSERT OR IGNORE` for atomicity.
-    /// Here callers must not run two `mark_if_new` calls for the same key at once.
+    /// NOTE: The check and the write are not atomic.
+    /// Callers must not run two `mark_if_new` calls for the same key at once.
     pub async fn mark_if_new(&self, chain: ChainId, tx_id: &str, now_ms: u64) -> Result<bool> {
         let key = notified_key(chain, tx_id);
         if self.kv.get(&key).await?.is_some() {

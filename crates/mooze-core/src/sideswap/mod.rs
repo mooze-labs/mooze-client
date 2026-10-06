@@ -1,5 +1,5 @@
 //! SideSwap integration: JSON-RPC protocol, WebSocket client, reconnect
-//! policy and the asset swap flow. Port of `lib/features/swap/data/**`.
+//! policy and the asset swap flow.
 
 pub mod client;
 pub mod protocol;

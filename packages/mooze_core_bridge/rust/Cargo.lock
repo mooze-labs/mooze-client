@@ -1877,6 +1877,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "mooze_app"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "mooze-core",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+]
+
+[[package]]
 name = "mooze_core_bridge"
 version = "0.1.0"
 dependencies = [
@@ -1885,6 +1897,7 @@ dependencies = [
  "futures",
  "libc",
  "mooze-core",
+ "mooze_app",
  "rustls",
  "serde_json",
  "tokio",

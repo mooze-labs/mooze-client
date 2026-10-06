@@ -1,6 +1,6 @@
 //! Authenticated client for the Mooze backend.
 //!
-//! Port of `authenticatedClientProvider` plus `AuthInterceptor`:
+//! Request flow:
 //! - attach device metrics to JSON bodies,
 //! - attach `Authorization: Bearer <jwt>` except on auth endpoints,
 //! - on 401/403: force a session refresh once, then retry once.
@@ -18,28 +18,27 @@ use super::url::join_url;
 use crate::ports::{HttpClient, HttpMethod, HttpRequest, HttpResponse, MaybeSend, MaybeSync};
 use crate::{Error, Result};
 
-/// Default backend base URL (Dart `BACKEND_API_URL` default).
+/// Default backend base URL.
 pub const DEFAULT_BASE_URL: &str = "https://api.mooze.app";
 
 /// Name of the auth header.
 pub const AUTHORIZATION_HEADER: &str = "Authorization";
 
-/// Paths that never carry a token. Matched with `contains`, as in Dart.
+/// Paths that never carry a token. Matched with `contains`.
 pub const UNAUTHENTICATED_PATHS: [&str; 5] =
     ["/auth/challenge", "/auth/sign", "/auth/sign_challenge", "/auth/refresh", "/auth/login"];
 
-/// True if `path` must skip the token (Dart `_shouldSkipAuth`).
+/// True if `path` must skip the token.
 pub fn should_skip_auth(path: &str) -> bool {
     UNAUTHENTICATED_PATHS.iter().any(|p| path.contains(p))
 }
 
 /// Supplies session tokens to [`MoozeApi`]. `auth::SessionManager` implements it.
 pub trait SessionProvider: MaybeSend + MaybeSync {
-    /// Returns a valid JWT. Dart `SessionManagerService.getSession`.
+    /// Returns a valid JWT.
     fn access_token(&self) -> impl Future<Output = Result<String>> + MaybeSend;
 
     /// Refreshes the session after the server rejected the JWT.
-    /// Dart `SessionManagerService.forceRefresh`.
     fn force_refresh_token(&self) -> impl Future<Output = Result<String>> + MaybeSend;
 }
 
@@ -57,7 +56,7 @@ impl<T: SessionProvider + ?Sized> SessionProvider for Arc<T> {
 pub struct ApiConfig {
     /// Base URL without a trailing slash, for example `https://api.mooze.app`.
     pub base_url: String,
-    /// Per-request timeout. The Dart authenticated client sets none.
+    /// Per-request timeout. `None` sets no timeout.
     pub timeout_ms: Option<u64>,
 }
 
@@ -98,7 +97,7 @@ impl<H: HttpClient, S: SessionProvider> MoozeApi<H, S> {
     }
 
     /// Sets the device integrity result. The platform runs the jailbreak/root
-    /// check (Dart `SafeDevice.isSafeDevice` in release builds). Unsafe devices
+    /// check in release builds. Unsafe devices
     /// send requests without a token.
     pub fn set_device_safe(&self, safe: bool) {
         self.device_safe.store(safe, Ordering::SeqCst);
@@ -115,7 +114,7 @@ impl<H: HttpClient, S: SessionProvider> MoozeApi<H, S> {
         join_url(&self.config.base_url, path)
     }
 
-    /// Adds `metrics` to the body, as Dart `_attachMetrics` does.
+    /// Adds `metrics` to the body.
     fn attach_metrics(&self, method: HttpMethod, body: Option<Value>) -> Option<Value> {
         let metrics = self.metrics.lock().unwrap_or_else(|e| e.into_inner()).clone();
         let metrics = match metrics {
@@ -127,8 +126,8 @@ impl<H: HttpClient, S: SessionProvider> MoozeApi<H, S> {
                 map.insert("metrics".to_owned(), metrics);
                 Some(Value::Object(map))
             }
-            // NOTE(port): Dart also adds a `{metrics}` body to GET/DELETE requests
-            // without data. Browsers reject GET bodies, so the core skips them.
+            // NOTE: GET/DELETE requests without data get no `{metrics}` body.
+            // Browsers reject GET bodies.
             None if !matches!(method, HttpMethod::Get | HttpMethod::Delete) => {
                 let mut map = serde_json::Map::new();
                 map.insert("metrics".to_owned(), metrics);
@@ -155,7 +154,7 @@ impl<H: HttpClient, S: SessionProvider> MoozeApi<H, S> {
     /// Sends one request with the auth flow. Non-2xx responses are returned,
     /// not turned into errors, except when the 401/403 recovery fails.
     ///
-    /// Flow (Dart `AuthInterceptor`):
+    /// Flow:
     /// 1. Auth paths go out without a token.
     /// 2. Safe devices attach the current JWT. A session error sends the
     ///    request without a token.

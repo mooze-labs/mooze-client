@@ -1,15 +1,15 @@
-//! Challenge signing key. Port of `EcdsaSignatureClient`.
+//! Challenge signing key.
 //!
-//! Derivation (exactly as Dart):
+//! Derivation (stable, so existing users keep the same key):
 //! 1. `k = PBKDF2-HMAC-SHA256(password = mnemonic UTF-8, salt = "mooze-ecdsa-salt",
 //!    iterations = 10000, length = 32)`. The mnemonic string is used as is,
 //!    no BIP39 seed, no BIP32 path.
 //! 2. `d = (k mod (n - 1)) + 1`, with `n` the secp256k1 order.
 //!
-//! Signing (`signMessage`, the one the backend uses):
+//! Signing (the scheme the backend uses):
 //! - input is base64 text; the decoded bytes are the ECDSA message itself,
 //!   no hashing. Messages shorter than 32 bytes act as left zero-padded,
-//!   longer messages keep their leftmost 32 bytes (pointycastle `_calculateE`).
+//!   longer messages keep their leftmost 32 bytes.
 //! - output: compact 64-byte `r || s`, low-S, not recoverable, standard base64.
 //!
 //! The public key is the 33-byte compressed point in standard base64.
@@ -18,18 +18,20 @@ use std::fmt;
 
 use bdk_wallet::bitcoin::hashes::hmac::{Hmac, HmacEngine};
 use bdk_wallet::bitcoin::hashes::{sha256, Hash, HashEngine};
-use bdk_wallet::bitcoin::secp256k1::{constants::CURVE_ORDER, ecdsa::Signature, All, Message, PublicKey, Secp256k1, SecretKey};
+use bdk_wallet::bitcoin::secp256k1::{
+    constants::CURVE_ORDER, ecdsa::Signature, All, Message, PublicKey, Secp256k1, SecretKey,
+};
 
 use super::b64;
 use crate::{Error, Result};
 
-/// PBKDF2 salt used by the Dart client.
+/// PBKDF2 salt of the key derivation.
 pub const KEY_DERIVATION_SALT: &[u8] = b"mooze-ecdsa-salt";
 
-/// PBKDF2 iteration count used by the Dart client.
+/// PBKDF2 iteration count of the key derivation.
 pub const KEY_DERIVATION_ITERATIONS: u32 = 10_000;
 
-/// Signs login challenges. Dart `SignatureClient`.
+/// Signs login challenges.
 pub trait ChallengeSigner: crate::MaybeSend + crate::MaybeSync {
     /// Signs a base64 challenge message. Returns base64.
     fn sign_message(&self, message_b64: &str) -> Result<String>;
@@ -67,21 +69,21 @@ impl AuthKeyPair {
         self.public
     }
 
-    /// Compressed public key in base64 (Dart `getPublicKey`).
+    /// Compressed public key in base64.
     pub fn public_key_base64(&self) -> String {
         b64::encode(&self.public.serialize())
     }
 
-    /// Signs a base64 message (Dart `signMessage`). Returns compact base64.
+    /// Signs a base64 message. Returns compact base64.
     ///
-    /// NOTE(port): Dart picks a random nonce (Fortuna). libsecp256k1 uses
-    /// RFC 6979, so the core signature is deterministic. Both verify the same.
+    /// NOTE: libsecp256k1 uses RFC 6979 nonces, so the signature is deterministic.
+    /// Signatures with random nonces verify the same way.
     pub fn sign_message(&self, message_b64: &str) -> Result<String> {
         let bytes = b64::decode(message_b64)?;
         Ok(b64::encode(&self.sign_digest(message_to_digest(&bytes)).serialize_compact()))
     }
 
-    /// Signs `sha256(decoded message)` (Dart `signMessageHash`). Returns compact base64.
+    /// Signs `sha256(decoded message)`. Returns compact base64.
     pub fn sign_message_hash(&self, message_b64: &str) -> Result<String> {
         let bytes = b64::decode(message_b64)?;
         let hash = sha256::Hash::hash(&bytes).to_byte_array();
@@ -113,8 +115,8 @@ pub fn verify_challenge_signature(public_key_b64: &str, message_b64: &str, signa
     Ok(Secp256k1::verification_only().verify_ecdsa(&msg, &sig, &pk).is_ok())
 }
 
-/// Maps message bytes to the 32-byte ECDSA input, as pointycastle does
-/// with a null digest: big-endian integer, truncated to the leftmost 256 bits.
+/// Maps message bytes to the 32-byte ECDSA input without a digest:
+/// big-endian integer, truncated to the leftmost 256 bits.
 fn message_to_digest(bytes: &[u8]) -> [u8; 32] {
     let mut out = [0u8; 32];
     if bytes.len() >= 32 {
@@ -148,7 +150,7 @@ fn pbkdf2_sha256_32(password: &[u8], salt: &[u8], iterations: u32) -> [u8; 32] {
 fn reduce_private_key(k: [u8; 32]) -> [u8; 32] {
     let mut n_minus_1 = CURVE_ORDER;
     n_minus_1[31] -= 1; // order ends in 0x41, no borrow.
-    // k < 2^256 < 2 (n - 1), so one subtraction is enough.
+                        // k < 2^256 < 2 (n - 1), so one subtraction is enough.
     let mut d = if k >= n_minus_1 { sub_be(k, n_minus_1) } else { k };
     // d < n - 1, so d + 1 < n and cannot overflow.
     for byte in d.iter_mut().rev() {

@@ -1,8 +1,4 @@
 //! Cart, keypad entry and sale validation.
-//!
-//! Port of `CartItemEntity`, `ManageCartUseCase`, the keypad handlers of
-//! `merchant_mode_screen.dart`, `merchant_validation_controller.dart` and the
-//! minimum-sale rule of `finalizar_venda_button.dart`.
 
 use serde::{Deserialize, Serialize};
 
@@ -54,7 +50,7 @@ impl CartItem {
     }
 }
 
-/// Cart keyed by product id. Keeps insertion order like a Dart `Map`.
+/// Cart keyed by product id. Keeps insertion order.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct Cart {
     items: Vec<CartItem>,
@@ -85,7 +81,7 @@ impl Cart {
         }
     }
 
-    /// Adds when `increment`, else removes. Port of `CartController.updateQuantity`.
+    /// Adds when `increment`, else removes.
     pub fn update_quantity(&mut self, product_id: i64, name: &str, price: f64, increment: bool) {
         if increment {
             self.add_item(product_id, name, price);
@@ -94,7 +90,7 @@ impl Cart {
         }
     }
 
-    /// Adds a loose keypad value as its own line. Dart uses the current time as product id.
+    /// Adds a loose keypad value as its own line. `now_ms` is the product id.
     /// Values at or below zero are ignored.
     pub fn add_loose_value(&mut self, now_ms: u64, label: &str, value: f64) {
         if value > 0.0 {
@@ -177,7 +173,7 @@ impl KeypadValue {
         format!("{}.{:02}", self.cents / 100, self.cents % 100)
     }
 
-    /// Moves the typed value into `cart` as a loose line and resets. Port of `_adicionarAoTotal`.
+    /// Moves the typed value into `cart` as a loose line and resets.
     pub fn add_to_cart(&mut self, cart: &mut Cart, now_ms: u64, label: &str) {
         cart.add_loose_value(now_ms, label, self.value());
         self.clear();
@@ -222,7 +218,7 @@ pub struct SaleLimits {
 
 /// Validates a sale total against the user limits.
 ///
-/// Missing limits (loading or error in Dart) and non-positive totals are valid.
+/// Missing limits (still loading or failed) and non-positive totals are valid.
 pub fn validate_sale(total: f64, limits: Option<SaleLimits>) -> MerchantValidation {
     let Some(l) = limits else {
         return MerchantValidation::valid();
@@ -282,7 +278,7 @@ mod tests {
     }
 
     #[test]
-    fn keypad_matches_dart_handlers() {
+    fn keypad_handlers() {
         let mut k = KeypadValue::new();
         assert_eq!(k.display(), "0.00");
         for d in [1, 2, 3, 4] {

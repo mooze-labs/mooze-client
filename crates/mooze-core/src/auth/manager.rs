@@ -1,13 +1,11 @@
-//! Session lifecycle. Port of `SessionManagerServiceImpl`,
-//! `RemoteAuthServiceImpl` and the logic of `ensureAuthSessionProvider`.
+//! Session lifecycle: load, refresh, create and boot-time check.
 //!
 //! Storage: the JWT and the refresh token live in [`SecureStore`] under the
 //! keys `jwt` and `refresh_token`, as raw UTF-8 strings. This matches the
-//! Flutter secure storage layout, so existing installs keep their session.
+//! `flutter_secure_storage` layout, so existing installs keep their session.
 //!
-//! NOTE(port): Dart coalesces concurrent `getSession`/refresh/create calls
-//! into one in-flight future. The core has no executor to share futures;
-//! the platform should serialize calls. The generation counter is kept, so
+//! NOTE: The manager does not coalesce concurrent get, refresh or create calls.
+//! The core has no executor to share futures. The platform must serialize calls. The generation counter is kept, so
 //! a write from a request that started before `delete_session` is dropped.
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -26,7 +24,7 @@ use crate::{Error, Result};
 pub const JWT_KEY: &str = "jwt";
 /// Secure-store key of the refresh token.
 pub const REFRESH_TOKEN_KEY: &str = "refresh_token";
-/// Timeout of auth requests (Dart: 10 s connect/receive/send).
+/// Timeout of auth requests.
 pub const AUTH_TIMEOUT_MS: u64 = 10_000;
 
 /// Refresh answered 404.
@@ -40,19 +38,19 @@ pub const REMOTE_AUTH_NOT_CONFIGURED: &str = "RemoteAuthService not configured t
 /// The device failed the integrity check.
 pub const UNSAFE_DEVICE: &str = "Unsafe device detected";
 
-/// Result of [`SessionManager::ensure`]. Mirrors the flags the Dart provider sets.
+/// Result of [`SessionManager::ensure`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EnsureOutcome {
     /// A valid session exists.
     Ready,
-    /// No mnemonic, so no signer (Dart "mnemonic not found" sync error).
+    /// No mnemonic, so no signer.
     MissingMnemonic,
-    /// The backend looks down (Dart `apiDownProvider`, `apiStatusCodeProvider`).
+    /// The backend looks down.
     ApiDown {
         /// The 5xx status, if the error text contains one.
         status_code: Option<u16>,
     },
-    /// Any other failure (Dart `syncErrorMessageProvider`).
+    /// Any other failure.
     Failed {
         /// Error text.
         message: String,
@@ -61,9 +59,13 @@ pub enum EnsureOutcome {
 
 /// Builds the `POST /auth/challenge` request.
 pub fn challenge_request(base_url: &str, public_key_b64: &str) -> Result<HttpRequest> {
-    Ok(HttpRequest::json(HttpMethod::Post, join_url(base_url, "/auth/challenge"), &json!({"public_key": public_key_b64}))?
-        .header("Accept", "application/json")
-        .timeout_ms(AUTH_TIMEOUT_MS))
+    Ok(HttpRequest::json(
+        HttpMethod::Post,
+        join_url(base_url, "/auth/challenge"),
+        &json!({"public_key": public_key_b64}),
+    )?
+    .header("Accept", "application/json")
+    .timeout_ms(AUTH_TIMEOUT_MS))
 }
 
 /// Builds the `POST /auth/sign` request.
@@ -79,8 +81,12 @@ pub fn sign_request(base_url: &str, challenge_id: &str, signature_b64: &str) -> 
 
 /// Builds the `POST /auth/refresh` request.
 pub fn refresh_request(base_url: &str, refresh_token: &str) -> Result<HttpRequest> {
-    Ok(HttpRequest::json(HttpMethod::Post, join_url(base_url, "/auth/refresh"), &json!({"refresh_token": refresh_token}))?
-        .timeout_ms(AUTH_TIMEOUT_MS))
+    Ok(HttpRequest::json(
+        HttpMethod::Post,
+        join_url(base_url, "/auth/refresh"),
+        &json!({"refresh_token": refresh_token}),
+    )?
+    .timeout_ms(AUTH_TIMEOUT_MS))
 }
 
 /// Owns the API session: read, refresh, create, persist.
@@ -97,9 +103,14 @@ pub struct SessionManager<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeS
 }
 
 impl<H: HttpClient, S: SecureStore, C: Clock> SessionManager<H, S, C, AuthKeyPair> {
-    /// Manager for the wallet credentials. Absent mnemonic means no signer,
-    /// as in Dart `sessionManagerServiceProvider`.
-    pub fn for_credentials(http: H, store: S, clock: C, base_url: &str, credentials: &WalletCredentials) -> Result<Self> {
+    /// Manager for the wallet credentials. Absent mnemonic means no signer.
+    pub fn for_credentials(
+        http: H,
+        store: S,
+        clock: C,
+        base_url: &str,
+        credentials: &WalletCredentials,
+    ) -> Result<Self> {
         let signer = if credentials.is_absent() { None } else { Some(AuthKeyPair::from_seed(&credentials.mnemonic)?) };
         Ok(Self::new(http, store, clock, base_url, signer))
     }
@@ -121,7 +132,7 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
         }
     }
 
-    /// Sets the device integrity result (Dart `SafeDevice.isSafeDevice`).
+    /// Sets the device integrity result.
     /// Unsafe devices cannot request a login challenge.
     pub fn set_device_safe(&self, safe: bool) {
         self.device_safe.store(safe, Ordering::SeqCst);
@@ -166,12 +177,12 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
         Ok(())
     }
 
-    /// Dart `SessionAuthenticator.invalidate`: same as [`Self::delete_session`].
+    /// Same as [`Self::delete_session`].
     pub async fn invalidate(&self) -> Result<()> {
         self.delete_session().await
     }
 
-    /// Boot-time session check (Dart `ensureAuthSessionProvider`).
+    /// Boot-time session check.
     ///
     /// Gets a session. On failure, deletes it and tries once more.
     /// Classifies the final failure as API-down or a plain error.
@@ -182,7 +193,7 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
         if self.get_session().await.is_ok() {
             return EnsureOutcome::Ready;
         }
-        // NOTE(port): Dart ignores the delete result here.
+        // NOTE: The delete result is ignored by design.
         let _ = self.delete_session().await;
         match self.get_session().await {
             Ok(_) => EnsureOutcome::Ready,
@@ -193,14 +204,14 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
         }
     }
 
-    /// Manual refresh (Dart `refreshAuthSessionProvider`). Returns success.
+    /// Manual refresh. Returns success.
     pub async fn refresh_current(&self) -> bool {
         match self.get_session().await {
             Err(_) => self.get_session().await.is_ok(),
             Ok(current) => match self.refresh_session(&current).await {
                 Err(_) => false,
                 Ok(refreshed) => {
-                    // NOTE(port): Dart ignores the save result.
+                    // NOTE: The save result is ignored by design.
                     let _ = self.save_session(&refreshed).await;
                     true
                 }
@@ -310,7 +321,7 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
     async fn write_session(&self, session: &Session, generation: Option<u64>) -> Result<()> {
         if let Some(generation) = generation {
             if generation != self.generation.load(Ordering::SeqCst) {
-                // NOTE(port): Dart drops the write silently and still returns the session.
+                // NOTE: A stale write is dropped silently. The caller still gets the session.
                 return Ok(());
             }
         }
@@ -360,7 +371,11 @@ mod tests {
         test_jwt(&json!({"exp": exp_s, "sub": "user"}))
     }
 
-    fn manager(http: &MockHttp, kv: &MemoryKv, clock: Arc<FixedClock>) -> SessionManager<MockHttp, MemoryKv, Arc<FixedClock>> {
+    fn manager(
+        http: &MockHttp,
+        kv: &MemoryKv,
+        clock: Arc<FixedClock>,
+    ) -> SessionManager<MockHttp, MemoryKv, Arc<FixedClock>> {
         let creds = WalletCredentials { mnemonic: MNEMONIC.into(), network: AppNetwork::Mainnet };
         SessionManager::for_credentials(http.clone(), kv.clone(), clock, BASE, &creds).unwrap()
     }
@@ -437,7 +452,10 @@ mod tests {
         let s = block_on(m.get_session()).unwrap();
         assert_eq!(s, Session::new(refreshed.clone(), "rt-old"));
         let req = http.last_request().unwrap();
-        assert_eq!(serde_json::from_slice::<Value>(req.body.as_ref().unwrap()).unwrap(), json!({"refresh_token": "rt-old"}));
+        assert_eq!(
+            serde_json::from_slice::<Value>(req.body.as_ref().unwrap()).unwrap(),
+            json!({"refresh_token": "rt-old"})
+        );
         assert_eq!(req.timeout_ms, Some(AUTH_TIMEOUT_MS));
         assert_eq!(block_on(stored(&kv)).0, Some(refreshed));
     }

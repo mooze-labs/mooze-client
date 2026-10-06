@@ -1,5 +1,4 @@
-//! Price settings and the fiat currency selection. Port of `settings/price_settings_repository.dart`
-//! and `providers/currency_controller_provider.dart`.
+//! Price settings and the fiat currency selection.
 
 use super::{Currency, PriceServiceConfig, PriceSource};
 use crate::ports::KvStore;
@@ -40,7 +39,7 @@ impl<K: KvStore> PriceSettingsRepository<K> {
         self.kv.put(KEY_VISIBILITY, visible.to_string().into_bytes()).await
     }
 
-    /// Price source. NOTE(port): Dart always returns CoinGecko, even after `binance` is saved.
+    /// Price source. NOTE: always returns CoinGecko, even after `binance` is saved.
     pub async fn get_price_source(&self) -> Result<PriceSource> {
         let _stored = self.get_string(KEY_SOURCE).await?;
         Ok(PriceSource::Coingecko)
@@ -75,7 +74,7 @@ pub struct CurrencyItem {
     pub currency: Currency,
 }
 
-/// Selected fiat currency. Dart `CurrencyNotifier`.
+/// Selected fiat currency.
 #[derive(Debug, Clone)]
 pub struct CurrencyController<K> {
     repo: PriceSettingsRepository<K>,
@@ -135,7 +134,10 @@ mod tests {
         let kv = MemoryKv::new();
         let repo = PriceSettingsRepository::new(kv.clone());
         block_on(async {
-            assert_eq!(repo.get_price_service_config().await.unwrap(), PriceServiceConfig { currency: Currency::Brl, price_source: PriceSource::Coingecko });
+            assert_eq!(
+                repo.get_price_service_config().await.unwrap(),
+                PriceServiceConfig { currency: Currency::Brl, price_source: PriceSource::Coingecko }
+            );
             assert!(repo.get_balance_visibility().await.unwrap());
             repo.set_price_currency(Currency::Usd).await.unwrap();
             repo.set_price_source(PriceSource::Binance).await.unwrap();

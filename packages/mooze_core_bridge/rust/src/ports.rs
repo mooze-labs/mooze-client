@@ -3,6 +3,8 @@
 //! - [`FileKv`]: one file per key in a directory.
 //! - [`SystemClock`]: the operating system clock.
 //! - [`TokioSpawner`]: runs blocking Electrum calls on tokio's blocking pool.
+//! - [`TokioTaskSpawner`], [`TokioTimer`]: the facade task ports over tokio.
+//! - [`NativePlatform`]: the port bundle `mooze_app::App` runs on here.
 //! - [`runtime`]: the tokio runtime that drives every core future. reqwest
 //!   and the Electrum spawner need a tokio context, which the
 //!   flutter_rust_bridge executor does not provide.
@@ -13,8 +15,13 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use mooze_core::ports::{BlockingSpawner, Clock, KvStore, MaybeSend};
+use mooze_app::Platform;
+use mooze_core::ports::{BlockingSpawner, Clock, KvStore, MaybeSend, ReqwestHttpClient, Spawner, TaskFuture, Timer};
 use mooze_core::{Error, Result};
+
+use crate::api::types::{CoreError, CoreErrorKind};
+use crate::secure_store::LateSecureStore;
+use crate::ws::TungsteniteConnector;
 
 /// Tokio runtime shared by every bridge call.
 pub fn runtime() -> &'static tokio::runtime::Runtime {
@@ -30,12 +37,18 @@ pub fn runtime() -> &'static tokio::runtime::Runtime {
 }
 
 /// Runs `fut` on the shared runtime and waits for it from any executor.
-pub async fn on_runtime<T, F>(fut: F) -> Result<T>
+/// Maps the facade or core error to the bridge error.
+pub async fn on_runtime<T, E, F>(fut: F) -> std::result::Result<T, CoreError>
 where
     T: Send + 'static,
-    F: Future<Output = Result<T>> + Send + 'static,
+    E: Into<CoreError> + Send + 'static,
+    F: Future<Output = std::result::Result<T, E>> + Send + 'static,
 {
-    runtime().spawn(fut).await.map_err(|e| Error::Unexpected(format!("core task failed: {e}")))?
+    runtime()
+        .spawn(fut)
+        .await
+        .map_err(|e| CoreError { kind: CoreErrorKind::Other, message: format!("core task failed: {e}") })?
+        .map_err(Into::into)
 }
 
 /// Installs ring as the process-wide rustls crypto provider.
@@ -55,6 +68,78 @@ pub struct TokioSpawner;
 impl BlockingSpawner for TokioSpawner {
     fn spawn_blocking(&self, task: Box<dyn FnOnce() + Send + 'static>) {
         runtime().spawn_blocking(task);
+    }
+}
+
+/// [`Spawner`] over the shared tokio runtime.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TokioTaskSpawner;
+
+impl Spawner for TokioTaskSpawner {
+    fn spawn(&self, task: TaskFuture<'static, ()>) {
+        runtime().spawn(task);
+    }
+}
+
+/// [`Timer`] over tokio time. Enters the shared runtime, so it works from
+/// any executor.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TokioTimer;
+
+impl Timer for TokioTimer {
+    fn sleep(&self, ms: u64) -> TaskFuture<'static, ()> {
+        if ms == 0 {
+            // The port contract: a zero sleep yields once to other tasks.
+            // A zero tokio sleep waits on the timer driver instead.
+            return Box::pin(tokio::task::yield_now());
+        }
+        // `Sleep` binds to the runtime timer at creation, so the guard can
+        // end before the await. The guard itself is not `Send`.
+        let sleep = {
+            let _guard = runtime().handle().enter();
+            tokio::time::sleep(std::time::Duration::from_millis(ms))
+        };
+        Box::pin(sleep)
+    }
+}
+
+/// Ports of the mobile host.
+#[derive(Clone)]
+pub struct NativePlatform {
+    pub kv: FileKv,
+    pub secure: LateSecureStore,
+}
+
+impl Platform for NativePlatform {
+    type Kv = FileKv;
+    type Secure = LateSecureStore;
+    type Http = ReqwestHttpClient;
+    type Ws = TungsteniteConnector;
+    type Clock = SystemClock;
+
+    fn kv(&self) -> FileKv {
+        self.kv.clone()
+    }
+    fn secure(&self) -> LateSecureStore {
+        self.secure.clone()
+    }
+    fn http(&self) -> ReqwestHttpClient {
+        ReqwestHttpClient::default()
+    }
+    fn ws(&self) -> TungsteniteConnector {
+        TungsteniteConnector
+    }
+    fn clock(&self) -> SystemClock {
+        SystemClock
+    }
+    fn spawner(&self) -> Arc<dyn Spawner> {
+        Arc::new(TokioTaskSpawner)
+    }
+    fn timer(&self) -> Arc<dyn Timer> {
+        Arc::new(TokioTimer)
+    }
+    fn blocking(&self) -> Option<Arc<dyn BlockingSpawner>> {
+        Some(Arc::new(TokioSpawner))
     }
 }
 
@@ -140,7 +225,9 @@ impl FileKv {
         let mut keys = Vec::new();
         for entry in entries {
             let entry = entry.map_err(|e| Error::storage(format!("list: {e}")))?;
-            let Some(name) = entry.file_name().to_str().map(str::to_owned) else { continue };
+            let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+                continue;
+            };
             if name.ends_with(TMP_SUFFIX) {
                 continue;
             }
@@ -267,6 +354,19 @@ mod tests {
     fn spawner_runs_blocking_work() {
         let v = runtime().block_on(mooze_core::ports::run_blocking(&TokioSpawner, || 40 + 2)).unwrap();
         assert_eq!(v, 42);
+    }
+
+    #[test]
+    fn zero_sleep_yields_to_other_tasks() {
+        use mooze_core::ports::Timer;
+        // A yield is one `Pending` that wakes itself, then `Ready`. A zero
+        // tokio sleep fires at registration and never gives other tasks a turn.
+        let _guard = runtime().enter();
+        let mut sleep = TokioTimer.sleep(0);
+        let waker = futures::task::noop_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
+        assert!(sleep.as_mut().poll(&mut cx).is_pending(), "sleep(0) must yield once");
+        assert!(sleep.as_mut().poll(&mut cx).is_ready(), "sleep(0) must complete after the yield");
     }
 
     #[test]

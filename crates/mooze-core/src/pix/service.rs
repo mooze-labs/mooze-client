@@ -1,8 +1,6 @@
-//! PIX deposit orchestration. Port of `PixRepositoryImpl`,
-//! `PixDepositController` and `PixHistoryController`.
+//! PIX deposit orchestration.
 //!
-//! Dart pushed events into a broadcast stream from timers. Here each method
-//! returns the events it produced, and the platform schedules poll ticks.
+//! Each method returns the events it produced. The platform schedules poll ticks.
 
 use std::future::Future;
 
@@ -19,7 +17,7 @@ use super::store::DepositStore;
 pub const PIX_DEPOSIT_NETWORK: &str = "liquid";
 
 /// Supplies a fresh Liquid receive address. Integration wires it to the
-/// Liquid wallet (Dart `LwkAddressGeneratorRepositoryImpl`).
+/// Liquid wallet.
 pub trait AddressProvider: MaybeSend + MaybeSync {
     /// Returns a new Liquid address. An empty string counts as a failure.
     fn liquid_receive_address(&self) -> impl Future<Output = Result<String>> + MaybeSend;
@@ -81,7 +79,7 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
         self.new_deposit_to_address(amount_in_cents, &address, asset, tax_id_number, now_ms).await
     }
 
-    /// Creates a deposit paying to `address` (Dart `PixRepository.newDeposit`).
+    /// Creates a deposit paying to `address`.
     pub async fn new_deposit_to_address(
         &self,
         amount_in_cents: u64,
@@ -120,8 +118,8 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
 
     /// Runs one poll tick and returns the events to emit (zero or one).
     ///
-    /// Fetch errors keep polling, as in Dart.
-    // NOTE(port): Dart ignores the result of the local status update; so does this.
+    /// Fetch errors keep polling.
+    // NOTE: the result of the local status update is ignored by design.
     pub async fn poll_tick(&self, poll: &mut DepositPoll, now_ms: u64) -> Vec<PixStatusEvent> {
         let event = match poll.tick(now_ms) {
             PollTick::Done => return Vec::new(),
@@ -139,10 +137,15 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
         vec![event]
     }
 
-    /// Persists a status event (Dart `_updateTransactionStatus`).
+    /// Persists a status event.
     pub async fn apply_status_event(&self, event: &PixStatusEvent) -> Result<()> {
         self.deposits
-            .update_deposit(&event.deposit_id, event.status.as_api_str(), event.asset_amount, event.blockchain_txid.as_deref())
+            .update_deposit(
+                &event.deposit_id,
+                event.status.as_api_str(),
+                event.asset_amount,
+                event.blockchain_txid.as_deref(),
+            )
             .await
     }
 
@@ -151,7 +154,7 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
         Ok(self.deposits.get_deposit(deposit_id).await?.map(|r| r.to_deposit()))
     }
 
-    /// Reads one deposit or fails with "Depósito não encontrado" (controller).
+    /// Reads one deposit or fails with "Depósito não encontrado".
     pub async fn require_deposit(&self, deposit_id: &str) -> Result<PixDeposit> {
         self.get_deposit(deposit_id).await?.ok_or_else(|| Error::invalid("Depósito não encontrado"))
     }
@@ -163,7 +166,7 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
 
     /// Refreshes deposits from the backend and returns the stored ones with these ids.
     ///
-    // NOTE(port): Dart stores the raw API status and writes asset amount 0
+    // NOTE: this stores the raw API status and writes asset amount 0
     // when the API sends none (unlike the polling path, which keeps it).
     pub async fn update_deposit_details(&self, ids: &[String]) -> Result<Vec<PixDeposit>> {
         let details = self.client.get_deposits_status(ids).await?;
@@ -177,7 +180,7 @@ impl<H: HttpClient, T: TokenProvider, K: KvStore, A: AddressProvider> PixService
 
     /// History page with a backend refresh of non-terminal deposits.
     ///
-    /// A refresh failure returns the first local read, as in Dart.
+    /// A refresh failure returns the first local read.
     pub async fn get_pix_history(&self, limit: Option<usize>, offset: Option<usize>) -> Result<Vec<PixDeposit>> {
         let deposits = self.get_deposits(limit, offset).await?;
         let pending = deposits_to_refresh(&deposits);
@@ -258,7 +261,8 @@ mod tests {
         assert_eq!(out.poll.first_tick_at_ms(), 35_000);
         let stored = block_on(s.get_deposit("dep-1")).unwrap().unwrap();
         assert_eq!(stored, out.deposit);
-        let body: serde_json::Value = serde_json::from_slice(http.last_request().unwrap().body.as_ref().unwrap()).unwrap();
+        let body: serde_json::Value =
+            serde_json::from_slice(http.last_request().unwrap().body.as_ref().unwrap()).unwrap();
         assert_eq!(body["address"], "lq1qqaddr");
         assert_eq!(body["network"], "liquid");
     }
@@ -292,7 +296,10 @@ mod tests {
         let events = block_on(s.poll_tick(&mut out.poll, 60_000));
         assert_eq!(events[0].status, DepositStatus::DepixSent);
         let d = block_on(s.require_deposit("dep-1")).unwrap();
-        assert_eq!((d.status, d.asset_amount, d.blockchain_txid.as_deref()), (DepositStatus::DepixSent, Some(970_000), Some("tx9")));
+        assert_eq!(
+            (d.status, d.asset_amount, d.blockchain_txid.as_deref()),
+            (DepositStatus::DepixSent, Some(970_000), Some("tx9"))
+        );
         assert!(block_on(s.poll_tick(&mut out.poll, 90_000)).is_empty());
     }
 

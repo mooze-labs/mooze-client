@@ -1,4 +1,4 @@
-//! [`SecureStore`] backed by Dart callbacks.
+//! [`SecureStore`] backed by Dart callbacks, and the slot that holds it.
 //!
 //! The Dart app keeps its secrets in `flutter_secure_storage` (Keychain on
 //! iOS, Keystore on Android). The core reads and writes them through four
@@ -109,6 +109,58 @@ impl KvStore for DartSecureStore {
 
 impl SecureStore for DartSecureStore {}
 
+/// Secure store slot that Dart fills after `open`.
+///
+/// Every call before `set` fails with `InvalidState`, the error the Dart
+/// code expects from `secureGet` and the auth calls before registration.
+#[derive(Clone, Default, Debug)]
+pub struct LateSecureStore {
+    inner: Arc<std::sync::RwLock<Option<DartSecureStore>>>,
+}
+
+impl LateSecureStore {
+    /// Installs or replaces the Dart callbacks.
+    pub fn set(&self, store: DartSecureStore) {
+        *self.inner.write().unwrap_or_else(|e| e.into_inner()) = Some(store);
+    }
+
+    fn current(&self) -> Result<DartSecureStore> {
+        self.inner
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+            .ok_or_else(|| Error::InvalidState("secure storage not set; call setSecureStorage first".into()))
+    }
+}
+
+impl KvStore for LateSecureStore {
+    fn get(&self, key: &str) -> impl Future<Output = Result<Option<Vec<u8>>>> + MaybeSend {
+        let store = self.current();
+        let key = key.to_owned();
+        async move { store?.get(&key).await }
+    }
+
+    fn put(&self, key: &str, value: Vec<u8>) -> impl Future<Output = Result<()>> + MaybeSend {
+        let store = self.current();
+        let key = key.to_owned();
+        async move { store?.put(&key, value).await }
+    }
+
+    fn delete(&self, key: &str) -> impl Future<Output = Result<()>> + MaybeSend {
+        let store = self.current();
+        let key = key.to_owned();
+        async move { store?.delete(&key).await }
+    }
+
+    fn list_keys(&self, prefix: &str) -> impl Future<Output = Result<Vec<String>>> + MaybeSend {
+        let store = self.current();
+        let prefix = prefix.to_owned();
+        async move { store?.list_keys(&prefix).await }
+    }
+}
+
+impl SecureStore for LateSecureStore {}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
@@ -172,6 +224,20 @@ pub(crate) mod tests {
         });
         let keys: Vec<String> = map.lock().unwrap().keys().cloned().collect();
         assert_eq!(keys, vec!["a/1", "a/2"]);
+    }
+
+    #[test]
+    fn late_secure_store_errors_until_set_then_works() {
+        let late = LateSecureStore::default();
+        let err = runtime().block_on(late.get("jwt")).unwrap_err();
+        assert!(
+            matches!(&err, Error::InvalidState(m) if m == "secure storage not set; call setSecureStorage first"),
+            "{err}"
+        );
+        let (store, map) = memory_store();
+        late.set(store);
+        runtime().block_on(late.put("jwt", b"t".to_vec())).unwrap();
+        assert_eq!(map.lock().unwrap().get("jwt").map(String::as_str), Some("t"));
     }
 
     #[test]

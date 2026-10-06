@@ -1,7 +1,7 @@
 //! Application logic for the Mooze wallet.
 //!
 //! The crate does no I/O by itself. It calls the traits in [`ports`].
-//! Each platform (Flutter native, browser) supplies the implementations.
+//! Each platform (native app, browser) supplies the implementations.
 //! The crate compiles for native targets and for `wasm32-unknown-unknown`.
 
 pub mod adapters;

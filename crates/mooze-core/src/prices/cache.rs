@@ -1,5 +1,4 @@
-//! Persistent last-known prices. Port of `models/cached_price_data.dart`,
-//! `services/price_cache_service.dart` and `services/cached_price_service.dart`.
+//! Persistent last-known prices.
 
 use std::future::Future;
 
@@ -13,7 +12,7 @@ use crate::Result;
 /// Key prefix of cached prices. Full key: `cached_price_<assetId>_<currency>`.
 pub const CACHE_KEY_PREFIX: &str = "cached_price_";
 
-/// One cached price. JSON shape matches the Dart `CachedPriceData.toJson`.
+/// One cached price. The JSON shape is part of the stored format.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CachedPriceData {
     pub price: f64,
@@ -29,12 +28,12 @@ impl CachedPriceData {
         now_ms as i64 - self.timestamp
     }
 
-    /// Dart `isValid`: age in whole minutes is at most 5.
+    /// True if the age in whole minutes is at most 5.
     pub fn is_valid(&self, now_ms: u64) -> bool {
         self.age_ms(now_ms) / 60_000 <= 5
     }
 
-    /// Dart `isRecentEnough`: age in whole hours is at most 1.
+    /// True if the age in whole hours is at most 1.
     pub fn is_recent_enough(&self, now_ms: u64) -> bool {
         self.age_ms(now_ms) / 3_600_000 <= 1
     }
@@ -45,7 +44,7 @@ impl CachedPriceData {
     }
 }
 
-/// Reads and writes [`CachedPriceData`] in a [`KvStore`]. Dart `PriceCacheService`.
+/// Reads and writes [`CachedPriceData`] in a [`KvStore`].
 #[derive(Debug, Clone)]
 pub struct PriceCacheService<K, C> {
     kv: K,
@@ -92,27 +91,32 @@ impl<K: KvStore, C: Clock> PriceCacheService<K, C> {
         }
     }
 
-    async fn price_if(&self, asset: Asset, currency: Currency, ok: impl Fn(&CachedPriceData, u64) -> bool) -> Result<Option<f64>> {
+    async fn price_if(
+        &self,
+        asset: Asset,
+        currency: Currency,
+        ok: impl Fn(&CachedPriceData, u64) -> bool,
+    ) -> Result<Option<f64>> {
         let now = self.clock.now_ms();
         Ok(self.get_cached_price(asset, currency).await?.filter(|d| ok(d, now)).map(|d| d.price))
     }
 
-    /// Price younger than 6 minutes. Dart `getValidCachedPrice`.
+    /// Price younger than 6 minutes.
     pub async fn get_valid_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<f64>> {
         self.price_if(asset, currency, CachedPriceData::is_valid).await
     }
 
-    /// Price younger than 2 hours. Dart `getEmergencyCachedPrice`.
+    /// Price younger than 2 hours.
     pub async fn get_emergency_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<f64>> {
         self.price_if(asset, currency, CachedPriceData::is_recent_enough).await
     }
 
-    /// Any cached price. Dart `getAnyCachedPrice`.
+    /// Any cached price.
     pub async fn get_any_cached_price(&self, asset: Asset, currency: Currency) -> Result<Option<f64>> {
         self.price_if(asset, currency, |_, _| true).await
     }
 
-    /// Deletes corrupt entries. Dart `cleanExpiredCache` (it removes only corrupt data).
+    /// Deletes corrupt entries. Expired entries stay.
     pub async fn clean_expired_cache(&self) -> Result<()> {
         for key in self.kv.list_keys(CACHE_KEY_PREFIX).await? {
             if let Some(bytes) = self.kv.get(&key).await? {
@@ -125,7 +129,7 @@ impl<K: KvStore, C: Clock> PriceCacheService<K, C> {
     }
 }
 
-/// Wraps a [`PriceService`] and falls back to the cache. Dart `CachedPriceService`.
+/// Wraps a [`PriceService`] and falls back to the cache.
 ///
 /// A fresh price is saved. Without a fresh price it tries the valid, then the emergency,
 /// then any cached price. Errors from the wrapped service count as "no price".
@@ -170,8 +174,11 @@ impl<S: PriceService, K: KvStore, C: Clock> PriceService for CachedPriceService<
         self.currency
     }
 
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         let target = currency.unwrap_or(self.currency);
         async move {
             if let Ok(Some(fresh)) = self.inner.get_coin_price(asset, Some(target)).await {
@@ -218,7 +225,11 @@ pub(crate) mod tests {
         fn currency(&self) -> Currency {
             Currency::Brl
         }
-        fn get_coin_price(&self, _: Asset, _: Option<Currency>) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+        fn get_coin_price(
+            &self,
+            _: Asset,
+            _: Option<Currency>,
+        ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
             self.calls.fetch_add(1, Ordering::SeqCst);
             std::future::ready(self.answer.lock().unwrap().clone().unwrap_or(Ok(None)))
         }
@@ -236,7 +247,10 @@ pub(crate) mod tests {
             cache.cache_price(Asset::Btc, 600_000.5, Currency::Brl).await.unwrap();
             let raw = kv.get("cached_price_btc-native-blockchain_brl").await.unwrap().unwrap();
             let v: serde_json::Value = serde_json::from_slice(&raw).unwrap();
-            assert_eq!(v, serde_json::json!({"price": 600000.5, "timestamp": T0, "currency": "brl", "assetId": "btc-native-blockchain"}));
+            assert_eq!(
+                v,
+                serde_json::json!({"price": 600000.5, "timestamp": T0, "currency": "brl", "assetId": "btc-native-blockchain"})
+            );
         });
     }
 
@@ -247,7 +261,7 @@ pub(crate) mod tests {
         assert!(!d.is_valid(T0 + 6 * 60_000));
         assert!(d.is_recent_enough(T0 + 2 * 3_600_000 - 1));
         assert!(!d.is_recent_enough(T0 + 2 * 3_600_000));
-        assert!(d.is_valid(T0 - 10 * 60_000)); // future timestamps count as valid, as in Dart
+        assert!(d.is_valid(T0 - 10 * 60_000)); // future timestamps count as valid, by design
         assert_eq!(d.age_minutes(T0 + 125_000), 2);
     }
 
@@ -271,7 +285,11 @@ pub(crate) mod tests {
     fn fresh_then_cache_fallback() {
         let clock = Arc::new(FixedClock::new(T0));
         let inner = ScriptedPrices::new(Ok(Some(100.0)));
-        let svc = CachedPriceService::new(inner.clone(), PriceCacheService::new(MemoryKv::new(), clock.clone()), Currency::Brl);
+        let svc = CachedPriceService::new(
+            inner.clone(),
+            PriceCacheService::new(MemoryKv::new(), clock.clone()),
+            Currency::Brl,
+        );
         block_on(async {
             assert_eq!(svc.get_coin_price(Asset::Btc, None).await.unwrap(), Some(100.0));
             inner.set(Err(Error::Network("down".into())));

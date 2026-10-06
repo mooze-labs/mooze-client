@@ -1,11 +1,10 @@
-//! App database records. Port of the drift schema in `lib/database/database.dart`.
+//! App database records.
 //!
 //! Pegs, deposits and favorite payers live in their feature modules
 //! (`peg::store`, `pix::store`). This module keeps the tables without one.
 //!
-//! Each drift table maps to a key prefix with zero-padded ids and an
-//! auto-increment sequence. The DAO methods keep their Dart semantics,
-//! including the append-only rule for swap audit rows.
+//! Each table maps to a key prefix with zero-padded ids and an
+//! auto-increment sequence. Swap audit rows are append-only.
 
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +17,7 @@ use super::json::{bump_seq, delete_key, delete_prefix, get_json, id_key, list_js
 pub const UNKNOWN_WALLET_ID: &str = "unknown";
 
 fn check_len(field: &str, value: &str, min: usize, max: usize) -> Result<()> {
-    // Drift `withLength` counts characters.
+    // The length counts characters.
     let n = value.chars().count();
     if n < min || n > max {
         return Err(Error::invalid(format!("{field} length {n} outside {min}..={max}")));
@@ -28,8 +27,7 @@ fn check_len(field: &str, value: &str, min: usize, max: usize) -> Result<()> {
 
 /// `lower(column) LIKE '%needle%'` with a lower-cased needle.
 ///
-/// NOTE(port): SQL `LIKE` treats `%` and `_` in the needle as wildcards.
-/// This port matches them literally.
+/// NOTE: `%` and `_` in the needle match literally, not as wildcards.
 fn like_ci(haystack: Option<&str>, needle_lower: &str) -> bool {
     haystack.is_some_and(|h| h.to_lowercase().contains(needle_lower))
 }
@@ -61,7 +59,7 @@ pub struct SwapRecord {
     pub wallet_id: String,
 }
 
-/// Insert payload for [`SwapRecord`]. `None` fields take the drift defaults.
+/// Insert payload for [`SwapRecord`]. `None` fields take the default values.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct NewSwap {
     pub send_asset: String,
@@ -232,7 +230,7 @@ impl<K: KvStore> SwapAuditStore<K> {
 
 // ───────────────────────────── sync metadata
 
-/// Last sync result per datasource (`SyncMetadata` table).
+/// Last sync result per datasource.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SyncMetadataRecord {
     pub datasource: String,
@@ -283,7 +281,7 @@ impl<K: KvStore> SyncMetadataStore<K> {
 
 // ───────────────────────────── app logs
 
-/// One app log line (`AppLogs` table).
+/// One app log line.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AppLogRecord {
     pub id: i64,
@@ -331,7 +329,12 @@ impl<K: KvStore> AppLogStore<K> {
 
     /// Lines with `start <= timestamp <= end`.
     pub async fn by_time_range(&self, start_ms: u64, end_ms: u64) -> Result<Vec<AppLogRecord>> {
-        Ok(self.get_all().await?.into_iter().filter(|l| l.timestamp_ms >= start_ms && l.timestamp_ms <= end_ms).collect())
+        Ok(self
+            .get_all()
+            .await?
+            .into_iter()
+            .filter(|l| l.timestamp_ms >= start_ms && l.timestamp_ms <= end_ms)
+            .collect())
     }
 
     /// Deletes lines older than `cutoff_ms`. Returns the count.
@@ -406,9 +409,15 @@ mod tests {
     fn swaps_defaults_scoping_and_queries() {
         block_on(async {
             let s = SwapAuditStore::new(MemoryKv::new());
-            let id = s.insert(NewSwap { send_asset: "A".into(), receive_asset: "B".into(), ..Default::default() }, 9).await.unwrap();
+            let id = s
+                .insert(NewSwap { send_asset: "A".into(), receive_asset: "B".into(), ..Default::default() }, 9)
+                .await
+                .unwrap();
             let r = s.get(id).await.unwrap().unwrap();
-            assert_eq!((r.provider.as_str(), r.status.as_str(), r.direction.as_str()), ("unknown", "completed", "asset_swap"));
+            assert_eq!(
+                (r.provider.as_str(), r.status.as_str(), r.direction.as_str()),
+                ("unknown", "completed", "asset_swap")
+            );
             assert_eq!((r.wallet_id.as_str(), r.created_at_ms), ("unknown", 9));
 
             let mut p = swap("w1", "sideswap", 10);
@@ -464,11 +473,15 @@ mod tests {
             assert_eq!(logs.count().await.unwrap(), 2);
 
             let m = SyncMetadataStore::new(kv.clone());
-            let rec = SyncMetadataRecord { datasource: "lwk".into(), last_sync_time_ms: 5, transaction_count: 3, sync_status: "ok".into() };
+            let rec = SyncMetadataRecord {
+                datasource: "lwk".into(),
+                last_sync_time_ms: 5,
+                transaction_count: 3,
+                sync_status: "ok".into(),
+            };
             m.upsert(&rec).await.unwrap();
             assert_eq!(m.get("lwk").await.unwrap(), Some(rec));
             assert_eq!(m.delete_all().await.unwrap(), 1);
-
         });
     }
 }

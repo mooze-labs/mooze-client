@@ -1,7 +1,4 @@
 //! Backend authentication, device id, PIN and app lock logic.
-//!
-//! Port of `lib/shared/authentication/**` (non-UI), `lib/services/auth.dart`,
-//! `lib/domain/services/session_authenticator.dart` and `lib/app/session/**`.
 
 mod b64;
 mod device;
@@ -20,8 +17,8 @@ pub use lock::{
     SessionLockState, SessionLockTimeout,
 };
 pub use manager::{
-    challenge_request, refresh_request, sign_request, EnsureOutcome, SessionManager, AUTH_TIMEOUT_MS,
-    JWT_KEY, JWT_NULL_IN_REFRESH_RESPONSE, REFRESH_TOKEN_KEY, REFRESH_TOKEN_NOT_FOUND, REFRESH_TOKEN_UNAUTHORIZED,
+    challenge_request, refresh_request, sign_request, EnsureOutcome, SessionManager, AUTH_TIMEOUT_MS, JWT_KEY,
+    JWT_NULL_IN_REFRESH_RESPONSE, REFRESH_TOKEN_KEY, REFRESH_TOKEN_NOT_FOUND, REFRESH_TOKEN_UNAUTHORIZED,
     REMOTE_AUTH_NOT_CONFIGURED, UNSAFE_DEVICE,
 };
 pub use pin::{

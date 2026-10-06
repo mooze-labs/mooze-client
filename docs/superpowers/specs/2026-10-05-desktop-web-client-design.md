@@ -73,7 +73,12 @@ into `crates/mooze-app`. The crate depends on `mooze-core` only.
   - `Timer`: `sleep(ms)`.
 - `BlockingSpawner` becomes optional in `Platform`. Only the Electrum path needs it.
 - The tokio mutex becomes `futures::lock::Mutex`. `yield_now` becomes `Timer::sleep(0)`.
+<<<<<<< HEAD
   The facade has no tokio dependency.
+=======
+  The facade has no tokio runtime dependency. It uses tokio with only the `sync` feature, which is
+  runtime-free, builds on wasm32, and gives a FIFO-fair mutex that the SideSwap driver relies on.
+>>>>>>> 82457a16f352ad2ddf90c258df932ee059cb9ffe
 
 API surface rules, for UniFFI, wasm-bindgen and Tauri:
 
@@ -267,6 +272,9 @@ Each phase ships alone and is testable alone.
 1. Lift the facade into `mooze-app`: `Spawner` and `Timer` ports, `Runtime`, `AppEvent`,
    `app_api!`, `ts-rs` export, `xtask`. `mooze_core_bridge` becomes a thin wrapper.
    Mobile behavior unchanged.
+   Done in `docs/superpowers/plans/2026-10-05-mooze-app-facade.md`. The macro is named
+   `for_each_app_method!`, the generator is a `codegen` binary in the crate, and the crate package
+   is `mooze_app`. The price refresh loop lands with the prices absorption in phase 3.
 2. `apps/desktop` Tauri host: `NativePlatform`, keychain, single instance, generated commands,
    event emit. Smoke screen that opens a wallet and syncs.
 3. Visual direction design step. Then `apps/frontend` wallet screens: create or import, PIN,

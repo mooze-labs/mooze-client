@@ -1,7 +1,6 @@
 //! Top-level app phase: boot, then sync.
 //!
-//! Port of the logic of `AppLifecycleControllerImpl`
-//! (`lib/app/lifecycle/app_lifecycle_controller_impl.dart`) as a pure state machine.
+//! Pure state machine.
 //! The caller runs boot, sync and wallet deletion and reports the results here.
 
 use crate::{Error, Result};
@@ -78,7 +77,7 @@ impl AppLifecycle {
         StartStep::RunBoot
     }
 
-    /// Applies the boot result. Branches on the boot phase first, like Dart,
+    /// Applies the boot result. Branches on the boot phase first
     /// because needs-setup can come back as either side of the result.
     pub fn finish_boot(&mut self, boot: &BootState, result: &Result<BootState>, now_ms: u64) -> BootOutcome {
         if boot.phase == BootPhase::NeedsSetup {

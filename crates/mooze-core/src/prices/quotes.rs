@@ -1,6 +1,4 @@
-//! Quotes shown by the UI. Port of `store/price_quote.dart`, `store/price_quotes_notifier.dart`
-//! and `store/price_sync_coordinator.dart`. The platform runs the 30 s timer and calls
-//! [`PriceQuotesStore::refresh`].
+//! Quotes shown by the UI. The platform runs the 30 s timer and calls [`PriceQuotesStore::refresh`].
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -13,10 +11,10 @@ use crate::ports::{Clock, KvStore};
 /// Refresh period of the price sync coordinator.
 pub const PRICE_REFRESH_INTERVAL_MS: u64 = 30_000;
 
-/// Assets the store quotes, in Dart order.
+/// Assets the store quotes, in order.
 pub const QUOTE_ASSETS: [Asset; 4] = [Asset::Btc, Asset::Usdt, Asset::Depix, Asset::Lbtc];
 
-/// One price. Dart `PriceQuote`.
+/// One price.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PriceQuote {
     pub asset: Asset,
@@ -32,7 +30,7 @@ impl PriceQuote {
     }
 }
 
-/// Store state. Dart `PriceQuotes`.
+/// Store state.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PriceQuotes {
     pub currency: Currency,
@@ -55,7 +53,7 @@ impl PriceQuotes {
     }
 }
 
-/// Holds [`PriceQuotes`] and refreshes them from a [`PriceService`]. Dart `PriceQuotesNotifier`.
+/// Holds [`PriceQuotes`] and refreshes them from a [`PriceService`].
 #[derive(Debug)]
 pub struct PriceQuotesStore<S, K, C> {
     service: S,
@@ -97,7 +95,7 @@ impl<S: PriceService, K: KvStore, C: Clock> PriceQuotesStore<S, K, C> {
     }
 
     /// Switches currency and loads its cached quotes. Call [`Self::refresh`] next.
-    /// NOTE(port): with no cache for `next`, Dart keeps the old currency's quotes. Kept.
+    /// NOTE: with no cache for `next`, the old currency's quotes stay.
     pub async fn swap_currency(&self, next: Currency) -> PriceQuotes {
         let disk = self.read_all_from_cache(next).await;
         let mut s = self.state.lock().expect("poisoned");

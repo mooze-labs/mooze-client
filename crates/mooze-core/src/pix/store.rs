@@ -1,11 +1,11 @@
-//! PIX persistence over [`KvStore`]. Replaces the drift `deposits` and
-//! `favorite_payer_entries` tables and the PIX `SharedPreferences` flags.
+//! PIX persistence over [`KvStore`]. It holds the data that the Flutter app kept in the
+//! `deposits` and `favorite_payer_entries` tables and in the PIX `SharedPreferences` flags.
 //!
 //! Keys:
 //! - `pix/deposit/<deposit_id>`: [`DepositRecord`] JSON.
 //! - `pix/favorite_payer/<id, 20 digits>`: favorite payer JSON.
 //! - `pix/favorite_payer_seq`: last favorite payer id.
-//! - `pix/flag/<dart prefs key>`: `true` for a set flag.
+//! - `pix/flag/<prefs key>`: `true` for a set flag.
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -21,7 +21,7 @@ const PAYER_PREFIX: &str = "pix/favorite_payer/";
 const PAYER_SEQ_KEY: &str = "pix/favorite_payer_seq";
 const FLAG_PREFIX: &str = "pix/flag/";
 
-/// Network name the repository reports for stored deposits.
+/// Network name reported for stored deposits.
 pub const STORED_DEPOSIT_NETWORK: &str = "liquid";
 
 async fn get_json<K: KvStore, T: DeserializeOwned>(kv: &K, key: &str) -> Result<Option<T>> {
@@ -45,7 +45,7 @@ async fn delete_prefix<K: KvStore>(kv: &K, prefix: &str) -> Result<()> {
 
 // ---------------------------------------------------------------- deposits
 
-/// One stored deposit. Mirrors the drift `Deposits` row.
+/// One stored deposit. The fields match a row of the legacy `deposits` table.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DepositRecord {
     /// Backend deposit id.
@@ -69,7 +69,7 @@ pub struct DepositRecord {
 impl DepositRecord {
     /// Maps the row to a [`PixDeposit`].
     ///
-    /// Unknown asset ids map to BTC, as Dart `Asset.fromId` does.
+    /// Unknown asset ids map to BTC.
     pub fn to_deposit(&self) -> PixDeposit {
         PixDeposit {
             deposit_id: self.deposit_id.clone(),
@@ -85,9 +85,9 @@ impl DepositRecord {
     }
 }
 
-/// Deposit store. Port of `PixDepositDatabase`.
+/// Deposit store.
 ///
-/// Updates of a missing id do nothing, like a drift `UPDATE ... WHERE`.
+/// Updates of a missing id do nothing.
 #[derive(Debug, Clone)]
 pub struct DepositStore<K: KvStore> {
     kv: K,
@@ -105,8 +105,8 @@ impl<K: KvStore> DepositStore<K> {
 
     /// Inserts a deposit with status `pending`.
     ///
-    // NOTE(port): drift has no unique index on deposit_id, so a second insert
-    // adds a second row. Here it replaces the first.
+    // NOTE: a second insert with the same id replaces the first. The legacy
+    // table has no unique index on deposit_id and keeps both rows.
     pub async fn add_new_deposit(
         &self,
         deposit_id: &str,
@@ -172,8 +172,13 @@ impl<K: KvStore> DepositStore<K> {
         .await
     }
 
-    /// Sets the amount and txid. Leaves the status as is, as in Dart.
-    pub async fn mark_deposit_as_completed(&self, deposit_id: &str, asset_amount: u64, blockchain_txid: &str) -> Result<()> {
+    /// Sets the amount and txid. Leaves the status unchanged.
+    pub async fn mark_deposit_as_completed(
+        &self,
+        deposit_id: &str,
+        asset_amount: u64,
+        blockchain_txid: &str,
+    ) -> Result<()> {
         let txid = blockchain_txid.to_owned();
         self.modify(deposit_id, move |r| {
             r.asset_amount = Some(asset_amount);
@@ -225,7 +230,7 @@ struct PayerRecord {
     created_at_ms: u64,
 }
 
-/// Favorite payer store. Port of the datasource, repository and controller.
+/// Favorite payer store.
 #[derive(Debug, Clone)]
 pub struct FavoritePayerStore<K: KvStore> {
     kv: K,
@@ -241,7 +246,7 @@ impl<K: KvStore> FavoritePayerStore<K> {
         format!("{PAYER_PREFIX}{id:020}")
     }
 
-    /// Column limits of the drift table: label 1 to 255 chars, cpf 11 to 14.
+    /// Column limits of the legacy table: label 1 to 255 chars, cpf 11 to 14.
     fn check_columns(label: &str, cpf: &str) -> Result<()> {
         let l = label.chars().count();
         if !(1..=255).contains(&l) {
@@ -365,7 +370,7 @@ pub enum PixFlag {
 }
 
 impl PixFlag {
-    /// Dart `SharedPreferences` key.
+    /// Legacy `SharedPreferences` key. The store key uses this name.
     pub fn prefs_key(self) -> &'static str {
         match self {
             PixFlag::LbtcWarningShown => "lbtc_fluctuation_warning_shown",
@@ -376,8 +381,7 @@ impl PixFlag {
     }
 }
 
-/// Flag store. Port of `LbtcWarningService`, `PixOnboardingService` and
-/// `PixTutorialService`.
+/// Flag store.
 #[derive(Debug, Clone)]
 pub struct PixFlagsStore<K: KvStore> {
     kv: K,
@@ -430,7 +434,10 @@ mod tests {
             s.update_deposit("dep-1", "depix_sent", Some(990), None).await.unwrap();
             s.update_deposit("dep-1", "finished", None, Some("tx1")).await.unwrap();
             let r = s.get_deposit("dep-1").await.unwrap().unwrap();
-            assert_eq!((r.status.as_str(), r.asset_amount, r.blockchain_txid.as_deref()), ("finished", Some(990), Some("tx1")));
+            assert_eq!(
+                (r.status.as_str(), r.asset_amount, r.blockchain_txid.as_deref()),
+                ("finished", Some(990), Some("tx1"))
+            );
 
             s.mark_deposit_as_completed("dep-2", 5, "tx2").await.unwrap();
             s.update_deposit_status("dep-2", "expired").await.unwrap();

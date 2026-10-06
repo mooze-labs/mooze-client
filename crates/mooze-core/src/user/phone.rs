@@ -1,6 +1,6 @@
-//! Phone verification. Port of `features/phone_verification/**` (data/domain).
+//! Phone verification.
 //!
-//! These endpoints use a plain client without the session token, as in Dart.
+//! These endpoints use a plain client without the session token.
 //! The status stream is Server-Sent Events; the core builds the URL, parses
 //! each event and gives the reconnect policy. The platform runs the stream.
 
@@ -15,17 +15,15 @@ use crate::{Error, Result};
 pub const DEFAULT_PHONE_BASE_URL: &str = "https://api.mooze.app/v1/";
 
 /// Public IP lookup.
-/// NOTE(port): Dart joins `https://api.ipify.org?format=json` with `/`, which
-/// yields `...?format=json/`. The core calls the intended URL.
 pub const IP_ADDRESS_URL: &str = "https://api.ipify.org?format=json";
 
-/// Timeout of phone requests (Dart: 10 s).
+/// Timeout of phone requests.
 pub const PHONE_TIMEOUT_MS: u64 = 10_000;
 
-/// SSE reconnect: base interval (Dart `ReconnectConfig.interval`).
+/// SSE reconnect: base interval.
 pub const SSE_RECONNECT_INTERVAL_MS: u64 = 1_000;
 
-/// SSE reconnect: max attempts (Dart `ReconnectConfig.maxAttempts`).
+/// SSE reconnect: max attempts.
 pub const SSE_RECONNECT_MAX_ATTEMPTS: u32 = 5;
 
 /// Delivery channel of the code.
@@ -41,7 +39,7 @@ pub enum PhoneVerificationMethod {
 }
 
 impl PhoneVerificationMethod {
-    /// Wire name (Dart `method.name`).
+    /// Wire name.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Sms => "sms",
@@ -62,7 +60,7 @@ pub struct PhoneDeviceInfo {
     pub os_version: Option<String>,
     /// `version+buildNumber`.
     pub app_version: Option<String>,
-    /// Raw `UniqueIdentifier.serial` (`"unknown"` when absent, as in Dart).
+    /// Raw `UniqueIdentifier.serial` (`"unknown"` when absent).
     pub device_id: Option<String>,
 }
 
@@ -89,7 +87,12 @@ pub struct BeginVerificationRequest {
 
 impl BeginVerificationRequest {
     /// Builds the body from its parts.
-    pub fn new(phone_number: &str, method: PhoneVerificationMethod, ip_address: Option<String>, device: &PhoneDeviceInfo) -> Self {
+    pub fn new(
+        phone_number: &str,
+        method: PhoneVerificationMethod,
+        ip_address: Option<String>,
+        device: &PhoneDeviceInfo,
+    ) -> Self {
         Self {
             phone_number: phone_number.to_owned(),
             method: method.as_str().to_owned(),
@@ -120,9 +123,8 @@ pub fn parse_status_event(data: &str) -> Result<VerificationStatus> {
 
 /// SSE subscription URL for a verification.
 ///
-/// NOTE(port): Dart builds `"$base/subscribe..."` with a base ending in `/`,
-/// which gives `//subscribe`. The core collapses the double slash. Dart also
-/// names the query value "phoneNumber" but passes the verification id.
+/// NOTE: a base ending in `/` does not give `//subscribe`. The `event_id` value is the
+/// verification id, not the phone number.
 pub fn status_subscribe_url(base_url: &str, verification_id: &str) -> String {
     let base = join_url(base_url, "/subscribe");
     format!("{base}?event_type=phone_verification&event_id={}", crate::api::encode_path_segment(verification_id))
@@ -150,8 +152,7 @@ impl<H: HttpClient> PhoneVerificationClient<H> {
         Self { http, base_url: base_url.to_owned() }
     }
 
-    /// Starts a verification and returns its id
-    /// (Dart `PhoneVerificationRepositoryImpl.beginPhoneVerification`).
+    /// Starts a verification and returns its id.
     /// A failed IP lookup sends `ip_address: null`.
     pub async fn begin_phone_verification(
         &self,
@@ -196,7 +197,8 @@ impl<H: HttpClient> PhoneVerificationClient<H> {
     }
 
     async fn post(&self, path: &str, body: &Value) -> Result<HttpResponse> {
-        let request = HttpRequest::json(HttpMethod::Post, join_url(&self.base_url, path), body)?.timeout_ms(PHONE_TIMEOUT_MS);
+        let request =
+            HttpRequest::json(HttpMethod::Post, join_url(&self.base_url, path), body)?.timeout_ms(PHONE_TIMEOUT_MS);
         let response = self.http.send(request).await?;
         if response.status == 200 || response.status == 201 {
             Ok(response)
@@ -207,9 +209,6 @@ impl<H: HttpClient> PhoneVerificationClient<H> {
 }
 
 /// Parses a JSON body, unwrapping one level of JSON-in-a-string.
-///
-/// NOTE(port): Dart `verifyPhoneCode` calls `jsonDecode(response.data)`, which
-/// only works when the server sends JSON as text. The core accepts both.
 fn decode_maybe_string_json(response: &HttpResponse) -> Result<Value> {
     match serde_json::from_slice::<Value>(&response.body)? {
         Value::String(inner) => Ok(serde_json::from_str(&inner)?),
@@ -241,8 +240,9 @@ mod tests {
         http.on_json(HttpMethod::Get, IP_ADDRESS_URL, 200, json!({"ip": "203.0.113.7"}));
         http.on_json(HttpMethod::Post, BEGIN, 201, json!({"verification_id": "ver-123"}));
         let client = PhoneVerificationClient::new(http.clone(), "");
-        let id = block_on(client.begin_phone_verification("+5511999990000", PhoneVerificationMethod::Whatsapp, &device()))
-            .unwrap();
+        let id =
+            block_on(client.begin_phone_verification("+5511999990000", PhoneVerificationMethod::Whatsapp, &device()))
+                .unwrap();
         assert_eq!(id, "ver-123");
         let req = http.last_request().unwrap();
         assert_eq!(req.timeout_ms, Some(PHONE_TIMEOUT_MS));

@@ -1,7 +1,6 @@
 //! Decides which transaction events become "transaction received" notifications.
 //!
-//! Port of the decision logic of `V2TransactionNotifier`
-//! (`lib/infra/notification/transaction_notifier_impl.dart`). Display is out of scope.
+//! Display is out of scope.
 //!
 //! Emission needs three gates: baseline ready, home reached, app in foreground.
 //! Dedup goes through [`NotifiedTxRegistry`], so a restart never shows a tx twice.
@@ -11,8 +10,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::{
-    Asset, ChainId, Transaction, TransactionDirection, TransactionEvent, TransactionStatus, BTC_ASSET_ID,
-    LBTC_ASSET_ID,
+    Asset, ChainId, Transaction, TransactionDirection, TransactionEvent, TransactionStatus, BTC_ASSET_ID, LBTC_ASSET_ID,
 };
 use crate::ports::KvStore;
 use crate::store::NotifiedTxRegistry;
@@ -24,7 +22,7 @@ pub const BASELINE_GATE_CHAINS: [ChainId; 3] = [ChainId::Liquid, ChainId::Bitcoi
 /// Longest wait for the first sync before the baseline snapshot runs anyway.
 pub const FIRST_SYNC_MAX_WAIT_MS: u64 = 90_000;
 
-/// One user-facing notification (Dart `TransactionStatusEvent`).
+/// One user-facing notification.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TxNotification {
     pub transaction_id: String,
@@ -60,8 +58,7 @@ pub fn default_asset_id_for_chain(chain: ChainId) -> Option<&'static str> {
 
 /// Ticker for an asset id.
 ///
-/// NOTE(port): the legacy Dart `Asset.fromId` falls back to BTC and never
-/// throws, so unknown ids show "BTC" and the id-prefix fallback is dead code.
+/// NOTE: unknown ids fall back to BTC and show "BTC" by design.
 pub fn ticker_for(asset_id: &str) -> String {
     Asset::from_id(asset_id).unwrap_or(Asset::Btc).ticker().to_owned()
 }
@@ -142,7 +139,7 @@ impl<K: KvStore> TransactionNotifier<K> {
     /// Absorbs `stored` (the full transaction store) into the ledger without
     /// notifying, sets the baseline flag, then replays buffered events.
     ///
-    /// Storage failures are logged in Dart and do not block readiness.
+    /// Storage failures do not block readiness.
     pub async fn complete_baseline(&mut self, stored: &[Transaction], now_ms: u64) -> Vec<TxNotification> {
         if self.baseline == BaselinePhase::Ready {
             return Vec::new();
@@ -261,7 +258,7 @@ impl<K: KvStore> TransactionNotifier<K> {
             return None;
         }
         if let Some(twin) = twin_chain(tx) {
-            // Dart fires this without awaiting and ignores the result.
+            // Best-effort: the result is ignored.
             let _ = self.registry.mark_if_new(twin, &correlation, now_ms).await;
         }
 
@@ -278,7 +275,7 @@ impl<K: KvStore> TransactionNotifier<K> {
         &self.registry
     }
 
-    /// Clears volatile state. Dart `dispose`.
+    /// Clears volatile state.
     pub fn dispose(&mut self) {
         self.init_buffer.clear();
         self.pending.clear();

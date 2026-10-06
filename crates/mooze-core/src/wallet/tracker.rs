@@ -1,8 +1,7 @@
-//! Transaction change tracking shared by both wallets. Port of the
-//! `_seen` map and `_diffAndEmit` in the BDK and LWK services.
+//! Transaction change tracking shared by both wallets.
 //!
-//! Dart pushed events into a broadcast stream. Here the wallet keeps an
-//! outbox; the caller drains it with `take_events`.
+//! The wallet keeps an outbox of events. The caller drains it with
+//! `take_events`.
 
 use std::collections::HashMap;
 
@@ -80,8 +79,8 @@ impl TxTracker {
         true
     }
 
-    /// Records a transaction and always queues a `created` event, like the
-    /// BDK `sendOnchain` path (it does not check `_seen`).
+    /// Records a transaction and always queues a `created` event. It ignores
+    /// the seen state. The bitcoin wallet calls it after a broadcast.
     pub fn force_register(&mut self, tx: &Transaction, now_ms: u64) {
         self.seen.remove(&tx.id);
         self.register(tx, now_ms);

@@ -1,18 +1,15 @@
 //! Sync orchestration across chains.
 //!
-//! Port of `SyncOrchestratorImpl` (`lib/features/sync/data/sync_orchestrator_impl.dart`).
 //! The core owns no timer. The platform calls [`SyncOrchestrator::tick`]
 //! and the orchestrator decides if a periodic refresh is due.
-//! Methods take `&mut self`, which serializes refresh and reconnect like the Dart mutex.
+//! Methods take `&mut self`, which serializes refresh and reconnect.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::future::Future;
 
 use futures::stream::{FuturesUnordered, StreamExt};
 
-use crate::domain::{
-    ChainId, ServiceLifecycle, SyncOutcome, Transaction, TransactionEvent, WalletCredentials,
-};
+use crate::domain::{ChainId, ServiceLifecycle, SyncOutcome, Transaction, TransactionEvent, WalletCredentials};
 use crate::ports::{Clock, KvStore, MaybeSend, MaybeSync};
 use crate::store::TransactionStore;
 use crate::{Error, Result};
@@ -57,7 +54,7 @@ pub enum SyncStrategy {
     Full,
 }
 
-/// Tunable sync parameters. Defaults match the Dart `SyncConfig`.
+/// Tunable sync parameters.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SyncConfig {
     /// Periodic refresh cadence.
@@ -74,9 +71,9 @@ impl Default for SyncConfig {
     }
 }
 
-/// Extra time past the per-chain timeout before Dart gives up ("sync hard timeout").
+/// Extra time past the per-chain timeout before the sync gives up ("sync hard timeout").
 pub const HARD_TIMEOUT_GRACE_MS: u64 = 5_000;
-/// Time `stop` waits for an in-flight refresh in Dart.
+/// Time `stop` waits for an in-flight refresh.
 pub const STOP_DRAIN_TIMEOUT_MS: u64 = 5_000;
 
 impl SyncConfig {
@@ -123,7 +120,7 @@ pub struct RefreshReport {
     pub outcome: Result<SyncOutcome>,
     /// Per-chain results in completion order (not-operational chains first).
     pub per_chain: Vec<(ChainId, Result<SyncOutcome>)>,
-    /// Store changes, replaces the Dart `transactions` stream.
+    /// Store changes from this refresh.
     pub events: Vec<TransactionEvent>,
 }
 
@@ -142,7 +139,7 @@ pub struct SyncOrchestrator<S: ChainSyncer, K: KvStore, C: Clock> {
 }
 
 impl<S: ChainSyncer, K: KvStore, C: Clock> SyncOrchestrator<S, K, C> {
-    /// Orchestrator over `syncers`, in Dart order (liquid, bitcoin).
+    /// Orchestrator over `syncers`, in order (liquid, bitcoin).
     pub fn new(syncers: Vec<S>, store: TransactionStore<K>, config: SyncConfig, clock: C) -> Self {
         Self {
             syncers,
@@ -162,7 +159,7 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncOrchestrator<S, K, C> {
         &self.state
     }
 
-    /// Drains every state emitted since the last call (Dart `state` stream).
+    /// Drains every state emitted since the last call.
     pub fn take_state_changes(&mut self) -> Vec<SyncState> {
         std::mem::take(&mut self.state_log)
     }
@@ -231,7 +228,7 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncOrchestrator<S, K, C> {
     /// One failing chain does not block the others. Each successful chain
     /// lands in `first_synced_chains` after its transactions are in the store.
     pub async fn refresh(&mut self, strategy: SyncStrategy) -> RefreshReport {
-        // NOTE(port): Dart services ignore the strategy in `sync(timeout)`; kept for API parity.
+        // NOTE: chain syncers do not use the strategy yet. The parameter keeps the API stable.
         let _ = strategy;
         self.run_refresh().await
     }
@@ -261,7 +258,7 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncOrchestrator<S, K, C> {
             }
             in_flight.push(async move {
                 let r = syncer.sync(config.timeout_for(chain)).await;
-                // Dart persists the chain's tx events before marking it settled.
+                // Read the chain's transactions before the chain counts as settled.
                 let txs = match &r {
                     Ok(_) => Some(syncer.transactions().await),
                     Err(_) => None,
@@ -278,7 +275,6 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncOrchestrator<S, K, C> {
 
         for (chain, r, txs) in settled {
             // A failed read or a failed write only loses this batch.
-            // Dart logs `sync.tx.persist.batch.failed` and drops the batch.
             if let Some(Ok(txs)) = txs {
                 if let Ok(evs) = self.store.upsert_all(&txs, self.clock.now_ms()).await {
                     events.extend(evs);
@@ -298,22 +294,22 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncOrchestrator<S, K, C> {
         }
 
         let duration = self.clock.now_ms().saturating_sub(t0);
-        let aggregate =
-            SyncOutcome { chain: ChainId::Aggregate, fetched: total_fetched, changed: total_changed, duration_ms: duration };
+        let aggregate = SyncOutcome {
+            chain: ChainId::Aggregate,
+            fetched: total_fetched,
+            changed: total_changed,
+            duration_ms: duration,
+        };
 
-        let operational: Vec<ChainId> =
-            self.syncers.iter().filter(|s| s.is_operational()).map(|s| s.chain()).collect();
-        let failed = operational
-            .iter()
-            .filter(|c| outcomes.iter().any(|(oc, r)| oc == *c && r.is_err()))
-            .count();
+        let operational: Vec<ChainId> = self.syncers.iter().filter(|s| s.is_operational()).map(|s| s.chain()).collect();
+        let failed = operational.iter().filter(|c| outcomes.iter().any(|(oc, r)| oc == *c && r.is_err())).count();
         let all_failed = !operational.is_empty() && failed == operational.len();
         let new_per_chain: BTreeMap<ChainId, ServiceLifecycle> =
             self.syncers.iter().map(|s| (s.chain(), s.lifecycle())).collect();
 
         if all_failed {
-            // NOTE(port): Dart picks the first failure in insertion order,
-            // which can be a "not operational" entry of a skipped chain.
+            // NOTE: the first failure in insertion order wins.
+            // It can be a "not operational" entry of a skipped chain.
             let (fchain, ferr) = outcomes
                 .iter()
                 .find_map(|(c, r)| r.as_ref().err().map(|e| (*c, e.clone())))
@@ -519,7 +515,7 @@ mod tests {
             *a.lifecycle.lock().unwrap() = ServiceLifecycle::Errored;
             let mut o = orch(vec![a.clone()], Arc::new(FixedClock::new(0)));
             let r = o.refresh(SyncStrategy::Light).await;
-            assert!(r.outcome.is_ok(), "Dart: allFailed needs at least one operational service");
+            assert!(r.outcome.is_ok(), "all-failed needs at least one operational service");
             assert!(a.calls.lock().unwrap().is_empty());
             assert!(r.per_chain[0].1.is_err());
         });

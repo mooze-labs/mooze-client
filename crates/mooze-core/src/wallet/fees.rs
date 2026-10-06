@@ -1,5 +1,5 @@
-//! Fee helpers. Port of `bitcoin_fee_service.dart`, the Blockstream and
-//! BitGo fee providers, `liquid_fee_rate.dart` and `lib/utils/fees.dart`.
+//! Fee helpers: Bitcoin fee estimates from the Blockstream and BitGo
+//! providers, Liquid fee rate rules and the Pix purchase fee.
 
 use std::collections::BTreeMap;
 
@@ -13,10 +13,10 @@ use crate::Result;
 pub const BLOCKSTREAM_FEE_URL: &str = "https://blockstream.info/api/fee-estimates";
 /// BitGo fee endpoint.
 pub const BITGO_FEE_URL: &str = "https://www.bitgo.com/api/v2/btc/tx/fee";
-/// Provider timeout used by the Dart providers (5 s).
+/// Timeout of one fee provider request (5 s).
 pub const FEE_PROVIDER_TIMEOUT_MS: u64 = 5_000;
 
-/// Bitcoin fee rates in sat/vB. Port of `BitcoinFeeEstimate`.
+/// Bitcoin fee rates in sat/vB.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BitcoinFeeEstimate {
     pub low_fee_sat_per_vbyte: u64,
@@ -77,7 +77,7 @@ impl BitcoinFeeEstimate {
         })
     }
 
-    /// Fallback when every provider fails (`getDefaultFeeEstimate`).
+    /// Fallback when every provider fails.
     pub fn default_estimate() -> Self {
         Self {
             low_fee_sat_per_vbyte: 1,
@@ -100,7 +100,7 @@ impl BitcoinFeeEstimate {
     }
 }
 
-/// Fetches fee estimates from Blockstream, then BitGo. Port of `BitcoinFeeService`.
+/// Fetches fee estimates from Blockstream, then BitGo.
 #[derive(Debug, Clone)]
 pub struct BitcoinFeeService<H: HttpClient> {
     http: H,
@@ -121,7 +121,7 @@ impl<H: HttpClient> BitcoinFeeService<H> {
         serde_json::from_slice(&resp.body).ok()
     }
 
-    /// First provider that answers. `None` if all fail, like the Dart service.
+    /// First provider that answers. `None` if all fail.
     pub async fn fetch_fee_estimate(&self) -> Option<BitcoinFeeEstimate> {
         if let Some(body) = self.fetch(BLOCKSTREAM_FEE_URL).await {
             let map: Option<BTreeMap<String, f64>> = serde_json::from_value(body).ok();
@@ -138,7 +138,7 @@ impl<H: HttpClient> BitcoinFeeService<H> {
     }
 }
 
-/// Liquid fee rate rules. Port of `LiquidFeeRate`.
+/// Liquid fee rate rules.
 pub mod liquid_fee_rate {
     /// Floor in sat/kvB.
     pub const MIN_SAT_PER_KVB: f64 = 100.0;
@@ -159,8 +159,7 @@ pub mod liquid_fee_rate {
     }
 }
 
-/// Pix purchase fee as a fraction. Port of `FeeCalculator.getFees`
-/// (`lib/utils/fees.dart`).
+/// Pix purchase fee as a fraction.
 ///
 /// `fiat_amount_cents` is in BRL cents. For `asset_id == "lbtc"` the
 /// amount is divided by 1.02 first (liquidity provider spread).
@@ -189,7 +188,7 @@ mod tests {
     use crate::testing::{block_on, MockHttp};
 
     #[test]
-    fn esplora_parsing_matches_dart() {
+    fn esplora_parsing() {
         let body: BTreeMap<String, f64> =
             serde_json::from_str(r#"{"1":12.3,"2":10.0,"3":8.01,"6":5.0,"144":1.2}"#).unwrap();
         let e = BitcoinFeeEstimate::from_esplora(body);

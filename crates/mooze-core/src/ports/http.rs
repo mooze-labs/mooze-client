@@ -146,7 +146,11 @@ impl HttpClient for ReqwestHttpClient {
                 builder = builder.timeout(std::time::Duration::from_millis(ms));
             }
             let resp = builder.send().await.map_err(|e| {
-                if e.is_timeout() { Error::Timeout(e.to_string()) } else { Error::Network(e.to_string()) }
+                if e.is_timeout() {
+                    Error::Timeout(e.to_string())
+                } else {
+                    Error::Network(e.to_string())
+                }
             })?;
             let status = resp.status().as_u16();
             let headers = resp

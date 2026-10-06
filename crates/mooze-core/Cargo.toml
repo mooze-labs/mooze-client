@@ -34,6 +34,7 @@ reqwest = { version = "=0.12.28", default-features = false, features = ["rustls-
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 bdk_electrum = { version = "=0.24.0", default-features = false, features = ["use-rustls-ring"], optional = true }
+futures = { version = "=0.3.34", default-features = false, features = ["std", "async-await", "executor"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom02 = { package = "getrandom", version = "=0.2.16", features = ["js"] }

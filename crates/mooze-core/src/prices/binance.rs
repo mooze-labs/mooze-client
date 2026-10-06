@@ -1,4 +1,4 @@
-//! Binance public market data. Port of `api/binance.dart` and `services/binance_price_service.dart`.
+//! Binance public market data.
 
 use std::collections::HashMap;
 use std::future::Future;
@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use super::{pegged_price, Currency, KlineInterval, PriceService};
 use crate::domain::Asset;
-use crate::format::dart_parse_double;
+use crate::format::parse_double;
 use crate::ports::{Clock, HttpClient, HttpRequest, MaybeSend};
 use crate::{Error, Result};
 
@@ -16,7 +16,7 @@ use crate::{Error, Result};
 pub const BINANCE_API_URL: &str = "https://data-api.binance.vision/api/v3/";
 /// Symbols the app queries in one `ticker/24hr` call.
 pub const BINANCE_SYMBOLS: &str = "[\"BTCBRL\",\"BTCUSDT\",\"USDTBRL\"]";
-/// Lifetime of the in-memory ticker and klines cache. Dart `BinancePriceCache._cacheDuration`.
+/// Lifetime of the in-memory ticker and klines cache.
 pub const BINANCE_CACHE_TTL_MS: u64 = 60_000;
 
 const TICKER_URL: &str =
@@ -25,7 +25,7 @@ const UNSUPPORTED: &str = "Unsupported asset/currency combination";
 
 type Klines = Vec<Vec<Value>>;
 
-/// HTTP client plus the shared 60 s cache. Dart `BinanceApi` and the `BinancePriceCache` singleton.
+/// HTTP client plus the shared 60 s cache.
 /// Share one instance (in an `Arc`) between the price and the variation services.
 #[derive(Debug)]
 pub struct BinanceClient<H, C> {
@@ -48,7 +48,10 @@ impl<H: HttpClient, C: Clock> BinanceClient<H, C> {
     async fn get_json(&self, url: String, what: &str) -> Result<Value> {
         let resp = self.http.send(HttpRequest::get(url)).await?;
         if resp.status != 200 {
-            return Err(Error::Http { status: resp.status, body: format!("Failed to query Binance {what}: {}", resp.status) });
+            return Err(Error::Http {
+                status: resp.status,
+                body: format!("Failed to query Binance {what}: {}", resp.status),
+            });
         }
         Ok(serde_json::from_slice(&resp.body)?)
     }
@@ -76,7 +79,9 @@ impl<H: HttpClient, C: Clock> BinanceClient<H, C> {
                 return Ok(data);
             }
         }
-        let url = format!("{BINANCE_API_URL}klines?symbol={symbol}&interval={interval}&startTime={start_ms}&endTime={end_ms}");
+        let url = format!(
+            "{BINANCE_API_URL}klines?symbol={symbol}&interval={interval}&startTime={start_ms}&endTime={end_ms}"
+        );
         let data: Klines = serde_json::from_value(self.get_json(url, "Klines API").await?)?;
         self.klines.lock().expect("poisoned").insert(key, (self.clock.now_ms(), data.clone()));
         Ok(data)
@@ -89,7 +94,7 @@ impl<H: HttpClient, C: Clock> BinanceClient<H, C> {
             .find(|t| t.get("symbol").and_then(Value::as_str) == Some(symbol))
             .and_then(|t| t.get(field))
             .and_then(Value::as_str)
-            .and_then(dart_parse_double))
+            .and_then(parse_double))
     }
 
     /// `bidPrice` of `symbol`. `None` if the symbol or the field is missing.
@@ -97,7 +102,7 @@ impl<H: HttpClient, C: Clock> BinanceClient<H, C> {
         self.ticker_field(symbol, "bidPrice").await
     }
 
-    /// `priceChangePercent` of `symbol`. Missing data gives `0.0`, as in Dart.
+    /// `priceChangePercent` of `symbol`. Missing data gives `0.0`.
     pub async fn price_change_percent(&self, symbol: &str) -> Result<f64> {
         Ok(self.ticker_field(symbol, "priceChangePercent").await?.unwrap_or(0.0))
     }
@@ -110,8 +115,8 @@ impl<H: HttpClient, C: Clock> BinanceClient<H, C> {
         let close = |k: &Vec<Value>| -> Result<Option<f64>> {
             let v = k.get(4).ok_or_else(|| Error::protocol("binance kline has fewer than 5 fields"))?;
             Ok(match v {
-                Value::String(s) => dart_parse_double(s),
-                other => dart_parse_double(&other.to_string()),
+                Value::String(s) => parse_double(s),
+                other => parse_double(&other.to_string()),
             })
         };
         let parsed = klines.iter().map(close).collect::<Result<Vec<_>>>()?;
@@ -134,7 +139,7 @@ fn symbol_for(asset: Asset, currency: Currency, btc_includes_lbtc: bool) -> Opti
     }
 }
 
-/// Spot prices from Binance `bidPrice`. Dart `BinancePriceService`.
+/// Spot prices from Binance `bidPrice`.
 #[derive(Debug)]
 pub struct BinancePriceService<H, C> {
     client: Arc<BinanceClient<H, C>>,
@@ -153,8 +158,11 @@ impl<H: HttpClient, C: Clock> PriceService for BinancePriceService<H, C> {
         self.default_currency
     }
 
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         let currency = currency.unwrap_or(self.default_currency);
         async move {
             if let Some(p) = pegged_price(asset, currency) {
@@ -169,8 +177,8 @@ impl<H: HttpClient, C: Clock> PriceService for BinancePriceService<H, C> {
     }
 }
 
-/// 24 h change and price history from Binance. Dart `BinanceDailyPriceVariationService`.
-/// NOTE(port): Dart supports only on-chain BTC here, not L-BTC. Kept.
+/// 24 h change and price history from Binance.
+/// NOTE: only on-chain BTC is supported here, not L-BTC.
 #[derive(Debug)]
 pub struct BinanceDailyPriceVariationService<H, C> {
     client: Arc<BinanceClient<H, C>>,
@@ -200,14 +208,25 @@ impl<H: HttpClient, C: Clock> BinanceDailyPriceVariationService<H, C> {
     }
 
     /// Close prices over `period_in_days` at `interval`.
-    pub async fn get_klines_for_period(&self, asset: Asset, interval: KlineInterval, period_in_days: u32,
-        currency: Option<Currency>) -> Result<Vec<f64>> {
+    pub async fn get_klines_for_period(
+        &self,
+        asset: Asset,
+        interval: KlineInterval,
+        period_in_days: u32,
+        currency: Option<Currency>,
+    ) -> Result<Vec<f64>> {
         let days = i64::from(period_in_days);
         self.history(asset, currency, interval.value(), days * 86_400_000, period_in_days as usize * 24).await
     }
 
-    async fn history(&self, asset: Asset, currency: Option<Currency>, interval: &str, period_ms: i64,
-        pegged_len: usize) -> Result<Vec<f64>> {
+    async fn history(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+        interval: &str,
+        period_ms: i64,
+        pegged_len: usize,
+    ) -> Result<Vec<f64>> {
         let currency = currency.unwrap_or(self.default_currency);
         if pegged_price(asset, currency).is_some() {
             return Ok(vec![1.0; pegged_len]);
@@ -286,7 +305,7 @@ mod tests {
         block_on(async {
             let err = svc.get_coin_price(Asset::Btc, None).await.unwrap_err();
             assert!(matches!(err, Error::Http { status: 429, .. }));
-            // Numeric bidPrice is not a string, so Dart's extract gives none.
+            // A numeric bidPrice is not a string, so it gives no price.
             assert_eq!(svc.get_coin_price(Asset::Btc, None).await.unwrap(), None);
             assert_eq!(svc.get_coin_price(Asset::Usdt, None).await.unwrap(), None);
         });
@@ -307,8 +326,17 @@ mod tests {
             assert_eq!(svc.get_percentage_variation(Asset::Depix, None).await.unwrap(), 0.0);
             assert!(svc.get_percentage_variation(Asset::Lbtc, None).await.is_err());
             assert_eq!(svc.get_24hr_klines(Asset::Usdt, None).await.unwrap(), vec![5.0, 4.5, 4.0]);
-            assert_eq!(svc.get_24hr_klines(Asset::Depix, Some(Currency::Usd)).await.unwrap(), vec![0.2, 1.0 / 4.5, 0.25]);
-            assert_eq!(svc.get_klines_for_period(Asset::Usdt, KlineInterval::OneDay, 2, Some(Currency::Usd)).await.unwrap().len(), 48);
+            assert_eq!(
+                svc.get_24hr_klines(Asset::Depix, Some(Currency::Usd)).await.unwrap(),
+                vec![0.2, 1.0 / 4.5, 0.25]
+            );
+            assert_eq!(
+                svc.get_klines_for_period(Asset::Usdt, KlineInterval::OneDay, 2, Some(Currency::Usd))
+                    .await
+                    .unwrap()
+                    .len(),
+                48
+            );
         });
         assert!(http.requests().iter().any(|r| r.url == url));
     }

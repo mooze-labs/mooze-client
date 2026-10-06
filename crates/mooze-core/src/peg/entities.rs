@@ -1,5 +1,4 @@
-//! Peg entities and errors. Port of `domain/entities/peg.dart` and
-//! `domain/entities/peg_error.dart`.
+//! Peg entities and errors.
 
 use serde::{Deserialize, Serialize};
 
@@ -104,7 +103,7 @@ impl PegPhase {
         }
     }
 
-    /// Dart enum name, for logs and store keys.
+    /// Stable name for logs and store keys. Names are part of the stored format.
     pub fn name(self) -> &'static str {
         match self {
             PegPhase::AwaitingDeposit => "awaitingDeposit",
@@ -249,7 +248,7 @@ pub enum PegError {
 }
 
 impl PegError {
-    /// Portuguese user-facing message, same text as Dart.
+    /// Portuguese user-facing message.
     pub fn message(&self) -> String {
         match self {
             PegError::BelowMinimum { minimum_sat, .. } => format!("Valor mínimo é {minimum_sat} sats"),
@@ -291,13 +290,13 @@ impl From<PegError> for Error {
 /// Liquid address prefixes. Guards peg-in funding from reaching Liquid.
 pub const LIQUID_ADDRESS_PREFIXES: [&str; 6] = ["lq1", "tlq1", "ex1", "tex1", "el1", "ert1"];
 
-/// True if `address` looks like a Liquid address. Port of `PegWalletImpl`.
+/// True if `address` looks like a Liquid address.
 pub fn looks_like_liquid_address(address: &str) -> bool {
     let a = address.trim().to_lowercase();
     LIQUID_ADDRESS_PREFIXES.iter().any(|p| a.starts_with(p))
 }
 
-/// Maps a wallet error text to a peg error. Port of `_classifyWalletError`.
+/// Maps a wallet error text to a peg error.
 pub fn classify_wallet_error(message: &str) -> PegError {
     let m = message.to_lowercase();
     if m.contains("insufficient") || m.contains("insuficiente") || m.contains("saldo") {

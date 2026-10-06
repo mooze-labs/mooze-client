@@ -1,5 +1,4 @@
-//! User API calls and referral flow. Port of `UserServiceImpl`,
-//! `UserLevelStorageService` and `features/referral_input/**` (data/domain).
+//! User API calls and referral flow.
 
 use serde_json::{json, Value};
 
@@ -9,18 +8,18 @@ use crate::ports::{HttpClient, HttpMethod, KvStore};
 use crate::{Error, Result};
 
 /// Preferences key of the last seen spending level.
-/// NOTE(port): Dart names it "verification level" but stores `spending_level`.
+/// NOTE: the key says "verification level", but the value is `spending_level`.
 pub const STORED_LEVEL_KEY: &str = "user_verification_level";
 
 /// `POST /users/me/referral` answered 400.
 pub const REFERRAL_CODE_INVALID: &str = "referral_code_invalid";
 /// `POST /users/me/referral` answered 409.
 pub const REFERRAL_CODE_ALREADY_USED: &str = "referral_code_already_used";
-/// Apply use case: empty code.
+/// [`UserService::apply_referral_code`]: empty code.
 pub const REFERRAL_ERROR_EMPTY_CODE: &str = "referral_error_empty_code";
-/// Apply use case: validation failed or the code is invalid.
+/// [`UserService::apply_referral_code`]: validation failed or the code is invalid.
 pub const REFERRAL_ERROR_INVALID_CODE: &str = "referral_error_invalid_code";
-/// Apply use case: the apply call failed.
+/// [`UserService::apply_referral_code`]: the apply call failed.
 pub const REFERRAL_ERROR_APPLY_FAILED: &str = "referral_error_apply_failed";
 
 /// Result of [`UserService::get_user`].
@@ -28,7 +27,7 @@ pub const REFERRAL_ERROR_APPLY_FAILED: &str = "referral_error_apply_failed";
 pub struct UserFetch {
     /// The user.
     pub user: User,
-    /// Level change since the last fetch (Dart `levelChanges` stream event).
+    /// Level change since the last fetch.
     pub level_change: Option<LevelChange>,
 }
 
@@ -101,7 +100,8 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
             return Ok(false);
         }
         let body: Value = serde_json::from_slice(&response.body).unwrap_or(Value::Null);
-        let valid = body.get("valid").or_else(|| body.get("data").filter(|d| d.is_object()).and_then(|d| d.get("valid")));
+        let valid =
+            body.get("valid").or_else(|| body.get("data").filter(|d| d.is_object()).and_then(|d| d.get("valid")));
         match valid {
             None => Ok(true),
             Some(v) => v.as_bool().ok_or_else(|| Error::protocol("referral: `valid` is not a bool")),
@@ -111,7 +111,8 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
     /// `POST /users/me/referral {referral_code}`.
     /// 400 gives [`REFERRAL_CODE_INVALID`], 409 gives [`REFERRAL_CODE_ALREADY_USED`].
     pub async fn add_referral(&self, code: &str) -> Result<()> {
-        let response = self.api.send(HttpMethod::Post, "/users/me/referral", Some(json!({"referral_code": code}))).await?;
+        let response =
+            self.api.send(HttpMethod::Post, "/users/me/referral", Some(json!({"referral_code": code}))).await?;
         match response.status {
             400 => Err(Error::InvalidInput(REFERRAL_CODE_INVALID.into())),
             409 => Err(Error::InvalidState(REFERRAL_CODE_ALREADY_USED.into())),
@@ -119,13 +120,13 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
         }
     }
 
-    /// The referral code on the account, if any (Dart `GetExistingReferralUseCase`).
+    /// The referral code on the account, if any.
     pub async fn get_existing_referral(&self) -> Result<Option<String>> {
         let fetch = self.get_user().await?;
         Ok(fetch.user.referred_by.filter(|c| !c.is_empty()))
     }
 
-    /// Validates then applies a code (Dart `ApplyReferralCodeUseCase`).
+    /// Validates then applies a code.
     ///
     /// Errors: empty code ([`Error::InvalidInput`] with
     /// [`REFERRAL_ERROR_EMPTY_CODE`]), invalid code or failed validation
@@ -229,10 +230,16 @@ mod tests {
         let svc = service(&http);
         assert_eq!(block_on(svc.apply_referral_code("")), Err(Error::InvalidInput(REFERRAL_ERROR_EMPTY_CODE.into())));
         http.on_json(HttpMethod::Get, "https://api.mooze.app/users/referral/BAD", 200, json!({"valid": false}));
-        assert_eq!(block_on(svc.apply_referral_code("BAD")), Err(Error::InvalidInput(REFERRAL_ERROR_INVALID_CODE.into())));
+        assert_eq!(
+            block_on(svc.apply_referral_code("BAD")),
+            Err(Error::InvalidInput(REFERRAL_ERROR_INVALID_CODE.into()))
+        );
         http.on_json(HttpMethod::Get, "https://api.mooze.app/users/referral/OK", 200, json!({"valid": true}));
         http.once_json(HttpMethod::Post, "https://api.mooze.app/users/me/referral", 409, json!({}));
-        assert_eq!(block_on(svc.apply_referral_code("OK")), Err(Error::InvalidState(REFERRAL_ERROR_APPLY_FAILED.into())));
+        assert_eq!(
+            block_on(svc.apply_referral_code("OK")),
+            Err(Error::InvalidState(REFERRAL_ERROR_APPLY_FAILED.into()))
+        );
         http.once_json(HttpMethod::Post, "https://api.mooze.app/users/me/referral", 200, json!({}));
         assert_eq!(block_on(svc.apply_referral_code("OK")), Ok(()));
     }

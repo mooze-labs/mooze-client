@@ -1,7 +1,5 @@
 //! Secrets in the [`SecureStore`]: wallet mnemonic and PIN hash.
 //!
-//! Ports `FlutterSecureCredentialStore` (`lib/infra/storage/secure_credential_store_impl.dart`)
-//! and `lib/shared/key_management/store/*` (key, mnemonic and PIN stores).
 //! Values are raw UTF-8 strings, the same bytes `flutter_secure_storage` holds,
 //! so an existing wallet reads back without migration.
 
@@ -13,7 +11,7 @@ use crate::{Error, Result};
 
 use super::json::{get_string, put_string};
 
-/// Secure-store key of the wallet mnemonic, shared by the legacy and V2 Dart code.
+/// Secure-store key of the wallet mnemonic. The name is part of the stored data format.
 pub const MNEMONIC_KEY: &str = "mnemonic_mainWallet";
 /// Secure-store key of the PIN salt.
 pub const PIN_SALT_KEY: &str = "pinSalt";
@@ -22,7 +20,7 @@ pub const HASHED_PIN_KEY: &str = "hashedPin";
 /// Minimum PIN length.
 pub const MIN_PIN_LENGTH: usize = 6;
 
-/// Loads and saves [`WalletCredentials`]. Port of `SecureCredentialStore`.
+/// Loads and saves [`WalletCredentials`].
 #[derive(Debug, Clone)]
 pub struct CredentialStore<S: SecureStore> {
     store: S,
@@ -42,10 +40,15 @@ impl<S: SecureStore> CredentialStore<S> {
     }
 
     /// Loads the credentials. A missing or empty mnemonic gives absent credentials.
+    ///
+    /// A store that reports its own state (`InvalidState`: not registered
+    /// yet, locked) passes that error through. Every other failure is a
+    /// credential failure.
     pub async fn load(&self) -> Result<WalletCredentials> {
-        let v = get_string(&self.store, &self.mnemonic_key)
-            .await
-            .map_err(|e| Error::Credential(format!("load failed: {e}")))?;
+        let v = get_string(&self.store, &self.mnemonic_key).await.map_err(|e| match e {
+            Error::InvalidState(_) => e,
+            other => Error::Credential(format!("load failed: {other}")),
+        })?;
         Ok(match v {
             Some(m) if !m.is_empty() => WalletCredentials { mnemonic: m, network: self.network },
             _ => WalletCredentials::absent(self.network),
@@ -76,7 +79,7 @@ impl<S: SecureStore> CredentialStore<S> {
     }
 }
 
-/// Validates and normalizes a mnemonic like `MnemonicStoreImpl.saveMnemonic`.
+/// Validates and normalizes a mnemonic.
 ///
 /// Trims the phrase and requires 12 or 24 words split on single spaces.
 pub fn normalize_mnemonic(mnemonic: &str) -> Result<String> {
@@ -84,7 +87,7 @@ pub fn normalize_mnemonic(mnemonic: &str) -> Result<String> {
     if trimmed.is_empty() {
         return Err(Error::invalid("A frase de recuperação não pode ser vazia"));
     }
-    // NOTE(port): Dart splits on a single ' ', so double spaces count as extra words.
+    // NOTE: The split is on a single ' ', so double spaces count as extra words.
     let words = trimmed.split(' ').count();
     if words != 12 && words != 24 {
         return Err(Error::invalid("A frase de recuperação deve ter 12 ou 24 palavras"));
@@ -94,25 +97,25 @@ pub fn normalize_mnemonic(mnemonic: &str) -> Result<String> {
 
 /// Builds an English BIP39 phrase from entropy (32 bytes = 24 words, 16 bytes = 12 words).
 ///
-/// The platform supplies the random bytes. Dart uses 256 bits when `extendedPhrase` is true.
+/// The platform supplies the random bytes.
 pub fn generate_mnemonic(entropy: &[u8]) -> Result<String> {
     bdk_wallet::keys::bip39::Mnemonic::from_entropy(entropy)
         .map(|m| m.to_string())
         .map_err(|e| Error::invalid(format!("bad entropy: {e}")))
 }
 
-/// Saves the legacy mnemonic key after validation. Port of `MnemonicStoreImpl`.
+/// Saves the legacy mnemonic key after validation.
 pub async fn save_mnemonic<S: SecureStore>(store: &S, mnemonic: &str) -> Result<()> {
     let m = normalize_mnemonic(mnemonic)?;
     put_string(store, MNEMONIC_KEY, &m).await
 }
 
-/// Reads the legacy mnemonic key. Port of `MnemonicStoreImpl.getMnemonic`.
+/// Reads the legacy mnemonic key.
 pub async fn get_mnemonic<S: SecureStore>(store: &S) -> Result<Option<String>> {
     get_string(store, MNEMONIC_KEY).await
 }
 
-/// Salted SHA-256 PIN hash. Port of `PinStoreImpl`.
+/// Salted SHA-256 PIN hash.
 #[derive(Debug, Clone)]
 pub struct PinStore<S: SecureStore> {
     store: S,
@@ -126,7 +129,7 @@ impl<S: SecureStore> PinStore<S> {
 
     /// Saves the PIN hash. `salt` must be 16 random bytes from the platform.
     pub async fn save(&self, pin: &str, salt: &[u8; 16]) -> Result<()> {
-        // NOTE(port): Dart `String.length` counts UTF-16 units. Equal for digits.
+        // NOTE: The length counts UTF-16 units. For digits, this equals the char count.
         if pin.encode_utf16().count() < MIN_PIN_LENGTH {
             return Err(Error::invalid("PIN deve ter pelo menos 6 caracteres"));
         }
@@ -165,7 +168,7 @@ pub fn hash_pin(pin: &str, salt: &str) -> String {
     digest.to_byte_array().iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// Standard base64 with padding, as Dart `base64Encode`.
+/// Standard base64 with padding.
 pub fn base64_encode(bytes: &[u8]) -> String {
     use bdk_wallet::bitcoin::base64::Engine;
     bdk_wallet::bitcoin::base64::engine::general_purpose::STANDARD.encode(bytes)
@@ -177,7 +180,38 @@ mod tests {
     use crate::ports::KvStore;
     use crate::testing::{block_on, MemoryKv};
 
-    const WORDS12: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+    const WORDS12: &str =
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+    /// Store whose every call fails with a fixed error.
+    #[derive(Clone)]
+    struct FailingStore(fn() -> Error);
+    impl KvStore for FailingStore {
+        fn get(&self, _k: &str) -> impl std::future::Future<Output = Result<Option<Vec<u8>>>> + crate::MaybeSend {
+            std::future::ready(Err((self.0)()))
+        }
+        fn put(&self, _k: &str, _v: Vec<u8>) -> impl std::future::Future<Output = Result<()>> + crate::MaybeSend {
+            std::future::ready(Err((self.0)()))
+        }
+        fn delete(&self, _k: &str) -> impl std::future::Future<Output = Result<()>> + crate::MaybeSend {
+            std::future::ready(Err((self.0)()))
+        }
+        fn list_keys(&self, _p: &str) -> impl std::future::Future<Output = Result<Vec<String>>> + crate::MaybeSend {
+            std::future::ready(Err((self.0)()))
+        }
+    }
+    impl crate::ports::SecureStore for FailingStore {}
+
+    #[test]
+    fn load_passes_store_state_errors_through_and_wraps_the_rest() {
+        block_on(async {
+            let locked =
+                CredentialStore::new(FailingStore(|| Error::InvalidState("not set".into())), AppNetwork::Mainnet);
+            assert!(matches!(locked.load().await, Err(Error::InvalidState(m)) if m == "not set"));
+            let broken = CredentialStore::new(FailingStore(|| Error::storage("disk")), AppNetwork::Mainnet);
+            assert!(matches!(broken.load().await, Err(Error::Credential(m)) if m.contains("disk")));
+        });
+    }
 
     #[test]
     fn credentials_roundtrip_raw_string() {
@@ -225,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn helpers_match_dart() {
+    fn credential_helpers() {
         assert_eq!(base64_encode(b"foobar"), "Zm9vYmFy");
         assert_eq!(base64_encode(b"fo"), "Zm8=");
         assert_eq!(base64_encode(&[0u8; 16]), "AAAAAAAAAAAAAAAAAAAAAA==");

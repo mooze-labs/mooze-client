@@ -4,14 +4,14 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import '../third_party/mooze_app/dto/config.dart';
+import '../third_party/mooze_app/dto/pix.dart';
+import '../third_party/mooze_app/dto/swap.dart';
+import '../third_party/mooze_app/dto/wallet.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-import 'pix.dart';
-import 'swap.dart';
 import 'types.dart';
 
-// These functions are ignored because they are not marked as `pub`: `api_base_url`, `auth`, `not_connected`, `reset_auth`, `secure_store`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Auth`, `Inner`, `SerializedSession`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `access_token`, `clone`, `drop`, `force_refresh_token`
+// These functions are ignored because they are not marked as `pub`: `ensure_mnemonic`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>
 abstract class MoozeCore implements RustOpaqueInterface {
@@ -205,19 +205,22 @@ abstract class MoozeCore implements RustOpaqueInterface {
   /// Re-reads balances from the local wallet, no network.
   Future<BalanceDto> liquidRefreshBalance();
 
-  /// Builds, signs and broadcasts a send.
+  /// Builds, signs and broadcasts a send. `mnemonic` seeds the secure
+  /// store when it holds none; signing reads the store.
   Future<BroadcastResultDto> liquidSend({
     required SendRequestDto request,
     required String mnemonic,
   });
 
-  /// Signs a PSET with `mnemonic` and broadcasts it. Returns the txid.
+  /// Signs a PSET and broadcasts it. Returns the txid. `mnemonic` seeds
+  /// the secure store when it holds none; signing reads the store.
   Future<String> liquidSignAndBroadcast({
     required String pset,
     required String mnemonic,
   });
 
-  /// Signs a SideSwap swap PSET. Returns the signed PSET.
+  /// Signs a SideSwap swap PSET. Returns the signed PSET. `mnemonic`
+  /// seeds the secure store when it holds none; signing reads the store.
   Future<String> liquidSignSwapPset({
     required String pset,
     required String mnemonic,
@@ -385,11 +388,11 @@ abstract class MoozeCore implements RustOpaqueInterface {
   /// Closes the connection and stops the event stream. Idempotent.
   Future<void> sideswapDisconnect();
 
-  /// Server pushes: quotes, peg wallet balances, disconnects. A bridge task
-  /// reads the socket while the stream is open. Opening a new stream
-  /// replaces the old one, which ends with a `closed` item. Close it with
-  /// `sideswapCloseEvents`, `sideswapDisconnect` or by cancelling the Dart
-  /// subscription (the task stops at its next item).
+  /// Server pushes: quotes, peg wallet balances, disconnects. The facade
+  /// driver reads the socket while the stream is open. Opening a new
+  /// stream replaces the old one, which ends with a `closed` item. Close
+  /// it with `sideswapCloseEvents`, `sideswapDisconnect` or by cancelling
+  /// the Dart subscription (the driver stops at its next item).
   Stream<SideSwapEventDto> sideswapEvents();
 
   /// True while the event stream task runs.

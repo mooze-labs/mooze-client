@@ -1,13 +1,11 @@
 //! Pure history and balance logic over domain records.
 //!
-//! - [`pair_internal_swaps`]: port of `_identifyInternalSwapsStatic` in
-//!   `wallet_repository_impl.dart` (BTC <-> L-BTC send/receive pairs).
+//! - [`pair_internal_swaps`]: BTC <-> L-BTC send/receive pairs.
 //! - [`resolve_asset_balance`], [`balance_map`], [`aggregate_balance`]:
-//!   port of the balance helpers in `data/v2/wallet_repository_impl.dart`.
-//! - [`summarize_activity`]: port of `AssetActivityCalculator`.
+//!   balance helpers.
+//! - [`summarize_activity`]: activity metrics of one asset.
 //!
-//! NOTE(port): the Dart pairing and calculator run on the legacy
-//! `Transaction` entity. Here they run on `domain::Transaction`: "send" is
+//! The pairing and the metrics run on `domain::Transaction`: "send" is
 //! `Outgoing`, "receive" is `Incoming`, the asset comes from the chain and
 //! `asset_id`.
 
@@ -38,7 +36,6 @@ fn is_lbtc_on_liquid(tx: &Transaction) -> bool {
 }
 
 /// Merges both chains, sorts newest first and collapses swap pairs.
-/// Port of `_processTransactionsInIsolate`.
 pub fn merge_and_pair(liquid: &[Transaction], bitcoin: &[Transaction]) -> Vec<Transaction> {
     let mut all: Vec<Transaction> = liquid.iter().chain(bitcoin.iter()).cloned().collect();
     super::tracker::sort_newest_first(&mut all);
@@ -50,7 +47,7 @@ pub fn merge_and_pair(liquid: &[Transaction], bitcoin: &[Transaction]) -> Vec<Tr
 /// sent amount, the sent amount is at least 25 000 sats and the legs are
 /// at most 12 h apart.
 ///
-/// NOTE(port): as in Dart, a receive leg that comes before its send leg in
+/// NOTE: by design, a receive leg that comes before its send leg in
 /// the list (newer, in a newest-first list) is already emitted on its own
 /// before the pair forms, so it appears twice: alone and inside the swap.
 pub fn pair_internal_swaps(transactions: &[Transaction]) -> Vec<Transaction> {
@@ -82,7 +79,8 @@ pub fn pair_internal_swaps(transactions: &[Transaction]) -> Vec<Transaction> {
             if !(valid_amount && within_window) {
                 continue;
             }
-            let both_confirmed = tx1.status == TransactionStatus::Confirmed && tx2.status == TransactionStatus::Confirmed;
+            let both_confirmed =
+                tx1.status == TransactionStatus::Confirmed && tx2.status == TransactionStatus::Confirmed;
             let asset_id = |t: &Transaction| asset_of(t).map(|a| a.id().to_owned());
             let mut swap = Transaction::new(
                 format!("{}_{}_swap", tx1.id, tx2.id),
@@ -99,7 +97,7 @@ pub fn pair_internal_swaps(transactions: &[Transaction]) -> Vec<Transaction> {
             swap.to_asset_id = asset_id(tx2);
             swap.sent_amount_sat = Some(sent);
             swap.received_amount_sat = Some(received);
-            // Legacy `sendTxId` / `receiveTxId`.
+            // Ids of the send and receive legs.
             swap.swap_lockup_tx_id = Some(tx1.id.clone());
             swap.swap_claim_tx_id = Some(tx2.id.clone());
             result.push(swap);
@@ -201,7 +199,7 @@ pub fn balance_map(assets: &[Asset], snapshots: &ChainSnapshots) -> Result<BTree
 }
 
 /// Concatenates the asset rows of every operational service. Fails only
-/// if no rows came back and some service failed. Port of `aggregateBalance`.
+/// if no rows came back and some service failed.
 pub fn aggregate_balance(snapshots: &[Result<Balance>], now_ms: u64) -> Result<Balance> {
     let mut assets: Vec<AssetBalance> = Vec::new();
     let mut first_error = None;
@@ -221,7 +219,7 @@ pub fn aggregate_balance(snapshots: &[Result<Balance>], now_ms: u64) -> Result<B
     Ok(Balance { assets, snapshot_at_ms: now_ms })
 }
 
-/// Activity metrics of one asset. Port of `AssetActivitySummary`.
+/// Activity metrics of one asset.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetActivitySummary {
     pub asset: Asset,
@@ -253,7 +251,10 @@ impl AssetActivitySummary {
 }
 
 fn is_swap_shaped(tx: &Transaction) -> bool {
-    tx.from_asset_id.is_some() && tx.to_asset_id.is_some() && tx.sent_amount_sat.is_some() && tx.received_amount_sat.is_some()
+    tx.from_asset_id.is_some()
+        && tx.to_asset_id.is_some()
+        && tx.sent_amount_sat.is_some()
+        && tx.received_amount_sat.is_some()
 }
 
 fn leg_asset(id: &Option<String>) -> Option<Asset> {
@@ -338,7 +339,7 @@ mod tests {
         let recv = tx("r", ChainId::Liquid, TransactionDirection::Incoming, 99_000, 11 * h);
         let other = tx("o", ChainId::Liquid, TransactionDirection::Incoming, 5_000, 12 * h);
         let out = merge_and_pair(&[recv.clone(), other], std::slice::from_ref(&send));
-        // Newest first: other, recv (emitted alone, Dart quirk), swap.
+        // Newest first: other, recv (emitted alone, known quirk), swap.
         assert_eq!(out.len(), 3);
         assert_eq!(out[1].id, "r");
         // Oldest-first input pairs without the duplicate.
@@ -346,7 +347,10 @@ mod tests {
         let swap = out.iter().find(|t| t.direction == TransactionDirection::Swap).unwrap();
         assert_eq!(swap.id, "s_r_swap");
         assert_eq!(swap.chain, ChainId::Liquid);
-        assert_eq!((swap.amount_sat, swap.sent_amount_sat, swap.received_amount_sat), (99_000, Some(100_000), Some(99_000)));
+        assert_eq!(
+            (swap.amount_sat, swap.sent_amount_sat, swap.received_amount_sat),
+            (99_000, Some(100_000), Some(99_000))
+        );
         assert_eq!(swap.from_asset_id.as_deref(), Some(BTC_ASSET_ID));
         assert_eq!(swap.to_asset_id.as_deref(), Some(LBTC_ASSET_ID));
         assert_eq!(swap.timestamp_ms, 10 * h);
@@ -402,7 +406,8 @@ mod tests {
         assert_eq!(m[&Asset::Btc], 0);
         assert!(balance_map(&[Asset::Btc], &failed).is_err());
 
-        let agg = aggregate_balance(&[Ok(snap(ChainId::Bitcoin, None, 1)), Err(Error::Network("x".into()))], 5).unwrap();
+        let agg =
+            aggregate_balance(&[Ok(snap(ChainId::Bitcoin, None, 1)), Err(Error::Network("x".into()))], 5).unwrap();
         assert_eq!(agg.assets.len(), 1);
         assert!(aggregate_balance(&[Err(Error::Network("x".into()))], 5).is_err());
     }

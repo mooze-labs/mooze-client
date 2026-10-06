@@ -1,4 +1,4 @@
-//! API session model. Port of `models/session.dart` and `models/auth_challenge.dart`.
+//! API session model and login challenge.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -28,7 +28,7 @@ impl Session {
         Self { jwt: jwt.into(), refresh_token: refresh_token.into() }
     }
 
-    /// Parses `{data: {jwt, refresh_token}}` or the flat shape (Dart `Session.fromJson`).
+    /// Parses `{data: {jwt, refresh_token}}` or the flat shape.
     pub fn from_json(json: &Value) -> Result<Self> {
         let data = data_or_self(json);
         match (data.get("jwt").and_then(Value::as_str), data.get("refresh_token").and_then(Value::as_str)) {
@@ -37,7 +37,7 @@ impl Session {
         }
     }
 
-    /// JWT `exp` claim in milliseconds, rounded as Dart does.
+    /// JWT `exp` claim in milliseconds, rounded to the nearest integer.
     pub fn expires_at_ms(&self) -> Result<i64> {
         let payload = parse_jwt_payload(&self.jwt)?;
         let exp = payload.get("exp").ok_or_else(|| Error::Session("Token does not contain expiry date".into()))?;
@@ -45,7 +45,7 @@ impl Session {
         Ok((exp * 1000.0).round() as i64)
     }
 
-    /// True if the JWT expired before `now_ms` (Dart `isExpired`).
+    /// True if the JWT expired before `now_ms`.
     /// Errors mean the JWT is unreadable; callers treat that as expired.
     pub fn is_expired(&self, now_ms: u64) -> Result<bool> {
         Ok(self.expires_at_ms()? < now_ms as i64)

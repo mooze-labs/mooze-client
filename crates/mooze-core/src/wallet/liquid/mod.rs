@@ -1,5 +1,4 @@
-//! Liquid wallet. Port of `lib/infra/lwk/liquid_wallet_service_impl.dart`
-//! and the Liquid parts of the wallet repositories.
+//! Liquid wallet.
 //!
 //! The LWK wollet persists its updates through a [`store::JournalStore`]
 //! that the wallet flushes into a [`KvStore`]. Network calls use the LWK
@@ -23,10 +22,9 @@ use self::classify::{apply_optimistic_delta, map_balance, map_tx, LwkTxView};
 use self::store::{flush_journal, load_journal, wipe_prefix, JournalStore, STORE_PREFIX};
 use super::descriptors::{liquid_descriptor, liquid_network, liquid_policy_asset, liquid_signer};
 use super::endpoints::EndpointResolver;
-use super::explorer::{hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo};
-use crate::wallet::backend::ChainBackend;
-#[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
-use crate::wallet::backend::{ElectrumConfig, LiquidElectrum};
+use super::explorer::{
+    hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo,
+};
 use super::fees::liquid_fee_rate;
 use super::tracker::{sort_newest_first, TxTracker};
 use crate::domain::{
@@ -35,6 +33,9 @@ use crate::domain::{
     TransactionSource, TransactionStatus, WalletCredentials, LBTC_ASSET_ID,
 };
 use crate::ports::{Clock, KvStore};
+use crate::wallet::backend::ChainBackend;
+#[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+use crate::wallet::backend::{ElectrumConfig, LiquidElectrum};
 use crate::{Error, Result};
 
 const CHAIN: ChainId = ChainId::Liquid;
@@ -43,11 +44,11 @@ fn svc(e: impl std::fmt::Display) -> Error {
     Error::service(CHAIN, e)
 }
 
-/// Message when a drain amount cannot be computed (kept from Dart).
+/// Message when a drain amount cannot be computed.
 pub const DRAIN_AMOUNT_ERROR: &str = "não foi possível calcular o valor do envio total";
 
 /// True for LWK errors that mean the persisted state drifted and a wipe
-/// plus rescan fixes it. Port of `_isRecoverableLwkPersistenceError`.
+/// plus rescan fixes it.
 pub fn is_recoverable_persistence_error(desc: &str) -> bool {
     desc.contains("UpdateOnDifferentStatus") || desc.contains("UpdateHeightTooOld")
 }
@@ -56,7 +57,7 @@ fn describe(e: &lwk_wollet::Error) -> String {
     format!("{e} ({e:?})")
 }
 
-/// Ownership scan limit per chain of the Liquid explorer (Dart `_kLiquidOwnershipScanLimit`).
+/// Ownership scan limit per chain of the Liquid explorer.
 pub const OWNERSHIP_SCAN_LIMIT: u32 = 200;
 
 fn to_keychain(c: Chain) -> Keychain {
@@ -66,7 +67,7 @@ fn to_keychain(c: Chain) -> Keychain {
     }
 }
 
-/// Unsigned send plus the numbers the UI shows. Port of `_BuiltSend`.
+/// Unsigned send plus the numbers the UI shows.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BuiltLiquidSend {
     /// Base64 PSET.
@@ -79,7 +80,7 @@ pub struct BuiltLiquidSend {
     pub asset_id: String,
 }
 
-/// LWK wollet plus esplora client. Port of `LiquidWalletServiceImpl`.
+/// LWK wollet plus esplora client.
 pub struct LiquidWallet<K: KvStore, C: Clock> {
     wollet: Wollet,
     journal: JournalStore,
@@ -100,17 +101,21 @@ pub struct LiquidWallet<K: KvStore, C: Clock> {
 impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     /// Builds the descriptor and the wollet from the stored updates.
     /// Wipes the store once and retries if LWK reports drifted state.
-    /// Port of `connect`.
     ///
-    /// NOTE(port): like Dart, connect does not prime balance or history;
+    /// NOTE: connect does not prime balance or history;
     /// the first [`Self::sync`] does (or [`Self::refresh_balance`]).
-    pub async fn connect(credentials: &WalletCredentials, kv: K, clock: C, endpoints: EndpointResolver) -> Result<Self> {
+    pub async fn connect(
+        credentials: &WalletCredentials,
+        kv: K,
+        clock: C,
+        endpoints: EndpointResolver,
+    ) -> Result<Self> {
         if credentials.is_absent() {
             return Err(Error::Credential("mnemonic is empty".into()));
         }
         let network = credentials.network;
-        let descriptor = liquid_descriptor(&credentials.mnemonic, network)
-            .map_err(|e| svc(format!("lwk init failed: {e}")))?;
+        let descriptor =
+            liquid_descriptor(&credentials.mnemonic, network).map_err(|e| svc(format!("lwk init failed: {e}")))?;
         let journal = load_journal(&kv, STORE_PREFIX).await?;
         let (wollet, journal) = match Self::build_wollet(network, &descriptor, &journal) {
             Ok(w) => (w, journal),
@@ -244,10 +249,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     async fn fetch_update(&mut self) -> Result<Option<lwk_wollet::Update>> {
         #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
         if let ChainBackend::Electrum(config) = self.backend.clone() {
-            let client = self
-                .electrum_client(&config)
-                .await
-                .map_err(|e| svc(format!("lwk sync failed: {e}")))?;
+            let client = self.electrum_client(&config).await.map_err(|e| svc(format!("lwk sync failed: {e}")))?;
             return match client.full_scan(&self.wollet).await {
                 Ok(u) => Ok(u),
                 Err(e) => {
@@ -270,10 +272,8 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     async fn broadcast_tx(&mut self, tx: lwk_wollet::elements::Transaction) -> Result<String> {
         #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
         if let ChainBackend::Electrum(config) = self.backend.clone() {
-            let client = self
-                .electrum_client(&config)
-                .await
-                .map_err(|e| svc(format!("lwk broadcastSignedPset failed: {e}")))?;
+            let client =
+                self.electrum_client(&config).await.map_err(|e| svc(format!("lwk broadcastSignedPset failed: {e}")))?;
             return client.broadcast(tx).await.map_err(|e| {
                 self.electrum = None;
                 svc(format!("lwk broadcastSignedPset failed: {e}"))
@@ -303,7 +303,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     }
 
     /// Full scan through esplora, then reads transactions and balances,
-    /// diffs and queues events. Port of `sync`.
+    /// diffs and queues events.
     pub async fn sync(&mut self) -> Result<SyncOutcome> {
         let t0 = self.clock.now_ms();
         let update = self.fetch_update().await?;
@@ -321,26 +321,25 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         self.last_list = mapped;
         self.last_balance = map_balance(&balances, now);
         let end = self.clock.now_ms();
-        self.state =
-            ServiceState { lifecycle: ServiceLifecycle::Connected, failure: None, last_sync_at_ms: Some(end) };
+        self.state = ServiceState { lifecycle: ServiceLifecycle::Connected, failure: None, last_sync_at_ms: Some(end) };
         Ok(SyncOutcome { chain: CHAIN, fetched: self.last_list.len(), changed, duration_ms: end.saturating_sub(t0) })
     }
 
-    /// Re-reads balances from the local wollet, no network. Port of `refreshBalance`.
+    /// Re-reads balances from the local wollet, no network.
     pub fn refresh_balance(&mut self) -> Result<&Balance> {
         let balances = self.balances_raw().map_err(|e| svc(format!("lwk refreshBalance failed: {e}")))?;
         self.last_balance = map_balance(&balances, self.clock.now_ms());
         Ok(&self.last_balance)
     }
 
-    /// Applies known per-asset deltas to the cached balance. Port of
-    /// `applyOptimisticBalanceDelta`. The next sync overwrites it.
+    /// Applies known per-asset deltas to the cached balance. The next sync
+    /// overwrites it.
     pub fn apply_optimistic_balance_delta(&mut self, deltas: &[(String, i64)]) -> &Balance {
         self.last_balance = apply_optimistic_delta(&self.last_balance, deltas, self.clock.now_ms());
         &self.last_balance
     }
 
-    /// Last unused confidential address. Port of `getReceiveAddress`.
+    /// Last unused confidential address.
     pub async fn receive_address(&mut self) -> Result<String> {
         let a = self.wollet.address(None).map_err(|e| svc(format!("lwk getReceiveAddress failed: {e}")))?;
         self.flush().await?;
@@ -348,8 +347,12 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     }
 
     /// Receive address for an asset. L-BTC gets a bare address, any other
-    /// asset a `liquidnetwork:` URI with the asset id. Port of `nextReceiveAddress`.
-    pub async fn next_receive_address(&mut self, asset_id: Option<&str>, label: Option<&str>) -> Result<ReceiveAddress> {
+    /// asset a `liquidnetwork:` URI with the asset id.
+    pub async fn next_receive_address(
+        &mut self,
+        asset_id: Option<&str>,
+        label: Option<&str>,
+    ) -> Result<ReceiveAddress> {
         let address = self.receive_address().await?;
         let is_asset = asset_id.is_some_and(|a| a != self.policy_asset());
         let mut r = ReceiveAddress::onchain(
@@ -364,7 +367,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         Ok(r)
     }
 
-    /// Unblinded UTXOs. Port of `getUtxos`.
+    /// Unblinded UTXOs.
     pub fn utxos(&self) -> Result<Vec<LiquidUtxo>> {
         let utxos = self.wollet.utxos().map_err(|e| svc(format!("lwk getUtxos failed: {e}")))?;
         Ok(utxos
@@ -388,8 +391,8 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         r.map(|a| a.address().clone()).map_err(|e| svc(format!("lwk address failed: {e}")))
     }
 
-    /// Scripts of every wallet output, spent or not (Dart: UTXO addresses
-    /// plus the wallet outputs of every transaction).
+    /// Scripts of every wallet output, spent or not: UTXO scripts plus the
+    /// wallet outputs of every transaction.
     fn history_scripts(&self) -> Result<HashSet<lwk_wollet::elements::Script>> {
         let txos = self.wollet.txos().map_err(|e| svc(format!("lwk txos failed: {e}")))?;
         Ok(txos.into_iter().map(|t| t.script_pubkey).collect())
@@ -442,11 +445,11 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     /// addresses of the external chain, then of the internal chain.
     ///
     /// A confidential input must match the derived confidential address; an
-    /// unconfidential input matches by script. This equals the Dart string
-    /// compare against `standard` and `confidential`. Fails for an
-    /// unparseable address or one of another network.
+    /// unconfidential input matches by script. Fails for an unparseable
+    /// address or one of another network.
     pub fn is_mine(&self, address: &str, scan_limit: u32) -> Result<Option<AddressOwnership>> {
-        let parsed = Address::from_str(address.trim()).map_err(|e| Error::invalid(format!("invalid liquid address: {e}")))?;
+        let parsed =
+            Address::from_str(address.trim()).map_err(|e| Error::invalid(format!("invalid liquid address: {e}")))?;
         if parsed.params != self.wollet.network().address_params() {
             return Err(Error::invalid("liquid address of another network"));
         }
@@ -463,8 +466,8 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         Ok(None)
     }
 
-    /// LWK's last unused external address, with a history check. Port of
-    /// Dart `getNextUnusedLiquidAddress` (`addressLastUnused`). Reveals nothing.
+    /// LWK's last unused external address, with a history check. Reveals
+    /// nothing.
     pub async fn next_unused_address(&mut self) -> Result<NextUnusedAddress> {
         let r = self.wollet.address(None).map_err(|e| svc(format!("lwk addressLastUnused failed: {e}")))?;
         let used = self.history_scripts()?.contains(&r.address().script_pubkey());
@@ -478,7 +481,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     }
 
     /// Builds an unsigned L-BTC send. A drain sends the whole L-BTC balance
-    /// minus the fee. Syncs first (best effort). Port of `buildLbtcSend`.
+    /// minus the fee. Syncs first (best effort).
     pub async fn build_lbtc_send(
         &mut self,
         destination: &str,
@@ -529,7 +532,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         })
     }
 
-    /// Builds (does not sign) the PSET for a request. Port of `_buildSend`.
+    /// Builds (does not sign) the PSET for a request.
     ///
     /// L-BTC (or no asset): [`Self::build_lbtc_send`]; `drain` or
     /// `subtract_fee_from_amount` drains. Other assets: the amount is in the
@@ -551,7 +554,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
                 let d = self
                     .build_lbtc_send(&destination, request.amount_sat, request.fee_rate_override_sat_per_vbyte, drain)
                     .await?;
-                // NOTE(port): Dart tags L-BTC sends with the mainnet id on every network.
+                // NOTE: L-BTC sends carry the mainnet id on every network, by design.
                 return Ok(BuiltLiquidSend {
                     pset: d.pset,
                     amount_sat: d.amount_sat,
@@ -592,10 +595,16 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         })();
         let (pset, fee) = built.map_err(|e| svc(format!("lwk buildAssetTx failed: {e}")))?;
         self.flush().await?;
-        Ok(BuiltLiquidSend { pset: pset.to_string(), amount_sat: amount, fee_sat: fee, fee_rate_sat_per_kvb: fee_rate, asset_id })
+        Ok(BuiltLiquidSend {
+            pset: pset.to_string(),
+            amount_sat: amount,
+            fee_sat: fee,
+            fee_rate_sat_per_kvb: fee_rate,
+            asset_id,
+        })
     }
 
-    /// Fee quote for a request. Port of `estimateFee`.
+    /// Fee quote for a request.
     pub async fn estimate_fee(&mut self, request: &SendRequest) -> Result<FeeEstimate> {
         let b = self.build_send(request).await?;
         Ok(FeeEstimate {
@@ -608,10 +617,10 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     }
 
     /// Signs the wallet inputs and finalizes. Returns the finalized PSET
-    /// (base64). Port of lwk-dart `signTx`.
+    /// (base64).
     ///
-    /// NOTE(port): lwk-dart builds the signer with an inverted mainnet flag;
-    /// it only changes the xprv prefix, so signatures are the same.
+    /// NOTE: the signer network flag only changes the xprv prefix. The
+    /// signatures do not depend on it.
     pub fn sign_pset(&self, pset: &str, mnemonic: &str) -> Result<String> {
         if pset.trim().is_empty() {
             return Err(svc("pset is empty"));
@@ -620,14 +629,14 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
             return Err(svc("mnemonic is empty"));
         }
         let signer = liquid_signer(mnemonic, self.network).map_err(|e| svc(format!("lwk signTx failed: {e}")))?;
-        let mut p = PartiallySignedTransaction::from_str(pset.trim()).map_err(|e| svc(format!("lwk signTx failed: {e}")))?;
+        let mut p =
+            PartiallySignedTransaction::from_str(pset.trim()).map_err(|e| svc(format!("lwk signTx failed: {e}")))?;
         let _ = signer.sign(&mut p);
         let tx = self.wollet.finalize(&mut p).map_err(|e| svc(format!("lwk signTx failed: {}", describe(&e))))?;
         Ok(PartiallySignedTransaction::from_tx(tx).to_string())
     }
 
     /// Extracts and broadcasts a finalized PSET, then syncs (best effort).
-    /// Port of `Blockchain.broadcastSignedPset` plus the post-sync.
     pub async fn broadcast_pset(&mut self, signed_pset: &str) -> Result<String> {
         let tx = PartiallySignedTransaction::from_str(signed_pset.trim())
             .map_err(|e| e.to_string())
@@ -639,14 +648,14 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         Ok(txid)
     }
 
-    /// Signs, broadcasts and syncs. Port of `signAndBroadcastPset`.
+    /// Signs, broadcasts and syncs.
     pub async fn sign_and_broadcast_pset(&mut self, pset: &str, mnemonic: &str) -> Result<String> {
         let signed = self.sign_pset(pset, mnemonic)?;
         self.broadcast_pset(&signed).await
     }
 
     /// Builds, signs and broadcasts a send. The caller passes the mnemonic
-    /// per call; the wallet never stores it. Port of `sendOnchain`.
+    /// per call; the wallet never stores it.
     pub async fn send_onchain(&mut self, request: &SendRequest, mnemonic: &str) -> Result<BroadcastResult> {
         let send = self.build_send(request).await?;
         if mnemonic.is_empty() {
@@ -674,13 +683,11 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     }
 
     /// Signs the wallet inputs of an external (SideSwap) PSET and returns
-    /// it unfinalized but with witnesses set. Port of lwk-dart
-    /// `signedPsetWithExtraDetails`.
+    /// it unfinalized but with witnesses set.
     pub fn sign_swap_pset(&self, pset: &str, mnemonic: &str) -> Result<String> {
-        let signer =
-            liquid_signer(mnemonic, self.network).map_err(|e| svc(format!("lwk signSwapPset failed: {e}")))?;
-        let mut p =
-            PartiallySignedTransaction::from_str(pset.trim()).map_err(|e| svc(format!("lwk signSwapPset failed: {e}")))?;
+        let signer = liquid_signer(mnemonic, self.network).map_err(|e| svc(format!("lwk signSwapPset failed: {e}")))?;
+        let mut p = PartiallySignedTransaction::from_str(pset.trim())
+            .map_err(|e| svc(format!("lwk signSwapPset failed: {e}")))?;
         for input in p.inputs_mut().iter_mut() {
             let outpoint = OutPoint { txid: input.previous_txid, vout: input.previous_output_index };
             if let Some(mut txout) = self.wallet_txout(&outpoint) {
@@ -719,8 +726,13 @@ mod tests {
 
     fn connect(kv: MemoryKv) -> LiquidWallet<MemoryKv, FixedClock> {
         let creds = WalletCredentials { mnemonic: ABANDON.into(), network: AppNetwork::Mainnet };
-        block_on(LiquidWallet::connect(&creds, kv, FixedClock::new(1_000), EndpointResolver::with_defaults(AppNetwork::Mainnet)))
-            .unwrap()
+        block_on(LiquidWallet::connect(
+            &creds,
+            kv,
+            FixedClock::new(1_000),
+            EndpointResolver::with_defaults(AppNetwork::Mainnet),
+        ))
+        .unwrap()
     }
 
     #[test]
@@ -751,7 +763,12 @@ mod tests {
         let kv = MemoryKv::new();
         block_on(kv.put(&format!("{STORE_PREFIX}garbage"), vec![1, 2, 3])).unwrap();
         let creds = WalletCredentials { mnemonic: ABANDON.into(), network: AppNetwork::Mainnet };
-        let r = block_on(LiquidWallet::connect(&creds, kv, FixedClock::new(0), EndpointResolver::with_defaults(AppNetwork::Mainnet)));
+        let r = block_on(LiquidWallet::connect(
+            &creds,
+            kv,
+            FixedClock::new(0),
+            EndpointResolver::with_defaults(AppNetwork::Mainnet),
+        ));
         if let Err(e) = r {
             assert!(matches!(e, Error::Service { chain: ChainId::Liquid, .. }), "{e}");
         }
@@ -761,13 +778,19 @@ mod tests {
     }
 
     #[test]
-    fn send_validations_match_dart() {
+    fn send_validations() {
         let mut w = connect(MemoryKv::new());
         let btc = SendRequest::new(ChainId::Bitcoin, "bc1q", 1);
-        assert!(block_on(w.build_send(&btc)).unwrap_err().to_string().contains("only handles Liquid sends (got: bitcoin)"));
+        assert!(block_on(w.build_send(&btc))
+            .unwrap_err()
+            .to_string()
+            .contains("only handles Liquid sends (got: bitcoin)"));
         let empty = SendRequest::new(ChainId::Liquid, "  ", 1);
         assert!(block_on(w.build_send(&empty)).unwrap_err().to_string().contains("destination is empty"));
-        assert!(block_on(w.build_lbtc_send("lq1x", 0, None, false)).unwrap_err().to_string().contains("amount must be positive"));
+        assert!(block_on(w.build_lbtc_send("lq1x", 0, None, false))
+            .unwrap_err()
+            .to_string()
+            .contains("amount must be positive"));
         assert!(w.sign_pset("", ABANDON).unwrap_err().to_string().contains("pset is empty"));
         assert!(w.sign_pset("cHNldP8=", " ").unwrap_err().to_string().contains("mnemonic is empty"));
         assert!(w.sign_swap_pset("not a pset", ABANDON).is_err());

@@ -1,8 +1,4 @@
 //! CPF/CNPJ validation and masks, and the PIX key heuristic.
-//!
-//! Port of `pix/shared/cpf/domain/cpf_validator.dart`,
-//! `cpf_cnpj_input_formatter.dart` and `PixKeyDetector` in
-//! `send_pix/presentation/widgets/clipboard_pix_key_suggestion.dart`.
 
 /// Why a CPF/CNPJ input is not valid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,7 +11,7 @@ pub enum CpfValidationError {
     Invalid,
 }
 
-/// Payer CPF is required before a PIX deposit (Dart `_kPixCpfRequired`).
+/// Payer CPF is required before a PIX deposit.
 pub const PIX_CPF_REQUIRED: bool = true;
 
 /// Keeps only ASCII digits.
@@ -56,7 +52,11 @@ fn is_valid_cpf(d: &[u32]) -> bool {
             weight -= 1;
         }
         let r = sum % 11;
-        if r < 2 { 0 } else { 11 - r }
+        if r < 2 {
+            0
+        } else {
+            11 - r
+        }
     };
     check(9) == d[9] && check(10) == d[10]
 }
@@ -70,7 +70,11 @@ fn is_valid_cnpj(d: &[u32]) -> bool {
         let weights = &BASE[BASE.len() - len..];
         let sum: u32 = d[..len].iter().zip(weights).map(|(x, w)| x * w).sum();
         let r = sum % 11;
-        if r < 2 { 0 } else { 11 - r }
+        if r < 2 {
+            0
+        } else {
+            11 - r
+        }
     };
     check(12) == d[12] && check(13) == d[13]
 }
@@ -124,7 +128,8 @@ pub fn looks_like_pix_key(value: &str) -> bool {
     if is_email(v) || is_evp(v) || is_phone(v) {
         return true;
     }
-    let digits: String = v.chars().filter(|c| !matches!(c, '.' | '-' | '/' | '(' | ')' | '+') && !c.is_whitespace()).collect();
+    let digits: String =
+        v.chars().filter(|c| !matches!(c, '.' | '-' | '/' | '(' | ')' | '+') && !c.is_whitespace()).collect();
     !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) && matches!(digits.len(), 11 | 13 | 14)
 }
 
@@ -157,7 +162,8 @@ enum Tok {
 fn is_phone(v: &str) -> bool {
     use Tok::*;
     // (token, optional)
-    let mut pat: Vec<(Tok, bool)> = vec![(Ch('+'), true), (Ch('5'), false), (Ch('5'), true), (Space, true), (Ch('('), true)];
+    let mut pat: Vec<(Tok, bool)> =
+        vec![(Ch('+'), true), (Ch('5'), false), (Ch('5'), true), (Space, true), (Ch('('), true)];
     pat.extend([(Digit, false); 2]);
     pat.extend([(Ch(')'), true), (Space, true), (Ch('9'), true)]);
     pat.extend([(Digit, false); 4]);

@@ -1,7 +1,5 @@
 //! Address explorer records and listing logic.
 //!
-//! Port of the pure parts of `AddressExplorerRepositoryImpl`
-//! (`lib/features/address_explorer/data/repositories/address_explorer_repository_impl.dart`).
 //! The wallet module derives addresses and lists UTXOs. These functions
 //! group them into [`WalletAddress`] rows and answer ownership probes.
 
@@ -77,7 +75,14 @@ pub struct AddressMatch {
 impl AddressMatch {
     /// Address not owned by the wallet.
     pub fn not_owned(address: impl Into<String>) -> Self {
-        Self { address: address.into(), is_owned: false, chain: None, status: None, derivation_index: None, utxos: vec![] }
+        Self {
+            address: address.into(),
+            is_owned: false,
+            chain: None,
+            status: None,
+            derivation_index: None,
+            utxos: vec![],
+        }
     }
 
     /// Owned address.
@@ -88,7 +93,14 @@ impl AddressMatch {
         derivation_index: Option<u32>,
         utxos: Vec<AddressUtxo>,
     ) -> Self {
-        Self { address: address.into(), is_owned: true, chain: Some(chain), status: Some(status), derivation_index, utxos }
+        Self {
+            address: address.into(),
+            is_owned: true,
+            chain: Some(chain),
+            status: Some(status),
+            derivation_index,
+            utxos,
+        }
     }
 
     /// Number of unspent outputs.
@@ -119,7 +131,7 @@ pub struct WalletOutput {
 /// Builds the address list from derived addresses, outputs and history keys.
 ///
 /// An address is used if it holds an unspent output or appears in `history_keys`.
-/// Rows sort by derivation index. When two indexes share a key, the later one wins, as in Dart.
+/// Rows sort by derivation index. When two indexes share a key, the later one wins.
 pub fn build_address_list(
     chain: AddressChain,
     derived: &[DerivedAddress],
@@ -189,7 +201,7 @@ pub fn bitcoin_owned_match(
         .filter(|o| !o.is_spent && o.match_key == script_key)
         .map(|o| to_utxo(AddressChain::Bitcoin, address, o))
         .collect();
-    // NOTE(port): Dart decides "used" only from the used-script set, not from UTXOs.
+    // NOTE: The "used" status comes only from the used-script set, not from UTXOs.
     let status = if used_script_keys.contains(script_key) { AddressStatus::Used } else { AddressStatus::Unused };
     AddressMatch::owned(address, AddressChain::Bitcoin, status, index, utxos)
 }
