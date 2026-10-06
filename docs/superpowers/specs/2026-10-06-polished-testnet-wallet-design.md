@@ -1,6 +1,6 @@
 # Polished desktop testnet wallet
 
-Date: 2026-10-06. Status: draft for user review. Product decisions below reflect the design discussion; technical proposals and acceptance criteria are subject to this document's review. No product implementation is authorized by this document alone.
+Date: 2026-10-06. Status: approved for implementation planning by the user's “Go on” after the written-spec review checkpoint. Product implementation follows review of the implementation plan and selection of its execution method.
 
 ## Purpose and boundaries
 
