@@ -329,7 +329,12 @@ impl<K: KvStore> AppLogStore<K> {
 
     /// Lines with `start <= timestamp <= end`.
     pub async fn by_time_range(&self, start_ms: u64, end_ms: u64) -> Result<Vec<AppLogRecord>> {
-        Ok(self.get_all().await?.into_iter().filter(|l| l.timestamp_ms >= start_ms && l.timestamp_ms <= end_ms).collect())
+        Ok(self
+            .get_all()
+            .await?
+            .into_iter()
+            .filter(|l| l.timestamp_ms >= start_ms && l.timestamp_ms <= end_ms)
+            .collect())
     }
 
     /// Deletes lines older than `cutoff_ms`. Returns the count.
@@ -404,9 +409,15 @@ mod tests {
     fn swaps_defaults_scoping_and_queries() {
         block_on(async {
             let s = SwapAuditStore::new(MemoryKv::new());
-            let id = s.insert(NewSwap { send_asset: "A".into(), receive_asset: "B".into(), ..Default::default() }, 9).await.unwrap();
+            let id = s
+                .insert(NewSwap { send_asset: "A".into(), receive_asset: "B".into(), ..Default::default() }, 9)
+                .await
+                .unwrap();
             let r = s.get(id).await.unwrap().unwrap();
-            assert_eq!((r.provider.as_str(), r.status.as_str(), r.direction.as_str()), ("unknown", "completed", "asset_swap"));
+            assert_eq!(
+                (r.provider.as_str(), r.status.as_str(), r.direction.as_str()),
+                ("unknown", "completed", "asset_swap")
+            );
             assert_eq!((r.wallet_id.as_str(), r.created_at_ms), ("unknown", 9));
 
             let mut p = swap("w1", "sideswap", 10);
@@ -462,11 +473,15 @@ mod tests {
             assert_eq!(logs.count().await.unwrap(), 2);
 
             let m = SyncMetadataStore::new(kv.clone());
-            let rec = SyncMetadataRecord { datasource: "lwk".into(), last_sync_time_ms: 5, transaction_count: 3, sync_status: "ok".into() };
+            let rec = SyncMetadataRecord {
+                datasource: "lwk".into(),
+                last_sync_time_ms: 5,
+                transaction_count: 3,
+                sync_status: "ok".into(),
+            };
             m.upsert(&rec).await.unwrap();
             assert_eq!(m.get("lwk").await.unwrap(), Some(rec));
             assert_eq!(m.delete_all().await.unwrap(), 1);
-
         });
     }
 }

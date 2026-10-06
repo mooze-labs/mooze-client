@@ -180,7 +180,8 @@ mod tests {
     use crate::ports::KvStore;
     use crate::testing::{block_on, MemoryKv};
 
-    const WORDS12: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+    const WORDS12: &str =
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     /// Store whose every call fails with a fixed error.
     #[derive(Clone)]
@@ -204,7 +205,8 @@ mod tests {
     #[test]
     fn load_passes_store_state_errors_through_and_wraps_the_rest() {
         block_on(async {
-            let locked = CredentialStore::new(FailingStore(|| Error::InvalidState("not set".into())), AppNetwork::Mainnet);
+            let locked =
+                CredentialStore::new(FailingStore(|| Error::InvalidState("not set".into())), AppNetwork::Mainnet);
             assert!(matches!(locked.load().await, Err(Error::InvalidState(m)) if m == "not set"));
             let broken = CredentialStore::new(FailingStore(|| Error::storage("disk")), AppNetwork::Mainnet);
             assert!(matches!(broken.load().await, Err(Error::Credential(m)) if m.contains("disk")));

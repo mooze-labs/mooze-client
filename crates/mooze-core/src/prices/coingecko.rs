@@ -31,7 +31,10 @@ impl<H: HttpClient> CoingeckoPriceService<H> {
 
     /// `GET /simple/price`. A non-200 status gives `Ok(None)`.
     pub async fn fetch_coin_prices(&self, coins: &[&str], currency: &str) -> Result<Option<CoinPrices>> {
-        let url = format!("{COINGECKO_BASE_URL}/simple/price?ids={}&vs_currencies={currency}&precision=full", coins.join(","));
+        let url = format!(
+            "{COINGECKO_BASE_URL}/simple/price?ids={}&vs_currencies={currency}&precision=full",
+            coins.join(",")
+        );
         let resp = self.http.send(HttpRequest::get(url)).await?;
         if resp.status != 200 {
             return Ok(None);
@@ -53,8 +56,11 @@ impl<H: HttpClient> PriceService for CoingeckoPriceService<H> {
         self.currency
     }
 
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         let currency = currency.unwrap_or(self.currency);
         async move {
             if let Some(p) = pegged_price(asset, currency) {
@@ -115,7 +121,8 @@ mod tests {
         block_on(async {
             assert_eq!(svc.get_coin_price(Asset::Btc, None).await.unwrap(), None);
             assert!(matches!(svc.get_coin_price(Asset::Usdt, None).await, Err(Error::Protocol(_))));
-            assert!(svc.get_coin_price(Asset::Usdt, None).await.unwrap().is_none()); // 404 from mock
+            assert!(svc.get_coin_price(Asset::Usdt, None).await.unwrap().is_none());
+            // 404 from mock
         });
     }
 }

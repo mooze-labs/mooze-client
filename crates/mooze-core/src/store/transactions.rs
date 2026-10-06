@@ -195,7 +195,8 @@ mod tests {
     fn same_id_on_two_chains_are_two_rows() {
         block_on(async {
             let store = TransactionStore::new(MemoryKv::new());
-            let evs = store.upsert_all(&[tx("x", ChainId::Liquid, 1), tx("x", ChainId::Lightning, 2)], 0).await.unwrap();
+            let evs =
+                store.upsert_all(&[tx("x", ChainId::Liquid, 1), tx("x", ChainId::Lightning, 2)], 0).await.unwrap();
             assert_eq!(evs.len(), 2);
             assert_eq!(store.list(None, None).await.unwrap().len(), 2);
             assert_eq!(store.find_by_id("x").await.unwrap().unwrap().chain, ChainId::Liquid);

@@ -173,7 +173,12 @@ impl<K: KvStore> DepositStore<K> {
     }
 
     /// Sets the amount and txid. Leaves the status unchanged.
-    pub async fn mark_deposit_as_completed(&self, deposit_id: &str, asset_amount: u64, blockchain_txid: &str) -> Result<()> {
+    pub async fn mark_deposit_as_completed(
+        &self,
+        deposit_id: &str,
+        asset_amount: u64,
+        blockchain_txid: &str,
+    ) -> Result<()> {
         let txid = blockchain_txid.to_owned();
         self.modify(deposit_id, move |r| {
             r.asset_amount = Some(asset_amount);
@@ -429,7 +434,10 @@ mod tests {
             s.update_deposit("dep-1", "depix_sent", Some(990), None).await.unwrap();
             s.update_deposit("dep-1", "finished", None, Some("tx1")).await.unwrap();
             let r = s.get_deposit("dep-1").await.unwrap().unwrap();
-            assert_eq!((r.status.as_str(), r.asset_amount, r.blockchain_txid.as_deref()), ("finished", Some(990), Some("tx1")));
+            assert_eq!(
+                (r.status.as_str(), r.asset_amount, r.blockchain_txid.as_deref()),
+                ("finished", Some(990), Some("tx1"))
+            );
 
             s.mark_deposit_as_completed("dep-2", 5, "tx2").await.unwrap();
             s.update_deposit_status("dep-2", "expired").await.unwrap();

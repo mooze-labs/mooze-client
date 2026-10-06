@@ -171,12 +171,7 @@ pub struct FavoritePayerDto {
 
 impl From<FavoritePayer> for FavoritePayerDto {
     fn from(p: FavoritePayer) -> Self {
-        Self {
-            masked_cpf: p.masked_cpf(),
-            id: p.id,
-            label: p.label,
-            cpf: p.cpf,
-        }
+        Self { masked_cpf: p.masked_cpf(), id: p.id, label: p.label, cpf: p.cpf }
     }
 }
 

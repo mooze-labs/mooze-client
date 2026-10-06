@@ -29,8 +29,7 @@ use mooze_core::{Error, Result};
 use tokio::sync::{Mutex, MutexGuard, Notify};
 
 use crate::convert::{
-    sideswap_balance_event, sideswap_closed_event, sideswap_disconnected_event,
-    sideswap_quote_event,
+    sideswap_balance_event, sideswap_closed_event, sideswap_disconnected_event, sideswap_quote_event,
 };
 use crate::dto::{QuoteDto, SideSwapEventDto, SideSwapEventKind};
 
@@ -48,9 +47,7 @@ fn not_connected(chain: ChainId) -> Error {
 
 /// Reads the mnemonic, mapping the facade error back to the core error.
 async fn mnemonic<P: Platform>(inner: &Inner<P>) -> Result<String> {
-    load_mnemonic(inner)
-        .await
-        .map_err(|e| Error::Credential(e.message))
+    load_mnemonic(inner).await.map_err(|e| Error::Credential(e.message))
 }
 
 // ───────────────────────────── Liquid port
@@ -62,17 +59,13 @@ pub struct LiquidPort<P: Platform> {
 
 impl<P: Platform> Clone for LiquidPort<P> {
     fn clone(&self) -> Self {
-        Self {
-            inner: self.inner.clone(),
-        }
+        Self { inner: self.inner.clone() }
     }
 }
 
 impl<P: Platform> LiquidPort<P> {
     pub(crate) fn new(inner: &Arc<Inner<P>>) -> Self {
-        Self {
-            inner: Arc::downgrade(inner),
-        }
+        Self { inner: Arc::downgrade(inner) }
     }
 
     fn inner(&self) -> Result<Arc<Inner<P>>> {
@@ -82,9 +75,7 @@ impl<P: Platform> LiquidPort<P> {
     async fn receive_address(&self) -> Result<String> {
         let inner = self.inner()?;
         let mut guard = inner.liquid.lock().await;
-        let wallet = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
         wallet.receive_address().await
     }
 }
@@ -100,10 +91,7 @@ impl<P: Platform> SwapSigner for LiquidPort<P> {
         async move {
             let inner = self.inner()?;
             let guard = inner.liquid.lock().await;
-            guard
-                .as_ref()
-                .ok_or_else(|| not_connected(ChainId::Liquid))?
-                .utxos()
+            guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?.utxos()
         }
     }
 
@@ -117,10 +105,7 @@ impl<P: Platform> SwapSigner for LiquidPort<P> {
             let inner = self.inner()?;
             let mnemonic = mnemonic(&inner).await?;
             let guard = inner.liquid.lock().await;
-            guard
-                .as_ref()
-                .ok_or_else(|| not_connected(ChainId::Liquid))?
-                .sign_swap_pset(&pset, &mnemonic)
+            guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?.sign_swap_pset(&pset, &mnemonic)
         }
     }
 }
@@ -138,9 +123,7 @@ pub struct WalletPegPort<P: Platform> {
 
 impl<P: Platform> WalletPegPort<P> {
     pub(crate) fn new(inner: &Arc<Inner<P>>) -> Self {
-        Self {
-            inner: Arc::downgrade(inner),
-        }
+        Self { inner: Arc::downgrade(inner) }
     }
 
     fn inner(&self) -> std::result::Result<Arc<Inner<P>>, PegError> {
@@ -151,34 +134,22 @@ impl<P: Platform> WalletPegPort<P> {
 impl<P: Platform> PegWallet for WalletPegPort<P> {
     type Handle = PegFunding;
 
-    fn liquid_payout_address(
-        &self,
-    ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
+    fn liquid_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let inner = self.inner()?;
             let mut guard = inner.liquid.lock().await;
-            let wallet = guard
-                .as_mut()
-                .ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
+            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
             wallet.receive_address().await.map_err(peg_error)
         }
     }
 
-    fn bitcoin_payout_address(
-        &self,
-    ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
+    fn bitcoin_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let inner = self.inner()?;
             let mut guard = inner.bitcoin.lock().await;
-            let wallet = guard
-                .as_mut()
-                .ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
-            let r = wallet
-                .next_receive_address(None, None)
-                .await
-                .map_err(peg_error)?;
-            r.address
-                .ok_or_else(|| PegError::WalletFailure("wallet returned no address".into()))
+            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
+            let r = wallet.next_receive_address(None, None).await.map_err(peg_error)?;
+            r.address.ok_or_else(|| PegError::WalletFailure("wallet returned no address".into()))
         }
     }
 
@@ -188,24 +159,16 @@ impl<P: Platform> PegWallet for WalletPegPort<P> {
         amount_sat: u64,
         fee_rate_sat_per_vbyte: Option<u32>,
         drain: bool,
-    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend
-    {
+    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend {
         let destination = destination.to_owned();
         async move {
             let inner = self.inner()?;
             let mut guard = inner.bitcoin.lock().await;
-            let wallet = guard
-                .as_mut()
-                .ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
+            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
             // BDK rejects addresses of other networks, so a Liquid
             // destination fails here instead of burning funds.
             let prepared = wallet
-                .prepare_send(
-                    &destination,
-                    amount_sat,
-                    drain,
-                    fee_rate_sat_per_vbyte.map(u64::from),
-                )
+                .prepare_send(&destination, amount_sat, drain, fee_rate_sat_per_vbyte.map(u64::from))
                 .await
                 .map_err(peg_error)?;
             Ok(PegFundingQuote {
@@ -222,15 +185,12 @@ impl<P: Platform> PegWallet for WalletPegPort<P> {
         amount_sat: u64,
         fee_rate_sat_per_vb: Option<f64>,
         drain: bool,
-    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend
-    {
+    ) -> impl Future<Output = std::result::Result<PegFundingQuote<PegFunding>, PegError>> + MaybeSend {
         let destination = destination.to_owned();
         async move {
             let inner = self.inner()?;
             let mut guard = inner.liquid.lock().await;
-            let wallet = guard
-                .as_mut()
-                .ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
+            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
             let draft = wallet
                 .build_lbtc_send(&destination, amount_sat, fee_rate_sat_per_vb, drain)
                 .await
@@ -249,25 +209,15 @@ impl<P: Platform> PegWallet for WalletPegPort<P> {
     ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let PegFunding::Bitcoin(prepared) = quote.handle else {
-                return Err(PegError::WalletFailure(
-                    "expected a Bitcoin funding handle".into(),
-                ));
+                return Err(PegError::WalletFailure("expected a Bitcoin funding handle".into()));
             };
-            let mut request =
-                SendRequest::new(ChainId::Bitcoin, prepared.destination, prepared.amount_sat);
+            let mut request = SendRequest::new(ChainId::Bitcoin, prepared.destination, prepared.amount_sat);
             request.drain = prepared.drain;
-            request.fee_rate_override_sat_per_vbyte =
-                prepared.fee_rate_sat_per_vbyte.map(|r| r as f64);
+            request.fee_rate_override_sat_per_vbyte = prepared.fee_rate_sat_per_vbyte.map(|r| r as f64);
             let inner = self.inner()?;
             let mut guard = inner.bitcoin.lock().await;
-            let wallet = guard
-                .as_mut()
-                .ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
-            Ok(wallet
-                .send_onchain(&request)
-                .await
-                .map_err(peg_error)?
-                .tx_id)
+            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Bitcoin)))?;
+            Ok(wallet.send_onchain(&request).await.map_err(peg_error)?.tx_id)
         }
     }
 
@@ -277,20 +227,13 @@ impl<P: Platform> PegWallet for WalletPegPort<P> {
     ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
         async move {
             let PegFunding::Liquid(draft) = quote.handle else {
-                return Err(PegError::WalletFailure(
-                    "expected a Liquid funding handle".into(),
-                ));
+                return Err(PegError::WalletFailure("expected a Liquid funding handle".into()));
             };
             let inner = self.inner()?;
             let mnemonic = mnemonic(&inner).await.map_err(peg_error)?;
             let mut guard = inner.liquid.lock().await;
-            let wallet = guard
-                .as_mut()
-                .ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
-            wallet
-                .sign_and_broadcast_pset(&draft.pset, &mnemonic)
-                .await
-                .map_err(peg_error)
+            let wallet = guard.as_mut().ok_or_else(|| peg_error(not_connected(ChainId::Liquid)))?;
+            wallet.sign_and_broadcast_pset(&draft.pset, &mnemonic).await.map_err(peg_error)
         }
     }
 }
@@ -350,20 +293,13 @@ pub(crate) struct SideSwapState<P: Platform> {
 
 impl<P: Platform> Default for SideSwapState<P> {
     fn default() -> Self {
-        Self {
-            session: Mutex::new(None),
-            pegs: Mutex::new(PegTracker::default()),
-            driver: StdMutex::new(None),
-        }
+        Self { session: Mutex::new(None), pegs: Mutex::new(PegTracker::default()), driver: StdMutex::new(None) }
     }
 }
 
 impl<P: Platform> SideSwapState<P> {
     fn driver(&self) -> Option<Arc<DriverCtl>> {
-        self.driver
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+        self.driver.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     /// Locks the session for a command. Wakes the driver first, so it
@@ -396,12 +332,7 @@ impl<P: Platform> SideSwapState<P> {
         emit: Emit,
     ) {
         let ctl = Arc::new(DriverCtl::default());
-        if let Some(old) = self
-            .driver
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .replace(ctl.clone())
-        {
+        if let Some(old) = self.driver.lock().unwrap_or_else(|e| e.into_inner()).replace(ctl.clone()) {
             old.cancel();
         }
         let state = self.clone();
@@ -450,11 +381,8 @@ async fn drive<P: Platform>(
             match guard.as_mut() {
                 None => Step::Idle,
                 Some(swap) => {
-                    let mut ready: Vec<SideSwapEventDto> = swap
-                        .drain_quotes()
-                        .into_iter()
-                        .map(|q| sideswap_quote_event(QuoteDto::from(&q)))
-                        .collect();
+                    let mut ready: Vec<SideSwapEventDto> =
+                        swap.drain_quotes().into_iter().map(|q| sideswap_quote_event(QuoteDto::from(&q))).collect();
                     if let Some(t) = swap.poll_quote_timeout(clock.now_ms()) {
                         ready.push(sideswap_quote_event(QuoteDto::from(&t)));
                     }
@@ -506,14 +434,12 @@ async fn drive<P: Platform>(
             Step::Note(Ok(n)) => {
                 attempt = 0;
                 let event = match n {
-                    Notification::PegInWalletBalance(sat) => Some(sideswap_balance_event(
-                        SideSwapEventKind::PegInWalletBalance,
-                        sat,
-                    )),
-                    Notification::PegOutWalletBalance(sat) => Some(sideswap_balance_event(
-                        SideSwapEventKind::PegOutWalletBalance,
-                        sat,
-                    )),
+                    Notification::PegInWalletBalance(sat) => {
+                        Some(sideswap_balance_event(SideSwapEventKind::PegInWalletBalance, sat))
+                    }
+                    Notification::PegOutWalletBalance(sat) => {
+                        Some(sideswap_balance_event(SideSwapEventKind::PegOutWalletBalance, sat))
+                    }
                     _ => None,
                 };
                 if let Some(e) = event {

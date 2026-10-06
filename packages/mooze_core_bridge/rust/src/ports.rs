@@ -16,9 +16,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use mooze_app::Platform;
-use mooze_core::ports::{
-    BlockingSpawner, Clock, KvStore, MaybeSend, ReqwestHttpClient, Spawner, TaskFuture, Timer,
-};
+use mooze_core::ports::{BlockingSpawner, Clock, KvStore, MaybeSend, ReqwestHttpClient, Spawner, TaskFuture, Timer};
 use mooze_core::{Error, Result};
 
 use crate::api::types::{CoreError, CoreErrorKind};
@@ -49,10 +47,7 @@ where
     runtime()
         .spawn(fut)
         .await
-        .map_err(|e| CoreError {
-            kind: CoreErrorKind::Other,
-            message: format!("core task failed: {e}"),
-        })?
+        .map_err(|e| CoreError { kind: CoreErrorKind::Other, message: format!("core task failed: {e}") })?
         .map_err(Into::into)
 }
 
@@ -154,10 +149,7 @@ pub struct SystemClock;
 
 impl Clock for SystemClock {
     fn now_ms(&self) -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0)
+        SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
     }
 }
 
@@ -181,8 +173,7 @@ impl FileKv {
     /// Store in `dir`. Creates the directory if needed.
     pub fn open(dir: impl Into<PathBuf>) -> Result<Self> {
         let dir = dir.into();
-        std::fs::create_dir_all(&dir)
-            .map_err(|e| Error::storage(format!("create {}: {e}", dir.display())))?;
+        std::fs::create_dir_all(&dir).map_err(|e| Error::storage(format!("create {}: {e}", dir.display())))?;
         Ok(Self { dir: Arc::new(dir) })
     }
 
@@ -194,10 +185,7 @@ impl FileKv {
     fn path(&self, key: &str) -> Result<PathBuf> {
         let name = encode_key(key);
         if name.is_empty() || name.len() > MAX_FILE_NAME - TMP_SUFFIX.len() {
-            return Err(Error::storage(format!(
-                "key length {} not supported",
-                key.len()
-            )));
+            return Err(Error::storage(format!("key length {} not supported", key.len())));
         }
         Ok(self.dir.join(name))
     }
@@ -233,8 +221,7 @@ impl FileKv {
     }
 
     fn list_sync(&self, prefix: &str) -> Result<Vec<String>> {
-        let entries = std::fs::read_dir(self.dir.as_ref())
-            .map_err(|e| Error::storage(format!("list: {e}")))?;
+        let entries = std::fs::read_dir(self.dir.as_ref()).map_err(|e| Error::storage(format!("list: {e}")))?;
         let mut keys = Vec::new();
         for entry in entries {
             let entry = entry.map_err(|e| Error::storage(format!("list: {e}")))?;
@@ -330,15 +317,7 @@ mod tests {
 
     #[test]
     fn key_encoding_roundtrip() {
-        for key in [
-            "tx/liquid/abc",
-            "prefs/favorite_assets",
-            "a b%c",
-            "ç/ü",
-            ".",
-            "..",
-            "mnemonic_mainWallet",
-        ] {
+        for key in ["tx/liquid/abc", "prefs/favorite_assets", "a b%c", "ç/ü", ".", "..", "mnemonic_mainWallet"] {
             let name = encode_key(key);
             assert!(!name.contains('/'), "{name}");
             assert_eq!(decode_key(&name).as_deref(), Some(key));
@@ -373,9 +352,7 @@ mod tests {
 
     #[test]
     fn spawner_runs_blocking_work() {
-        let v = runtime()
-            .block_on(mooze_core::ports::run_blocking(&TokioSpawner, || 40 + 2))
-            .unwrap();
+        let v = runtime().block_on(mooze_core::ports::run_blocking(&TokioSpawner, || 40 + 2)).unwrap();
         assert_eq!(v, 42);
     }
 
@@ -388,14 +365,8 @@ mod tests {
         let mut sleep = TokioTimer.sleep(0);
         let waker = futures::task::noop_waker();
         let mut cx = std::task::Context::from_waker(&waker);
-        assert!(
-            sleep.as_mut().poll(&mut cx).is_pending(),
-            "sleep(0) must yield once"
-        );
-        assert!(
-            sleep.as_mut().poll(&mut cx).is_ready(),
-            "sleep(0) must complete after the yield"
-        );
+        assert!(sleep.as_mut().poll(&mut cx).is_pending(), "sleep(0) must yield once");
+        assert!(sleep.as_mut().poll(&mut cx).is_ready(), "sleep(0) must complete after the yield");
     }
 
     #[test]

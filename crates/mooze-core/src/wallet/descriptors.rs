@@ -92,8 +92,8 @@ fn bitcoin_descriptor(root: &Xpriv, path: &str) -> Result<String> {
 /// Builds the BDK receive and change descriptors for a mnemonic.
 pub fn bitcoin_descriptors(phrase: &str, network: AppNetwork) -> Result<BitcoinDescriptors> {
     let seed = mnemonic::to_seed(phrase)?;
-    let root = Xpriv::new_master(bitcoin_network_kind(network), &seed)
-        .map_err(|e| Error::service(ChainId::Bitcoin, e))?;
+    let root =
+        Xpriv::new_master(bitcoin_network_kind(network), &seed).map_err(|e| Error::service(ChainId::Bitcoin, e))?;
     Ok(BitcoinDescriptors {
         external: bitcoin_descriptor(&root, BITCOIN_EXTERNAL_PATH)?,
         internal: bitcoin_descriptor(&root, BITCOIN_INTERNAL_PATH)?,
@@ -130,10 +130,7 @@ mod tests {
 
     fn btc_wallet(network: AppNetwork) -> Wallet {
         let d = bitcoin_descriptors(ABANDON, network).unwrap();
-        Wallet::create(d.external, d.internal)
-            .network(bitcoin_network(network))
-            .create_wallet_no_persist()
-            .unwrap()
+        Wallet::create(d.external, d.internal).network(bitcoin_network(network)).create_wallet_no_persist().unwrap()
     }
 
     #[test]

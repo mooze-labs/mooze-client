@@ -2,9 +2,7 @@
 
 use std::sync::Arc;
 
-use mooze_core::ports::{
-    BlockingSpawner, Clock, HttpClient, KvStore, SecureStore, Spawner, Timer, WsConnector,
-};
+use mooze_core::ports::{BlockingSpawner, Clock, HttpClient, KvStore, SecureStore, Spawner, Timer, WsConnector};
 use mooze_core::{MaybeSend, MaybeSync};
 
 /// Port implementations of one host. Each accessor returns a cheap clone.

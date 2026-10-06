@@ -274,13 +274,7 @@ impl<K: KvStore, T: Clock, A: SwapAudit> PegStore for KvPegStore<K, T, A> {
 
 impl<K: KvStore, T: Clock, A: SwapAudit> PegRecoverySource for KvPegStore<K, T, A> {
     async fn load_active_pegs(&self) -> Result<Vec<TrackedPeg>> {
-        Ok(self
-            .list()
-            .await?
-            .iter()
-            .filter(|r| r.status == PEG_STATUS_PENDING)
-            .map(PegRecord::to_tracked)
-            .collect())
+        Ok(self.list().await?.iter().filter(|r| r.status == PEG_STATUS_PENDING).map(PegRecord::to_tracked).collect())
     }
 }
 

@@ -80,14 +80,7 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncLoop<S, K, C> {
         cancel: Arc<Cancel>,
         emit: EmitRefresh,
     ) -> Self {
-        Self {
-            orchestrator,
-            timer,
-            clock,
-            cancel,
-            emit,
-            refresh_requested: Arc::default(),
-        }
+        Self { orchestrator, timer, clock, cancel, emit, refresh_requested: Arc::default() }
     }
 
     /// Handle that asks the loop for an extra light refresh at its next wake.
@@ -109,11 +102,7 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncLoop<S, K, C> {
         }
         while !self.cancel.is_cancelled() {
             let now = self.clock.now_ms();
-            let wait = self
-                .orchestrator
-                .next_tick_at_ms()
-                .map(|t| t.saturating_sub(now))
-                .unwrap_or(60_000);
+            let wait = self.orchestrator.next_tick_at_ms().map(|t| t.saturating_sub(now)).unwrap_or(60_000);
             if self.cancel.sleep_or_cancel(self.timer.as_ref(), wait).await {
                 break;
             }
@@ -137,9 +126,7 @@ impl<S: ChainSyncer, K: KvStore, C: Clock> SyncLoop<S, K, C> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mooze_core::domain::{
-        ChainId, ServiceLifecycle, SyncOutcome, Transaction, WalletCredentials,
-    };
+    use mooze_core::domain::{ChainId, ServiceLifecycle, SyncOutcome, Transaction, WalletCredentials};
     use mooze_core::ports::{Spawner, Timer};
     use mooze_core::store::TransactionStore;
     use mooze_core::sync::{ChainSyncer, SyncConfig, SyncOrchestrator};
@@ -165,10 +152,7 @@ mod tests {
         fn lifecycle(&self) -> ServiceLifecycle {
             ServiceLifecycle::Connected
         }
-        fn sync(
-            &self,
-            timeout_ms: u64,
-        ) -> impl Future<Output = mooze_core::Result<SyncOutcome>> + Send {
+        fn sync(&self, timeout_ms: u64) -> impl Future<Output = mooze_core::Result<SyncOutcome>> + Send {
             let this = self.clone();
             async move {
                 this.calls.fetch_add(1, Ordering::SeqCst);
@@ -177,23 +161,13 @@ mod tests {
                     this.timer.sleep(timeout_ms).await;
                     return Err(mooze_core::Error::Timeout("hung".into()));
                 }
-                Ok(SyncOutcome {
-                    chain: this.chain,
-                    fetched: 1,
-                    changed: 0,
-                    duration_ms: 1,
-                })
+                Ok(SyncOutcome { chain: this.chain, fetched: 1, changed: 0, duration_ms: 1 })
             }
         }
-        fn transactions(
-            &self,
-        ) -> impl Future<Output = mooze_core::Result<Vec<Transaction>>> + Send {
+        fn transactions(&self) -> impl Future<Output = mooze_core::Result<Vec<Transaction>>> + Send {
             async { Ok(vec![]) }
         }
-        fn connect(
-            &self,
-            _c: &WalletCredentials,
-        ) -> impl Future<Output = mooze_core::Result<()>> + Send {
+        fn connect(&self, _c: &WalletCredentials) -> impl Future<Output = mooze_core::Result<()>> + Send {
             async { Ok(()) }
         }
         fn disconnect(&self) -> impl Future<Output = mooze_core::Result<()>> + Send {
@@ -219,12 +193,7 @@ mod tests {
         let liquid = Arc::new(AtomicU32::new(0));
         let bitcoin = Arc::new(AtomicU32::new(0));
         let syncers = vec![
-            FakeSyncer {
-                chain: ChainId::Liquid,
-                calls: liquid.clone(),
-                hang: Arc::default(),
-                timer: timer.clone(),
-            },
+            FakeSyncer { chain: ChainId::Liquid, calls: liquid.clone(), hang: Arc::default(), timer: timer.clone() },
             FakeSyncer {
                 chain: ChainId::Bitcoin,
                 calls: bitcoin.clone(),
@@ -238,34 +207,15 @@ mod tests {
             bitcoin_timeout_ms: 10_000,
             startup_sync_on_boot: true,
         };
-        let orchestrator = SyncOrchestrator::new(
-            syncers,
-            TransactionStore::new(MemoryKv::new()),
-            config,
-            clock.clone(),
-        );
+        let orchestrator =
+            SyncOrchestrator::new(syncers, TransactionStore::new(MemoryKv::new()), config, clock.clone());
         let states = Arc::new(Mutex::new(vec![]));
         let s = states.clone();
-        let emit: EmitRefresh =
-            Arc::new(move |_report: RefreshReport, state: SyncState| s.lock().unwrap().push(state));
-        let lp = SyncLoop::new(
-            orchestrator,
-            timer.clone(),
-            clock.clone(),
-            cancel.clone(),
-            emit,
-        );
+        let emit: EmitRefresh = Arc::new(move |_report: RefreshReport, state: SyncState| s.lock().unwrap().push(state));
+        let lp = SyncLoop::new(orchestrator, timer.clone(), clock.clone(), cancel.clone(), emit);
         spawner.spawn(Box::pin(lp.run()));
         exec.run_until_stalled();
-        Rig {
-            timer,
-            clock,
-            cancel,
-            liquid,
-            bitcoin,
-            states,
-            exec,
-        }
+        Rig { timer, clock, cancel, liquid, bitcoin, states, exec }
     }
 
     fn pass(rig: &mut Rig, ms: u64) {
@@ -277,23 +227,13 @@ mod tests {
     #[test]
     fn startup_refresh_then_ticks_every_period() {
         let mut rig = setup(false);
-        assert_eq!(
-            (
-                rig.liquid.load(Ordering::SeqCst),
-                rig.bitcoin.load(Ordering::SeqCst)
-            ),
-            (1, 1)
-        );
+        assert_eq!((rig.liquid.load(Ordering::SeqCst), rig.bitcoin.load(Ordering::SeqCst)), (1, 1));
         pass(&mut rig, 60_000);
         assert_eq!(rig.liquid.load(Ordering::SeqCst), 2);
         rig.cancel.cancel();
         rig.exec.run_until_stalled();
         pass(&mut rig, 60_000);
-        assert_eq!(
-            rig.liquid.load(Ordering::SeqCst),
-            2,
-            "no refresh after cancel"
-        );
+        assert_eq!(rig.liquid.load(Ordering::SeqCst), 2, "no refresh after cancel");
     }
 
     #[test]
@@ -304,11 +244,7 @@ mod tests {
         rig.cancel.cancel();
         rig.exec.run_until_stalled();
         pass(&mut rig, 10_000);
-        assert_eq!(
-            rig.states.lock().unwrap().len(),
-            before,
-            "a cancelled loop reports nothing more"
-        );
+        assert_eq!(rig.states.lock().unwrap().len(), before, "a cancelled loop reports nothing more");
     }
 
     #[test]
@@ -323,10 +259,6 @@ mod tests {
         // The periodic tick anchors after the startup refresh finished (t = 10 s),
         // like Dart's Timer.periodic, so the next refresh is due at t = 70 s.
         pass(&mut rig, 60_000);
-        assert_eq!(
-            rig.bitcoin.load(Ordering::SeqCst),
-            2,
-            "next tick still runs"
-        );
+        assert_eq!(rig.bitcoin.load(Ordering::SeqCst), 2, "next tick still runs");
     }
 }

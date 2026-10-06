@@ -3,9 +3,7 @@
 
 use mooze_core::peg::entities::PegServerLimits;
 use mooze_core::peg::{evaluate_peg_amount, PegAmountIssue};
-use mooze_core::pix::rules::{
-    self, DepositLimits, DepositValidationError, DEPOSIT_POLL_INTERVAL_MS,
-};
+use mooze_core::pix::rules::{self, DepositLimits, DepositValidationError, DEPOSIT_POLL_INTERVAL_MS};
 use mooze_core::pix::tax_id::{self, CpfValidationError};
 use mooze_core::sideswap::protocol::SIDESWAP_API_URL;
 
@@ -33,14 +31,9 @@ pub fn pix_fee(amount_brl: f64, has_referral: bool, quote_brl: Option<f64>) -> P
 
 /// Validates a deposit amount in BRL. Pass `None` while the limits load:
 /// every positive amount is then valid, as in Dart.
-pub fn pix_validate_amount(
-    amount_brl: f64,
-    limits: Option<DepositLimitsDto>,
-) -> DepositValidationDto {
-    let limits = limits.map(|l| DepositLimits {
-        absolute_min_limit: l.absolute_min_limit,
-        allowed_spending: l.allowed_spending,
-    });
+pub fn pix_validate_amount(amount_brl: f64, limits: Option<DepositLimitsDto>) -> DepositValidationDto {
+    let limits = limits
+        .map(|l| DepositLimits { absolute_min_limit: l.absolute_min_limit, allowed_spending: l.allowed_spending });
     let v = rules::validate_deposit_amount(amount_brl, limits.as_ref());
     DepositValidationDto {
         is_valid: v.is_valid(),
@@ -103,14 +96,8 @@ pub fn peg_validate_amount(
     drain: bool,
 ) -> PegAmountValidationDto {
     let limits = limits.map(PegServerLimits::from);
-    let v = evaluate_peg_amount(
-        direction.into(),
-        amount_sat,
-        spendable_sat,
-        limits.as_ref(),
-        fallback_minimum_sats,
-        drain,
-    );
+    let v =
+        evaluate_peg_amount(direction.into(), amount_sat, spendable_sat, limits.as_ref(), fallback_minimum_sats, drain);
     PegAmountValidationDto {
         has_amount: v.has_amount,
         is_valid: v.is_valid,
@@ -141,9 +128,7 @@ mod tests {
         assert_eq!(tax_id_format("52998224725".into()), "529.982.247-25");
         assert_eq!(tax_id_mask_input("5299822472512345678".into()).len(), 18);
         assert_eq!(pix_poll_interval_ms(), 30_000);
-        assert!(pix_fee(100.0, false, Some(5.0))
-            .estimated_asset_units
-            .is_some());
+        assert!(pix_fee(100.0, false, Some(5.0)).estimated_asset_units.is_some());
         assert!(!pix_validate_amount(0.0, None).is_valid);
         assert!(sideswap_default_url().starts_with("wss://"));
     }

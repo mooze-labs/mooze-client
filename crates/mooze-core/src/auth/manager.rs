@@ -59,9 +59,13 @@ pub enum EnsureOutcome {
 
 /// Builds the `POST /auth/challenge` request.
 pub fn challenge_request(base_url: &str, public_key_b64: &str) -> Result<HttpRequest> {
-    Ok(HttpRequest::json(HttpMethod::Post, join_url(base_url, "/auth/challenge"), &json!({"public_key": public_key_b64}))?
-        .header("Accept", "application/json")
-        .timeout_ms(AUTH_TIMEOUT_MS))
+    Ok(HttpRequest::json(
+        HttpMethod::Post,
+        join_url(base_url, "/auth/challenge"),
+        &json!({"public_key": public_key_b64}),
+    )?
+    .header("Accept", "application/json")
+    .timeout_ms(AUTH_TIMEOUT_MS))
 }
 
 /// Builds the `POST /auth/sign` request.
@@ -77,8 +81,12 @@ pub fn sign_request(base_url: &str, challenge_id: &str, signature_b64: &str) -> 
 
 /// Builds the `POST /auth/refresh` request.
 pub fn refresh_request(base_url: &str, refresh_token: &str) -> Result<HttpRequest> {
-    Ok(HttpRequest::json(HttpMethod::Post, join_url(base_url, "/auth/refresh"), &json!({"refresh_token": refresh_token}))?
-        .timeout_ms(AUTH_TIMEOUT_MS))
+    Ok(HttpRequest::json(
+        HttpMethod::Post,
+        join_url(base_url, "/auth/refresh"),
+        &json!({"refresh_token": refresh_token}),
+    )?
+    .timeout_ms(AUTH_TIMEOUT_MS))
 }
 
 /// Owns the API session: read, refresh, create, persist.
@@ -96,7 +104,13 @@ pub struct SessionManager<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeS
 
 impl<H: HttpClient, S: SecureStore, C: Clock> SessionManager<H, S, C, AuthKeyPair> {
     /// Manager for the wallet credentials. Absent mnemonic means no signer.
-    pub fn for_credentials(http: H, store: S, clock: C, base_url: &str, credentials: &WalletCredentials) -> Result<Self> {
+    pub fn for_credentials(
+        http: H,
+        store: S,
+        clock: C,
+        base_url: &str,
+        credentials: &WalletCredentials,
+    ) -> Result<Self> {
         let signer = if credentials.is_absent() { None } else { Some(AuthKeyPair::from_seed(&credentials.mnemonic)?) };
         Ok(Self::new(http, store, clock, base_url, signer))
     }
@@ -357,7 +371,11 @@ mod tests {
         test_jwt(&json!({"exp": exp_s, "sub": "user"}))
     }
 
-    fn manager(http: &MockHttp, kv: &MemoryKv, clock: Arc<FixedClock>) -> SessionManager<MockHttp, MemoryKv, Arc<FixedClock>> {
+    fn manager(
+        http: &MockHttp,
+        kv: &MemoryKv,
+        clock: Arc<FixedClock>,
+    ) -> SessionManager<MockHttp, MemoryKv, Arc<FixedClock>> {
         let creds = WalletCredentials { mnemonic: MNEMONIC.into(), network: AppNetwork::Mainnet };
         SessionManager::for_credentials(http.clone(), kv.clone(), clock, BASE, &creds).unwrap()
     }
@@ -434,7 +452,10 @@ mod tests {
         let s = block_on(m.get_session()).unwrap();
         assert_eq!(s, Session::new(refreshed.clone(), "rt-old"));
         let req = http.last_request().unwrap();
-        assert_eq!(serde_json::from_slice::<Value>(req.body.as_ref().unwrap()).unwrap(), json!({"refresh_token": "rt-old"}));
+        assert_eq!(
+            serde_json::from_slice::<Value>(req.body.as_ref().unwrap()).unwrap(),
+            json!({"refresh_token": "rt-old"})
+        );
         assert_eq!(req.timeout_ms, Some(AUTH_TIMEOUT_MS));
         assert_eq!(block_on(stored(&kv)).0, Some(refreshed));
     }

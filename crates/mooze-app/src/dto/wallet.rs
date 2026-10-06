@@ -205,9 +205,7 @@ impl From<&d::TransactionEvent> for TransactionEventDto {
             kind: match e.kind {
                 d::TransactionEventKind::Created => TransactionEventKindDto::Created,
                 d::TransactionEventKind::StatusChanged => TransactionEventKindDto::StatusChanged,
-                d::TransactionEventKind::ConfirmationsChanged => {
-                    TransactionEventKindDto::ConfirmationsChanged
-                }
+                d::TransactionEventKind::ConfirmationsChanged => TransactionEventKindDto::ConfirmationsChanged,
             },
             transaction: (&e.transaction).into(),
             observed_at_ms: e.observed_at_ms,
@@ -269,12 +267,7 @@ pub struct SyncOutcomeDto {
 
 impl From<&d::SyncOutcome> for SyncOutcomeDto {
     fn from(o: &d::SyncOutcome) -> Self {
-        Self {
-            chain: o.chain.into(),
-            fetched: o.fetched as u32,
-            changed: o.changed as u32,
-            duration_ms: o.duration_ms,
-        }
+        Self { chain: o.chain.into(), fetched: o.fetched as u32, changed: o.changed as u32, duration_ms: o.duration_ms }
     }
 }
 
@@ -531,10 +524,7 @@ pub struct AddressOwnershipDto {
 
 impl From<w::AddressOwnership> for AddressOwnershipDto {
     fn from(o: w::AddressOwnership) -> Self {
-        Self {
-            keychain: o.keychain.into(),
-            index: o.index,
-        }
+        Self { keychain: o.keychain.into(), index: o.index }
     }
 }
 
@@ -551,11 +541,7 @@ pub struct NextUnusedAddressDto {
 
 impl From<&w::NextUnusedAddress> for NextUnusedAddressDto {
     fn from(n: &w::NextUnusedAddress) -> Self {
-        Self {
-            index: n.index,
-            address: n.address.clone(),
-            used: n.used,
-        }
+        Self { index: n.index, address: n.address.clone(), used: n.used }
     }
 }
 
@@ -589,22 +575,11 @@ impl From<MigrationReport> for MigrationReportDto {
     fn from(r: MigrationReport) -> Self {
         Self {
             already_done: r.already_done,
-            copied: r
-                .copied
-                .into_iter()
-                .map(|(table, count)| TableCountDto {
-                    table,
-                    count: count as u32,
-                })
-                .collect(),
+            copied: r.copied.into_iter().map(|(table, count)| TableCountDto { table, count: count as u32 }).collect(),
             skipped: r
                 .skipped
                 .into_iter()
-                .map(|s| SkippedRowDto {
-                    table: s.table,
-                    key: s.key,
-                    reason: s.reason,
-                })
+                .map(|s| SkippedRowDto { table: s.table, key: s.key, reason: s.reason })
                 .collect(),
         }
     }
@@ -640,26 +615,10 @@ impl From<mooze_core::auth::EnsureOutcome> for AuthEnsureDto {
     fn from(o: mooze_core::auth::EnsureOutcome) -> Self {
         use mooze_core::auth::EnsureOutcome as O;
         match o {
-            O::Ready => Self {
-                kind: AuthEnsureKind::Ready,
-                status_code: None,
-                message: None,
-            },
-            O::MissingMnemonic => Self {
-                kind: AuthEnsureKind::MissingMnemonic,
-                status_code: None,
-                message: None,
-            },
-            O::ApiDown { status_code } => Self {
-                kind: AuthEnsureKind::ApiDown,
-                status_code,
-                message: None,
-            },
-            O::Failed { message } => Self {
-                kind: AuthEnsureKind::Failed,
-                status_code: None,
-                message: Some(message),
-            },
+            O::Ready => Self { kind: AuthEnsureKind::Ready, status_code: None, message: None },
+            O::MissingMnemonic => Self { kind: AuthEnsureKind::MissingMnemonic, status_code: None, message: None },
+            O::ApiDown { status_code } => Self { kind: AuthEnsureKind::ApiDown, status_code, message: None },
+            O::Failed { message } => Self { kind: AuthEnsureKind::Failed, status_code: None, message: Some(message) },
         }
     }
 }

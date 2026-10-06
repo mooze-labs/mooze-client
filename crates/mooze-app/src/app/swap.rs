@@ -38,9 +38,7 @@ fn peg_app_error(e: PegError) -> AppError {
         PegError::TransportFailure(_) => ErrorCode::Network,
         PegError::UnknownOutcome { .. } => ErrorCode::Timeout,
         PegError::WalletBusy(_) => ErrorCode::InvalidState,
-        PegError::ProviderRejected(_) | PegError::OrderNotFound(_) | PegError::WalletFailure(_) => {
-            ErrorCode::Service
-        }
+        PegError::ProviderRejected(_) | PegError::OrderNotFound(_) | PegError::WalletFailure(_) => ErrorCode::Service,
     };
     AppError::new(code, e.message())
 }
@@ -76,13 +74,7 @@ impl<P: Platform> App<P> {
 
     /// True while the socket is open.
     pub async fn sideswap_is_connected(&self) -> Result<bool> {
-        Ok(self
-            .inner
-            .sideswap
-            .lock()
-            .await
-            .as_mut()
-            .is_some_and(|s| s.client_mut().is_connected()))
+        Ok(self.inner.sideswap.lock().await.as_mut().is_some_and(|s| s.client_mut().is_connected()))
     }
 
     /// Starts the event driver: server pushes become `AppEvent::SideSwap`
@@ -92,16 +84,10 @@ impl<P: Platform> App<P> {
         let inner = &self.inner;
         let weak = Arc::downgrade(inner);
         let emit: Emit = Arc::new(move |event: SideSwapEventDto| {
-            weak.upgrade()
-                .is_some_and(|inner| inner.subscribers.emit(AppEvent::SideSwap(event)) > 0)
+            weak.upgrade().is_some_and(|inner| inner.subscribers.emit(AppEvent::SideSwap(event)) > 0)
         });
         let clock: Arc<dyn mooze_core::ports::Clock> = Arc::new(inner.platform.clock());
-        inner.sideswap.start_driver(
-            inner.platform.spawner().as_ref(),
-            inner.platform.timer(),
-            clock,
-            emit,
-        );
+        inner.sideswap.start_driver(inner.platform.spawner().as_ref(), inner.platform.timer(), clock, emit);
         Ok(())
     }
 
@@ -118,17 +104,13 @@ impl<P: Platform> App<P> {
 
     /// SideSwap markets.
     pub async fn sideswap_markets(&self) -> Result<Vec<SideswapMarketDto>> {
-        let list = session(&mut *self.inner.sideswap.lock().await)?
-            .get_markets()
-            .await?;
+        let list = session(&mut *self.inner.sideswap.lock().await)?.get_markets().await?;
         Ok(list.iter().map(Into::into).collect())
     }
 
     /// SideSwap assets.
     pub async fn sideswap_assets(&self) -> Result<Vec<SideswapAssetDto>> {
-        let list = session(&mut *self.inner.sideswap.lock().await)?
-            .get_assets()
-            .await?;
+        let list = session(&mut *self.inner.sideswap.lock().await)?.get_assets().await?;
         Ok(list.iter().map(Into::into).collect())
     }
 
@@ -143,9 +125,7 @@ impl<P: Platform> App<P> {
     ) -> Result<StartQuoteDto> {
         let now = self.inner.platform.clock().now_ms();
         let mut guard = self.inner.sideswap.lock().await;
-        let outcome = session(&mut guard)?
-            .start_quote(&send_asset_id, &receive_asset_id, amount, now)
-            .await?;
+        let outcome = session(&mut guard)?.start_quote(&send_asset_id, &receive_asset_id, amount, now).await?;
         Ok(match outcome {
             StartQuoteOutcome::Started(intent) => StartQuoteDto {
                 started: true,
@@ -153,12 +133,9 @@ impl<P: Platform> App<P> {
                 base_asset_id: Some(intent.params.base_asset),
                 quote_asset_id: Some(intent.params.quote_asset),
             },
-            StartQuoteOutcome::AlreadyInProgress => StartQuoteDto {
-                started: false,
-                quote_sub_id: None,
-                base_asset_id: None,
-                quote_asset_id: None,
-            },
+            StartQuoteOutcome::AlreadyInProgress => {
+                StartQuoteDto { started: false, quote_sub_id: None, base_asset_id: None, quote_asset_id: None }
+            }
         })
     }
 
@@ -173,9 +150,7 @@ impl<P: Platform> App<P> {
     /// Accepts a quote: stops quotes, fetches the PSET, signs it with the
     /// Liquid wallet and the stored mnemonic, submits it. Returns the txid.
     pub async fn sideswap_execute_swap(&self, quote_id: u64) -> Result<String> {
-        Ok(session(&mut *self.inner.sideswap.lock().await)?
-            .execute_swap(quote_id)
-            .await?)
+        Ok(session(&mut *self.inner.sideswap.lock().await)?.execute_swap(quote_id).await?)
     }
 
     // ───────────────────────────── pegs
@@ -200,9 +175,7 @@ impl<P: Platform> App<P> {
         let mut guard = inner.sideswap.lock().await;
         let client = session(&mut guard)?.client_mut();
         let mut orchestrator = PegOrchestrator::new(client, WalletPegPort::new(inner), store);
-        let r = orchestrator
-            .quote(direction.into(), amount_sat, fee_rate_sat_per_vbyte, drain)
-            .await;
+        let r = orchestrator.quote(direction.into(), amount_sat, fee_rate_sat_per_vbyte, drain).await;
         r.map(Into::into).map_err(peg_app_error)
     }
 
@@ -224,43 +197,22 @@ impl<P: Platform> App<P> {
         let client = session(&mut guard)?.client_mut();
         let mut orchestrator = PegOrchestrator::new(client, WalletPegPort::new(inner), store);
         let executed = orchestrator
-            .execute(
-                direction.into(),
-                amount_sat,
-                fee_rate_sat_per_vbyte,
-                drain,
-                external_payout_address.as_deref(),
-            )
+            .execute(direction.into(), amount_sat, fee_rate_sat_per_vbyte, drain, external_payout_address.as_deref())
             .await;
         if let Ok(ex) = &executed {
             let store = peg_store(inner, &wallet_id);
             if let Ok(Some(rec)) = store.get(&ex.order.order_id).await {
-                inner
-                    .sideswap
-                    .pegs
-                    .lock()
-                    .await
-                    .track(rec.to_tracked(), inner.platform.clock().now_ms());
+                inner.sideswap.pegs.lock().await.track(rec.to_tracked(), inner.platform.clock().now_ms());
             }
         }
         let ex = executed.map_err(peg_app_error)?;
-        Ok(PegExecutionDto {
-            order: (&ex.order).into(),
-            funding_tx_id: ex.funding_tx_id,
-        })
+        Ok(PegExecutionDto { order: (&ex.order).into(), funding_tx_id: ex.funding_tx_id })
     }
 
     /// One-shot status of an order.
-    pub async fn peg_status(
-        &self,
-        direction: PegDirectionDto,
-        order_id: String,
-    ) -> Result<PegProgressDto> {
+    pub async fn peg_status(&self, direction: PegDirectionDto, order_id: String) -> Result<PegProgressDto> {
         let mut guard = self.inner.sideswap.lock().await;
-        let r = session(&mut guard)?
-            .client_mut()
-            .get_status(direction.into(), &order_id)
-            .await;
+        let r = session(&mut guard)?.client_mut().get_status(direction.into(), &order_id).await;
         r.map(|p| (&p).into()).map_err(peg_app_error)
     }
 
@@ -275,24 +227,13 @@ impl<P: Platform> App<P> {
     pub async fn peg_restore(&self, wallet_id: String) -> Result<Vec<TrackedPegDto>> {
         let store = peg_store(&self.inner, &wallet_id);
         let mut tracker = self.inner.sideswap.pegs.lock().await;
-        tracker
-            .restore_from(&store, self.inner.platform.clock().now_ms())
-            .await?;
+        tracker.restore_from(&store, self.inner.platform.clock().now_ms()).await?;
         Ok(tracker.current().iter().map(TrackedPegDto::from).collect())
     }
 
     /// Every tracked peg.
     pub async fn peg_tracked(&self) -> Result<Vec<TrackedPegDto>> {
-        Ok(self
-            .inner
-            .sideswap
-            .pegs
-            .lock()
-            .await
-            .current()
-            .iter()
-            .map(Into::into)
-            .collect())
+        Ok(self.inner.sideswap.pegs.lock().await.current().iter().map(Into::into).collect())
     }
 
     /// Stops tracking `order_id`. Storage is unchanged.
@@ -313,14 +254,7 @@ impl<P: Platform> App<P> {
         let mut changed = Vec::new();
         let mut finished = Vec::new();
         for order_id in tracker.due(inner.platform.clock().now_ms()) {
-            let update = tracker
-                .refresh(
-                    swap.client_mut(),
-                    &store,
-                    &order_id,
-                    inner.platform.clock().now_ms(),
-                )
-                .await;
+            let update = tracker.refresh(swap.client_mut(), &store, &order_id, inner.platform.clock().now_ms()).await;
             if update.changed {
                 changed.push(order_id);
             }
@@ -411,16 +345,11 @@ mod tests {
         app.subscribe(Box::new(Collect(got.clone())));
         block_on(app.sideswap_start_events()).unwrap();
         exec.run_until_stalled();
-        assert!(
-            sideswap_kinds(&got.lock().unwrap()).contains(&SideSwapEventKind::PegInWalletBalance)
-        );
+        assert!(sideswap_kinds(&got.lock().unwrap()).contains(&SideSwapEventKind::PegInWalletBalance));
 
         block_on(app.sideswap_stop_events()).unwrap();
         exec.run_until_stalled();
-        assert_eq!(
-            sideswap_kinds(&got.lock().unwrap()).last(),
-            Some(&SideSwapEventKind::Closed)
-        );
+        assert_eq!(sideswap_kinds(&got.lock().unwrap()).last(), Some(&SideSwapEventKind::Closed));
         assert!(!block_on(app.sideswap_events_running()).unwrap());
     }
 
@@ -446,10 +375,7 @@ mod tests {
         );
         block_on(app.sideswap_stop_events()).unwrap();
         exec.run_until_stalled();
-        let closed = sideswap_kinds(&got.lock().unwrap())
-            .iter()
-            .filter(|k| **k == SideSwapEventKind::Closed)
-            .count();
+        let closed = sideswap_kinds(&got.lock().unwrap()).iter().filter(|k| **k == SideSwapEventKind::Closed).count();
         assert_eq!(closed, 1);
     }
 

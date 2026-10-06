@@ -70,7 +70,13 @@ pub fn group_digits(digits: &str, sep: char) -> String {
 /// NOTE: The output never switches to exponent form, also for large values.
 pub fn to_fixed(value: f64, digits: usize) -> String {
     if !value.is_finite() {
-        return if value.is_nan() { "NaN".into() } else if value > 0.0 { "Infinity".into() } else { "-Infinity".into() };
+        return if value.is_nan() {
+            "NaN".into()
+        } else if value > 0.0 {
+            "Infinity".into()
+        } else {
+            "-Infinity".into()
+        };
     }
     // 1080 places print every double exactly, so the tie test below is exact.
     let exact = format!("{:.1080}", value.abs());

@@ -22,10 +22,9 @@ use self::classify::{apply_optimistic_delta, map_balance, map_tx, LwkTxView};
 use self::store::{flush_journal, load_journal, wipe_prefix, JournalStore, STORE_PREFIX};
 use super::descriptors::{liquid_descriptor, liquid_network, liquid_policy_asset, liquid_signer};
 use super::endpoints::EndpointResolver;
-use super::explorer::{hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo};
-use crate::wallet::backend::ChainBackend;
-#[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
-use crate::wallet::backend::{ElectrumConfig, LiquidElectrum};
+use super::explorer::{
+    hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo,
+};
 use super::fees::liquid_fee_rate;
 use super::tracker::{sort_newest_first, TxTracker};
 use crate::domain::{
@@ -34,6 +33,9 @@ use crate::domain::{
     TransactionSource, TransactionStatus, WalletCredentials, LBTC_ASSET_ID,
 };
 use crate::ports::{Clock, KvStore};
+use crate::wallet::backend::ChainBackend;
+#[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+use crate::wallet::backend::{ElectrumConfig, LiquidElectrum};
 use crate::{Error, Result};
 
 const CHAIN: ChainId = ChainId::Liquid;
@@ -102,13 +104,18 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     ///
     /// NOTE: connect does not prime balance or history;
     /// the first [`Self::sync`] does (or [`Self::refresh_balance`]).
-    pub async fn connect(credentials: &WalletCredentials, kv: K, clock: C, endpoints: EndpointResolver) -> Result<Self> {
+    pub async fn connect(
+        credentials: &WalletCredentials,
+        kv: K,
+        clock: C,
+        endpoints: EndpointResolver,
+    ) -> Result<Self> {
         if credentials.is_absent() {
             return Err(Error::Credential("mnemonic is empty".into()));
         }
         let network = credentials.network;
-        let descriptor = liquid_descriptor(&credentials.mnemonic, network)
-            .map_err(|e| svc(format!("lwk init failed: {e}")))?;
+        let descriptor =
+            liquid_descriptor(&credentials.mnemonic, network).map_err(|e| svc(format!("lwk init failed: {e}")))?;
         let journal = load_journal(&kv, STORE_PREFIX).await?;
         let (wollet, journal) = match Self::build_wollet(network, &descriptor, &journal) {
             Ok(w) => (w, journal),
@@ -242,10 +249,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     async fn fetch_update(&mut self) -> Result<Option<lwk_wollet::Update>> {
         #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
         if let ChainBackend::Electrum(config) = self.backend.clone() {
-            let client = self
-                .electrum_client(&config)
-                .await
-                .map_err(|e| svc(format!("lwk sync failed: {e}")))?;
+            let client = self.electrum_client(&config).await.map_err(|e| svc(format!("lwk sync failed: {e}")))?;
             return match client.full_scan(&self.wollet).await {
                 Ok(u) => Ok(u),
                 Err(e) => {
@@ -268,10 +272,8 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     async fn broadcast_tx(&mut self, tx: lwk_wollet::elements::Transaction) -> Result<String> {
         #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
         if let ChainBackend::Electrum(config) = self.backend.clone() {
-            let client = self
-                .electrum_client(&config)
-                .await
-                .map_err(|e| svc(format!("lwk broadcastSignedPset failed: {e}")))?;
+            let client =
+                self.electrum_client(&config).await.map_err(|e| svc(format!("lwk broadcastSignedPset failed: {e}")))?;
             return client.broadcast(tx).await.map_err(|e| {
                 self.electrum = None;
                 svc(format!("lwk broadcastSignedPset failed: {e}"))
@@ -319,8 +321,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         self.last_list = mapped;
         self.last_balance = map_balance(&balances, now);
         let end = self.clock.now_ms();
-        self.state =
-            ServiceState { lifecycle: ServiceLifecycle::Connected, failure: None, last_sync_at_ms: Some(end) };
+        self.state = ServiceState { lifecycle: ServiceLifecycle::Connected, failure: None, last_sync_at_ms: Some(end) };
         Ok(SyncOutcome { chain: CHAIN, fetched: self.last_list.len(), changed, duration_ms: end.saturating_sub(t0) })
     }
 
@@ -347,7 +348,11 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
 
     /// Receive address for an asset. L-BTC gets a bare address, any other
     /// asset a `liquidnetwork:` URI with the asset id.
-    pub async fn next_receive_address(&mut self, asset_id: Option<&str>, label: Option<&str>) -> Result<ReceiveAddress> {
+    pub async fn next_receive_address(
+        &mut self,
+        asset_id: Option<&str>,
+        label: Option<&str>,
+    ) -> Result<ReceiveAddress> {
         let address = self.receive_address().await?;
         let is_asset = asset_id.is_some_and(|a| a != self.policy_asset());
         let mut r = ReceiveAddress::onchain(
@@ -443,7 +448,8 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     /// unconfidential input matches by script. Fails for an unparseable
     /// address or one of another network.
     pub fn is_mine(&self, address: &str, scan_limit: u32) -> Result<Option<AddressOwnership>> {
-        let parsed = Address::from_str(address.trim()).map_err(|e| Error::invalid(format!("invalid liquid address: {e}")))?;
+        let parsed =
+            Address::from_str(address.trim()).map_err(|e| Error::invalid(format!("invalid liquid address: {e}")))?;
         if parsed.params != self.wollet.network().address_params() {
             return Err(Error::invalid("liquid address of another network"));
         }
@@ -589,7 +595,13 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         })();
         let (pset, fee) = built.map_err(|e| svc(format!("lwk buildAssetTx failed: {e}")))?;
         self.flush().await?;
-        Ok(BuiltLiquidSend { pset: pset.to_string(), amount_sat: amount, fee_sat: fee, fee_rate_sat_per_kvb: fee_rate, asset_id })
+        Ok(BuiltLiquidSend {
+            pset: pset.to_string(),
+            amount_sat: amount,
+            fee_sat: fee,
+            fee_rate_sat_per_kvb: fee_rate,
+            asset_id,
+        })
     }
 
     /// Fee quote for a request.
@@ -617,7 +629,8 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
             return Err(svc("mnemonic is empty"));
         }
         let signer = liquid_signer(mnemonic, self.network).map_err(|e| svc(format!("lwk signTx failed: {e}")))?;
-        let mut p = PartiallySignedTransaction::from_str(pset.trim()).map_err(|e| svc(format!("lwk signTx failed: {e}")))?;
+        let mut p =
+            PartiallySignedTransaction::from_str(pset.trim()).map_err(|e| svc(format!("lwk signTx failed: {e}")))?;
         let _ = signer.sign(&mut p);
         let tx = self.wollet.finalize(&mut p).map_err(|e| svc(format!("lwk signTx failed: {}", describe(&e))))?;
         Ok(PartiallySignedTransaction::from_tx(tx).to_string())
@@ -672,10 +685,9 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     /// Signs the wallet inputs of an external (SideSwap) PSET and returns
     /// it unfinalized but with witnesses set.
     pub fn sign_swap_pset(&self, pset: &str, mnemonic: &str) -> Result<String> {
-        let signer =
-            liquid_signer(mnemonic, self.network).map_err(|e| svc(format!("lwk signSwapPset failed: {e}")))?;
-        let mut p =
-            PartiallySignedTransaction::from_str(pset.trim()).map_err(|e| svc(format!("lwk signSwapPset failed: {e}")))?;
+        let signer = liquid_signer(mnemonic, self.network).map_err(|e| svc(format!("lwk signSwapPset failed: {e}")))?;
+        let mut p = PartiallySignedTransaction::from_str(pset.trim())
+            .map_err(|e| svc(format!("lwk signSwapPset failed: {e}")))?;
         for input in p.inputs_mut().iter_mut() {
             let outpoint = OutPoint { txid: input.previous_txid, vout: input.previous_output_index };
             if let Some(mut txout) = self.wallet_txout(&outpoint) {
@@ -714,8 +726,13 @@ mod tests {
 
     fn connect(kv: MemoryKv) -> LiquidWallet<MemoryKv, FixedClock> {
         let creds = WalletCredentials { mnemonic: ABANDON.into(), network: AppNetwork::Mainnet };
-        block_on(LiquidWallet::connect(&creds, kv, FixedClock::new(1_000), EndpointResolver::with_defaults(AppNetwork::Mainnet)))
-            .unwrap()
+        block_on(LiquidWallet::connect(
+            &creds,
+            kv,
+            FixedClock::new(1_000),
+            EndpointResolver::with_defaults(AppNetwork::Mainnet),
+        ))
+        .unwrap()
     }
 
     #[test]
@@ -746,7 +763,12 @@ mod tests {
         let kv = MemoryKv::new();
         block_on(kv.put(&format!("{STORE_PREFIX}garbage"), vec![1, 2, 3])).unwrap();
         let creds = WalletCredentials { mnemonic: ABANDON.into(), network: AppNetwork::Mainnet };
-        let r = block_on(LiquidWallet::connect(&creds, kv, FixedClock::new(0), EndpointResolver::with_defaults(AppNetwork::Mainnet)));
+        let r = block_on(LiquidWallet::connect(
+            &creds,
+            kv,
+            FixedClock::new(0),
+            EndpointResolver::with_defaults(AppNetwork::Mainnet),
+        ));
         if let Err(e) = r {
             assert!(matches!(e, Error::Service { chain: ChainId::Liquid, .. }), "{e}");
         }
@@ -759,10 +781,16 @@ mod tests {
     fn send_validations() {
         let mut w = connect(MemoryKv::new());
         let btc = SendRequest::new(ChainId::Bitcoin, "bc1q", 1);
-        assert!(block_on(w.build_send(&btc)).unwrap_err().to_string().contains("only handles Liquid sends (got: bitcoin)"));
+        assert!(block_on(w.build_send(&btc))
+            .unwrap_err()
+            .to_string()
+            .contains("only handles Liquid sends (got: bitcoin)"));
         let empty = SendRequest::new(ChainId::Liquid, "  ", 1);
         assert!(block_on(w.build_send(&empty)).unwrap_err().to_string().contains("destination is empty"));
-        assert!(block_on(w.build_lbtc_send("lq1x", 0, None, false)).unwrap_err().to_string().contains("amount must be positive"));
+        assert!(block_on(w.build_lbtc_send("lq1x", 0, None, false))
+            .unwrap_err()
+            .to_string()
+            .contains("amount must be positive"));
         assert!(w.sign_pset("", ABANDON).unwrap_err().to_string().contains("pset is empty"));
         assert!(w.sign_pset("cHNldP8=", " ").unwrap_err().to_string().contains("mnemonic is empty"));
         assert!(w.sign_swap_pset("not a pset", ABANDON).is_err());

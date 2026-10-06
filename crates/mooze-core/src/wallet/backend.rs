@@ -86,12 +86,9 @@ pub fn default_electrum_urls(chain: ChainId, network: AppNetwork) -> Vec<String>
             "ssl://fulcrum.sethforprivacy.com:50002",
             "ssl://electrum.bitaroo.net:50002",
         ],
-        (ChainId::Liquid, AppNetwork::Mainnet) => &[
-            "blockstream.info:995",
-            "electrs.blockstream.info:995",
-            "liquid.network:995",
-            "les.bullbitcoin.com:995",
-        ],
+        (ChainId::Liquid, AppNetwork::Mainnet) => {
+            &["blockstream.info:995", "electrs.blockstream.info:995", "liquid.network:995", "les.bullbitcoin.com:995"]
+        }
         (ChainId::Bitcoin, AppNetwork::Testnet) => &["ssl://electrum.blockstream.info:60002"],
         (ChainId::Liquid, AppNetwork::Testnet) => &["blockstream.info:465"],
         (ChainId::Bitcoin | ChainId::Liquid, AppNetwork::Regtest) => &["tcp://127.0.0.1:60401"],
@@ -269,7 +266,10 @@ mod electrum {
         /// The scan works on a snapshot of the wollet state taken now, so the
         /// returned future does not borrow the wollet. LWK does not export the
         /// snapshot type, so it stays inferred inside this function.
-        pub fn full_scan(&self, wollet: &Wollet) -> impl std::future::Future<Output = Result<Option<Update>>> + Send + 'static {
+        pub fn full_scan(
+            &self,
+            wollet: &Wollet,
+        ) -> impl std::future::Future<Output = Result<Option<Update>>> + Send + 'static {
             let state = wollet.state();
             let client = self.client.clone();
             let spawner = self.config.spawner.clone();
@@ -305,7 +305,10 @@ mod tests {
         assert_eq!(btc[0], "ssl://electrum.blockstream.info:50002");
         assert_eq!(btc.len(), 4);
         let lq = default_electrum_urls(ChainId::Liquid, AppNetwork::Mainnet);
-        assert_eq!(lq, ["blockstream.info:995", "electrs.blockstream.info:995", "liquid.network:995", "les.bullbitcoin.com:995"]);
+        assert_eq!(
+            lq,
+            ["blockstream.info:995", "electrs.blockstream.info:995", "liquid.network:995", "les.bullbitcoin.com:995"]
+        );
         assert!(default_electrum_urls(ChainId::Lightning, AppNetwork::Mainnet).is_empty());
     }
 

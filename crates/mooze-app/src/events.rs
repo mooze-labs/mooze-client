@@ -45,18 +45,12 @@ pub struct Subscribers {
 impl Subscribers {
     pub fn subscribe(&self, sink: Box<dyn EventSink>) -> SubscriptionId {
         let id = self.next_id.fetch_add(1, Ordering::SeqCst) + 1;
-        self.sinks
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .push((id, sink));
+        self.sinks.lock().unwrap_or_else(|e| e.into_inner()).push((id, sink));
         id
     }
 
     pub fn unsubscribe(&self, id: SubscriptionId) {
-        self.sinks
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .retain(|(i, _)| *i != id);
+        self.sinks.lock().unwrap_or_else(|e| e.into_inner()).retain(|(i, _)| *i != id);
     }
 
     /// Sends `event` to every sink. Removes sinks that return false.
@@ -94,44 +88,22 @@ mod tests {
     #[test]
     fn emit_reaches_live_sinks_and_drops_dead_ones() {
         let subs = Subscribers::default();
-        let (a, alive_a) = (
-            Arc::new(Mutex::new(vec![])),
-            Arc::new(AtomicBool::new(true)),
-        );
-        let (b, alive_b) = (
-            Arc::new(Mutex::new(vec![])),
-            Arc::new(AtomicBool::new(false)),
-        );
+        let (a, alive_a) = (Arc::new(Mutex::new(vec![])), Arc::new(AtomicBool::new(true)));
+        let (b, alive_b) = (Arc::new(Mutex::new(vec![])), Arc::new(AtomicBool::new(false)));
         let id_a = subs.subscribe(Box::new(Collect(a.clone(), alive_a)));
         subs.subscribe(Box::new(Collect(b.clone(), alive_b)));
-        assert_eq!(
-            subs.emit(AppEvent::SessionLock(SessionLockStateDto::Locked)),
-            1
-        );
+        assert_eq!(subs.emit(AppEvent::SessionLock(SessionLockStateDto::Locked)), 1);
         assert_eq!(a.lock().unwrap().len(), 1);
         assert_eq!(b.lock().unwrap().len(), 1);
-        assert_eq!(
-            subs.emit(AppEvent::SessionLock(SessionLockStateDto::Unlocked)),
-            1
-        );
-        assert_eq!(
-            b.lock().unwrap().len(),
-            1,
-            "dead sink removed after first false"
-        );
+        assert_eq!(subs.emit(AppEvent::SessionLock(SessionLockStateDto::Unlocked)), 1);
+        assert_eq!(b.lock().unwrap().len(), 1, "dead sink removed after first false");
         subs.unsubscribe(id_a);
-        assert_eq!(
-            subs.emit(AppEvent::SessionLock(SessionLockStateDto::Unlocked)),
-            0
-        );
+        assert_eq!(subs.emit(AppEvent::SessionLock(SessionLockStateDto::Unlocked)), 0);
     }
 
     #[test]
     fn app_event_serializes_tagged() {
         let v = serde_json::to_value(AppEvent::SessionLock(SessionLockStateDto::Locked)).unwrap();
-        assert_eq!(
-            v,
-            serde_json::json!({"type": "session_lock", "data": "Locked"})
-        );
+        assert_eq!(v, serde_json::json!({"type": "session_lock", "data": "Locked"}));
     }
 }

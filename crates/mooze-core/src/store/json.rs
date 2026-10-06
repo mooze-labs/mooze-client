@@ -13,9 +13,9 @@ use crate::{Error, Result};
 pub async fn get_json<K: KvStore, T: DeserializeOwned>(kv: &K, key: &str) -> Result<Option<T>> {
     match kv.get(key).await? {
         None => Ok(None),
-        Some(bytes) => serde_json::from_slice(&bytes)
-            .map(Some)
-            .map_err(|e| Error::storage(format!("corrupt value at {key}: {e}"))),
+        Some(bytes) => {
+            serde_json::from_slice(&bytes).map(Some).map_err(|e| Error::storage(format!("corrupt value at {key}: {e}")))
+        }
     }
 }
 
@@ -56,9 +56,9 @@ pub async fn delete_prefix<K: KvStore>(kv: &K, prefix: &str) -> Result<usize> {
 pub async fn get_string<K: KvStore>(kv: &K, key: &str) -> Result<Option<String>> {
     match kv.get(key).await? {
         None => Ok(None),
-        Some(bytes) => String::from_utf8(bytes)
-            .map(Some)
-            .map_err(|e| Error::storage(format!("non utf-8 value at {key}: {e}"))),
+        Some(bytes) => {
+            String::from_utf8(bytes).map(Some).map_err(|e| Error::storage(format!("non utf-8 value at {key}: {e}")))
+        }
     }
 }
 

@@ -139,7 +139,11 @@ impl<B: BootServices, C: Clock> BootOrchestrator<B, C> {
             return Ok(self.state.clone());
         }
         let started = self.clock.now_ms();
-        self.emit(BootState { phase: BootPhase::InitializingPlatform, started_at_ms: Some(started), ..Default::default() });
+        self.emit(BootState {
+            phase: BootPhase::InitializingPlatform,
+            started_at_ms: Some(started),
+            ..Default::default()
+        });
 
         // Platform.
         self.enter(BootPhase::InitializingPlatform);
@@ -193,11 +197,13 @@ impl<B: BootServices, C: Clock> BootOrchestrator<B, C> {
         let t0 = self.clock.now_ms();
         let chains = self.services.chains();
         let services = &self.services;
-        let results =
-            futures::future::join_all(chains.iter().map(|c| services.connect(*c, &creds))).await;
+        let results = futures::future::join_all(chains.iter().map(|c| services.connect(*c, &creds))).await;
         let dur = self.clock.now_ms().saturating_sub(t0);
         if !results.is_empty() && results.iter().all(Result::is_err) {
-            let first = results.into_iter().find_map(Result::err).unwrap_or_else(|| Error::Unexpected("all services failed".into()));
+            let first = results
+                .into_iter()
+                .find_map(Result::err)
+                .unwrap_or_else(|| Error::Unexpected("all services failed".into()));
             let cause = Error::Unexpected(format!("all chain services failed: {}", boot_message(&first)));
             return Err(self.fail("connectingServices", &cause, dur));
         }
@@ -277,7 +283,11 @@ mod tests {
         fn connect(&self, chain: ChainId, _c: &WalletCredentials) -> impl Future<Output = Result<()>> + MaybeSend {
             self.log.lock().unwrap().push(format!("connect:{}", chain.as_str()));
             let fail = self.failing_chains.contains(&chain);
-            std::future::ready(if fail { Err(Error::service(chain, format!("{} down", chain.as_str()))) } else { Ok(()) })
+            std::future::ready(if fail {
+                Err(Error::service(chain, format!("{} down", chain.as_str())))
+            } else {
+                Ok(())
+            })
         }
         fn disconnect(&self, chain: ChainId) -> impl Future<Output = Result<()>> + MaybeSend {
             self.log.lock().unwrap().push(format!("disconnect:{}", chain.as_str()));
@@ -296,7 +306,10 @@ mod tests {
     #[test]
     fn happy_path_runs_phases_in_order() {
         block_on(async {
-            let mut b = BootOrchestrator::new(Fake { creds: creds(), session_fails: true, ..Default::default() }, Arc::new(FixedClock::new(7)));
+            let mut b = BootOrchestrator::new(
+                Fake { creds: creds(), session_fails: true, ..Default::default() },
+                Arc::new(FixedClock::new(7)),
+            );
             let s = b.start().await.unwrap();
             assert!(s.is_ready());
             assert_eq!(s.started_at_ms, Some(7));
@@ -305,7 +318,12 @@ mod tests {
                 ["platform", "db", "creds", "connect:liquid", "connect:bitcoin", "session"]
             );
             let phases: Vec<BootPhase> = b.take_state_changes().iter().map(|s| s.phase).collect();
-            for p in [BootPhase::InitializingDatabase, BootPhase::LoadingCredentials, BootPhase::ConnectingServices, BootPhase::AuthenticatingSession] {
+            for p in [
+                BootPhase::InitializingDatabase,
+                BootPhase::LoadingCredentials,
+                BootPhase::ConnectingServices,
+                BootPhase::AuthenticatingSession,
+            ] {
                 assert!(phases.contains(&p));
             }
             assert_eq!(phases.last(), Some(&BootPhase::Ready));
@@ -329,7 +347,10 @@ mod tests {
     #[test]
     fn platform_failure_is_terminal_error() {
         block_on(async {
-            let mut b = BootOrchestrator::new(Fake { platform_fails: true, creds: creds(), ..Default::default() }, FixedClock::new(0));
+            let mut b = BootOrchestrator::new(
+                Fake { platform_fails: true, creds: creds(), ..Default::default() },
+                FixedClock::new(0),
+            );
             let e = b.start().await.unwrap_err();
             assert_eq!(e, Error::Boot { phase: "platform".into(), message: "no fs".into() });
             assert_eq!(b.state().phase, BootPhase::Error);
@@ -353,7 +374,10 @@ mod tests {
             let e = b.start().await.unwrap_err();
             assert_eq!(
                 e,
-                Error::Boot { phase: "connectingServices".into(), message: "all chain services failed: liquid down".into() }
+                Error::Boot {
+                    phase: "connectingServices".into(),
+                    message: "all chain services failed: liquid down".into()
+                }
             );
         });
     }
