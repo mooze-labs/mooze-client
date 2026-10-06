@@ -1,6 +1,6 @@
 # Mooze everyday wallet — Quiet Navy
 
-Date: 2026-10-06. Status: visual direction and Home/Receive/Send-review layouts approved in conversation; written specification awaiting review. This document proposes the remaining screen details and implementation boundaries for the next planning step.
+Date: 2026-10-06. Status: visual direction and Home, Receive, Send entry/review, Settings, and transaction-result screens approved in conversation; consolidated written specification awaiting review. Activity, asset detail, setup, and lock treatments follow the written rules below rather than a separately approved screen mockup.
 
 ## Purpose
 
@@ -8,7 +8,11 @@ Make the desktop testnet wallet feel approachable and composed in everyday use. 
 
 The user selected the everyday-wallet direction, selected Quiet Navy over Warm Paper, approved trimming trailing zeros in balances, and approved the refined Home, Receive, and Send-review layouts. The approved previews are design artifacts, not wallet functionality or complete interaction specifications.
 
+The subsequent screen pass was approved with “Screens are good. Go on.” It covers Send entry with validation and fee-shortage states; Settings with General, Security, Network and About; focused PIN/recovery/removal dialogs; and broadcast, confirmed, uncertain and known-not-sent outcomes. The implementation must preserve host validation rather than reproduce the prototype's simulated actions.
+
 Local visual reference: `.superpowers/brainstorm/92550-1791313812/content/quiet-navy-refinement.html`. Its `everyday-wallet.html` predecessor contains the A/B exploration. The preview includes illustrative values, a disposable public test address and non-functional QR artwork. Production must generate real QR codes from validated requests. Preserve these artifacts during implementation; do not copy their simulated state or event handlers into wallet code.
+
+Approved additional screen reference: `.superpowers/brainstorm/92550-1791313812/content/send-settings-result.html`. This extends the same visual system. Its sample fees, fixed TEST selection, read-only credential fields, simulated connection checks and placeholder transaction ID are presentation fixtures, not production defaults or capability limits.
 
 ## Scope and preserved contracts
 
@@ -78,11 +82,26 @@ Loading or invalid inputs suppress stale QR/request output. An address-generatio
 
 Entry is a focused form: asset/network, destination or supported payment URI, amount, available Max, and fee choices. Keep fee source/age visible in secondary text when supplied; label fallback estimates honestly. Advanced fee controls remain accessible without crowding the primary task.
 
+On wide windows, place asset/network context and the fee-paying-asset explanation beside the form. On compact windows move essential information into the form; do not hide required network or fee information. Max is next to the amount, and available balance is secondary text only when authoritative availability is supplied. Wrong-network errors sit beside the destination. Preparing a review disables duplicate preparation and preserves input. Fee choices reflect returned capabilities: do not invent three meaningful speed tiers when the chain/provider only supplies one configured rate.
+
 Review shows the exact amount and asset, network, full destination, and a debit summary. For TEST, show TEST sent and L-BTC network fee separately; never add quantities with different units into one total. BTC/L-BTC review also shows the total debit in the fee-paying asset. Identify fee estimates/bounds according to the host's actual semantics. Expandable asset-ID detail supplements the visible asset/network identity.
 
 Confirmation consumes the existing host review; this redesign must not introduce frontend signing or bypass host review expiry. Editing reviewed data creates a fresh review. Loading, validation failure, expiry, or fee shortage prevents confirmation and exposes a useful next action. TEST fee shortage explains that L-BTC is required and links to Receive with L-BTC selected while preserving recoverable send input.
 
 Success links to transaction details. An uncertain result stays distinct from failure, displays persisted reconciliation details, and prevents casual resubmission. Navigation, relaunch, or retry must never automatically send a transaction. The prototype's clickable confirmation is only a visual simulation.
+
+### Transaction result
+
+Use a focused result heading and a receipt panel containing exact amount/unit, network, full destination, and fee information with its known provenance. The result screen uses the same privacy contract as review and activity. The full transaction ID is expandable when known; never fabricate one or show an explorer link without a valid ID. Unknown fee data is unavailable rather than zero, and a stored review estimate must not become “fee paid” solely because the transaction confirmed.
+
+| Host-backed outcome | Presentation | Actions |
+| --- | --- | --- |
+| Broadcast accepted, not yet confirmed | “Transaction sent”; explicitly awaiting network confirmation | View transaction; return to wallet |
+| Confirmed by synchronization | “Transaction confirmed”; show actual chain status | View transaction; return to wallet |
+| Outcome uncertain | Explain that transmission may have occurred; retain amount, destination and known debit details | Check result without retransmitting; return to wallet with unresolved-send notice preserved |
+| Definitely not transmitted | Explain that no send occurred, using only a host outcome that establishes this | Return to editable send; return to wallet |
+
+Do not classify a timeout, lost response, or generic transport error as definitely not sent. An uncertain result never offers a primary “send again” action. Confirmation is determined by chain data, not a timer or the user visiting the screen. Navigation to details must work both immediately after submission and after restoring a persisted submission. The receipt is recoverable data, not component-local state alone.
 
 ### Activity
 
@@ -93,6 +112,12 @@ Transaction details display full destination/transaction identity, network, exac
 ### Settings, setup and lock
 
 Settings has local navigation for **General**, **Security**, **Network**, and **About**. General includes language, Bitcoin unit and privacy. Security includes timeout, lock now, and entry points to PIN change and recovery; open their authenticated forms only when requested. Network retains both chain settings, connection testing, explicit fallback preference and rollback semantics. About contains version and redacted diagnostics. Local wallet removal remains separated and requires the existing acknowledgment and fresh authentication.
+
+Use a horizontal section tab bar and aligned setting rows, with description on the left and control on the right; stack controls when needed at compact widths. General preferences and timeout use the existing persistence behavior, show saving status, prevent overlapping mutations, and restore the previous saved value on failure. Network changes require explicit test/save controls and retain the prior connection on validation failure. Per-chain tabs bind fields and health to the selected chain; switching tabs must not silently discard an unsaved edit. Preserve drafts per chain until explicit save/reset or route exit, and warn before discarding dirty network configuration on exit.
+
+PIN change opens a focused dialog with current/new/confirmation fields. Recovery opens a private-view warning and fresh-PIN authentication, followed by the phrase only after host authorization. Removal opens the recovery warning, acknowledgment and PIN confirmation; submission remains disabled until required fields are complete, and the host remains authoritative. Dialogs support Escape, focus containment/return, and clear secret fields when closed or locked. Do not adopt the prototype's read-only placeholder inputs or enabled simulation buttons as real security behavior. Report partial removal through the existing resumable removal state.
+
+About provides version, testnet identity and diagnostic export with explicit success, cancellation and failure feedback. It does not gain telemetry or remote support uploads. Network/provider details belong in Network or diagnostic controls rather than the main wallet view.
 
 Apply tokens and shared controls to setup, backup, recovery and lock screens without changing the sequence or security model. One clear action per step, labeled fields, readable errors, and existing secret clearing on lock/exit. Preserve keyboard navigation and focus restoration for dialogs. No native title-bar customization is required in this pass.
 
@@ -128,6 +153,7 @@ Do not create a second store for wallet/session state. Keep effects in existing 
 - Component/flow checks cover privacy accessibility, asset-aware receive payloads, stale QR suppression, review debit labels, insufficient L-BTC, expiry and uncertain results. Preserve existing host/core regressions; broaden Rust testing only if shared behavior changes.
 - Check real Tauri/WebView presentation at 1440×900 and 1024×700, including full Liquid addresses and eight-decimal review values. Validate pt-BR, English and Spanish, keyboard/focus behavior, reduced motion and contrast.
 - Exercise ready, empty, initial loading, refreshing cached data, offline, validation error, submitted and uncertain states as appropriate. Do not rely on screenshots alone to verify financial or security behavior.
+- Verify Send → Review → Result navigation, host-backed broadcast/confirmed distinctions, restored result details, and the absence of retransmission from uncertain-result checks. Verify settings-save rollback, per-chain network drafts, dialog focus, fresh authentication and secret clearing.
 - Build/typecheck and frontend tests pass; no navigation capability or security invariant is lost. Test prototypes separately from real wallet flows. Preserve the existing funded Nigiri evidence and use disposable local wallets if transaction behavior changes.
 
 The next artifact is an implementation plan after written-spec review. No application code or dependencies have been changed by this design pass.
