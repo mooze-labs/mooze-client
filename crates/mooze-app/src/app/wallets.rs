@@ -14,9 +14,9 @@ use crate::{AppError, ErrorCode, Platform, Result};
 
 /// Mnemonic from the secure store (`mnemonic_mainWallet`).
 pub(crate) async fn load_mnemonic<P: Platform>(inner: &Inner<P>) -> Result<String> {
-    let credentials = CredentialStore::new(inner.platform.secure(), inner.network)
-        .load()
-        .await?;
+    let store = inner.platform.secure();
+    super::probe_secure_store(&store).await?;
+    let credentials = CredentialStore::new(store, inner.network).load().await?;
     if credentials.is_absent() {
         return Err(AppError::new(
             ErrorCode::Credential,

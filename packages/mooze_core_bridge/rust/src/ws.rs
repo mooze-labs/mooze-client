@@ -46,7 +46,10 @@ impl TungsteniteConnection {
 impl WsConnector for TungsteniteConnector {
     type Connection = TungsteniteConnection;
 
-    fn connect(&self, url: &str) -> impl Future<Output = Result<TungsteniteConnection>> + MaybeSend {
+    fn connect(
+        &self,
+        url: &str,
+    ) -> impl Future<Output = Result<TungsteniteConnection>> + MaybeSend {
         let url = url.to_owned();
         async move {
             install_crypto_provider();
@@ -68,7 +71,10 @@ impl WsConnector for TungsteniteConnector {
 
 /// True for errors that only mean the connection is gone.
 fn is_closed_error(e: &tungstenite::Error) -> bool {
-    matches!(e, tungstenite::Error::ConnectionClosed | tungstenite::Error::AlreadyClosed)
+    matches!(
+        e,
+        tungstenite::Error::ConnectionClosed | tungstenite::Error::AlreadyClosed
+    )
 }
 
 // Explicit futures keep the MaybeSend bound visible at the impl site.
@@ -79,7 +85,10 @@ impl WsConnection for TungsteniteConnection {
             if self.closed {
                 return Err(Error::Network("ws send: connection closed".into()));
             }
-            self.stream.send(Message::text(text)).await.map_err(|e| Error::Network(format!("ws send: {e}")))
+            self.stream
+                .send(Message::text(text))
+                .await
+                .map_err(|e| Error::Network(format!("ws send: {e}")))
         }
     }
 
@@ -95,7 +104,12 @@ impl WsConnection for TungsteniteConnection {
                     let timeout = self.recv_timeout;
                     match tokio::time::timeout(timeout, self.next_frame()).await {
                         Ok(next) => next,
-                        Err(_) => return Err(Error::Timeout(format!("ws recv: no frame in {} ms", timeout.as_millis()))),
+                        Err(_) => {
+                            return Err(Error::Timeout(format!(
+                                "ws recv: no frame in {} ms",
+                                timeout.as_millis()
+                            )))
+                        }
                     }
                 } else {
                     self.next_frame().await
@@ -107,7 +121,9 @@ impl WsConnection for TungsteniteConnection {
                     Some(Err(e)) => return Err(Error::Network(format!("ws recv: {e}"))),
                 };
                 match frame {
-                    Some(Message::Text(text)) => return Ok(WsMessage::Text(text.as_str().to_owned())),
+                    Some(Message::Text(text)) => {
+                        return Ok(WsMessage::Text(text.as_str().to_owned()))
+                    }
                     Some(Message::Binary(bytes)) => return Ok(WsMessage::Binary(bytes.to_vec())),
                     // tungstenite answers pings by itself. Raw frames only appear on write.
                     Some(Message::Ping(_) | Message::Pong(_) | Message::Frame(_)) => continue,
@@ -171,7 +187,10 @@ mod tests {
             let url = echo_server().await;
             let mut conn = TungsteniteConnector.connect(&url).await.unwrap();
             conn.send_text("hello ç".into()).await.unwrap();
-            assert_eq!(conn.recv().await.unwrap(), WsMessage::Text("hello ç".into()));
+            assert_eq!(
+                conn.recv().await.unwrap(),
+                WsMessage::Text("hello ç".into())
+            );
             conn.send_text("bye".into()).await.unwrap();
             assert_eq!(conn.recv().await.unwrap(), WsMessage::Closed);
             assert_eq!(conn.recv().await.unwrap(), WsMessage::Closed);
@@ -188,10 +207,15 @@ mod tests {
             tokio::spawn(async move {
                 let (tcp, _) = listener.accept().await.unwrap();
                 let mut ws = tokio_tungstenite::accept_async(tcp).await.unwrap();
-                ws.send(Message::Binary(vec![1, 2, 3].into())).await.unwrap();
+                ws.send(Message::Binary(vec![1, 2, 3].into()))
+                    .await
+                    .unwrap();
                 ws.close(None).await.unwrap();
             });
-            let mut conn = TungsteniteConnector.connect(&format!("ws://{addr}")).await.unwrap();
+            let mut conn = TungsteniteConnector
+                .connect(&format!("ws://{addr}"))
+                .await
+                .unwrap();
             assert_eq!(conn.recv().await.unwrap(), WsMessage::Binary(vec![1, 2, 3]));
             assert_eq!(conn.recv().await.unwrap(), WsMessage::Closed);
         });
@@ -205,13 +229,18 @@ mod tests {
             conn.set_recv_timeout(Duration::from_millis(50));
             assert!(matches!(conn.recv().await, Err(Error::Timeout(_))));
             conn.send_text("still here".into()).await.unwrap();
-            assert_eq!(conn.recv().await.unwrap(), WsMessage::Text("still here".into()));
+            assert_eq!(
+                conn.recv().await.unwrap(),
+                WsMessage::Text("still here".into())
+            );
         });
     }
 
     #[test]
     fn connect_failure_is_network_error() {
-        let err = runtime().block_on(TungsteniteConnector.connect("ws://127.0.0.1:1")).unwrap_err();
+        let err = runtime()
+            .block_on(TungsteniteConnector.connect("ws://127.0.0.1:1"))
+            .unwrap_err();
         assert!(matches!(err, Error::Network(_)), "{err}");
     }
 
@@ -220,7 +249,9 @@ mod tests {
         // An executor without a tokio reactor, like the flutter_rust_bridge
         // one: the connector moves the socket setup onto the shared runtime.
         let url = runtime().block_on(echo_server());
-        let plain = tokio::runtime::Builder::new_current_thread().build().unwrap();
+        let plain = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
         let mut conn = plain.block_on(TungsteniteConnector.connect(&url)).unwrap();
         runtime().block_on(async {
             conn.send_text("x".into()).await.unwrap();

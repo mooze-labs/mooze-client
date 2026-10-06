@@ -9392,7 +9392,8 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
   Future<BalanceDto> liquidRefreshBalance() => MoozeCoreLib.instance.api
       .crateApiCoreMoozeCoreLiquidRefreshBalance(that: this);
 
-  /// Builds, signs and broadcasts a send.
+  /// Builds, signs and broadcasts a send. `mnemonic` seeds the secure
+  /// store when it holds none; signing reads the store.
   Future<BroadcastResultDto> liquidSend({
     required SendRequestDto request,
     required String mnemonic,
@@ -9402,7 +9403,8 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
     mnemonic: mnemonic,
   );
 
-  /// Signs a PSET with `mnemonic` and broadcasts it. Returns the txid.
+  /// Signs a PSET and broadcasts it. Returns the txid. `mnemonic` seeds
+  /// the secure store when it holds none; signing reads the store.
   Future<String> liquidSignAndBroadcast({
     required String pset,
     required String mnemonic,
@@ -9412,7 +9414,8 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
     mnemonic: mnemonic,
   );
 
-  /// Signs a SideSwap swap PSET. Returns the signed PSET.
+  /// Signs a SideSwap swap PSET. Returns the signed PSET. `mnemonic`
+  /// seeds the secure store when it holds none; signing reads the store.
   Future<String> liquidSignSwapPset({
     required String pset,
     required String mnemonic,
@@ -9680,11 +9683,11 @@ class MoozeCoreImpl extends RustOpaque implements MoozeCore {
   Future<void> sideswapDisconnect() => MoozeCoreLib.instance.api
       .crateApiCoreMoozeCoreSideswapDisconnect(that: this);
 
-  /// Server pushes: quotes, peg wallet balances, disconnects. A bridge task
-  /// reads the socket while the stream is open. Opening a new stream
-  /// replaces the old one, which ends with a `closed` item. Close it with
-  /// `sideswapCloseEvents`, `sideswapDisconnect` or by cancelling the Dart
-  /// subscription (the task stops at its next item).
+  /// Server pushes: quotes, peg wallet balances, disconnects. The facade
+  /// driver reads the socket while the stream is open. Opening a new
+  /// stream replaces the old one, which ends with a `closed` item. Close
+  /// it with `sideswapCloseEvents`, `sideswapDisconnect` or by cancelling
+  /// the Dart subscription (the driver stops at its next item).
   Stream<SideSwapEventDto> sideswapEvents() =>
       MoozeCoreLib.instance.api.crateApiCoreMoozeCoreSideswapEvents(that: this);
 

@@ -7,9 +7,7 @@ import '../frb_generated.dart';
 import '../third_party/mooze_app/dto/pix.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `invalid`, `pix_service`
-
-/// Time between `pixPollTick` calls, in ms.
+/// Interval between `pixPollTick` calls, in milliseconds.
 int pixPollIntervalMs() =>
     MoozeCoreLib.instance.api.crateApiPixPixPollIntervalMs();
 

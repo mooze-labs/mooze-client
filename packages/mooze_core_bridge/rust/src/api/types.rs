@@ -66,6 +66,9 @@ impl From<mooze_app::AppError> for CoreError {
             C::Session => CoreErrorKind::Session,
             C::Transport | C::Other => CoreErrorKind::Other,
         };
-        Self { kind, message: e.message }
+        Self {
+            kind,
+            message: e.message,
+        }
     }
 }

@@ -139,6 +139,7 @@ pub(crate) async fn auth<P: Platform>(inner: &Inner<P>) -> Result<Arc<Auth<P>>> 
         return Ok(auth.clone());
     }
     let store = inner.platform.secure();
+    probe_secure_store(&store).await?;
     let credentials = CredentialStore::new(store.clone(), inner.network)
         .load()
         .await?;
@@ -180,6 +181,16 @@ pub(crate) async fn auth<P: Platform>(inner: &Inner<P>) -> Result<Arc<Auth<P>>> 
     });
     *slot = Some(auth.clone());
     Ok(auth)
+}
+
+/// Surfaces the secure store's own error before credentials are read.
+///
+/// `CredentialStore::load` wraps every store failure as `Credential`. A
+/// store that is not registered yet (`InvalidState`) or locked (`Locked`)
+/// must report that instead, so hosts route to the right screen.
+pub(crate) async fn probe_secure_store<S: KvStore>(store: &S) -> Result<()> {
+    store.get(mooze_core::store::MNEMONIC_KEY).await?;
+    Ok(())
 }
 
 pub(crate) fn not_connected(chain: ChainId) -> AppError {
