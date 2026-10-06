@@ -51,19 +51,13 @@ impl DartSecureStore {
         delete: impl Fn(String) -> DartFnFuture<()> + Send + Sync + 'static,
         list_keys: impl Fn(String) -> DartFnFuture<Vec<String>> + Send + Sync + 'static,
     ) -> Self {
-        Self {
-            read: Arc::new(read),
-            write: Arc::new(write),
-            delete: Arc::new(delete),
-            list_keys: Arc::new(list_keys),
-        }
+        Self { read: Arc::new(read), write: Arc::new(write), delete: Arc::new(delete), list_keys: Arc::new(list_keys) }
     }
 }
 
 /// Converts a value from the core to the string Dart stores.
 pub(crate) fn value_to_string(key: &str, value: Vec<u8>) -> Result<String> {
-    String::from_utf8(value)
-        .map_err(|_| Error::storage(format!("secure value for {key} is not UTF-8")))
+    String::from_utf8(value).map_err(|_| Error::storage(format!("secure value for {key} is not UTF-8")))
 }
 
 /// Keeps the keys that start with `prefix`, sorted and without duplicates.
@@ -81,10 +75,7 @@ pub(crate) fn normalize_keys(mut keys: Vec<String>, prefix: &str) -> Vec<String>
 /// throws. The call runs as its own task, so a throw becomes a storage
 /// error instead of a crash of the caller.
 async fn call<T: Send + 'static>(what: &str, key: &str, fut: DartFnFuture<T>) -> Result<T> {
-    runtime()
-        .spawn(fut)
-        .await
-        .map_err(|_| Error::storage(format!("secure storage {what} failed for {key}")))
+    runtime().spawn(fut).await.map_err(|_| Error::storage(format!("secure storage {what} failed for {key}")))
 }
 
 impl KvStore for DartSecureStore {
@@ -112,12 +103,7 @@ impl KvStore for DartSecureStore {
     fn list_keys(&self, prefix: &str) -> impl Future<Output = Result<Vec<String>>> + MaybeSend {
         let prefix = prefix.to_owned();
         let fut = (self.list_keys)(prefix.clone());
-        async move {
-            Ok(normalize_keys(
-                call("listKeys", &prefix, fut).await?,
-                &prefix,
-            ))
-        }
+        async move { Ok(normalize_keys(call("listKeys", &prefix, fut).await?, &prefix)) }
     }
 }
 
@@ -143,9 +129,7 @@ impl LateSecureStore {
             .read()
             .unwrap_or_else(|e| e.into_inner())
             .clone()
-            .ok_or_else(|| {
-                Error::InvalidState("secure storage not set; call setSecureStorage first".into())
-            })
+            .ok_or_else(|| Error::InvalidState("secure storage not set; call setSecureStorage first".into()))
     }
 }
 
@@ -212,15 +196,9 @@ pub(crate) mod tests {
 
     #[test]
     fn utf8_values_round_trip_and_others_fail() {
-        assert_eq!(
-            value_to_string("k", "çü ✓ words".as_bytes().to_vec()).unwrap(),
-            "çü ✓ words"
-        );
+        assert_eq!(value_to_string("k", "çü ✓ words".as_bytes().to_vec()).unwrap(), "çü ✓ words");
         let err = value_to_string("k", vec![0xff, 0xfe]).unwrap_err();
-        assert!(
-            matches!(err, Error::Storage(ref m) if m.contains("not UTF-8")),
-            "{err}"
-        );
+        assert!(matches!(err, Error::Storage(ref m) if m.contains("not UTF-8")), "{err}");
     }
 
     #[test]
@@ -238,10 +216,7 @@ pub(crate) mod tests {
             store.put("a/1", "ç".as_bytes().to_vec()).await.unwrap();
             store.put("a/2", b"x".to_vec()).await.unwrap();
             assert_eq!(store.get("jwt").await.unwrap(), Some(b"token".to_vec()));
-            assert_eq!(
-                store.get("a/1").await.unwrap(),
-                Some("ç".as_bytes().to_vec())
-            );
+            assert_eq!(store.get("a/1").await.unwrap(), Some("ç".as_bytes().to_vec()));
             assert_eq!(store.list_keys("a/").await.unwrap(), vec!["a/1", "a/2"]);
             assert!(store.put("bin", vec![0xc3]).await.is_err());
             store.delete("jwt").await.unwrap();
@@ -262,10 +237,7 @@ pub(crate) mod tests {
         let (store, map) = memory_store();
         late.set(store);
         runtime().block_on(late.put("jwt", b"t".to_vec())).unwrap();
-        assert_eq!(
-            map.lock().unwrap().get("jwt").map(String::as_str),
-            Some("t")
-        );
+        assert_eq!(map.lock().unwrap().get("jwt").map(String::as_str), Some("t"));
     }
 
     #[test]

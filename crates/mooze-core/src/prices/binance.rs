@@ -48,7 +48,10 @@ impl<H: HttpClient, C: Clock> BinanceClient<H, C> {
     async fn get_json(&self, url: String, what: &str) -> Result<Value> {
         let resp = self.http.send(HttpRequest::get(url)).await?;
         if resp.status != 200 {
-            return Err(Error::Http { status: resp.status, body: format!("Failed to query Binance {what}: {}", resp.status) });
+            return Err(Error::Http {
+                status: resp.status,
+                body: format!("Failed to query Binance {what}: {}", resp.status),
+            });
         }
         Ok(serde_json::from_slice(&resp.body)?)
     }
@@ -76,7 +79,9 @@ impl<H: HttpClient, C: Clock> BinanceClient<H, C> {
                 return Ok(data);
             }
         }
-        let url = format!("{BINANCE_API_URL}klines?symbol={symbol}&interval={interval}&startTime={start_ms}&endTime={end_ms}");
+        let url = format!(
+            "{BINANCE_API_URL}klines?symbol={symbol}&interval={interval}&startTime={start_ms}&endTime={end_ms}"
+        );
         let data: Klines = serde_json::from_value(self.get_json(url, "Klines API").await?)?;
         self.klines.lock().expect("poisoned").insert(key, (self.clock.now_ms(), data.clone()));
         Ok(data)
@@ -153,8 +158,11 @@ impl<H: HttpClient, C: Clock> PriceService for BinancePriceService<H, C> {
         self.default_currency
     }
 
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         let currency = currency.unwrap_or(self.default_currency);
         async move {
             if let Some(p) = pegged_price(asset, currency) {
@@ -200,14 +208,25 @@ impl<H: HttpClient, C: Clock> BinanceDailyPriceVariationService<H, C> {
     }
 
     /// Close prices over `period_in_days` at `interval`.
-    pub async fn get_klines_for_period(&self, asset: Asset, interval: KlineInterval, period_in_days: u32,
-        currency: Option<Currency>) -> Result<Vec<f64>> {
+    pub async fn get_klines_for_period(
+        &self,
+        asset: Asset,
+        interval: KlineInterval,
+        period_in_days: u32,
+        currency: Option<Currency>,
+    ) -> Result<Vec<f64>> {
         let days = i64::from(period_in_days);
         self.history(asset, currency, interval.value(), days * 86_400_000, period_in_days as usize * 24).await
     }
 
-    async fn history(&self, asset: Asset, currency: Option<Currency>, interval: &str, period_ms: i64,
-        pegged_len: usize) -> Result<Vec<f64>> {
+    async fn history(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+        interval: &str,
+        period_ms: i64,
+        pegged_len: usize,
+    ) -> Result<Vec<f64>> {
         let currency = currency.unwrap_or(self.default_currency);
         if pegged_price(asset, currency).is_some() {
             return Ok(vec![1.0; pegged_len]);
@@ -307,8 +326,17 @@ mod tests {
             assert_eq!(svc.get_percentage_variation(Asset::Depix, None).await.unwrap(), 0.0);
             assert!(svc.get_percentage_variation(Asset::Lbtc, None).await.is_err());
             assert_eq!(svc.get_24hr_klines(Asset::Usdt, None).await.unwrap(), vec![5.0, 4.5, 4.0]);
-            assert_eq!(svc.get_24hr_klines(Asset::Depix, Some(Currency::Usd)).await.unwrap(), vec![0.2, 1.0 / 4.5, 0.25]);
-            assert_eq!(svc.get_klines_for_period(Asset::Usdt, KlineInterval::OneDay, 2, Some(Currency::Usd)).await.unwrap().len(), 48);
+            assert_eq!(
+                svc.get_24hr_klines(Asset::Depix, Some(Currency::Usd)).await.unwrap(),
+                vec![0.2, 1.0 / 4.5, 0.25]
+            );
+            assert_eq!(
+                svc.get_klines_for_period(Asset::Usdt, KlineInterval::OneDay, 2, Some(Currency::Usd))
+                    .await
+                    .unwrap()
+                    .len(),
+                48
+            );
         });
         assert!(http.requests().iter().any(|r| r.url == url));
     }

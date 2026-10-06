@@ -379,7 +379,11 @@ pub(crate) mod tests {
         }
     }
 
-    fn orch(fail_quote: bool, fail_broadcast: bool, fail_store: bool) -> (PegOrchestrator<FakeRepo, FakeWallet, LogStore>, Log) {
+    fn orch(
+        fail_quote: bool,
+        fail_broadcast: bool,
+        fail_store: bool,
+    ) -> (PegOrchestrator<FakeRepo, FakeWallet, LogStore>, Log) {
         let log: Log = Arc::default();
         (
             PegOrchestrator::new(

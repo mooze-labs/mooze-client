@@ -79,7 +79,11 @@ pub fn active_fee_tier(amount: f64) -> Option<usize> {
 // Negative or NaN input returns 0.
 pub fn amount_in_cents(amount_brl: f64) -> u64 {
     let c = amount_brl * 100.0;
-    if c.is_finite() && c > 0.0 { c as u64 } else { 0 }
+    if c.is_finite() && c > 0.0 {
+        c as u64
+    } else {
+        0
+    }
 }
 
 // ---------------------------------------------------------------- validation
@@ -310,11 +314,7 @@ pub const HISTORY_PAGE_SIZE: u64 = 50;
 // NOTE: this refreshes every non-expired, non-refunded deposit,
 // including finished ones.
 pub fn deposits_to_refresh(deposits: &[PixDeposit]) -> Vec<String> {
-    deposits
-        .iter()
-        .filter(|d| !HISTORY_TERMINAL_STATUSES.contains(&d.status))
-        .map(|d| d.deposit_id.clone())
-        .collect()
+    deposits.iter().filter(|d| !HISTORY_TERMINAL_STATUSES.contains(&d.status)).map(|d| d.deposit_id.clone()).collect()
 }
 
 /// True if a page of `count` items can have a next page.

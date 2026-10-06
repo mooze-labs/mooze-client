@@ -295,7 +295,10 @@ fn query_amount(address: &str) -> Option<AmountDetection> {
     let lower = base.to_lowercase();
     let bare = base.split_once(':').map_or(base, |(_, b)| b);
     let mut asset = Asset::Btc;
-    if lower.starts_with("liquidnetwork:") || lower.starts_with("liquid:") || starts_any(bare, &["lq1", "VJL", "VT", "VG"]) {
+    if lower.starts_with("liquidnetwork:")
+        || lower.starts_with("liquid:")
+        || starts_any(bare, &["lq1", "VJL", "VT", "VG"])
+    {
         asset = Asset::Lbtc;
     }
     if let Some(id) = params.get("assetid").filter(|s| !s.is_empty()) {
@@ -387,7 +390,8 @@ pub fn looks_like_pix_key(value: &str) -> bool {
     if v.starts_with("000201") || is_pix_email(v) || is_evp(v) || is_br_phone(v) {
         return true;
     }
-    let digits: String = v.chars().filter(|c| !matches!(c, '.' | '-' | '/' | '(' | ')' | '+') && !c.is_whitespace()).collect();
+    let digits: String =
+        v.chars().filter(|c| !matches!(c, '.' | '-' | '/' | '(' | ')' | '+') && !c.is_whitespace()).collect();
     all_digits(&digits) && matches!(digits.len(), 11 | 13 | 14)
 }
 
@@ -395,7 +399,9 @@ pub fn looks_like_pix_key(value: &str) -> bool {
 fn is_pix_email(v: &str) -> bool {
     let Some((user, domain)) = v.split_once('@') else { return false };
     let ok = |s: &str| !s.is_empty() && !s.chars().any(|c| c == '@' || c.is_whitespace());
-    ok(user) && ok(domain) && domain.char_indices().any(|(i, c)| c == '.' && i > 0 && domain[i + 1..].chars().count() >= 2)
+    ok(user)
+        && ok(domain)
+        && domain.char_indices().any(|(i, c)| c == '.' && i > 0 && domain[i + 1..].chars().count() >= 2)
 }
 
 /// `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, case-insensitive.
@@ -514,7 +520,9 @@ pub fn parse_payment_request(raw: &str, network: AppNetwork) -> Result<PaymentRe
     let raw = raw.trim();
     let cleaned = match validate_qr_data(raw) {
         Ok(c) => c,
-        Err(QrErrorCode::Unrecognized) if is_liquid_address(raw, network) || is_bitcoin_address(raw, network) => raw.to_owned(),
+        Err(QrErrorCode::Unrecognized) if is_liquid_address(raw, network) || is_bitcoin_address(raw, network) => {
+            raw.to_owned()
+        }
         Err(code) => return Err(Error::invalid(format!("payment request rejected: {code:?}"))),
     };
     let address = clean_address(&cleaned);
@@ -536,16 +544,23 @@ pub fn parse_payment_request(raw: &str, network: AppNetwork) -> Result<PaymentRe
     if (kind == NetworkType::Bitcoin) != (asset == Asset::Btc) {
         return Err(Error::invalid(format!("asset {asset:?} does not match {kind:?} address")));
     }
-    Ok(PaymentRequest { network: kind, address, asset, amount_sats: detected.amount_sats, label: detected.label, message: detected.message })
+    Ok(PaymentRequest {
+        network: kind,
+        address,
+        asset,
+        amount_sats: detected.amount_sats,
+        label: detected.label,
+        message: detected.message,
+    })
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use QrErrorCode as E;
 
-    const LQ: &str = "lq1qqw0j4k82lz2eek432qgm59v9ru4qz436rrlkc7j0hd69nfujhz5z2d4nv620upes7u949hhw2r97vcsvp7e3kkvm9tx0edq6t";
+    const LQ: &str =
+        "lq1qqw0j4k82lz2eek432qgm59v9ru4qz436rrlkc7j0hd69nfujhz5z2d4nv620upes7u949hhw2r97vcsvp7e3kkvm9tx0edq6t";
     const BOLTZ: &str = "lnbc500u1p53etmlpp5wrrnh9lvr0ed4zvs6khdeyff9nl05r9udmej9sv07x7jnwa98uzqdql2djkuepqw3hjqsj5gvsxzerywfjhxuccqzylxqyp2xqsp56h4m2g04mpw4lfcx7au86h3cajhxj2mysjatlvfzm6cryzqac5tq9qxpqysgqn78d8dnkm8z76nywktl5yz66pzdcf9s27scjgr5c9rferjjjge4pg8rtkg6wp622u4yvvqw0xessyfu3jl9yynjzjnac4jyqx7s65zqpu48hu2";
     const BOLTZ_NO_AMOUNT: &str = "lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq8rkx3yf5tcsyz3d73gafnh3cax9rn449d9p5uxz9ezhhypd0elx87sjle52x86fux2ypatgddc6k63n7erqz25le42c4u4ecky03ylcqca784w";
     const BC1: &str = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
@@ -556,7 +571,11 @@ mod tests {
         let g = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
         let pk = PublicKey::from_str(g).unwrap();
         let blinder = confidential.then(|| secp256k1::PublicKey::from_str(g).unwrap());
-        let a = if nested { elements::Address::p2shwpkh(&pk, blinder, params) } else { elements::Address::p2wpkh(&pk, blinder, params) };
+        let a = if nested {
+            elements::Address::p2shwpkh(&pk, blinder, params)
+        } else {
+            elements::Address::p2wpkh(&pk, blinder, params)
+        };
         a.to_string()
     }
 
@@ -565,7 +584,10 @@ mod tests {
         assert_eq!(validate_qr_data(BOLTZ).as_deref(), Ok(BOLTZ));
         assert_eq!(validate_qr_data(BOLTZ_NO_AMOUNT), Err(E::BoltzNoAmount));
         assert_eq!(validate_qr_data("lnbc1p0xlkhkpp5test"), Err(E::LightningUnsupported));
-        assert_eq!(validate_qr_data("lightning:lnbc10u1p0xlkhkpp5test123456789qwertyuiopasdfghjklzxcvbnm"), Err(E::LightningUnsupported));
+        assert_eq!(
+            validate_qr_data("lightning:lnbc10u1p0xlkhkpp5test123456789qwertyuiopasdfghjklzxcvbnm"),
+            Err(E::LightningUnsupported)
+        );
         for s in ["user₿@domain.com", "user#tag@domain.com", "user$payment@domain.com"] {
             assert_eq!(validate_qr_data(s), Err(E::LightningUnsupportedSymbols));
         }
@@ -573,7 +595,8 @@ mod tests {
         assert_eq!(validate_qr_data("lnurl1user@otherprovider.com"), Err(E::LnurlBip353Unsupported));
         assert_eq!(validate_qr_data("user@walletofsatoshi.com"), Err(E::LnurlUnsupported));
         assert_eq!(validate_qr_data("LNURL1DP68GURN8GHJ7"), Err(E::LnurlUnsupported));
-        let liq = format!("liquidnetwork:{LQ}?amount=0.00026312&label=Send%20to%20BTC%20address&assetid={LBTC_ASSET_ID}");
+        let liq =
+            format!("liquidnetwork:{LQ}?amount=0.00026312&label=Send%20to%20BTC%20address&assetid={LBTC_ASSET_ID}");
         assert_eq!(validate_qr_data(&liq).as_deref(), Ok(liq.as_str()));
         assert!(validate_qr_data(&format!("liquid:{LQ}?amount=0.001")).is_ok());
         assert_eq!(validate_qr_data("liquidnetwork:?amount=0.001"), Err(E::LiquidInvalid));
@@ -581,12 +604,19 @@ mod tests {
         assert!(validate_qr_data(&format!("bitcoin:{BC1}?amount=0.001")).is_ok());
         assert!(validate_qr_data("BITCOIN:1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?amount=0.5&label=Donation").is_ok());
         assert_eq!(validate_qr_data("bitcoin:?amount=0.001"), Err(E::BitcoinInvalid));
-        for s in [BC1, "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "3J98t1WpEZ73CNmYviecrnyiWrnqRhWNLy", LQ, "VJLCzH7NXR4xbD5jMqZmLz8yGxE6SqYk3P"] {
+        for s in [
+            BC1,
+            "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "3J98t1WpEZ73CNmYviecrnyiWrnqRhWNLy",
+            LQ,
+            "VJLCzH7NXR4xbD5jMqZmLz8yGxE6SqYk3P",
+        ] {
             assert!(validate_qr_data(s).is_ok(), "{s}");
         }
         assert_eq!(validate_qr_data(""), Err(E::Empty));
         assert_eq!(validate_qr_data("random-invalid-qr-data-12345"), Err(E::Unrecognized));
-        assert_eq!(validate_qr_data(&liquid(&AddressParams::LIQUID, false, false)), Err(E::Unrecognized)); // ex1: unknown prefix
+        assert_eq!(validate_qr_data(&liquid(&AddressParams::LIQUID, false, false)), Err(E::Unrecognized));
+        // ex1: unknown prefix
     }
 
     #[test]
@@ -627,15 +657,32 @@ mod tests {
         assert_eq!(detect_amount("lnbc50000000p1p0xlkhkpp5test").amount_sats, Some(5_000));
         assert_eq!(detect_amount("lnbc25000001pxyz").amount_sats, Some(2_500)); // millisats reading
         assert!(!detect_amount("lnbc1p0xlkhkpp5test").has_amount());
-        let d = detect_amount("bitcoin:1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?amount=0.5&label=Donation&message=Thank%20you");
-        assert_eq!(d, AmountDetection { amount_sats: Some(50_000_000), asset: Some(Asset::Btc), label: Some("Donation".into()), message: Some("Thank you".into()) });
+        let d =
+            detect_amount("bitcoin:1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?amount=0.5&label=Donation&message=Thank%20you");
+        assert_eq!(
+            d,
+            AmountDetection {
+                amount_sats: Some(50_000_000),
+                asset: Some(Asset::Btc),
+                label: Some("Donation".into()),
+                message: Some("Thank you".into())
+            }
+        );
         // NOTE: A URI without a query gives no asset.
         assert_eq!(detect_amount(&format!("bitcoin:{BC1}")), AmountDetection::default());
         assert_eq!(detect_amount(&format!("bitcoin:{BC1}?amount=0.00000001")).amount_sats, Some(1));
         assert_eq!(detect_amount(&format!("bitcoin:{BC1}?amount=21")).amount_sats, Some(2_100_000_000));
-        let d = detect_amount(&format!("liquidnetwork:{LQ}?amount=0.00026312&label=Send%20to%20BTC%20address&assetid={LBTC_ASSET_ID}"));
-        assert_eq!((d.amount_sats, d.asset, d.label.as_deref()), (Some(26_312), Some(Asset::Lbtc), Some("Send to BTC address")));
-        assert_eq!(detect_amount(&format!("liquidnetwork:{LQ}?amount=100&assetid={USDT_ASSET_ID}")).asset, Some(Asset::Usdt));
+        let d = detect_amount(&format!(
+            "liquidnetwork:{LQ}?amount=0.00026312&label=Send%20to%20BTC%20address&assetid={LBTC_ASSET_ID}"
+        ));
+        assert_eq!(
+            (d.amount_sats, d.asset, d.label.as_deref()),
+            (Some(26_312), Some(Asset::Lbtc), Some("Send to BTC address"))
+        );
+        assert_eq!(
+            detect_amount(&format!("liquidnetwork:{LQ}?amount=100&assetid={USDT_ASSET_ID}")).asset,
+            Some(Asset::Usdt)
+        );
         assert_eq!(detect_amount(&format!("liquid:{LQ}?assetid={DEPIX_ASSET_ID}")).asset, Some(Asset::Depix));
         assert_eq!(detect_amount(&format!("liquid:{LQ}?amount=0.001&assetid=unknown")).asset, Some(Asset::Lbtc));
         assert_eq!(detect_amount(&format!("{LQ}?amount=0.001")).asset, Some(Asset::Lbtc));
@@ -668,8 +715,15 @@ mod tests {
 
     #[test]
     fn pix_keys() {
-        for k in ["someone@example.com", "123.456.789-09", "12.345.678/0001-95", "+55 11 91234-5678", "(11) 91234-5678",
-            "123e4567-e89b-12d3-a456-426614174000", "00020126580014br.gov.bcb.pix0136..."] {
+        for k in [
+            "someone@example.com",
+            "123.456.789-09",
+            "12.345.678/0001-95",
+            "+55 11 91234-5678",
+            "(11) 91234-5678",
+            "123e4567-e89b-12d3-a456-426614174000",
+            "00020126580014br.gov.bcb.pix0136...",
+        ] {
             assert!(looks_like_pix_key(k), "{k}");
         }
         for k in ["", "hello world", "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", "1234", "a@b.c"] {
@@ -696,8 +750,12 @@ mod tests {
     #[test]
     fn strict_bitcoin() {
         let m = AppNetwork::Mainnet;
-        for a in [BC1, "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "32iVBEu4dxkUQk9dJbZUiBiQdmypcEyJRf",
-            "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0"] {
+        for a in [
+            BC1,
+            "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "32iVBEu4dxkUQk9dJbZUiBiQdmypcEyJRf",
+            "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+        ] {
             let r = parse_payment_request(a, m).unwrap_or_else(|e| panic!("{a}: {e}"));
             assert_eq!((r.network, r.asset, r.address.as_str()), (NetworkType::Bitcoin, Asset::Btc, a));
         }

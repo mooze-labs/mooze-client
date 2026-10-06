@@ -129,16 +129,22 @@ pub trait PriceService: MaybeSend + MaybeSync {
 
     /// Price of one whole unit of `asset`. `None` means no price is known.
     /// `currency` overrides the default currency.
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend;
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend;
 }
 
 impl<T: PriceService + ?Sized> PriceService for std::sync::Arc<T> {
     fn currency(&self) -> Currency {
         (**self).currency()
     }
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         (**self).get_coin_price(asset, currency)
     }
 }

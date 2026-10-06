@@ -79,7 +79,8 @@ pub fn pair_internal_swaps(transactions: &[Transaction]) -> Vec<Transaction> {
             if !(valid_amount && within_window) {
                 continue;
             }
-            let both_confirmed = tx1.status == TransactionStatus::Confirmed && tx2.status == TransactionStatus::Confirmed;
+            let both_confirmed =
+                tx1.status == TransactionStatus::Confirmed && tx2.status == TransactionStatus::Confirmed;
             let asset_id = |t: &Transaction| asset_of(t).map(|a| a.id().to_owned());
             let mut swap = Transaction::new(
                 format!("{}_{}_swap", tx1.id, tx2.id),
@@ -250,7 +251,10 @@ impl AssetActivitySummary {
 }
 
 fn is_swap_shaped(tx: &Transaction) -> bool {
-    tx.from_asset_id.is_some() && tx.to_asset_id.is_some() && tx.sent_amount_sat.is_some() && tx.received_amount_sat.is_some()
+    tx.from_asset_id.is_some()
+        && tx.to_asset_id.is_some()
+        && tx.sent_amount_sat.is_some()
+        && tx.received_amount_sat.is_some()
 }
 
 fn leg_asset(id: &Option<String>) -> Option<Asset> {
@@ -343,7 +347,10 @@ mod tests {
         let swap = out.iter().find(|t| t.direction == TransactionDirection::Swap).unwrap();
         assert_eq!(swap.id, "s_r_swap");
         assert_eq!(swap.chain, ChainId::Liquid);
-        assert_eq!((swap.amount_sat, swap.sent_amount_sat, swap.received_amount_sat), (99_000, Some(100_000), Some(99_000)));
+        assert_eq!(
+            (swap.amount_sat, swap.sent_amount_sat, swap.received_amount_sat),
+            (99_000, Some(100_000), Some(99_000))
+        );
         assert_eq!(swap.from_asset_id.as_deref(), Some(BTC_ASSET_ID));
         assert_eq!(swap.to_asset_id.as_deref(), Some(LBTC_ASSET_ID));
         assert_eq!(swap.timestamp_ms, 10 * h);
@@ -399,7 +406,8 @@ mod tests {
         assert_eq!(m[&Asset::Btc], 0);
         assert!(balance_map(&[Asset::Btc], &failed).is_err());
 
-        let agg = aggregate_balance(&[Ok(snap(ChainId::Bitcoin, None, 1)), Err(Error::Network("x".into()))], 5).unwrap();
+        let agg =
+            aggregate_balance(&[Ok(snap(ChainId::Bitcoin, None, 1)), Err(Error::Network("x".into()))], 5).unwrap();
         assert_eq!(agg.assets.len(), 1);
         assert!(aggregate_balance(&[Err(Error::Network("x".into()))], 5).is_err());
     }

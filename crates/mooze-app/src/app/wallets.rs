@@ -16,14 +16,9 @@ use crate::{AppError, ErrorCode, Platform, Result};
 
 /// Mnemonic from the secure store (`mnemonic_mainWallet`).
 pub(crate) async fn load_mnemonic<P: Platform>(inner: &Inner<P>) -> Result<String> {
-    let credentials = CredentialStore::new(inner.platform.secure(), inner.network)
-        .load()
-        .await?;
+    let credentials = CredentialStore::new(inner.platform.secure(), inner.network).load().await?;
     if credentials.is_absent() {
-        return Err(AppError::new(
-            ErrorCode::Credential,
-            "no mnemonic in the secure store",
-        ));
+        return Err(AppError::new(ErrorCode::Credential, "no mnemonic in the secure store"));
     }
     Ok(credentials.mnemonic)
 }
@@ -34,17 +29,10 @@ impl<P: Platform> App<P> {
     /// Loads or creates the Bitcoin wallet for `mnemonic`.
     pub async fn bitcoin_connect(&self, mnemonic: String) -> Result<()> {
         let inner = &self.inner;
-        let creds = WalletCredentials {
-            mnemonic,
-            network: inner.network,
-        };
-        let mut wallet = BitcoinWallet::connect(
-            &creds,
-            inner.platform.kv(),
-            inner.platform.clock(),
-            inner.endpoints.clone(),
-        )
-        .await?;
+        let creds = WalletCredentials { mnemonic, network: inner.network };
+        let mut wallet =
+            BitcoinWallet::connect(&creds, inner.platform.kv(), inner.platform.clock(), inner.endpoints.clone())
+                .await?;
         if inner.backend.is_electrum() {
             wallet.set_backend(inner.backend.clone(), inner.endpoints.clone())?;
         }
@@ -61,81 +49,56 @@ impl<P: Platform> App<P> {
     /// Syncs the Bitcoin wallet.
     pub async fn bitcoin_sync(&self) -> Result<SyncOutcomeDto> {
         let mut guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok((&w.sync().await?).into())
     }
 
     /// Bitcoin balance from local state.
     pub async fn bitcoin_balance(&self) -> Result<BalanceDto> {
         let guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok(w.balance().into())
     }
 
     /// Bitcoin transactions from local state, newest first.
     pub async fn bitcoin_transactions(&self) -> Result<Vec<TransactionDto>> {
         let guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok(w.list_transactions().iter().map(Into::into).collect())
     }
 
     /// Transaction changes since the last call.
     pub async fn bitcoin_take_events(&self) -> Result<Vec<TransactionEventDto>> {
         let mut guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok(w.take_events().iter().map(Into::into).collect())
     }
 
     /// Next unused receive address.
-    pub async fn bitcoin_receive_address(
-        &self,
-        label: Option<String>,
-    ) -> Result<ReceiveAddressDto> {
+    pub async fn bitcoin_receive_address(&self, label: Option<String>) -> Result<ReceiveAddressDto> {
         let mut guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok((&w.next_receive_address(None, label.as_deref()).await?).into())
     }
 
     /// Fee estimate for a send.
     pub async fn bitcoin_estimate_fee(&self, request: SendRequestDto) -> Result<FeeEstimateDto> {
         let mut guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
-        Ok((&w
-            .estimate_fee(&send_request(&request, ChainId::Bitcoin))
-            .await?)
-            .into())
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        Ok((&w.estimate_fee(&send_request(&request, ChainId::Bitcoin)).await?).into())
     }
 
     /// Builds, signs and broadcasts a send.
     pub async fn bitcoin_send(&self, request: SendRequestDto) -> Result<BroadcastResultDto> {
         let mut guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
-        Ok((&w
-            .send_onchain(&send_request(&request, ChainId::Bitcoin))
-            .await?)
-            .into())
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        Ok((&w.send_onchain(&send_request(&request, ChainId::Bitcoin)).await?).into())
     }
 
     /// Chain tip height.
     pub async fn bitcoin_block_height(&self) -> Result<u32> {
         let mut guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok(w.block_height().await?)
     }
 
@@ -147,21 +110,14 @@ impl<P: Platform> App<P> {
         count: u32,
     ) -> Result<Vec<DerivedAddressDto>> {
         let guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
-        Ok(w.derived_addresses(keychain.into(), start, count)
-            .iter()
-            .map(Into::into)
-            .collect())
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        Ok(w.derived_addresses(keychain.into(), start, count).iter().map(Into::into).collect())
     }
 
     /// Unspent outputs with address, derivation and confirmation.
     pub async fn bitcoin_unspent_outputs(&self) -> Result<Vec<WalletUtxoDto>> {
         let guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok(w.unspent_outputs().iter().map(Into::into).collect())
     }
 
@@ -169,30 +125,21 @@ impl<P: Platform> App<P> {
     /// `InvalidInput` for an address it cannot parse.
     pub async fn bitcoin_is_mine(&self, address: String) -> Result<Option<AddressOwnershipDto>> {
         let guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok(w.is_mine(&address)?.map(Into::into))
     }
 
     /// Next receive address with no history. Reveals up to it and persists.
     pub async fn bitcoin_next_unused_address(&self) -> Result<NextUnusedAddressDto> {
         let mut guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         Ok((&w.next_unused_address().await?).into())
     }
 
     /// Adds a transaction broadcast elsewhere, for example a peg-in funding.
-    pub async fn bitcoin_register_external_broadcast(
-        &self,
-        transaction: TransactionDto,
-    ) -> Result<()> {
+    pub async fn bitcoin_register_external_broadcast(&self, transaction: TransactionDto) -> Result<()> {
         let mut guard = self.inner.bitcoin.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
         w.register_external_broadcast((&transaction).into());
         Ok(())
     }
@@ -202,17 +149,9 @@ impl<P: Platform> App<P> {
     /// Loads or creates the Liquid wallet for `mnemonic`.
     pub async fn liquid_connect(&self, mnemonic: String) -> Result<()> {
         let inner = &self.inner;
-        let creds = WalletCredentials {
-            mnemonic,
-            network: inner.network,
-        };
-        let mut wallet = LiquidWallet::connect(
-            &creds,
-            inner.platform.kv(),
-            inner.platform.clock(),
-            inner.endpoints.clone(),
-        )
-        .await?;
+        let creds = WalletCredentials { mnemonic, network: inner.network };
+        let mut wallet =
+            LiquidWallet::connect(&creds, inner.platform.kv(), inner.platform.clock(), inner.endpoints.clone()).await?;
         if inner.backend.is_electrum() {
             wallet.set_backend(inner.backend.clone(), inner.endpoints.clone())?;
         }
@@ -229,64 +168,46 @@ impl<P: Platform> App<P> {
     /// Syncs the Liquid wallet.
     pub async fn liquid_sync(&self) -> Result<SyncOutcomeDto> {
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok((&w.sync().await?).into())
     }
 
     /// Liquid balance from local state.
     pub async fn liquid_balance(&self) -> Result<BalanceDto> {
         let guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok(w.balance().into())
     }
 
     /// Re-reads balances from the local wallet, no network.
     pub async fn liquid_refresh_balance(&self) -> Result<BalanceDto> {
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok(w.refresh_balance()?.into())
     }
 
     /// Applies known per-asset deltas to the cached balance.
-    pub async fn liquid_apply_balance_delta(
-        &self,
-        asset_ids: Vec<String>,
-        deltas: Vec<i64>,
-    ) -> Result<BalanceDto> {
+    pub async fn liquid_apply_balance_delta(&self, asset_ids: Vec<String>, deltas: Vec<i64>) -> Result<BalanceDto> {
         if asset_ids.len() != deltas.len() {
-            return Err(AppError::invalid_input(
-                "asset_ids and deltas differ in length",
-            ));
+            return Err(AppError::invalid_input("asset_ids and deltas differ in length"));
         }
         let pairs: Vec<(String, i64)> = asset_ids.into_iter().zip(deltas).collect();
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok(w.apply_optimistic_balance_delta(&pairs).into())
     }
 
     /// Liquid transactions from local state, newest first.
     pub async fn liquid_transactions(&self) -> Result<Vec<TransactionDto>> {
         let guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok(w.list_transactions().iter().map(Into::into).collect())
     }
 
     /// Transaction changes since the last call.
     pub async fn liquid_take_events(&self) -> Result<Vec<TransactionEventDto>> {
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok(w.take_events().iter().map(Into::into).collect())
     }
 
@@ -297,13 +218,8 @@ impl<P: Platform> App<P> {
         label: Option<String>,
     ) -> Result<ReceiveAddressDto> {
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
-        Ok((&w
-            .next_receive_address(asset_id.as_deref(), label.as_deref())
-            .await?)
-            .into())
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        Ok((&w.next_receive_address(asset_id.as_deref(), label.as_deref()).await?).into())
     }
 
     /// Addresses of `keychain` at `start..start + count`. Reveals nothing.
@@ -314,66 +230,44 @@ impl<P: Platform> App<P> {
         count: u32,
     ) -> Result<Vec<DerivedAddressDto>> {
         let guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
-        Ok(w.derived_addresses(keychain.into(), start, count)?
-            .iter()
-            .map(Into::into)
-            .collect())
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        Ok(w.derived_addresses(keychain.into(), start, count)?.iter().map(Into::into).collect())
     }
 
     /// Unspent outputs with address, derivation, asset and confirmation.
     pub async fn liquid_unspent_outputs(&self) -> Result<Vec<WalletUtxoDto>> {
         let guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok(w.unspent_outputs()?.iter().map(Into::into).collect())
     }
 
     /// Derivation of `address` among the first `scan_limit` addresses of
     /// each chain. Fails with `InvalidInput` for an address it cannot parse.
-    pub async fn liquid_is_mine(
-        &self,
-        address: String,
-        scan_limit: u32,
-    ) -> Result<Option<AddressOwnershipDto>> {
+    pub async fn liquid_is_mine(&self, address: String, scan_limit: u32) -> Result<Option<AddressOwnershipDto>> {
         let guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok(w.is_mine(&address, scan_limit)?.map(Into::into))
     }
 
     /// LWK's last unused receive address, with a history check.
     pub async fn liquid_next_unused_address(&self) -> Result<NextUnusedAddressDto> {
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok((&w.next_unused_address().await?).into())
     }
 
     /// Unblinded UTXOs, for SideSwap.
     pub async fn liquid_utxos(&self) -> Result<Vec<LiquidUtxoDto>> {
         let guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?;
         Ok(w.utxos()?.iter().map(Into::into).collect())
     }
 
     /// Fee estimate for a send.
     pub async fn liquid_estimate_fee(&self, request: SendRequestDto) -> Result<FeeEstimateDto> {
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
-        Ok((&w
-            .estimate_fee(&send_request(&request, ChainId::Liquid))
-            .await?)
-            .into())
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        Ok((&w.estimate_fee(&send_request(&request, ChainId::Liquid)).await?).into())
     }
 
     /// Builds an unsigned L-BTC send. A drain sends the whole L-BTC balance.
@@ -385,34 +279,22 @@ impl<P: Platform> App<P> {
         drain: bool,
     ) -> Result<LiquidSendDraftDto> {
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
-        Ok((&w
-            .build_lbtc_send(&destination, amount_sat, fee_rate_sat_per_vb, drain)
-            .await?)
-            .into())
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        Ok((&w.build_lbtc_send(&destination, amount_sat, fee_rate_sat_per_vb, drain).await?).into())
     }
 
     /// Builds, signs and broadcasts a send. Signs with the stored mnemonic.
     pub async fn liquid_send(&self, request: SendRequestDto) -> Result<BroadcastResultDto> {
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
         let mnemonic = load_mnemonic(&self.inner).await?;
-        Ok((&w
-            .send_onchain(&send_request(&request, ChainId::Liquid), &mnemonic)
-            .await?)
-            .into())
+        Ok((&w.send_onchain(&send_request(&request, ChainId::Liquid), &mnemonic).await?).into())
     }
 
     /// Signs a PSET with the stored mnemonic and broadcasts it. Returns the txid.
     pub async fn liquid_sign_and_broadcast(&self, pset: String) -> Result<String> {
         let mut guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_mut()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
         let mnemonic = load_mnemonic(&self.inner).await?;
         Ok(w.sign_and_broadcast_pset(&pset, &mnemonic).await?)
     }
@@ -420,9 +302,7 @@ impl<P: Platform> App<P> {
     /// Signs a SideSwap swap PSET with the stored mnemonic. Returns the signed PSET.
     pub async fn liquid_sign_swap_pset(&self, pset: String) -> Result<String> {
         let guard = self.inner.liquid.lock().await;
-        let w = guard
-            .as_ref()
-            .ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?;
         let mnemonic = load_mnemonic(&self.inner).await?;
         Ok(w.sign_swap_pset(&pset, &mnemonic)?)
     }
@@ -443,25 +323,11 @@ mod tests {
         assert_eq!(ext[0].address, "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
         assert_eq!(ext[1].address, "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g");
         let change = block_on(app.bitcoin_derived_addresses(KeychainDto::Internal, 0, 1)).unwrap();
-        assert_eq!(
-            change[0].address,
-            "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el"
-        );
-        let own = block_on(app.bitcoin_is_mine(ext[1].address.clone()))
-            .unwrap()
-            .unwrap();
+        assert_eq!(change[0].address, "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el");
+        let own = block_on(app.bitcoin_is_mine(ext[1].address.clone())).unwrap().unwrap();
         assert_eq!((own.keychain, own.index), (KeychainDto::External, 1));
-        assert!(
-            block_on(app.bitcoin_is_mine("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq".into()))
-                .unwrap()
-                .is_none()
-        );
-        assert_eq!(
-            block_on(app.bitcoin_is_mine("garbage".into()))
-                .unwrap_err()
-                .code,
-            ErrorCode::InvalidInput
-        );
+        assert!(block_on(app.bitcoin_is_mine("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq".into())).unwrap().is_none());
+        assert_eq!(block_on(app.bitcoin_is_mine("garbage".into())).unwrap_err().code, ErrorCode::InvalidInput);
 
         block_on(app.liquid_connect(ABANDON.into())).unwrap();
         let lq = block_on(app.liquid_derived_addresses(KeychainDto::External, 0, 1)).unwrap();
@@ -497,10 +363,8 @@ mod tests {
     fn liquid_signing_needs_a_stored_mnemonic() {
         let (app, _plat) = open_test_app();
         block_on(app.liquid_connect(ABANDON.into())).unwrap();
-        let err = block_on(
-            app.liquid_sign_swap_pset("cHNldP8BAgQCAAAAAQQBAAEFAQABBgEDAfsEAgAAAAA=".into()),
-        )
-        .unwrap_err();
+        let err =
+            block_on(app.liquid_sign_swap_pset("cHNldP8BAgQCAAAAAQQBAAEFAQABBgEDAfsEAgAAAAA=".into())).unwrap_err();
         assert_eq!(err.code, ErrorCode::Credential);
     }
 }

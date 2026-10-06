@@ -396,8 +396,7 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(req.quote.btc_to_brl_rate, 650000.0);
-        let w: WithdrawStatus =
-            serde_json::from_value(json!({"status": "processing", "withdrawId": "w1"})).unwrap();
+        let w: WithdrawStatus = serde_json::from_value(json!({"status": "processing", "withdrawId": "w1"})).unwrap();
         assert_eq!(w.txid, None);
     }
 

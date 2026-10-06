@@ -52,7 +52,11 @@ fn is_valid_cpf(d: &[u32]) -> bool {
             weight -= 1;
         }
         let r = sum % 11;
-        if r < 2 { 0 } else { 11 - r }
+        if r < 2 {
+            0
+        } else {
+            11 - r
+        }
     };
     check(9) == d[9] && check(10) == d[10]
 }
@@ -66,7 +70,11 @@ fn is_valid_cnpj(d: &[u32]) -> bool {
         let weights = &BASE[BASE.len() - len..];
         let sum: u32 = d[..len].iter().zip(weights).map(|(x, w)| x * w).sum();
         let r = sum % 11;
-        if r < 2 { 0 } else { 11 - r }
+        if r < 2 {
+            0
+        } else {
+            11 - r
+        }
     };
     check(12) == d[12] && check(13) == d[13]
 }
@@ -120,7 +128,8 @@ pub fn looks_like_pix_key(value: &str) -> bool {
     if is_email(v) || is_evp(v) || is_phone(v) {
         return true;
     }
-    let digits: String = v.chars().filter(|c| !matches!(c, '.' | '-' | '/' | '(' | ')' | '+') && !c.is_whitespace()).collect();
+    let digits: String =
+        v.chars().filter(|c| !matches!(c, '.' | '-' | '/' | '(' | ')' | '+') && !c.is_whitespace()).collect();
     !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) && matches!(digits.len(), 11 | 13 | 14)
 }
 
@@ -153,7 +162,8 @@ enum Tok {
 fn is_phone(v: &str) -> bool {
     use Tok::*;
     // (token, optional)
-    let mut pat: Vec<(Tok, bool)> = vec![(Ch('+'), true), (Ch('5'), false), (Ch('5'), true), (Space, true), (Ch('('), true)];
+    let mut pat: Vec<(Tok, bool)> =
+        vec![(Ch('+'), true), (Ch('5'), false), (Ch('5'), true), (Space, true), (Ch('('), true)];
     pat.extend([(Digit, false); 2]);
     pat.extend([(Ch(')'), true), (Space, true), (Ch('9'), true)]);
     pat.extend([(Digit, false); 4]);

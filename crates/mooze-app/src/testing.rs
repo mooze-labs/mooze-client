@@ -4,8 +4,7 @@ use std::sync::Arc;
 
 use mooze_core::ports::{BlockingSpawner, KvStore, Spawner, Timer};
 use mooze_core::testing::{
-    ChannelSpawner, FixedClock, InlineSpawner, ManualTimer, MemoryKv, MockHttp, MockWs,
-    TestExecutor,
+    ChannelSpawner, FixedClock, InlineSpawner, ManualTimer, MemoryKv, MockHttp, MockWs, TestExecutor,
 };
 
 use crate::dto::{AppConfig, BackendDto, NetworkDto};
@@ -14,10 +13,8 @@ use crate::{App, Platform};
 pub const ABANDON: &str =
     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 /// Unsigned JWTs that expire in 2100.
-pub const JWT_1: &str =
-    "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6InUxIn0.sig";
-pub const JWT_2: &str =
-    "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6InUyIn0.sig";
+pub const JWT_1: &str = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6InUxIn0.sig";
+pub const JWT_2: &str = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6InUyIn0.sig";
 
 #[derive(Clone)]
 pub struct TestPlatform {
@@ -56,9 +53,7 @@ impl TestPlatform {
     }
 
     pub fn secure_get(&self, key: &str) -> Option<String> {
-        mooze_core::testing::block_on(self.secure.get(key))
-            .unwrap()
-            .map(|b| String::from_utf8(b).unwrap())
+        mooze_core::testing::block_on(self.secure.get(key)).unwrap().map(|b| String::from_utf8(b).unwrap())
     }
 }
 

@@ -122,7 +122,9 @@ impl WalletLevelsResponse {
     pub fn to_levels(&self) -> Vec<WalletLevel> {
         self.data
             .iter()
-            .filter_map(|(k, limits)| WalletLevelType::from_key(k).map(|t| WalletLevel { level_type: t, limits: *limits }))
+            .filter_map(|(k, limits)| {
+                WalletLevelType::from_key(k).map(|t| WalletLevel { level_type: t, limits: *limits })
+            })
             .collect()
     }
 
@@ -369,7 +371,9 @@ mod tests {
 
     #[test]
     fn rejects_bad_levels() {
-        assert!(WalletLevelsResponse::from_json_str(r#"{"data": {"bronze": {"max_limit": 1.5, "min_limit": 0}}}"#).is_err());
+        assert!(
+            WalletLevelsResponse::from_json_str(r#"{"data": {"bronze": {"max_limit": 1.5, "min_limit": 0}}}"#).is_err()
+        );
         assert!(WalletLevelsResponse::from_json_str(r#"{"levels": {}}"#).is_err());
     }
 

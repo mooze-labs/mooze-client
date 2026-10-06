@@ -661,10 +661,7 @@ mod tests {
         assert_eq!(Request::taker_sign(5, "cHNl").params, json!({"taker_sign":{"quote_id":5,"pset":"cHNl"}}));
         assert_eq!(Request::stop_quotes().params, json!({"stop_quotes":{}}));
         assert_eq!(Request::list_markets().params, json!({"list_markets":{}}));
-        assert_eq!(
-            Request::subscribe_value(PEG_IN_WALLET_BALANCE).params,
-            json!({"value":"PegInWalletBalance"})
-        );
+        assert_eq!(Request::subscribe_value(PEG_IN_WALLET_BALANCE).params, json!({"value":"PegInWalletBalance"}));
     }
 
     #[test]

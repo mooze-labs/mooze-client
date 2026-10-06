@@ -10,8 +10,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::{
-    Asset, ChainId, Transaction, TransactionDirection, TransactionEvent, TransactionStatus, BTC_ASSET_ID,
-    LBTC_ASSET_ID,
+    Asset, ChainId, Transaction, TransactionDirection, TransactionEvent, TransactionStatus, BTC_ASSET_ID, LBTC_ASSET_ID,
 };
 use crate::ports::KvStore;
 use crate::store::NotifiedTxRegistry;

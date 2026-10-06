@@ -25,40 +25,20 @@ pub fn send_request(dto: &SendRequestDto, chain: d::ChainId) -> d::SendRequest {
 
 /// A quote item of the SideSwap event stream.
 pub fn sideswap_quote_event(q: QuoteDto) -> SideSwapEventDto {
-    SideSwapEventDto {
-        kind: SideSwapEventKind::Quote,
-        quote: Some(q),
-        balance_sat: None,
-        message: None,
-    }
+    SideSwapEventDto { kind: SideSwapEventKind::Quote, quote: Some(q), balance_sat: None, message: None }
 }
 
 /// A peg wallet balance item of the SideSwap event stream.
 pub fn sideswap_balance_event(kind: SideSwapEventKind, sat: u64) -> SideSwapEventDto {
-    SideSwapEventDto {
-        kind,
-        quote: None,
-        balance_sat: Some(sat),
-        message: None,
-    }
+    SideSwapEventDto { kind, quote: None, balance_sat: Some(sat), message: None }
 }
 
 /// The socket dropped. The driver reconnects with backoff.
 pub fn sideswap_disconnected_event(message: String) -> SideSwapEventDto {
-    SideSwapEventDto {
-        kind: SideSwapEventKind::Disconnected,
-        quote: None,
-        balance_sat: None,
-        message: Some(message),
-    }
+    SideSwapEventDto { kind: SideSwapEventKind::Disconnected, quote: None, balance_sat: None, message: Some(message) }
 }
 
 /// Last item: the driver stopped.
 pub fn sideswap_closed_event() -> SideSwapEventDto {
-    SideSwapEventDto {
-        kind: SideSwapEventKind::Closed,
-        quote: None,
-        balance_sat: None,
-        message: None,
-    }
+    SideSwapEventDto { kind: SideSwapEventKind::Closed, quote: None, balance_sat: None, message: None }
 }

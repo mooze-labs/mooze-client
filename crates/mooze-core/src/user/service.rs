@@ -100,7 +100,8 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
             return Ok(false);
         }
         let body: Value = serde_json::from_slice(&response.body).unwrap_or(Value::Null);
-        let valid = body.get("valid").or_else(|| body.get("data").filter(|d| d.is_object()).and_then(|d| d.get("valid")));
+        let valid =
+            body.get("valid").or_else(|| body.get("data").filter(|d| d.is_object()).and_then(|d| d.get("valid")));
         match valid {
             None => Ok(true),
             Some(v) => v.as_bool().ok_or_else(|| Error::protocol("referral: `valid` is not a bool")),
@@ -110,7 +111,8 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
     /// `POST /users/me/referral {referral_code}`.
     /// 400 gives [`REFERRAL_CODE_INVALID`], 409 gives [`REFERRAL_CODE_ALREADY_USED`].
     pub async fn add_referral(&self, code: &str) -> Result<()> {
-        let response = self.api.send(HttpMethod::Post, "/users/me/referral", Some(json!({"referral_code": code}))).await?;
+        let response =
+            self.api.send(HttpMethod::Post, "/users/me/referral", Some(json!({"referral_code": code}))).await?;
         match response.status {
             400 => Err(Error::InvalidInput(REFERRAL_CODE_INVALID.into())),
             409 => Err(Error::InvalidState(REFERRAL_CODE_ALREADY_USED.into())),
@@ -228,10 +230,16 @@ mod tests {
         let svc = service(&http);
         assert_eq!(block_on(svc.apply_referral_code("")), Err(Error::InvalidInput(REFERRAL_ERROR_EMPTY_CODE.into())));
         http.on_json(HttpMethod::Get, "https://api.mooze.app/users/referral/BAD", 200, json!({"valid": false}));
-        assert_eq!(block_on(svc.apply_referral_code("BAD")), Err(Error::InvalidInput(REFERRAL_ERROR_INVALID_CODE.into())));
+        assert_eq!(
+            block_on(svc.apply_referral_code("BAD")),
+            Err(Error::InvalidInput(REFERRAL_ERROR_INVALID_CODE.into()))
+        );
         http.on_json(HttpMethod::Get, "https://api.mooze.app/users/referral/OK", 200, json!({"valid": true}));
         http.once_json(HttpMethod::Post, "https://api.mooze.app/users/me/referral", 409, json!({}));
-        assert_eq!(block_on(svc.apply_referral_code("OK")), Err(Error::InvalidState(REFERRAL_ERROR_APPLY_FAILED.into())));
+        assert_eq!(
+            block_on(svc.apply_referral_code("OK")),
+            Err(Error::InvalidState(REFERRAL_ERROR_APPLY_FAILED.into()))
+        );
         http.once_json(HttpMethod::Post, "https://api.mooze.app/users/me/referral", 200, json!({}));
         assert_eq!(block_on(svc.apply_referral_code("OK")), Ok(()));
     }

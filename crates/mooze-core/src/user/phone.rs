@@ -87,7 +87,12 @@ pub struct BeginVerificationRequest {
 
 impl BeginVerificationRequest {
     /// Builds the body from its parts.
-    pub fn new(phone_number: &str, method: PhoneVerificationMethod, ip_address: Option<String>, device: &PhoneDeviceInfo) -> Self {
+    pub fn new(
+        phone_number: &str,
+        method: PhoneVerificationMethod,
+        ip_address: Option<String>,
+        device: &PhoneDeviceInfo,
+    ) -> Self {
         Self {
             phone_number: phone_number.to_owned(),
             method: method.as_str().to_owned(),
@@ -192,7 +197,8 @@ impl<H: HttpClient> PhoneVerificationClient<H> {
     }
 
     async fn post(&self, path: &str, body: &Value) -> Result<HttpResponse> {
-        let request = HttpRequest::json(HttpMethod::Post, join_url(&self.base_url, path), body)?.timeout_ms(PHONE_TIMEOUT_MS);
+        let request =
+            HttpRequest::json(HttpMethod::Post, join_url(&self.base_url, path), body)?.timeout_ms(PHONE_TIMEOUT_MS);
         let response = self.http.send(request).await?;
         if response.status == 200 || response.status == 201 {
             Ok(response)
@@ -234,8 +240,9 @@ mod tests {
         http.on_json(HttpMethod::Get, IP_ADDRESS_URL, 200, json!({"ip": "203.0.113.7"}));
         http.on_json(HttpMethod::Post, BEGIN, 201, json!({"verification_id": "ver-123"}));
         let client = PhoneVerificationClient::new(http.clone(), "");
-        let id = block_on(client.begin_phone_verification("+5511999990000", PhoneVerificationMethod::Whatsapp, &device()))
-            .unwrap();
+        let id =
+            block_on(client.begin_phone_verification("+5511999990000", PhoneVerificationMethod::Whatsapp, &device()))
+                .unwrap();
         assert_eq!(id, "ver-123");
         let req = http.last_request().unwrap();
         assert_eq!(req.timeout_ms, Some(PHONE_TIMEOUT_MS));

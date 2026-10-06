@@ -58,16 +58,9 @@ impl MoozeCore {
             liquid_node_url: config.liquid_node_url,
             api_base_url: None,
         };
-        let platform = NativePlatform {
-            kv,
-            secure: secure.clone(),
-        };
+        let platform = NativePlatform { kv, secure: secure.clone() };
         let app = on_runtime(App::open(app_config, platform)).await?;
-        Ok(MoozeCore {
-            app,
-            secure,
-            events: StdMutex::new(None),
-        })
+        Ok(MoozeCore { app, secure, events: StdMutex::new(None) })
     }
 
     /// Runs a Liquid signing call whose Dart signature still carries the
@@ -107,10 +100,7 @@ impl MoozeCore {
     }
 
     /// Imports the snapshot from `FlutterDataExporter`, once.
-    pub async fn import_flutter_snapshot(
-        &self,
-        snapshot_json: String,
-    ) -> Result<MigrationReportDto, CoreError> {
+    pub async fn import_flutter_snapshot(&self, snapshot_json: String) -> Result<MigrationReportDto, CoreError> {
         delegate!(self.import_flutter_snapshot(snapshot_json))
     }
 
@@ -132,8 +122,7 @@ impl MoozeCore {
         delete: impl Fn(String) -> DartFnFuture<()> + Send + Sync + 'static,
         list_keys: impl Fn(String) -> DartFnFuture<Vec<String>> + Send + Sync + 'static,
     ) {
-        self.secure
-            .set(DartSecureStore::new(read, write, delete, list_keys));
+        self.secure.set(DartSecureStore::new(read, write, delete, list_keys));
         let _ = delegate!(self.auth_reset());
     }
 
@@ -272,26 +261,17 @@ impl MoozeCore {
     }
 
     /// Next unused receive address.
-    pub async fn bitcoin_receive_address(
-        &self,
-        label: Option<String>,
-    ) -> Result<ReceiveAddressDto, CoreError> {
+    pub async fn bitcoin_receive_address(&self, label: Option<String>) -> Result<ReceiveAddressDto, CoreError> {
         delegate!(self.bitcoin_receive_address(label))
     }
 
     /// Fee estimate for a send.
-    pub async fn bitcoin_estimate_fee(
-        &self,
-        request: SendRequestDto,
-    ) -> Result<FeeEstimateDto, CoreError> {
+    pub async fn bitcoin_estimate_fee(&self, request: SendRequestDto) -> Result<FeeEstimateDto, CoreError> {
         delegate!(self.bitcoin_estimate_fee(request))
     }
 
     /// Builds, signs and broadcasts a send.
-    pub async fn bitcoin_send(
-        &self,
-        request: SendRequestDto,
-    ) -> Result<BroadcastResultDto, CoreError> {
+    pub async fn bitcoin_send(&self, request: SendRequestDto) -> Result<BroadcastResultDto, CoreError> {
         delegate!(self.bitcoin_send(request))
     }
 
@@ -317,10 +297,7 @@ impl MoozeCore {
 
     /// Derivation of `address` if the wallet owns it. Throws
     /// `CoreErrorKind.invalidInput` for an address it cannot parse.
-    pub async fn bitcoin_is_mine(
-        &self,
-        address: String,
-    ) -> Result<Option<AddressOwnershipDto>, CoreError> {
+    pub async fn bitcoin_is_mine(&self, address: String) -> Result<Option<AddressOwnershipDto>, CoreError> {
         delegate!(self.bitcoin_is_mine(address))
     }
 
@@ -330,10 +307,7 @@ impl MoozeCore {
     }
 
     /// Adds a transaction broadcast elsewhere, for example a peg-in funding.
-    pub async fn bitcoin_register_external_broadcast(
-        &self,
-        transaction: TransactionDto,
-    ) -> Result<(), CoreError> {
+    pub async fn bitcoin_register_external_broadcast(&self, transaction: TransactionDto) -> Result<(), CoreError> {
         delegate!(self.bitcoin_register_external_broadcast(transaction))
     }
 
@@ -429,10 +403,7 @@ impl MoozeCore {
     }
 
     /// Fee estimate for a send.
-    pub async fn liquid_estimate_fee(
-        &self,
-        request: SendRequestDto,
-    ) -> Result<FeeEstimateDto, CoreError> {
+    pub async fn liquid_estimate_fee(&self, request: SendRequestDto) -> Result<FeeEstimateDto, CoreError> {
         delegate!(self.liquid_estimate_fee(request))
     }
 
@@ -463,11 +434,7 @@ impl MoozeCore {
 
     /// Signs a PSET and broadcasts it. Returns the txid. Signing reads the
     /// stored mnemonic; see `with_mnemonic` for the parameter rule.
-    pub async fn liquid_sign_and_broadcast(
-        &self,
-        pset: String,
-        mnemonic: String,
-    ) -> Result<String, CoreError> {
+    pub async fn liquid_sign_and_broadcast(&self, pset: String, mnemonic: String) -> Result<String, CoreError> {
         self.with_mnemonic(mnemonic, || {
             let pset = pset.clone();
             async move { delegate!(self.liquid_sign_and_broadcast(pset)) }
@@ -477,11 +444,7 @@ impl MoozeCore {
 
     /// Signs a SideSwap swap PSET. Returns the signed PSET. Signing reads
     /// the stored mnemonic; see `with_mnemonic` for the parameter rule.
-    pub async fn liquid_sign_swap_pset(
-        &self,
-        pset: String,
-        mnemonic: String,
-    ) -> Result<String, CoreError> {
+    pub async fn liquid_sign_swap_pset(&self, pset: String, mnemonic: String) -> Result<String, CoreError> {
         self.with_mnemonic(mnemonic, || {
             let pset = pset.clone();
             async move { delegate!(self.liquid_sign_swap_pset(pset)) }
@@ -501,12 +464,10 @@ pub(crate) mod tests {
     pub(crate) const ABANDON: &str =
         "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
     /// Unsigned JWT that expires in 2100.
-    pub(crate) const JWT_1: &str =
-        "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6InUxIn0.sig";
+    pub(crate) const JWT_1: &str = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6InUxIn0.sig";
 
     pub(crate) fn open_core(name: &str) -> MoozeCore {
-        let dir =
-            std::env::temp_dir().join(format!("mooze-ffi-core-{name}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("mooze-ffi-core-{name}-{}", std::process::id()));
         let config = CoreConfig {
             data_dir: dir.to_string_lossy().into_owned(),
             network: NetworkDto::Mainnet,
@@ -518,20 +479,13 @@ pub(crate) mod tests {
     }
 
     /// Registers the in-memory store as the Dart callbacks would.
-    pub(crate) fn with_memory_store(
-        core: &MoozeCore,
-    ) -> std::sync::Arc<StdMutex<BTreeMap<String, String>>> {
+    pub(crate) fn with_memory_store(core: &MoozeCore) -> std::sync::Arc<StdMutex<BTreeMap<String, String>>> {
         let (store, map) = memory_store();
         let (r, w, d, l) = (store.clone(), store.clone(), store.clone(), store);
         runtime().block_on(core.set_secure_storage(
             move |k| {
                 let s = r.clone();
-                Box::pin(async move {
-                    s.get(&k)
-                        .await
-                        .unwrap()
-                        .map(|b| String::from_utf8(b).unwrap())
-                })
+                Box::pin(async move { s.get(&k).await.unwrap().map(|b| String::from_utf8(b).unwrap()) })
             },
             move |k, v| {
                 let s = w.clone();
@@ -559,9 +513,7 @@ pub(crate) mod tests {
     #[test]
     fn secure_calls_need_callbacks() {
         let core = open_core("no-store");
-        let err = runtime()
-            .block_on(core.secure_get("jwt".into()))
-            .unwrap_err();
+        let err = runtime().block_on(core.secure_get("jwt".into())).unwrap_err();
         assert_eq!(err.kind, CoreErrorKind::InvalidState);
         let err = runtime().block_on(core.auth_access_token()).unwrap_err();
         assert_eq!(err.kind, CoreErrorKind::InvalidState);
@@ -571,37 +523,15 @@ pub(crate) mod tests {
     fn secure_round_trip_and_device_id() {
         let core = open_core("secure");
         let map = with_memory_store(&core);
-        map.lock()
-            .unwrap()
-            .insert("from_dart".into(), "ç value".into());
-        assert_eq!(
-            runtime()
-                .block_on(core.secure_get("from_dart".into()))
-                .unwrap()
-                .as_deref(),
-            Some("ç value")
-        );
-        runtime()
-            .block_on(core.secure_put("from_core".into(), "v".into()))
-            .unwrap();
-        assert_eq!(
-            map.lock().unwrap().get("from_core").map(String::as_str),
-            Some("v")
-        );
-        assert_eq!(
-            runtime()
-                .block_on(core.secure_list_keys("from_".into()))
-                .unwrap(),
-            vec!["from_core", "from_dart"]
-        );
-        runtime()
-            .block_on(core.secure_delete("from_core".into()))
-            .unwrap();
+        map.lock().unwrap().insert("from_dart".into(), "ç value".into());
+        assert_eq!(runtime().block_on(core.secure_get("from_dart".into())).unwrap().as_deref(), Some("ç value"));
+        runtime().block_on(core.secure_put("from_core".into(), "v".into())).unwrap();
+        assert_eq!(map.lock().unwrap().get("from_core").map(String::as_str), Some("v"));
+        assert_eq!(runtime().block_on(core.secure_list_keys("from_".into())).unwrap(), vec!["from_core", "from_dart"]);
+        runtime().block_on(core.secure_delete("from_core".into())).unwrap();
         assert!(!map.lock().unwrap().contains_key("from_core"));
 
-        let id = runtime()
-            .block_on(core.auth_device_id(Some("SERIAL".into()), None))
-            .unwrap();
+        let id = runtime().block_on(core.auth_device_id(Some("SERIAL".into()), None)).unwrap();
         assert_eq!(id, mooze_core::auth::hash_device_id("SERIAL"));
         assert_eq!(map.lock().unwrap().get("device_id"), Some(&id));
     }
@@ -615,13 +545,9 @@ pub(crate) mod tests {
         let err = runtime().block_on(core.auth_access_token()).unwrap_err();
         assert_eq!(err.kind, CoreErrorKind::Session);
         // A stored, fresh session is enough once the mnemonic exists: no network.
-        map.lock()
-            .unwrap()
-            .insert("mnemonic_mainWallet".into(), ABANDON.into());
+        map.lock().unwrap().insert("mnemonic_mainWallet".into(), ABANDON.into());
         map.lock().unwrap().insert("jwt".into(), JWT_1.into());
-        map.lock()
-            .unwrap()
-            .insert("refresh_token".into(), "rt".into());
+        map.lock().unwrap().insert("refresh_token".into(), "rt".into());
         assert_eq!(runtime().block_on(core.auth_access_token()).unwrap(), JWT_1);
     }
 
@@ -629,9 +555,8 @@ pub(crate) mod tests {
     fn rejects_non_json_body() {
         let core = open_core("badjson");
         with_memory_store(&core);
-        let err = runtime()
-            .block_on(core.api_request(HttpMethodDto::Post, "/x".into(), Some("{nope".into())))
-            .unwrap_err();
+        let err =
+            runtime().block_on(core.api_request(HttpMethodDto::Post, "/x".into(), Some("{nope".into()))).unwrap_err();
         assert_eq!(err.kind, CoreErrorKind::InvalidInput);
     }
 
@@ -639,9 +564,7 @@ pub(crate) mod tests {
     fn unsafe_device_cannot_sign_in() {
         let core = open_core("unsafe");
         let map = with_memory_store(&core);
-        map.lock()
-            .unwrap()
-            .insert("mnemonic_mainWallet".into(), ABANDON.into());
+        map.lock().unwrap().insert("mnemonic_mainWallet".into(), ABANDON.into());
         runtime().block_on(core.api_set_base_url("http://127.0.0.1:1".into()));
         runtime().block_on(core.auth_set_device_safe(false));
         let err = runtime().block_on(core.auth_access_token()).unwrap_err();
@@ -653,32 +576,19 @@ pub(crate) mod tests {
     fn liquid_signing_parameter_must_match_a_stored_mnemonic() {
         let core = open_core("mismatch-mnemonic");
         let map = with_memory_store(&core);
-        map.lock()
-            .unwrap()
-            .insert("mnemonic_mainWallet".into(), ABANDON.into());
-        runtime()
-            .block_on(core.liquid_connect(ABANDON.into()))
-            .unwrap();
-        let err = runtime()
-            .block_on(core.liquid_sign_swap_pset("not-a-pset".into(), "other words".into()))
-            .unwrap_err();
+        map.lock().unwrap().insert("mnemonic_mainWallet".into(), ABANDON.into());
+        runtime().block_on(core.liquid_connect(ABANDON.into())).unwrap();
+        let err =
+            runtime().block_on(core.liquid_sign_swap_pset("not-a-pset".into(), "other words".into())).unwrap_err();
         assert_eq!(err.kind, CoreErrorKind::InvalidInput);
-        assert_eq!(
-            map.lock()
-                .unwrap()
-                .get("mnemonic_mainWallet")
-                .map(String::as_str),
-            Some(ABANDON)
-        );
+        assert_eq!(map.lock().unwrap().get("mnemonic_mainWallet").map(String::as_str), Some(ABANDON));
     }
 
     #[test]
     fn liquid_signing_without_a_wallet_writes_nothing() {
         let core = open_core("no-wallet-no-write");
         let map = with_memory_store(&core);
-        let err = runtime()
-            .block_on(core.liquid_sign_swap_pset("not-a-pset".into(), ABANDON.into()))
-            .unwrap_err();
+        let err = runtime().block_on(core.liquid_sign_swap_pset("not-a-pset".into(), ABANDON.into())).unwrap_err();
         assert_eq!(err.kind, CoreErrorKind::InvalidState);
         assert!(!map.lock().unwrap().contains_key("mnemonic_mainWallet"));
     }
@@ -687,39 +597,20 @@ pub(crate) mod tests {
     fn liquid_signing_parameter_seeds_an_empty_secure_store() {
         let core = open_core("seed-mnemonic");
         let map = with_memory_store(&core);
-        runtime()
-            .block_on(core.liquid_connect(ABANDON.into()))
-            .unwrap();
+        runtime().block_on(core.liquid_connect(ABANDON.into())).unwrap();
         // The PSET is garbage: the call fails after the mnemonic is in place.
         let _ = runtime().block_on(core.liquid_sign_swap_pset("not-a-pset".into(), ABANDON.into()));
-        assert_eq!(
-            map.lock()
-                .unwrap()
-                .get("mnemonic_mainWallet")
-                .map(String::as_str),
-            Some(ABANDON)
-        );
+        assert_eq!(map.lock().unwrap().get("mnemonic_mainWallet").map(String::as_str), Some(ABANDON));
         // A stored mnemonic wins over the parameter.
-        let _ = runtime()
-            .block_on(core.liquid_sign_swap_pset("not-a-pset".into(), "other words".into()));
-        assert_eq!(
-            map.lock()
-                .unwrap()
-                .get("mnemonic_mainWallet")
-                .map(String::as_str),
-            Some(ABANDON)
-        );
+        let _ = runtime().block_on(core.liquid_sign_swap_pset("not-a-pset".into(), "other words".into()));
+        assert_eq!(map.lock().unwrap().get("mnemonic_mainWallet").map(String::as_str), Some(ABANDON));
     }
 
     #[test]
     fn derives_the_same_first_addresses_as_the_flutter_app() {
         let core = open_core("addresses");
-        runtime()
-            .block_on(core.bitcoin_connect(ABANDON.into()))
-            .unwrap();
-        let ext = runtime()
-            .block_on(core.bitcoin_derived_addresses(KeychainDto::External, 0, 1))
-            .unwrap();
+        runtime().block_on(core.bitcoin_connect(ABANDON.into())).unwrap();
+        let ext = runtime().block_on(core.bitcoin_derived_addresses(KeychainDto::External, 0, 1)).unwrap();
         assert_eq!(ext[0].address, "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
     }
 }

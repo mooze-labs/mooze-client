@@ -91,8 +91,11 @@ where
     }
 
     /// Price plus a connectivity hint.
-    pub async fn get_coin_price_with_connectivity(&self, asset: Asset, currency: Option<Currency>)
-        -> Result<(Option<f64>, Option<Connectivity>)> {
+    pub async fn get_coin_price_with_connectivity(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> Result<(Option<f64>, Option<Connectivity>)> {
         let price = self.get_coin_price(asset, currency).await?;
         let hint = match price {
             Some(_) => Some(Connectivity::Online),
@@ -110,8 +113,11 @@ impl<B: PriceService, G: PriceService> PriceService for HybridPriceService<B, G>
         self.currency
     }
 
-    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
-        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(
+        &self,
+        asset: Asset,
+        currency: Option<Currency>,
+    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         let target = Some(currency.unwrap_or(self.currency));
         async move {
             let first = match self.primary {
@@ -139,8 +145,10 @@ mod tests {
     use crate::Error;
     use serde_json::json;
 
-    const CG_BTC_BRL: &str = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=brl&precision=full";
-    const BN: &str = "https://data-api.binance.vision/api/v3/ticker/24hr?symbols=%5B%22BTCBRL%22%2C%22BTCUSDT%22%2C%22USDTBRL%22%5D";
+    const CG_BTC_BRL: &str =
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=brl&precision=full";
+    const BN: &str =
+        "https://data-api.binance.vision/api/v3/ticker/24hr?symbols=%5B%22BTCBRL%22%2C%22BTCUSDT%22%2C%22USDTBRL%22%5D";
 
     #[test]
     fn fallback_order() {
@@ -166,10 +174,19 @@ mod tests {
         let kv = MemoryKv::new();
         http.on_json(HttpMethod::Get, CG_BTC_BRL, 500, json!({}));
         http.on_json(HttpMethod::Get, BN, 200, json!([{"symbol":"BTCBRL","bidPrice":"559750.00"}]));
-        let h = StandardHybridPriceService::standard(http.clone(), kv.clone(), clock.clone(), Currency::Brl, PriceSource::Coingecko);
+        let h = StandardHybridPriceService::standard(
+            http.clone(),
+            kv.clone(),
+            clock.clone(),
+            Currency::Brl,
+            PriceSource::Coingecko,
+        );
         block_on(async {
             // CoinGecko answers 500 and the cache is empty, so Binance supplies the price.
-            assert_eq!(h.get_coin_price_with_connectivity(Asset::Btc, None).await.unwrap(), (Some(559_750.0), Some(Connectivity::Online)));
+            assert_eq!(
+                h.get_coin_price_with_connectivity(Asset::Btc, None).await.unwrap(),
+                (Some(559_750.0), Some(Connectivity::Online))
+            );
             assert_eq!(h.get_cache_age_in_minutes(Asset::Btc, None).await.unwrap(), Some(0));
             // Both sources fail: the shared cache entry answers from the primary wrapper.
             http.on_json(HttpMethod::Get, BN, 503, json!({}));
@@ -177,8 +194,11 @@ mod tests {
             let n = http.requests().len();
             assert_eq!(h.get_coin_price(Asset::Btc, None).await.unwrap(), Some(559_750.0));
             assert_eq!(http.requests().len(), n + 1); // Binance not asked
-            // No cache for USD and no source: offline hint is absent.
-            assert_eq!(h.get_coin_price_with_connectivity(Asset::Usdt, Some(Currency::Brl)).await.unwrap(), (None, None));
+                                                      // No cache for USD and no source: offline hint is absent.
+            assert_eq!(
+                h.get_coin_price_with_connectivity(Asset::Usdt, Some(Currency::Brl)).await.unwrap(),
+                (None, None)
+            );
             h.clean_expired_cache().await.unwrap();
         });
     }

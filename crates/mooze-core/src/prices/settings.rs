@@ -134,7 +134,10 @@ mod tests {
         let kv = MemoryKv::new();
         let repo = PriceSettingsRepository::new(kv.clone());
         block_on(async {
-            assert_eq!(repo.get_price_service_config().await.unwrap(), PriceServiceConfig { currency: Currency::Brl, price_source: PriceSource::Coingecko });
+            assert_eq!(
+                repo.get_price_service_config().await.unwrap(),
+                PriceServiceConfig { currency: Currency::Brl, price_source: PriceSource::Coingecko }
+            );
             assert!(repo.get_balance_visibility().await.unwrap());
             repo.set_price_currency(Currency::Usd).await.unwrap();
             repo.set_price_source(PriceSource::Binance).await.unwrap();

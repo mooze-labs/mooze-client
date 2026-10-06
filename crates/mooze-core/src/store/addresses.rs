@@ -75,7 +75,14 @@ pub struct AddressMatch {
 impl AddressMatch {
     /// Address not owned by the wallet.
     pub fn not_owned(address: impl Into<String>) -> Self {
-        Self { address: address.into(), is_owned: false, chain: None, status: None, derivation_index: None, utxos: vec![] }
+        Self {
+            address: address.into(),
+            is_owned: false,
+            chain: None,
+            status: None,
+            derivation_index: None,
+            utxos: vec![],
+        }
     }
 
     /// Owned address.
@@ -86,7 +93,14 @@ impl AddressMatch {
         derivation_index: Option<u32>,
         utxos: Vec<AddressUtxo>,
     ) -> Self {
-        Self { address: address.into(), is_owned: true, chain: Some(chain), status: Some(status), derivation_index, utxos }
+        Self {
+            address: address.into(),
+            is_owned: true,
+            chain: Some(chain),
+            status: Some(status),
+            derivation_index,
+            utxos,
+        }
     }
 
     /// Number of unspent outputs.

@@ -31,10 +31,7 @@ pub fn pix_fee(amount_brl: f64, has_referral: bool, quote_brl: Option<f64>) -> P
 /// Validates a deposit amount in BRL. Pass `None` while the limits load:
 /// every positive amount is then valid, as in Dart.
 #[frb(sync)]
-pub fn pix_validate_amount(
-    amount_brl: f64,
-    limits: Option<DepositLimitsDto>,
-) -> DepositValidationDto {
+pub fn pix_validate_amount(amount_brl: f64, limits: Option<DepositLimitsDto>) -> DepositValidationDto {
     rules::pix_validate_amount(amount_brl, limits)
 }
 
@@ -113,10 +110,7 @@ impl MoozeCore {
     }
 
     /// Reads one stored deposit.
-    pub async fn pix_get_deposit(
-        &self,
-        deposit_id: String,
-    ) -> Result<Option<PixDepositDto>, CoreError> {
+    pub async fn pix_get_deposit(&self, deposit_id: String) -> Result<Option<PixDepositDto>, CoreError> {
         delegate!(self.pix_get_deposit(deposit_id))
     }
 
@@ -131,21 +125,14 @@ impl MoozeCore {
 
     /// Refreshes deposits from the backend and returns the stored ones with
     /// these ids (Dart `updateDepositDetails`).
-    pub async fn pix_update_deposit_details(
-        &self,
-        deposit_ids: Vec<String>,
-    ) -> Result<Vec<PixDepositDto>, CoreError> {
+    pub async fn pix_update_deposit_details(&self, deposit_ids: Vec<String>) -> Result<Vec<PixDepositDto>, CoreError> {
         delegate!(self.pix_update_deposit_details(deposit_ids))
     }
 
     /// History page: stored deposits, with a backend refresh of the
     /// non-terminal ones (Dart `PixHistoryController`). A failed refresh
     /// returns the local data.
-    pub async fn pix_history(
-        &self,
-        limit: Option<u32>,
-        offset: Option<u32>,
-    ) -> Result<Vec<PixDepositDto>, CoreError> {
+    pub async fn pix_history(&self, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<PixDepositDto>, CoreError> {
         delegate!(self.pix_history(limit, offset))
     }
 
@@ -179,11 +166,7 @@ impl MoozeCore {
     }
 
     /// True if a payer other than `excluding_id` has `cpf` (digits, or masked).
-    pub async fn favorite_payer_cpf_exists(
-        &self,
-        cpf: String,
-        excluding_id: Option<u64>,
-    ) -> Result<bool, CoreError> {
+    pub async fn favorite_payer_cpf_exists(&self, cpf: String, excluding_id: Option<u64>) -> Result<bool, CoreError> {
         delegate!(self.favorite_payer_cpf_exists(cpf, excluding_id))
     }
 

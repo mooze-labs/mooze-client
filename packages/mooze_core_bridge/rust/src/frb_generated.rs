@@ -60,17 +60,13 @@ fn wire__crate__api__core__MoozeCore_api_request_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_method = <mooze_app::dto::wallet::HttpMethodDto>::sse_decode(&mut deserializer);
             let api_path = <String>::sse_decode(&mut deserializer);
             let api_json_body = <Option<String>>::sse_decode(&mut deserializer);
@@ -79,18 +75,12 @@ fn wire__crate__api__core__MoozeCore_api_request_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -124,45 +114,31 @@ fn wire__crate__api__core__MoozeCore_api_set_base_url_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_base_url = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = Result::<_, ()>::Ok({
-                            crate::api::core::MoozeCore::api_set_base_url(
-                                &*api_that_guard,
-                                api_base_url,
-                            )
-                            .await;
+                            crate::api::core::MoozeCore::api_set_base_url(&*api_that_guard, api_base_url).await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -186,46 +162,31 @@ fn wire__crate__api__core__MoozeCore_api_set_metrics_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
-            let api_metrics =
-                <Option<mooze_app::dto::wallet::DeviceMetricsDto>>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_metrics = <Option<mooze_app::dto::wallet::DeviceMetricsDto>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = Result::<_, ()>::Ok({
-                            crate::api::core::MoozeCore::api_set_metrics(
-                                &*api_that_guard,
-                                api_metrics,
-                            )
-                            .await;
+                            crate::api::core::MoozeCore::api_set_metrics(&*api_that_guard, api_metrics).await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -249,41 +210,29 @@ fn wire__crate__api__core__MoozeCore_auth_access_token_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::auth_access_token(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::auth_access_token(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -306,17 +255,13 @@ fn wire__crate__api__core__MoozeCore_auth_device_id_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_serial = <Option<String>>::sse_decode(&mut deserializer);
             let api_platform_id = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -324,28 +269,19 @@ fn wire__crate__api__core__MoozeCore_auth_device_id_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::auth_device_id(
-                            &*api_that_guard,
-                            api_serial,
-                            api_platform_id,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::auth_device_id(&*api_that_guard, api_serial, api_platform_id)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -368,41 +304,29 @@ fn wire__crate__api__core__MoozeCore_auth_ensure_session_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::auth_ensure_session(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::auth_ensure_session(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -425,41 +349,29 @@ fn wire__crate__api__core__MoozeCore_auth_force_refresh_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::auth_force_refresh(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::auth_force_refresh(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -482,40 +394,29 @@ fn wire__crate__api__core__MoozeCore_auth_invalidate_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::auth_invalidate(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::auth_invalidate(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -538,41 +439,29 @@ fn wire__crate__api__core__MoozeCore_auth_refresh_current_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::auth_refresh_current(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::auth_refresh_current(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -595,34 +484,24 @@ fn wire__crate__api__core__MoozeCore_auth_reset_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -652,45 +531,31 @@ fn wire__crate__api__core__MoozeCore_auth_set_device_safe_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_safe = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = Result::<_, ()>::Ok({
-                            crate::api::core::MoozeCore::auth_set_device_safe(
-                                &*api_that_guard,
-                                api_safe,
-                            )
-                            .await;
+                            crate::api::core::MoozeCore::auth_set_device_safe(&*api_that_guard, api_safe).await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -714,40 +579,29 @@ fn wire__crate__api__core__MoozeCore_bitcoin_balance_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::bitcoin_balance(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::bitcoin_balance(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -770,41 +624,29 @@ fn wire__crate__api__core__MoozeCore_bitcoin_block_height_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::bitcoin_block_height(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::bitcoin_block_height(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -827,44 +669,31 @@ fn wire__crate__api__core__MoozeCore_bitcoin_connect_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_mnemonic = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::bitcoin_connect(
-                            &*api_that_guard,
-                            api_mnemonic,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::bitcoin_connect(&*api_that_guard, api_mnemonic).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -887,17 +716,13 @@ fn wire__crate__api__core__MoozeCore_bitcoin_derived_addresses_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_keychain = <mooze_app::dto::wallet::KeychainDto>::sse_decode(&mut deserializer);
             let api_start = <u32>::sse_decode(&mut deserializer);
             let api_count = <u32>::sse_decode(&mut deserializer);
@@ -906,18 +731,12 @@ fn wire__crate__api__core__MoozeCore_bitcoin_derived_addresses_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -951,34 +770,24 @@ fn wire__crate__api__core__MoozeCore_bitcoin_disconnect_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -1008,45 +817,31 @@ fn wire__crate__api__core__MoozeCore_bitcoin_estimate_fee_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
-            let api_request =
-                <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_request = <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::bitcoin_estimate_fee(
-                            &*api_that_guard,
-                            api_request,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::bitcoin_estimate_fee(&*api_that_guard, api_request).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1069,44 +864,31 @@ fn wire__crate__api__core__MoozeCore_bitcoin_is_mine_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_address = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::bitcoin_is_mine(
-                            &*api_that_guard,
-                            api_address,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::bitcoin_is_mine(&*api_that_guard, api_address).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1129,42 +911,30 @@ fn wire__crate__api__core__MoozeCore_bitcoin_next_unused_address_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::bitcoin_next_unused_address(
-                            &*api_that_guard,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::bitcoin_next_unused_address(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1187,44 +957,31 @@ fn wire__crate__api__core__MoozeCore_bitcoin_receive_address_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_label = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::bitcoin_receive_address(
-                            &*api_that_guard,
-                            api_label,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::bitcoin_receive_address(&*api_that_guard, api_label).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1247,46 +1004,34 @@ fn wire__crate__api__core__MoozeCore_bitcoin_register_external_broadcast_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
-            let api_transaction =
-                <mooze_app::dto::wallet::TransactionDto>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_transaction = <mooze_app::dto::wallet::TransactionDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::bitcoin_register_external_broadcast(
-                                &*api_that_guard,
-                                api_transaction,
-                            )
-                            .await?;
+                        let output_ok = crate::api::core::MoozeCore::bitcoin_register_external_broadcast(
+                            &*api_that_guard,
+                            api_transaction,
+                        )
+                        .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1309,45 +1054,31 @@ fn wire__crate__api__core__MoozeCore_bitcoin_send_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
-            let api_request =
-                <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_request = <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::bitcoin_send(
-                            &*api_that_guard,
-                            api_request,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::bitcoin_send(&*api_that_guard, api_request).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1370,40 +1101,29 @@ fn wire__crate__api__core__MoozeCore_bitcoin_sync_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::bitcoin_sync(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::bitcoin_sync(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1426,41 +1146,29 @@ fn wire__crate__api__core__MoozeCore_bitcoin_take_events_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::bitcoin_take_events(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::bitcoin_take_events(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1483,41 +1191,29 @@ fn wire__crate__api__core__MoozeCore_bitcoin_transactions_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::bitcoin_transactions(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::bitcoin_transactions(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1540,41 +1236,29 @@ fn wire__crate__api__core__MoozeCore_bitcoin_unspent_outputs_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::bitcoin_unspent_outputs(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::bitcoin_unspent_outputs(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1597,17 +1281,13 @@ fn wire__crate__api__core__MoozeCore_favorite_payer_cpf_exists_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_cpf = <String>::sse_decode(&mut deserializer);
             let api_excluding_id = <Option<u64>>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -1615,18 +1295,12 @@ fn wire__crate__api__core__MoozeCore_favorite_payer_cpf_exists_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -1659,44 +1333,31 @@ fn wire__crate__api__core__MoozeCore_favorite_payer_delete_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_id = <u64>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::favorite_payer_delete(
-                            &*api_that_guard,
-                            api_id,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::favorite_payer_delete(&*api_that_guard, api_id).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1719,17 +1380,13 @@ fn wire__crate__api__core__MoozeCore_favorite_payer_save_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_id = <Option<u64>>::sse_decode(&mut deserializer);
             let api_label = <String>::sse_decode(&mut deserializer);
             let api_cpf = <String>::sse_decode(&mut deserializer);
@@ -1738,18 +1395,12 @@ fn wire__crate__api__core__MoozeCore_favorite_payer_save_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -1783,41 +1434,29 @@ fn wire__crate__api__core__MoozeCore_favorite_payers_clear_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::favorite_payers_clear(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::favorite_payers_clear(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1840,41 +1479,29 @@ fn wire__crate__api__core__MoozeCore_favorite_payers_list_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::favorite_payers_list(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::favorite_payers_list(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1897,44 +1524,32 @@ fn wire__crate__api__core__MoozeCore_import_flutter_snapshot_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_snapshot_json = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::import_flutter_snapshot(
-                            &*api_that_guard,
-                            api_snapshot_json,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::import_flutter_snapshot(&*api_that_guard, api_snapshot_json)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1957,40 +1572,29 @@ fn wire__crate__api__core__MoozeCore_is_migrated_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::is_migrated(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::is_migrated(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2013,17 +1617,13 @@ fn wire__crate__api__core__MoozeCore_liquid_apply_balance_delta_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_asset_ids = <Vec<String>>::sse_decode(&mut deserializer);
             let api_deltas = <Vec<i64>>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -2031,18 +1631,12 @@ fn wire__crate__api__core__MoozeCore_liquid_apply_balance_delta_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -2075,40 +1669,29 @@ fn wire__crate__api__core__MoozeCore_liquid_balance_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::liquid_balance(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::liquid_balance(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2131,17 +1714,13 @@ fn wire__crate__api__core__MoozeCore_liquid_build_lbtc_send_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_destination = <String>::sse_decode(&mut deserializer);
             let api_amount_sat = <u64>::sse_decode(&mut deserializer);
             let api_fee_rate_sat_per_vb = <Option<f64>>::sse_decode(&mut deserializer);
@@ -2151,18 +1730,12 @@ fn wire__crate__api__core__MoozeCore_liquid_build_lbtc_send_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -2197,44 +1770,31 @@ fn wire__crate__api__core__MoozeCore_liquid_connect_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_mnemonic = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::liquid_connect(
-                            &*api_that_guard,
-                            api_mnemonic,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::liquid_connect(&*api_that_guard, api_mnemonic).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2257,17 +1817,13 @@ fn wire__crate__api__core__MoozeCore_liquid_derived_addresses_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_keychain = <mooze_app::dto::wallet::KeychainDto>::sse_decode(&mut deserializer);
             let api_start = <u32>::sse_decode(&mut deserializer);
             let api_count = <u32>::sse_decode(&mut deserializer);
@@ -2276,18 +1832,12 @@ fn wire__crate__api__core__MoozeCore_liquid_derived_addresses_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -2321,34 +1871,24 @@ fn wire__crate__api__core__MoozeCore_liquid_disconnect_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -2378,45 +1918,31 @@ fn wire__crate__api__core__MoozeCore_liquid_estimate_fee_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
-            let api_request =
-                <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_request = <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::liquid_estimate_fee(
-                            &*api_that_guard,
-                            api_request,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::liquid_estimate_fee(&*api_that_guard, api_request).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2439,17 +1965,13 @@ fn wire__crate__api__core__MoozeCore_liquid_is_mine_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_address = <String>::sse_decode(&mut deserializer);
             let api_scan_limit = <u32>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -2457,28 +1979,19 @@ fn wire__crate__api__core__MoozeCore_liquid_is_mine_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::liquid_is_mine(
-                            &*api_that_guard,
-                            api_address,
-                            api_scan_limit,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::liquid_is_mine(&*api_that_guard, api_address, api_scan_limit)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2501,42 +2014,30 @@ fn wire__crate__api__core__MoozeCore_liquid_next_unused_address_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::liquid_next_unused_address(
-                            &*api_that_guard,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::liquid_next_unused_address(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2559,17 +2060,13 @@ fn wire__crate__api__core__MoozeCore_liquid_receive_address_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_asset_id = <Option<String>>::sse_decode(&mut deserializer);
             let api_label = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -2577,18 +2074,12 @@ fn wire__crate__api__core__MoozeCore_liquid_receive_address_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -2621,41 +2112,29 @@ fn wire__crate__api__core__MoozeCore_liquid_refresh_balance_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::liquid_refresh_balance(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::liquid_refresh_balance(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2678,47 +2157,33 @@ fn wire__crate__api__core__MoozeCore_liquid_send_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
-            let api_request =
-                <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_request = <mooze_app::dto::wallet::SendRequestDto>::sse_decode(&mut deserializer);
             let api_mnemonic = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::liquid_send(
-                            &*api_that_guard,
-                            api_request,
-                            api_mnemonic,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::liquid_send(&*api_that_guard, api_request, api_mnemonic)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2741,17 +2206,13 @@ fn wire__crate__api__core__MoozeCore_liquid_sign_and_broadcast_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_pset = <String>::sse_decode(&mut deserializer);
             let api_mnemonic = <String>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -2759,18 +2220,12 @@ fn wire__crate__api__core__MoozeCore_liquid_sign_and_broadcast_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -2803,17 +2258,13 @@ fn wire__crate__api__core__MoozeCore_liquid_sign_swap_pset_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_pset = <String>::sse_decode(&mut deserializer);
             let api_mnemonic = <String>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -2821,18 +2272,12 @@ fn wire__crate__api__core__MoozeCore_liquid_sign_swap_pset_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -2865,40 +2310,29 @@ fn wire__crate__api__core__MoozeCore_liquid_sync_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::liquid_sync(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::liquid_sync(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2921,41 +2355,29 @@ fn wire__crate__api__core__MoozeCore_liquid_take_events_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::liquid_take_events(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::liquid_take_events(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2978,41 +2400,29 @@ fn wire__crate__api__core__MoozeCore_liquid_transactions_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::liquid_transactions(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::liquid_transactions(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3035,41 +2445,29 @@ fn wire__crate__api__core__MoozeCore_liquid_unspent_outputs_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::liquid_unspent_outputs(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::liquid_unspent_outputs(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3092,40 +2490,29 @@ fn wire__crate__api__core__MoozeCore_liquid_utxos_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::liquid_utxos(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::liquid_utxos(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3148,14 +2535,9 @@ fn wire__crate__api__core__MoozeCore_open_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_config = <crate::api::types::CoreConfig>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
@@ -3184,20 +2566,15 @@ fn wire__crate__api__core__MoozeCore_peg_execute_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_wallet_id = <String>::sse_decode(&mut deserializer);
-            let api_direction =
-                <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
+            let api_direction = <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
             let api_amount_sat = <u64>::sse_decode(&mut deserializer);
             let api_fee_rate_sat_per_vbyte = <Option<u32>>::sse_decode(&mut deserializer);
             let api_drain = <bool>::sse_decode(&mut deserializer);
@@ -3207,18 +2584,12 @@ fn wire__crate__api__core__MoozeCore_peg_execute_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -3255,40 +2626,29 @@ fn wire__crate__api__core__MoozeCore_peg_limits_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::peg_limits(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::peg_limits(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3311,42 +2671,30 @@ fn wire__crate__api__core__MoozeCore_peg_list_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_wallet_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::peg_list(&*api_that_guard, api_wallet_id)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::peg_list(&*api_that_guard, api_wallet_id).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3369,19 +2717,14 @@ fn wire__crate__api__core__MoozeCore_peg_quote_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
-            let api_direction =
-                <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_direction = <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
             let api_amount_sat = <u64>::sse_decode(&mut deserializer);
             let api_fee_rate_sat_per_vbyte = <Option<u32>>::sse_decode(&mut deserializer);
             let api_drain = <bool>::sse_decode(&mut deserializer);
@@ -3390,18 +2733,12 @@ fn wire__crate__api__core__MoozeCore_peg_quote_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -3436,44 +2773,31 @@ fn wire__crate__api__core__MoozeCore_peg_refresh_due_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_wallet_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::peg_refresh_due(
-                            &*api_that_guard,
-                            api_wallet_id,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::peg_refresh_due(&*api_that_guard, api_wallet_id).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3496,44 +2820,31 @@ fn wire__crate__api__core__MoozeCore_peg_restore_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_wallet_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::peg_restore(
-                            &*api_that_guard,
-                            api_wallet_id,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::peg_restore(&*api_that_guard, api_wallet_id).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3556,47 +2867,33 @@ fn wire__crate__api__core__MoozeCore_peg_status_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
-            let api_direction =
-                <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_direction = <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
             let api_order_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::peg_status(
-                            &*api_that_guard,
-                            api_direction,
-                            api_order_id,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::peg_status(&*api_that_guard, api_direction, api_order_id)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3619,41 +2916,30 @@ fn wire__crate__api__core__MoozeCore_peg_tracked_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = Result::<_, ()>::Ok(
-                            crate::api::core::MoozeCore::peg_tracked(&*api_that_guard).await,
-                        )?;
+                        let output_ok =
+                            Result::<_, ()>::Ok(crate::api::core::MoozeCore::peg_tracked(&*api_that_guard).await)?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3676,45 +2962,31 @@ fn wire__crate__api__core__MoozeCore_peg_untrack_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_order_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = Result::<_, ()>::Ok({
-                            crate::api::core::MoozeCore::peg_untrack(
-                                &*api_that_guard,
-                                api_order_id,
-                            )
-                            .await;
+                            crate::api::core::MoozeCore::peg_untrack(&*api_that_guard, api_order_id).await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -3738,41 +3010,30 @@ fn wire__crate__api__core__MoozeCore_pix_active_polls_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = Result::<_, ()>::Ok(
-                            crate::api::core::MoozeCore::pix_active_polls(&*api_that_guard).await,
-                        )?;
+                        let output_ok =
+                            Result::<_, ()>::Ok(crate::api::core::MoozeCore::pix_active_polls(&*api_that_guard).await)?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3795,34 +3056,24 @@ fn wire__crate__api__core__MoozeCore_pix_cancel_polls_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -3852,41 +3103,29 @@ fn wire__crate__api__core__MoozeCore_pix_clear_deposits_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::pix_clear_deposits(&*api_that_guard)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::pix_clear_deposits(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3909,17 +3148,13 @@ fn wire__crate__api__core__MoozeCore_pix_create_deposit_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_amount_in_cents = <u64>::sse_decode(&mut deserializer);
             let api_asset_id = <String>::sse_decode(&mut deserializer);
             let api_tax_id_number = <Option<String>>::sse_decode(&mut deserializer);
@@ -3929,18 +3164,12 @@ fn wire__crate__api__core__MoozeCore_pix_create_deposit_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -3975,44 +3204,31 @@ fn wire__crate__api__core__MoozeCore_pix_flag_is_set_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_flag = <mooze_app::dto::pix::PixFlagDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::pix_flag_is_set(
-                            &*api_that_guard,
-                            api_flag,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::pix_flag_is_set(&*api_that_guard, api_flag).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4035,42 +3251,30 @@ fn wire__crate__api__core__MoozeCore_pix_flag_reset_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_flag = <mooze_app::dto::pix::PixFlagDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::pix_flag_reset(&*api_that_guard, api_flag)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::pix_flag_reset(&*api_that_guard, api_flag).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4093,42 +3297,30 @@ fn wire__crate__api__core__MoozeCore_pix_flag_set_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_flag = <mooze_app::dto::pix::PixFlagDto>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::pix_flag_set(&*api_that_guard, api_flag)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::pix_flag_set(&*api_that_guard, api_flag).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4151,44 +3343,31 @@ fn wire__crate__api__core__MoozeCore_pix_get_deposit_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_deposit_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::pix_get_deposit(
-                            &*api_that_guard,
-                            api_deposit_id,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::pix_get_deposit(&*api_that_guard, api_deposit_id).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4211,17 +3390,13 @@ fn wire__crate__api__core__MoozeCore_pix_history_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_limit = <Option<u32>>::sse_decode(&mut deserializer);
             let api_offset = <Option<u32>>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -4229,28 +3404,18 @@ fn wire__crate__api__core__MoozeCore_pix_history_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::pix_history(
-                            &*api_that_guard,
-                            api_limit,
-                            api_offset,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::pix_history(&*api_that_guard, api_limit, api_offset).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4273,17 +3438,13 @@ fn wire__crate__api__core__MoozeCore_pix_list_deposits_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_limit = <Option<u32>>::sse_decode(&mut deserializer);
             let api_offset = <Option<u32>>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -4291,28 +3452,19 @@ fn wire__crate__api__core__MoozeCore_pix_list_deposits_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::pix_list_deposits(
-                            &*api_that_guard,
-                            api_limit,
-                            api_offset,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::pix_list_deposits(&*api_that_guard, api_limit, api_offset)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4335,40 +3487,29 @@ fn wire__crate__api__core__MoozeCore_pix_poll_tick_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::pix_poll_tick(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::pix_poll_tick(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4391,44 +3532,32 @@ fn wire__crate__api__core__MoozeCore_pix_update_deposit_details_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_deposit_ids = <Vec<String>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::pix_update_deposit_details(
-                            &*api_that_guard,
-                            api_deposit_ids,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::pix_update_deposit_details(&*api_that_guard, api_deposit_ids)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4451,42 +3580,30 @@ fn wire__crate__api__core__MoozeCore_secure_delete_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_key = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::secure_delete(&*api_that_guard, api_key)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::secure_delete(&*api_that_guard, api_key).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4509,42 +3626,30 @@ fn wire__crate__api__core__MoozeCore_secure_get_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_key = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::secure_get(&*api_that_guard, api_key)
-                                .await?;
+                        let output_ok = crate::api::core::MoozeCore::secure_get(&*api_that_guard, api_key).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4567,44 +3672,31 @@ fn wire__crate__api__core__MoozeCore_secure_list_keys_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_prefix = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::secure_list_keys(
-                            &*api_that_guard,
-                            api_prefix,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::secure_list_keys(&*api_that_guard, api_prefix).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4627,17 +3719,13 @@ fn wire__crate__api__core__MoozeCore_secure_put_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_key = <String>::sse_decode(&mut deserializer);
             let api_value = <String>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -4645,28 +3733,18 @@ fn wire__crate__api__core__MoozeCore_secure_put_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::secure_put(
-                            &*api_that_guard,
-                            api_key,
-                            api_value,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::secure_put(&*api_that_guard, api_key, api_value).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4689,17 +3767,13 @@ fn wire__crate__api__core__MoozeCore_set_secure_storage_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_read = decode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
                 <flutter_rust_bridge::DartOpaque>::sse_decode(&mut deserializer),
             );
@@ -4717,18 +3791,12 @@ fn wire__crate__api__core__MoozeCore_set_secure_storage_impl(
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -4765,40 +3833,29 @@ fn wire__crate__api__core__MoozeCore_sideswap_assets_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::sideswap_assets(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::sideswap_assets(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4821,41 +3878,30 @@ fn wire__crate__api__core__MoozeCore_sideswap_close_events_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = Result::<_, ()>::Ok({
-                            crate::api::core::MoozeCore::sideswap_close_events(&*api_that_guard)
-                                .await;
+                            crate::api::core::MoozeCore::sideswap_close_events(&*api_that_guard).await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -4879,17 +3925,13 @@ fn wire__crate__api__core__MoozeCore_sideswap_connect_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_api_key = <String>::sse_decode(&mut deserializer);
             let api_url = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -4897,28 +3939,19 @@ fn wire__crate__api__core__MoozeCore_sideswap_connect_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::sideswap_connect(
-                            &*api_that_guard,
-                            api_api_key,
-                            api_url,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::sideswap_connect(&*api_that_guard, api_api_key, api_url)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4941,41 +3974,30 @@ fn wire__crate__api__core__MoozeCore_sideswap_disconnect_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = Result::<_, ()>::Ok({
-                            crate::api::core::MoozeCore::sideswap_disconnect(&*api_that_guard)
-                                .await;
+                            crate::api::core::MoozeCore::sideswap_disconnect(&*api_that_guard).await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -4999,17 +4021,13 @@ fn wire__crate__api__core__MoozeCore_sideswap_events_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_sink = <StreamSink<
                 mooze_app::dto::swap::SideSwapEventDto,
                 flutter_rust_bridge::for_generated::SseCodec,
@@ -5019,27 +4037,18 @@ fn wire__crate__api__core__MoozeCore_sideswap_events_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::sideswap_events(
-                            &*api_that_guard,
-                            api_sink,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::sideswap_events(&*api_that_guard, api_sink).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -5062,41 +4071,30 @@ fn wire__crate__api__core__MoozeCore_sideswap_events_running_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = Result::<_, ()>::Ok(
-                            crate::api::core::MoozeCore::sideswap_events_running(&*api_that_guard)
-                                .await,
+                            crate::api::core::MoozeCore::sideswap_events_running(&*api_that_guard).await,
                         )?;
                         Ok(output_ok)
                     })()
@@ -5120,44 +4118,31 @@ fn wire__crate__api__core__MoozeCore_sideswap_execute_swap_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_quote_id = <u64>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::core::MoozeCore::sideswap_execute_swap(
-                            &*api_that_guard,
-                            api_quote_id,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::core::MoozeCore::sideswap_execute_swap(&*api_that_guard, api_quote_id).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -5180,41 +4165,30 @@ fn wire__crate__api__core__MoozeCore_sideswap_is_connected_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = Result::<_, ()>::Ok(
-                            crate::api::core::MoozeCore::sideswap_is_connected(&*api_that_guard)
-                                .await,
+                            crate::api::core::MoozeCore::sideswap_is_connected(&*api_that_guard).await,
                         )?;
                         Ok(output_ok)
                     })()
@@ -5238,40 +4212,29 @@ fn wire__crate__api__core__MoozeCore_sideswap_markets_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::core::MoozeCore::sideswap_markets(&*api_that_guard).await?;
+                        let output_ok = crate::api::core::MoozeCore::sideswap_markets(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -5294,17 +4257,13 @@ fn wire__crate__api__core__MoozeCore_sideswap_start_quote_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             let api_send_asset_id = <String>::sse_decode(&mut deserializer);
             let api_receive_asset_id = <String>::sse_decode(&mut deserializer);
             let api_amount = <u64>::sse_decode(&mut deserializer);
@@ -5313,18 +4272,12 @@ fn wire__crate__api__core__MoozeCore_sideswap_start_quote_impl(
                 transform_result_sse::<_, crate::api::types::CoreError>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
@@ -5358,41 +4311,30 @@ fn wire__crate__api__core__MoozeCore_sideswap_stop_quote_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-            >>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+                    &mut deserializer,
+                );
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, ()>(
                     (move || async move {
                         let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
+                        let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false),
+                        ]);
                         for i in decode_indices_ {
                             match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
+                                0 => api_that_guard = Some(api_that.lockable_decode_async_ref().await),
                                 _ => unreachable!(),
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = Result::<_, ()>::Ok({
-                            crate::api::core::MoozeCore::sideswap_stop_quote(&*api_that_guard)
-                                .await;
+                            crate::api::core::MoozeCore::sideswap_stop_quote(&*api_that_guard).await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -5415,20 +4357,13 @@ fn wire__crate__api__swap__peg_validate_amount_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_direction =
-                <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_direction = <mooze_app::dto::swap::PegDirectionDto>::sse_decode(&mut deserializer);
             let api_amount_sat = <Option<u64>>::sse_decode(&mut deserializer);
             let api_spendable_sat = <u64>::sse_decode(&mut deserializer);
-            let api_limits =
-                <Option<mooze_app::dto::swap::PegServerLimitsDto>>::sse_decode(&mut deserializer);
+            let api_limits = <Option<mooze_app::dto::swap::PegServerLimitsDto>>::sse_decode(&mut deserializer);
             let api_fallback_minimum_sats = <u64>::sse_decode(&mut deserializer);
             let api_drain = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
@@ -5459,24 +4394,16 @@ fn wire__crate__api__pix__pix_fee_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_amount_brl = <f64>::sse_decode(&mut deserializer);
             let api_has_referral = <bool>::sse_decode(&mut deserializer);
             let api_quote_brl = <Option<f64>>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
-                let output_ok = Result::<_, ()>::Ok(crate::api::pix::pix_fee(
-                    api_amount_brl,
-                    api_has_referral,
-                    api_quote_brl,
-                ))?;
+                let output_ok =
+                    Result::<_, ()>::Ok(crate::api::pix::pix_fee(api_amount_brl, api_has_referral, api_quote_brl))?;
                 Ok(output_ok)
             })())
         },
@@ -5495,19 +4422,13 @@ fn wire__crate__api__pix__pix_looks_like_key_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_value = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
-                let output_ok =
-                    Result::<_, ()>::Ok(crate::api::pix::pix_looks_like_key(api_value))?;
+                let output_ok = Result::<_, ()>::Ok(crate::api::pix::pix_looks_like_key(api_value))?;
                 Ok(output_ok)
             })())
         },
@@ -5526,14 +4447,9 @@ fn wire__crate__api__pix__pix_poll_interval_ms_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
                 let output_ok = Result::<_, ()>::Ok(crate::api::pix::pix_poll_interval_ms())?;
@@ -5555,23 +4471,14 @@ fn wire__crate__api__pix__pix_validate_amount_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_amount_brl = <f64>::sse_decode(&mut deserializer);
-            let api_limits =
-                <Option<mooze_app::dto::pix::DepositLimitsDto>>::sse_decode(&mut deserializer);
+            let api_limits = <Option<mooze_app::dto::pix::DepositLimitsDto>>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
-                let output_ok = Result::<_, ()>::Ok(crate::api::pix::pix_validate_amount(
-                    api_amount_brl,
-                    api_limits,
-                ))?;
+                let output_ok = Result::<_, ()>::Ok(crate::api::pix::pix_validate_amount(api_amount_brl, api_limits))?;
                 Ok(output_ok)
             })())
         },
@@ -5590,14 +4497,9 @@ fn wire__crate__api__swap__sideswap_default_url_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
                 let output_ok = Result::<_, ()>::Ok(crate::api::swap::sideswap_default_url())?;
@@ -5619,14 +4521,9 @@ fn wire__crate__api__pix__tax_id_format_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_digits = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
@@ -5649,14 +4546,9 @@ fn wire__crate__api__pix__tax_id_is_valid_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_input = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
@@ -5679,14 +4571,9 @@ fn wire__crate__api__pix__tax_id_mask_input_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_text = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
@@ -5709,14 +4596,9 @@ fn wire__crate__api__pix__tax_id_strip_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_input = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
@@ -5739,14 +4621,9 @@ fn wire__crate__api__pix__tax_id_validate_impl(
         },
         move || {
             let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
             };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_input = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
@@ -6122,17 +4999,15 @@ fn decode_DartFn_Inputs_String_Output_list_String_AnyhowException(
 
     async fn body(dart_opaque: flutter_rust_bridge::DartOpaque, arg0: String) -> Vec<String> {
         let args = vec![arg0.into_into_dart().into_dart()];
-        let message = FLUTTER_RUST_BRIDGE_HANDLER
-            .dart_fn_invoke(dart_opaque, args)
-            .await;
+        let message = FLUTTER_RUST_BRIDGE_HANDLER.dart_fn_invoke(dart_opaque, args).await;
 
         let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
         let action = deserializer.cursor.read_u8().unwrap();
         let ans = match action {
             0 => std::result::Result::Ok(<Vec<String>>::sse_decode(&mut deserializer)),
-            1 => std::result::Result::Err(
-                <flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(&mut deserializer),
-            ),
+            1 => std::result::Result::Err(<flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(
+                &mut deserializer,
+            )),
             _ => unreachable!(),
         };
         deserializer.end();
@@ -6140,12 +5015,7 @@ fn decode_DartFn_Inputs_String_Output_list_String_AnyhowException(
         ans
     }
 
-    move |arg0: String| {
-        flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(
-            dart_opaque.clone(),
-            arg0,
-        ))
-    }
+    move |arg0: String| flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(dart_opaque.clone(), arg0))
 }
 fn decode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
     dart_opaque: flutter_rust_bridge::DartOpaque,
@@ -6154,17 +5024,15 @@ fn decode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
 
     async fn body(dart_opaque: flutter_rust_bridge::DartOpaque, arg0: String) -> Option<String> {
         let args = vec![arg0.into_into_dart().into_dart()];
-        let message = FLUTTER_RUST_BRIDGE_HANDLER
-            .dart_fn_invoke(dart_opaque, args)
-            .await;
+        let message = FLUTTER_RUST_BRIDGE_HANDLER.dart_fn_invoke(dart_opaque, args).await;
 
         let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
         let action = deserializer.cursor.read_u8().unwrap();
         let ans = match action {
             0 => std::result::Result::Ok(<Option<String>>::sse_decode(&mut deserializer)),
-            1 => std::result::Result::Err(
-                <flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(&mut deserializer),
-            ),
+            1 => std::result::Result::Err(<flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(
+                &mut deserializer,
+            )),
             _ => unreachable!(),
         };
         deserializer.end();
@@ -6172,12 +5040,7 @@ fn decode_DartFn_Inputs_String_Output_opt_String_AnyhowException(
         ans
     }
 
-    move |arg0: String| {
-        flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(
-            dart_opaque.clone(),
-            arg0,
-        ))
-    }
+    move |arg0: String| flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(dart_opaque.clone(), arg0))
 }
 fn decode_DartFn_Inputs_String_Output_unit_AnyhowException(
     dart_opaque: flutter_rust_bridge::DartOpaque,
@@ -6186,17 +5049,15 @@ fn decode_DartFn_Inputs_String_Output_unit_AnyhowException(
 
     async fn body(dart_opaque: flutter_rust_bridge::DartOpaque, arg0: String) -> () {
         let args = vec![arg0.into_into_dart().into_dart()];
-        let message = FLUTTER_RUST_BRIDGE_HANDLER
-            .dart_fn_invoke(dart_opaque, args)
-            .await;
+        let message = FLUTTER_RUST_BRIDGE_HANDLER.dart_fn_invoke(dart_opaque, args).await;
 
         let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
         let action = deserializer.cursor.read_u8().unwrap();
         let ans = match action {
             0 => std::result::Result::Ok(<()>::sse_decode(&mut deserializer)),
-            1 => std::result::Result::Err(
-                <flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(&mut deserializer),
-            ),
+            1 => std::result::Result::Err(<flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(
+                &mut deserializer,
+            )),
             _ => unreachable!(),
         };
         deserializer.end();
@@ -6204,12 +5065,7 @@ fn decode_DartFn_Inputs_String_Output_unit_AnyhowException(
         ans
     }
 
-    move |arg0: String| {
-        flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(
-            dart_opaque.clone(),
-            arg0,
-        ))
-    }
+    move |arg0: String| flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(dart_opaque.clone(), arg0))
 }
 fn decode_DartFn_Inputs_String_String_Output_unit_AnyhowException(
     dart_opaque: flutter_rust_bridge::DartOpaque,
@@ -6217,21 +5073,16 @@ fn decode_DartFn_Inputs_String_String_Output_unit_AnyhowException(
     use flutter_rust_bridge::IntoDart;
 
     async fn body(dart_opaque: flutter_rust_bridge::DartOpaque, arg0: String, arg1: String) -> () {
-        let args = vec![
-            arg0.into_into_dart().into_dart(),
-            arg1.into_into_dart().into_dart(),
-        ];
-        let message = FLUTTER_RUST_BRIDGE_HANDLER
-            .dart_fn_invoke(dart_opaque, args)
-            .await;
+        let args = vec![arg0.into_into_dart().into_dart(), arg1.into_into_dart().into_dart()];
+        let message = FLUTTER_RUST_BRIDGE_HANDLER.dart_fn_invoke(dart_opaque, args).await;
 
         let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
         let action = deserializer.cursor.read_u8().unwrap();
         let ans = match action {
             0 => std::result::Result::Ok(<()>::sse_decode(&mut deserializer)),
-            1 => std::result::Result::Err(
-                <flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(&mut deserializer),
-            ),
+            1 => std::result::Result::Err(<flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(
+                &mut deserializer,
+            )),
             _ => unreachable!(),
         };
         deserializer.end();
@@ -6240,11 +5091,7 @@ fn decode_DartFn_Inputs_String_String_Output_unit_AnyhowException(
     }
 
     move |arg0: String, arg1: String| {
-        flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(
-            dart_opaque.clone(),
-            arg0,
-            arg1,
-        ))
+        flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(dart_opaque.clone(), arg0, arg1))
     }
 }
 flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
@@ -6264,9 +5111,9 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
 impl SseDecode for MoozeCore {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <RustOpaqueMoi<
-            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>,
-        >>::sse_decode(deserializer);
+        let mut inner = <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_decode(
+            deserializer,
+        );
         return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
     }
 }
@@ -6279,9 +5126,7 @@ impl SseDecode for flutter_rust_bridge::DartOpaque {
     }
 }
 
-impl SseDecode
-    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>
-{
+impl SseDecode for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <usize>::sse_decode(deserializer);
@@ -6289,12 +5134,7 @@ impl SseDecode
     }
 }
 
-impl SseDecode
-    for StreamSink<
-        mooze_app::dto::swap::SideSwapEventDto,
-        flutter_rust_bridge::for_generated::SseCodec,
-    >
-{
+impl SseDecode for StreamSink<mooze_app::dto::swap::SideSwapEventDto, flutter_rust_bridge::for_generated::SseCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <String>::sse_decode(deserializer);
@@ -6315,10 +5155,7 @@ impl SseDecode for mooze_app::dto::wallet::AddressOwnershipDto {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_keychain = <mooze_app::dto::wallet::KeychainDto>::sse_decode(deserializer);
         let mut var_index = <u32>::sse_decode(deserializer);
-        return mooze_app::dto::wallet::AddressOwnershipDto {
-            keychain: var_keychain,
-            index: var_index,
-        };
+        return mooze_app::dto::wallet::AddressOwnershipDto { keychain: var_keychain, index: var_index };
     }
 }
 
@@ -6327,10 +5164,7 @@ impl SseDecode for mooze_app::dto::wallet::ApiResponseDto {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_status = <u16>::sse_decode(deserializer);
         let mut var_body = <String>::sse_decode(deserializer);
-        return mooze_app::dto::wallet::ApiResponseDto {
-            status: var_status,
-            body: var_body,
-        };
+        return mooze_app::dto::wallet::ApiResponseDto { status: var_status, body: var_body };
     }
 }
 
@@ -6397,13 +5231,9 @@ impl SseDecode for mooze_app::dto::config::BackendDto {
 impl SseDecode for mooze_app::dto::wallet::BalanceDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_assets =
-            <Vec<mooze_app::dto::wallet::AssetBalanceDto>>::sse_decode(deserializer);
+        let mut var_assets = <Vec<mooze_app::dto::wallet::AssetBalanceDto>>::sse_decode(deserializer);
         let mut var_snapshotAtMs = <u64>::sse_decode(deserializer);
-        return mooze_app::dto::wallet::BalanceDto {
-            assets: var_assets,
-            snapshot_at_ms: var_snapshotAtMs,
-        };
+        return mooze_app::dto::wallet::BalanceDto { assets: var_assets, snapshot_at_ms: var_snapshotAtMs };
     }
 }
 
@@ -6419,8 +5249,7 @@ impl SseDecode for mooze_app::dto::wallet::BroadcastResultDto {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_chain = <mooze_app::dto::wallet::ChainDto>::sse_decode(deserializer);
         let mut var_txId = <String>::sse_decode(deserializer);
-        let mut var_transaction =
-            <mooze_app::dto::wallet::TransactionDto>::sse_decode(deserializer);
+        let mut var_transaction = <mooze_app::dto::wallet::TransactionDto>::sse_decode(deserializer);
         let mut var_feePaidSat = <Option<u64>>::sse_decode(deserializer);
         return mooze_app::dto::wallet::BroadcastResultDto {
             chain: var_chain,
@@ -6468,10 +5297,7 @@ impl SseDecode for crate::api::types::CoreError {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_kind = <crate::api::types::CoreErrorKind>::sse_decode(deserializer);
         let mut var_message = <String>::sse_decode(deserializer);
-        return crate::api::types::CoreError {
-            kind: var_kind,
-            message: var_message,
-        };
+        return crate::api::types::CoreError { kind: var_kind, message: var_message };
     }
 }
 
@@ -6551,8 +5377,7 @@ impl SseDecode for mooze_app::dto::pix::DepositValidationDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_isValid = <bool>::sse_decode(deserializer);
-        let mut var_error =
-            <Option<mooze_app::dto::pix::DepositValidationErrorDto>>::sse_decode(deserializer);
+        let mut var_error = <Option<mooze_app::dto::pix::DepositValidationErrorDto>>::sse_decode(deserializer);
         let mut var_limitAmount = <Option<f64>>::sse_decode(deserializer);
         return mooze_app::dto::pix::DepositValidationDto {
             is_valid: var_isValid,
@@ -6798,9 +5623,7 @@ impl SseDecode for Vec<mooze_app::dto::wallet::AssetBalanceDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::wallet::AssetBalanceDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::wallet::AssetBalanceDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6812,9 +5635,7 @@ impl SseDecode for Vec<mooze_app::dto::wallet::DerivedAddressDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::wallet::DerivedAddressDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::wallet::DerivedAddressDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6826,9 +5647,7 @@ impl SseDecode for Vec<mooze_app::dto::pix::FavoritePayerDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::pix::FavoritePayerDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::pix::FavoritePayerDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6840,9 +5659,7 @@ impl SseDecode for Vec<mooze_app::dto::wallet::LiquidUtxoDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::wallet::LiquidUtxoDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::wallet::LiquidUtxoDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6854,9 +5671,7 @@ impl SseDecode for Vec<mooze_app::dto::swap::PegRecordDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::swap::PegRecordDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::swap::PegRecordDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6868,9 +5683,7 @@ impl SseDecode for Vec<mooze_app::dto::pix::PixDepositDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::pix::PixDepositDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::pix::PixDepositDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6882,9 +5695,7 @@ impl SseDecode for Vec<mooze_app::dto::pix::PixStatusEventDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::pix::PixStatusEventDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::pix::PixStatusEventDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6920,9 +5731,7 @@ impl SseDecode for Vec<mooze_app::dto::swap::SideswapAssetDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::swap::SideswapAssetDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::swap::SideswapAssetDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6934,9 +5743,7 @@ impl SseDecode for Vec<mooze_app::dto::swap::SideswapMarketDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::swap::SideswapMarketDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::swap::SideswapMarketDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6948,9 +5755,7 @@ impl SseDecode for Vec<mooze_app::dto::wallet::SkippedRowDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::wallet::SkippedRowDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::wallet::SkippedRowDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6962,9 +5767,7 @@ impl SseDecode for Vec<mooze_app::dto::wallet::TableCountDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::wallet::TableCountDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::wallet::TableCountDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6976,9 +5779,7 @@ impl SseDecode for Vec<mooze_app::dto::swap::TrackedPegDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::swap::TrackedPegDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::swap::TrackedPegDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -6990,9 +5791,7 @@ impl SseDecode for Vec<mooze_app::dto::wallet::TransactionDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::wallet::TransactionDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::wallet::TransactionDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -7004,9 +5803,7 @@ impl SseDecode for Vec<mooze_app::dto::wallet::TransactionEventDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::wallet::TransactionEventDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::wallet::TransactionEventDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -7018,9 +5815,7 @@ impl SseDecode for Vec<mooze_app::dto::wallet::WalletUtxoDto> {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<mooze_app::dto::wallet::WalletUtxoDto>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<mooze_app::dto::wallet::WalletUtxoDto>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -7031,8 +5826,7 @@ impl SseDecode for mooze_app::dto::wallet::MigrationReportDto {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_alreadyDone = <bool>::sse_decode(deserializer);
         let mut var_copied = <Vec<mooze_app::dto::wallet::TableCountDto>>::sse_decode(deserializer);
-        let mut var_skipped =
-            <Vec<mooze_app::dto::wallet::SkippedRowDto>>::sse_decode(deserializer);
+        let mut var_skipped = <Vec<mooze_app::dto::wallet::SkippedRowDto>>::sse_decode(deserializer);
         return mooze_app::dto::wallet::MigrationReportDto {
             already_done: var_alreadyDone,
             copied: var_copied,
@@ -7060,11 +5854,7 @@ impl SseDecode for mooze_app::dto::wallet::NextUnusedAddressDto {
         let mut var_index = <u32>::sse_decode(deserializer);
         let mut var_address = <String>::sse_decode(deserializer);
         let mut var_used = <bool>::sse_decode(deserializer);
-        return mooze_app::dto::wallet::NextUnusedAddressDto {
-            index: var_index,
-            address: var_address,
-            used: var_used,
-        };
+        return mooze_app::dto::wallet::NextUnusedAddressDto { index: var_index, address: var_address, used: var_used };
     }
 }
 
@@ -7083,9 +5873,7 @@ impl SseDecode for Option<mooze_app::dto::wallet::AddressOwnershipDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<mooze_app::dto::wallet::AddressOwnershipDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(<mooze_app::dto::wallet::AddressOwnershipDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7107,9 +5895,7 @@ impl SseDecode for Option<mooze_app::dto::pix::CpfValidationErrorDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<mooze_app::dto::pix::CpfValidationErrorDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(<mooze_app::dto::pix::CpfValidationErrorDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7120,9 +5906,7 @@ impl SseDecode for Option<mooze_app::dto::pix::DepositLimitsDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<mooze_app::dto::pix::DepositLimitsDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(<mooze_app::dto::pix::DepositLimitsDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7133,9 +5917,7 @@ impl SseDecode for Option<mooze_app::dto::pix::DepositValidationErrorDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(
-                <mooze_app::dto::pix::DepositValidationErrorDto>::sse_decode(deserializer),
-            );
+            return Some(<mooze_app::dto::pix::DepositValidationErrorDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7146,9 +5928,7 @@ impl SseDecode for Option<mooze_app::dto::wallet::DeviceMetricsDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<mooze_app::dto::wallet::DeviceMetricsDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(<mooze_app::dto::wallet::DeviceMetricsDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7170,9 +5950,7 @@ impl SseDecode for Option<mooze_app::dto::pix::FavoritePayerSaveErrorDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(
-                <mooze_app::dto::pix::FavoritePayerSaveErrorDto>::sse_decode(deserializer),
-            );
+            return Some(<mooze_app::dto::pix::FavoritePayerSaveErrorDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7194,9 +5972,7 @@ impl SseDecode for Option<mooze_app::dto::swap::PegAmountIssueDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<mooze_app::dto::swap::PegAmountIssueDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(<mooze_app::dto::swap::PegAmountIssueDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7207,9 +5983,7 @@ impl SseDecode for Option<mooze_app::dto::swap::PegServerLimitsDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<mooze_app::dto::swap::PegServerLimitsDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(<mooze_app::dto::swap::PegServerLimitsDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7220,9 +5994,7 @@ impl SseDecode for Option<mooze_app::dto::pix::PixDepositDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<mooze_app::dto::pix::PixDepositDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(<mooze_app::dto::pix::PixDepositDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7244,9 +6016,7 @@ impl SseDecode for Option<mooze_app::dto::wallet::SourceDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<mooze_app::dto::wallet::SourceDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(<mooze_app::dto::wallet::SourceDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7257,9 +6027,7 @@ impl SseDecode for Option<mooze_app::dto::wallet::StatusDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<mooze_app::dto::wallet::StatusDto>::sse_decode(
-                deserializer,
-            ));
+            return Some(<mooze_app::dto::wallet::StatusDto>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7316,8 +6084,7 @@ impl SseDecode for mooze_app::dto::swap::PegAmountValidationDto {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_hasAmount = <bool>::sse_decode(deserializer);
         let mut var_isValid = <bool>::sse_decode(deserializer);
-        let mut var_issue =
-            <Option<mooze_app::dto::swap::PegAmountIssueDto>>::sse_decode(deserializer);
+        let mut var_issue = <Option<mooze_app::dto::swap::PegAmountIssueDto>>::sse_decode(deserializer);
         let mut var_minimumSats = <Option<u64>>::sse_decode(deserializer);
         let mut var_maximumSats = <Option<u64>>::sse_decode(deserializer);
         let mut var_showsIssue = <bool>::sse_decode(deserializer);
@@ -7349,10 +6116,7 @@ impl SseDecode for mooze_app::dto::swap::PegExecutionDto {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_order = <mooze_app::dto::swap::PegOrderDto>::sse_decode(deserializer);
         let mut var_fundingTxId = <String>::sse_decode(deserializer);
-        return mooze_app::dto::swap::PegExecutionDto {
-            order: var_order,
-            funding_tx_id: var_fundingTxId,
-        };
+        return mooze_app::dto::swap::PegExecutionDto { order: var_order, funding_tx_id: var_fundingTxId };
     }
 }
 
@@ -7651,8 +6415,7 @@ impl SseDecode for mooze_app::dto::wallet::SendRequestDto {
         let mut var_destination = <String>::sse_decode(deserializer);
         let mut var_amountSat = <u64>::sse_decode(deserializer);
         let mut var_assetId = <Option<String>>::sse_decode(deserializer);
-        let mut var_feePriority =
-            <mooze_app::dto::wallet::FeePriorityDto>::sse_decode(deserializer);
+        let mut var_feePriority = <mooze_app::dto::wallet::FeePriorityDto>::sse_decode(deserializer);
         let mut var_label = <Option<String>>::sse_decode(deserializer);
         let mut var_subtractFeeFromAmount = <bool>::sse_decode(deserializer);
         let mut var_feeRateOverrideSatPerVbyte = <Option<f64>>::sse_decode(deserializer);
@@ -7743,11 +6506,7 @@ impl SseDecode for mooze_app::dto::wallet::SkippedRowDto {
         let mut var_table = <String>::sse_decode(deserializer);
         let mut var_key = <String>::sse_decode(deserializer);
         let mut var_reason = <String>::sse_decode(deserializer);
-        return mooze_app::dto::wallet::SkippedRowDto {
-            table: var_table,
-            key: var_key,
-            reason: var_reason,
-        };
+        return mooze_app::dto::wallet::SkippedRowDto { table: var_table, key: var_key, reason: var_reason };
     }
 }
 
@@ -7814,10 +6573,7 @@ impl SseDecode for mooze_app::dto::wallet::TableCountDto {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_table = <String>::sse_decode(deserializer);
         let mut var_count = <u32>::sse_decode(deserializer);
-        return mooze_app::dto::wallet::TableCountDto {
-            table: var_table,
-            count: var_count,
-        };
+        return mooze_app::dto::wallet::TableCountDto { table: var_table, count: var_count };
     }
 }
 
@@ -7896,13 +6652,10 @@ impl SseDecode for mooze_app::dto::wallet::TransactionDto {
 impl SseDecode for mooze_app::dto::wallet::TransactionEventDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_kind =
-            <mooze_app::dto::wallet::TransactionEventKindDto>::sse_decode(deserializer);
-        let mut var_transaction =
-            <mooze_app::dto::wallet::TransactionDto>::sse_decode(deserializer);
+        let mut var_kind = <mooze_app::dto::wallet::TransactionEventKindDto>::sse_decode(deserializer);
+        let mut var_transaction = <mooze_app::dto::wallet::TransactionDto>::sse_decode(deserializer);
         let mut var_observedAtMs = <u64>::sse_decode(deserializer);
-        let mut var_previousStatus =
-            <Option<mooze_app::dto::wallet::StatusDto>>::sse_decode(deserializer);
+        let mut var_previousStatus = <Option<mooze_app::dto::wallet::StatusDto>>::sse_decode(deserializer);
         let mut var_previousConfirmations = <Option<u32>>::sse_decode(deserializer);
         return mooze_app::dto::wallet::TransactionEventDto {
             kind: var_kind,
@@ -8007,427 +6760,100 @@ fn pde_ffi_dispatcher_primary_impl(
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
         1 => wire__crate__api__core__MoozeCore_api_request_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__core__MoozeCore_api_set_base_url_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        3 => wire__crate__api__core__MoozeCore_api_set_metrics_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        4 => wire__crate__api__core__MoozeCore_auth_access_token_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        5 => {
-            wire__crate__api__core__MoozeCore_auth_device_id_impl(port, ptr, rust_vec_len, data_len)
-        }
-        6 => wire__crate__api__core__MoozeCore_auth_ensure_session_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        7 => wire__crate__api__core__MoozeCore_auth_force_refresh_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        8 => wire__crate__api__core__MoozeCore_auth_invalidate_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        9 => wire__crate__api__core__MoozeCore_auth_refresh_current_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
+        2 => wire__crate__api__core__MoozeCore_api_set_base_url_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__core__MoozeCore_api_set_metrics_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__core__MoozeCore_auth_access_token_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__core__MoozeCore_auth_device_id_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__core__MoozeCore_auth_ensure_session_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__core__MoozeCore_auth_force_refresh_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__core__MoozeCore_auth_invalidate_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__core__MoozeCore_auth_refresh_current_impl(port, ptr, rust_vec_len, data_len),
         10 => wire__crate__api__core__MoozeCore_auth_reset_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__core__MoozeCore_auth_set_device_safe_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        12 => wire__crate__api__core__MoozeCore_bitcoin_balance_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        13 => wire__crate__api__core__MoozeCore_bitcoin_block_height_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        14 => wire__crate__api__core__MoozeCore_bitcoin_connect_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        15 => wire__crate__api__core__MoozeCore_bitcoin_derived_addresses_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        16 => wire__crate__api__core__MoozeCore_bitcoin_disconnect_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        17 => wire__crate__api__core__MoozeCore_bitcoin_estimate_fee_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        18 => wire__crate__api__core__MoozeCore_bitcoin_is_mine_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        19 => wire__crate__api__core__MoozeCore_bitcoin_next_unused_address_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        20 => wire__crate__api__core__MoozeCore_bitcoin_receive_address_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
+        11 => wire__crate__api__core__MoozeCore_auth_set_device_safe_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__core__MoozeCore_bitcoin_balance_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__core__MoozeCore_bitcoin_block_height_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__core__MoozeCore_bitcoin_connect_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__core__MoozeCore_bitcoin_derived_addresses_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__core__MoozeCore_bitcoin_disconnect_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__core__MoozeCore_bitcoin_estimate_fee_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__core__MoozeCore_bitcoin_is_mine_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__core__MoozeCore_bitcoin_next_unused_address_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__core__MoozeCore_bitcoin_receive_address_impl(port, ptr, rust_vec_len, data_len),
         21 => wire__crate__api__core__MoozeCore_bitcoin_register_external_broadcast_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => {
-            wire__crate__api__core__MoozeCore_bitcoin_send_impl(port, ptr, rust_vec_len, data_len)
-        }
-        23 => {
-            wire__crate__api__core__MoozeCore_bitcoin_sync_impl(port, ptr, rust_vec_len, data_len)
-        }
-        24 => wire__crate__api__core__MoozeCore_bitcoin_take_events_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        25 => wire__crate__api__core__MoozeCore_bitcoin_transactions_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        26 => wire__crate__api__core__MoozeCore_bitcoin_unspent_outputs_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        27 => wire__crate__api__core__MoozeCore_favorite_payer_cpf_exists_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        28 => wire__crate__api__core__MoozeCore_favorite_payer_delete_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        29 => wire__crate__api__core__MoozeCore_favorite_payer_save_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        30 => wire__crate__api__core__MoozeCore_favorite_payers_clear_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        31 => wire__crate__api__core__MoozeCore_favorite_payers_list_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        32 => wire__crate__api__core__MoozeCore_import_flutter_snapshot_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
+        22 => wire__crate__api__core__MoozeCore_bitcoin_send_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__core__MoozeCore_bitcoin_sync_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__core__MoozeCore_bitcoin_take_events_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__core__MoozeCore_bitcoin_transactions_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__core__MoozeCore_bitcoin_unspent_outputs_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__core__MoozeCore_favorite_payer_cpf_exists_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__core__MoozeCore_favorite_payer_delete_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__core__MoozeCore_favorite_payer_save_impl(port, ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__core__MoozeCore_favorite_payers_clear_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__core__MoozeCore_favorite_payers_list_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__core__MoozeCore_import_flutter_snapshot_impl(port, ptr, rust_vec_len, data_len),
         33 => wire__crate__api__core__MoozeCore_is_migrated_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__core__MoozeCore_liquid_apply_balance_delta_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        35 => {
-            wire__crate__api__core__MoozeCore_liquid_balance_impl(port, ptr, rust_vec_len, data_len)
-        }
-        36 => wire__crate__api__core__MoozeCore_liquid_build_lbtc_send_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        37 => {
-            wire__crate__api__core__MoozeCore_liquid_connect_impl(port, ptr, rust_vec_len, data_len)
-        }
-        38 => wire__crate__api__core__MoozeCore_liquid_derived_addresses_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        39 => wire__crate__api__core__MoozeCore_liquid_disconnect_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        40 => wire__crate__api__core__MoozeCore_liquid_estimate_fee_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        41 => {
-            wire__crate__api__core__MoozeCore_liquid_is_mine_impl(port, ptr, rust_vec_len, data_len)
-        }
-        42 => wire__crate__api__core__MoozeCore_liquid_next_unused_address_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        43 => wire__crate__api__core__MoozeCore_liquid_receive_address_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        44 => wire__crate__api__core__MoozeCore_liquid_refresh_balance_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
+        34 => wire__crate__api__core__MoozeCore_liquid_apply_balance_delta_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__core__MoozeCore_liquid_balance_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__core__MoozeCore_liquid_build_lbtc_send_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__core__MoozeCore_liquid_connect_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__core__MoozeCore_liquid_derived_addresses_impl(port, ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__core__MoozeCore_liquid_disconnect_impl(port, ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__core__MoozeCore_liquid_estimate_fee_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__core__MoozeCore_liquid_is_mine_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__core__MoozeCore_liquid_next_unused_address_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__core__MoozeCore_liquid_receive_address_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__core__MoozeCore_liquid_refresh_balance_impl(port, ptr, rust_vec_len, data_len),
         45 => wire__crate__api__core__MoozeCore_liquid_send_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__core__MoozeCore_liquid_sign_and_broadcast_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        47 => wire__crate__api__core__MoozeCore_liquid_sign_swap_pset_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
+        46 => wire__crate__api__core__MoozeCore_liquid_sign_and_broadcast_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__core__MoozeCore_liquid_sign_swap_pset_impl(port, ptr, rust_vec_len, data_len),
         48 => wire__crate__api__core__MoozeCore_liquid_sync_impl(port, ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__core__MoozeCore_liquid_take_events_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        50 => wire__crate__api__core__MoozeCore_liquid_transactions_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        51 => wire__crate__api__core__MoozeCore_liquid_unspent_outputs_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        52 => {
-            wire__crate__api__core__MoozeCore_liquid_utxos_impl(port, ptr, rust_vec_len, data_len)
-        }
+        49 => wire__crate__api__core__MoozeCore_liquid_take_events_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__core__MoozeCore_liquid_transactions_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__api__core__MoozeCore_liquid_unspent_outputs_impl(port, ptr, rust_vec_len, data_len),
+        52 => wire__crate__api__core__MoozeCore_liquid_utxos_impl(port, ptr, rust_vec_len, data_len),
         53 => wire__crate__api__core__MoozeCore_open_impl(port, ptr, rust_vec_len, data_len),
         54 => wire__crate__api__core__MoozeCore_peg_execute_impl(port, ptr, rust_vec_len, data_len),
         55 => wire__crate__api__core__MoozeCore_peg_limits_impl(port, ptr, rust_vec_len, data_len),
         56 => wire__crate__api__core__MoozeCore_peg_list_impl(port, ptr, rust_vec_len, data_len),
         57 => wire__crate__api__core__MoozeCore_peg_quote_impl(port, ptr, rust_vec_len, data_len),
-        58 => wire__crate__api__core__MoozeCore_peg_refresh_due_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
+        58 => wire__crate__api__core__MoozeCore_peg_refresh_due_impl(port, ptr, rust_vec_len, data_len),
         59 => wire__crate__api__core__MoozeCore_peg_restore_impl(port, ptr, rust_vec_len, data_len),
         60 => wire__crate__api__core__MoozeCore_peg_status_impl(port, ptr, rust_vec_len, data_len),
         61 => wire__crate__api__core__MoozeCore_peg_tracked_impl(port, ptr, rust_vec_len, data_len),
         62 => wire__crate__api__core__MoozeCore_peg_untrack_impl(port, ptr, rust_vec_len, data_len),
-        63 => wire__crate__api__core__MoozeCore_pix_active_polls_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        64 => wire__crate__api__core__MoozeCore_pix_cancel_polls_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        65 => wire__crate__api__core__MoozeCore_pix_clear_deposits_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        66 => wire__crate__api__core__MoozeCore_pix_create_deposit_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        67 => wire__crate__api__core__MoozeCore_pix_flag_is_set_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        68 => {
-            wire__crate__api__core__MoozeCore_pix_flag_reset_impl(port, ptr, rust_vec_len, data_len)
-        }
-        69 => {
-            wire__crate__api__core__MoozeCore_pix_flag_set_impl(port, ptr, rust_vec_len, data_len)
-        }
-        70 => wire__crate__api__core__MoozeCore_pix_get_deposit_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
+        63 => wire__crate__api__core__MoozeCore_pix_active_polls_impl(port, ptr, rust_vec_len, data_len),
+        64 => wire__crate__api__core__MoozeCore_pix_cancel_polls_impl(port, ptr, rust_vec_len, data_len),
+        65 => wire__crate__api__core__MoozeCore_pix_clear_deposits_impl(port, ptr, rust_vec_len, data_len),
+        66 => wire__crate__api__core__MoozeCore_pix_create_deposit_impl(port, ptr, rust_vec_len, data_len),
+        67 => wire__crate__api__core__MoozeCore_pix_flag_is_set_impl(port, ptr, rust_vec_len, data_len),
+        68 => wire__crate__api__core__MoozeCore_pix_flag_reset_impl(port, ptr, rust_vec_len, data_len),
+        69 => wire__crate__api__core__MoozeCore_pix_flag_set_impl(port, ptr, rust_vec_len, data_len),
+        70 => wire__crate__api__core__MoozeCore_pix_get_deposit_impl(port, ptr, rust_vec_len, data_len),
         71 => wire__crate__api__core__MoozeCore_pix_history_impl(port, ptr, rust_vec_len, data_len),
-        72 => wire__crate__api__core__MoozeCore_pix_list_deposits_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        73 => {
-            wire__crate__api__core__MoozeCore_pix_poll_tick_impl(port, ptr, rust_vec_len, data_len)
-        }
-        74 => wire__crate__api__core__MoozeCore_pix_update_deposit_details_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        75 => {
-            wire__crate__api__core__MoozeCore_secure_delete_impl(port, ptr, rust_vec_len, data_len)
-        }
+        72 => wire__crate__api__core__MoozeCore_pix_list_deposits_impl(port, ptr, rust_vec_len, data_len),
+        73 => wire__crate__api__core__MoozeCore_pix_poll_tick_impl(port, ptr, rust_vec_len, data_len),
+        74 => wire__crate__api__core__MoozeCore_pix_update_deposit_details_impl(port, ptr, rust_vec_len, data_len),
+        75 => wire__crate__api__core__MoozeCore_secure_delete_impl(port, ptr, rust_vec_len, data_len),
         76 => wire__crate__api__core__MoozeCore_secure_get_impl(port, ptr, rust_vec_len, data_len),
-        77 => wire__crate__api__core__MoozeCore_secure_list_keys_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
+        77 => wire__crate__api__core__MoozeCore_secure_list_keys_impl(port, ptr, rust_vec_len, data_len),
         78 => wire__crate__api__core__MoozeCore_secure_put_impl(port, ptr, rust_vec_len, data_len),
-        79 => wire__crate__api__core__MoozeCore_set_secure_storage_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        80 => wire__crate__api__core__MoozeCore_sideswap_assets_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        81 => wire__crate__api__core__MoozeCore_sideswap_close_events_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        82 => wire__crate__api__core__MoozeCore_sideswap_connect_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        83 => wire__crate__api__core__MoozeCore_sideswap_disconnect_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        84 => wire__crate__api__core__MoozeCore_sideswap_events_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        85 => wire__crate__api__core__MoozeCore_sideswap_events_running_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        86 => wire__crate__api__core__MoozeCore_sideswap_execute_swap_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        87 => wire__crate__api__core__MoozeCore_sideswap_is_connected_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        88 => wire__crate__api__core__MoozeCore_sideswap_markets_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        89 => wire__crate__api__core__MoozeCore_sideswap_start_quote_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        90 => wire__crate__api__core__MoozeCore_sideswap_stop_quote_impl(
-            port,
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
+        79 => wire__crate__api__core__MoozeCore_set_secure_storage_impl(port, ptr, rust_vec_len, data_len),
+        80 => wire__crate__api__core__MoozeCore_sideswap_assets_impl(port, ptr, rust_vec_len, data_len),
+        81 => wire__crate__api__core__MoozeCore_sideswap_close_events_impl(port, ptr, rust_vec_len, data_len),
+        82 => wire__crate__api__core__MoozeCore_sideswap_connect_impl(port, ptr, rust_vec_len, data_len),
+        83 => wire__crate__api__core__MoozeCore_sideswap_disconnect_impl(port, ptr, rust_vec_len, data_len),
+        84 => wire__crate__api__core__MoozeCore_sideswap_events_impl(port, ptr, rust_vec_len, data_len),
+        85 => wire__crate__api__core__MoozeCore_sideswap_events_running_impl(port, ptr, rust_vec_len, data_len),
+        86 => wire__crate__api__core__MoozeCore_sideswap_execute_swap_impl(port, ptr, rust_vec_len, data_len),
+        87 => wire__crate__api__core__MoozeCore_sideswap_is_connected_impl(port, ptr, rust_vec_len, data_len),
+        88 => wire__crate__api__core__MoozeCore_sideswap_markets_impl(port, ptr, rust_vec_len, data_len),
+        89 => wire__crate__api__core__MoozeCore_sideswap_start_quote_impl(port, ptr, rust_vec_len, data_len),
+        90 => wire__crate__api__core__MoozeCore_sideswap_stop_quote_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -8460,8 +6886,7 @@ fn pde_ffi_dispatcher_sync_impl(
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<MoozeCore> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self.0)
-            .into_dart()
+        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self.0).into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<MoozeCore> {}
@@ -8475,11 +6900,7 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<MoozeCore>> for MoozeCore {
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::AddressOwnershipDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.0.keychain.into_into_dart().into_dart(),
-            self.0.index.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        [self.0.keychain.into_into_dart().into_dart(), self.0.index.into_into_dart().into_dart()].into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
@@ -8496,11 +6917,7 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::Addres
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::ApiResponseDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.0.status.into_into_dart().into_dart(),
-            self.0.body.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        [self.0.status.into_into_dart().into_dart(), self.0.body.into_into_dart().into_dart()].into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
@@ -8550,10 +6967,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::AuthEn
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::AuthEnsureDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::AuthEnsureDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::AuthEnsureDto>>
     for mooze_app::dto::wallet::AuthEnsureDto
 {
@@ -8594,10 +7008,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::config::Backen
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::config::BackendDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::config::BackendDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::config::BackendDto>>
     for mooze_app::dto::config::BackendDto
 {
@@ -8608,17 +7019,10 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::config::Backen
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::BalanceDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.0.assets.into_into_dart().into_dart(),
-            self.0.snapshot_at_ms.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        [self.0.assets.into_into_dart().into_dart(), self.0.snapshot_at_ms.into_into_dart().into_dart()].into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::BalanceDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::BalanceDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::BalanceDto>>
     for mooze_app::dto::wallet::BalanceDto
 {
@@ -8661,10 +7065,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::ChainD
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::ChainDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::ChainDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::ChainDto>>
     for mooze_app::dto::wallet::ChainDto
 {
@@ -8686,9 +7087,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::types::CoreConfig {
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::types::CoreConfig {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::CoreConfig>
-    for crate::api::types::CoreConfig
-{
+impl flutter_rust_bridge::IntoIntoDart<crate::api::types::CoreConfig> for crate::api::types::CoreConfig {
     fn into_into_dart(self) -> crate::api::types::CoreConfig {
         self
     }
@@ -8696,17 +7095,11 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::types::CoreConfig>
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::types::CoreError {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.kind.into_into_dart().into_dart(),
-            self.message.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        [self.kind.into_into_dart().into_dart(), self.message.into_into_dart().into_dart()].into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::types::CoreError {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::CoreError>
-    for crate::api::types::CoreError
-{
+impl flutter_rust_bridge::IntoIntoDart<crate::api::types::CoreError> for crate::api::types::CoreError {
     fn into_into_dart(self) -> crate::api::types::CoreError {
         self
     }
@@ -8728,13 +7121,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::types::CoreErrorKind {
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::types::CoreErrorKind
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::types::CoreErrorKind>
-    for crate::api::types::CoreErrorKind
-{
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::types::CoreErrorKind {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::types::CoreErrorKind> for crate::api::types::CoreErrorKind {
     fn into_into_dart(self) -> crate::api::types::CoreErrorKind {
         self
     }
@@ -8764,17 +7152,11 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::CpfValida
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::DepositLimitsDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.0.absolute_min_limit.into_into_dart().into_dart(),
-            self.0.allowed_spending.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        [self.0.absolute_min_limit.into_into_dart().into_dart(), self.0.allowed_spending.into_into_dart().into_dart()]
+            .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::pix::DepositLimitsDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::pix::DepositLimitsDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::DepositLimitsDto>>
     for mooze_app::dto::pix::DepositLimitsDto
 {
@@ -8808,10 +7190,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::DepositSt
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::pix::DepositStatusDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::pix::DepositStatusDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::DepositStatusDto>>
     for mooze_app::dto::pix::DepositStatusDto
 {
@@ -8925,10 +7304,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::Direct
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::DirectionDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::DirectionDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::DirectionDto>>
     for mooze_app::dto::wallet::DirectionDto
 {
@@ -8948,10 +7324,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::FavoriteP
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::pix::FavoritePayerDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::pix::FavoritePayerDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::FavoritePayerDto>>
     for mooze_app::dto::pix::FavoritePayerDto
 {
@@ -9038,10 +7411,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::HttpMe
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::HttpMethodDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::HttpMethodDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::HttpMethodDto>>
     for mooze_app::dto::wallet::HttpMethodDto
 {
@@ -9059,10 +7429,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::Keycha
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::KeychainDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::KeychainDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::KeychainDto>>
     for mooze_app::dto::wallet::KeychainDto
 {
@@ -9109,10 +7476,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::Liquid
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::LiquidUtxoDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::LiquidUtxoDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::LiquidUtxoDto>>
     for mooze_app::dto::wallet::LiquidUtxoDto
 {
@@ -9153,10 +7517,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::config::Networ
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::config::NetworkDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::config::NetworkDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::config::NetworkDto>>
     for mooze_app::dto::config::NetworkDto
 {
@@ -9242,10 +7603,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegDirec
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::PegDirectionDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::PegDirectionDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegDirectionDto>>
     for mooze_app::dto::swap::PegDirectionDto
 {
@@ -9256,17 +7614,10 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegDirec
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegExecutionDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.0.order.into_into_dart().into_dart(),
-            self.0.funding_tx_id.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        [self.0.order.into_into_dart().into_dart(), self.0.funding_tx_id.into_into_dart().into_dart()].into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::PegExecutionDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::PegExecutionDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegExecutionDto>>
     for mooze_app::dto::swap::PegExecutionDto
 {
@@ -9288,10 +7639,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegOrder
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::PegOrderDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::PegOrderDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegOrderDto>>
     for mooze_app::dto::swap::PegOrderDto
 {
@@ -9313,10 +7661,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegPhase
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::PegPhaseDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::PegPhaseDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegPhaseDto>>
     for mooze_app::dto::swap::PegPhaseDto
 {
@@ -9340,10 +7685,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegProgr
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::PegProgressDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::PegProgressDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegProgressDto>>
     for mooze_app::dto::swap::PegProgressDto
 {
@@ -9366,10 +7708,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegQuote
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::PegQuoteDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::PegQuoteDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegQuoteDto>>
     for mooze_app::dto::swap::PegQuoteDto
 {
@@ -9397,10 +7736,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegRecor
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::PegRecordDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::PegRecordDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegRecordDto>>
     for mooze_app::dto::swap::PegRecordDto
 {
@@ -9420,10 +7756,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegRefre
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::PegRefreshDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::PegRefreshDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::PegRefreshDto>>
     for mooze_app::dto::swap::PegRefreshDto
 {
@@ -9437,14 +7770,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::PegServe
         [
             self.0.min_peg_in_sat.into_into_dart().into_dart(),
             self.0.min_peg_out_sat.into_into_dart().into_dart(),
-            self.0
-                .server_fee_percent_peg_in
-                .into_into_dart()
-                .into_dart(),
-            self.0
-                .server_fee_percent_peg_out
-                .into_into_dart()
-                .into_dart(),
+            self.0.server_fee_percent_peg_in.into_into_dart().into_dart(),
+            self.0.server_fee_percent_peg_out.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9477,10 +7804,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::PixDeposi
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::pix::PixDepositDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::pix::PixDepositDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::PixDepositDto>>
     for mooze_app::dto::pix::PixDepositDto
 {
@@ -9502,13 +7826,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::PixFeeDto
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::pix::PixFeeDto>
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::PixFeeDto>>
-    for mooze_app::dto::pix::PixFeeDto
-{
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::pix::PixFeeDto> {}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::PixFeeDto>> for mooze_app::dto::pix::PixFeeDto {
     fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::pix::PixFeeDto> {
         self.into()
     }
@@ -9525,10 +7844,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::pix::PixFlagDt
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::pix::PixFlagDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::pix::PixFlagDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::pix::PixFlagDto>>
     for mooze_app::dto::pix::PixFlagDto
 {
@@ -9581,13 +7897,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::QuoteDto
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::QuoteDto>
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::QuoteDto>>
-    for mooze_app::dto::swap::QuoteDto
-{
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::QuoteDto> {}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::QuoteDto>> for mooze_app::dto::swap::QuoteDto {
     fn into_into_dart(self) -> FrbWrapper<mooze_app::dto::swap::QuoteDto> {
         self.into()
     }
@@ -9603,10 +7914,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::QuoteSta
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::QuoteStatusDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::QuoteStatusDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::QuoteStatusDto>>
     for mooze_app::dto::swap::QuoteStatusDto
 {
@@ -9648,10 +7956,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::SendRe
             self.0.fee_priority.into_into_dart().into_dart(),
             self.0.label.into_into_dart().into_dart(),
             self.0.subtract_fee_from_amount.into_into_dart().into_dart(),
-            self.0
-                .fee_rate_override_sat_per_vbyte
-                .into_into_dart()
-                .into_dart(),
+            self.0.fee_rate_override_sat_per_vbyte.into_into_dart().into_dart(),
             self.0.drain.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -9774,10 +8079,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::Skippe
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::SkippedRowDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::SkippedRowDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::SkippedRowDto>>
     for mooze_app::dto::wallet::SkippedRowDto
 {
@@ -9796,10 +8098,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::Source
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::SourceDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::SourceDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::SourceDto>>
     for mooze_app::dto::wallet::SourceDto
 {
@@ -9819,10 +8118,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::StartQuo
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::StartQuoteDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::StartQuoteDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::StartQuoteDto>>
     for mooze_app::dto::swap::StartQuoteDto
 {
@@ -9841,10 +8137,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::Status
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::StatusDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::StatusDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::StatusDto>>
     for mooze_app::dto::wallet::StatusDto
 {
@@ -9878,17 +8171,10 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::SyncOu
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::TableCountDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.0.table.into_into_dart().into_dart(),
-            self.0.count.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        [self.0.table.into_into_dart().into_dart(), self.0.count.into_into_dart().into_dart()].into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::TableCountDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::TableCountDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::TableCountDto>>
     for mooze_app::dto::wallet::TableCountDto
 {
@@ -9914,10 +8200,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::swap::TrackedP
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::swap::TrackedPegDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::swap::TrackedPegDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::swap::TrackedPegDto>>
     for mooze_app::dto::swap::TrackedPegDto
 {
@@ -10027,10 +8310,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<mooze_app::dto::wallet::Wallet
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<mooze_app::dto::wallet::WalletUtxoDto>
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<mooze_app::dto::wallet::WalletUtxoDto> {}
 impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<mooze_app::dto::wallet::WalletUtxoDto>>
     for mooze_app::dto::wallet::WalletUtxoDto
 {
@@ -10049,7 +8329,10 @@ impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
 impl SseEncode for MoozeCore {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self), serializer);
+        <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>>::sse_encode(
+            flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self),
+            serializer,
+        );
     }
 }
 
@@ -10060,9 +8343,7 @@ impl SseEncode for flutter_rust_bridge::DartOpaque {
     }
 }
 
-impl SseEncode
-    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>>
-{
+impl SseEncode for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MoozeCore>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         let (ptr, size) = self.sse_encode_raw();
@@ -10071,12 +8352,7 @@ impl SseEncode
     }
 }
 
-impl SseEncode
-    for StreamSink<
-        mooze_app::dto::swap::SideSwapEventDto,
-        flutter_rust_bridge::for_generated::SseCodec,
-    >
-{
+impl SseEncode for StreamSink<mooze_app::dto::swap::SideSwapEventDto, flutter_rust_bridge::for_generated::SseCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         unimplemented!("")
@@ -10307,9 +8583,7 @@ impl SseEncode for mooze_app::dto::pix::DepositValidationDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_valid, serializer);
-        <Option<mooze_app::dto::pix::DepositValidationErrorDto>>::sse_encode(
-            self.error, serializer,
-        );
+        <Option<mooze_app::dto::pix::DepositValidationErrorDto>>::sse_encode(self.error, serializer);
         <Option<f64>>::sse_encode(self.limit_amount, serializer);
     }
 }
@@ -10469,10 +8743,7 @@ impl SseEncode for i64 {
 impl SseEncode for isize {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer
-            .cursor
-            .write_i64::<NativeEndian>(self as _)
-            .unwrap();
+        serializer.cursor.write_i64::<NativeEndian>(self as _).unwrap();
     }
 }
 
@@ -11413,10 +9684,7 @@ impl SseEncode for () {
 impl SseEncode for usize {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer
-            .cursor
-            .write_u64::<NativeEndian>(self as _)
-            .unwrap();
+        serializer.cursor.write_u64::<NativeEndian>(self as _).unwrap();
     }
 }
 
@@ -11446,9 +9714,7 @@ mod io {
 
     use super::*;
     use crate::api::core::*;
-    use flutter_rust_bridge::for_generated::byteorder::{
-        NativeEndian, ReadBytesExt, WriteBytesExt,
-    };
+    use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
     use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
@@ -11483,9 +9749,7 @@ mod web {
 
     use super::*;
     use crate::api::core::*;
-    use flutter_rust_bridge::for_generated::byteorder::{
-        NativeEndian, ReadBytesExt, WriteBytesExt,
-    };
+    use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
     use flutter_rust_bridge::for_generated::wasm_bindgen;
     use flutter_rust_bridge::for_generated::wasm_bindgen::prelude::*;
     use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};

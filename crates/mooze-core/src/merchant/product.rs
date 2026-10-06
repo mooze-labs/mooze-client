@@ -87,7 +87,8 @@ impl<K: KvStore> ProductStore<K> {
     /// migration. Skips validation: old rows stay readable even if they
     /// break today's rules. Replaces a product with the same id.
     pub async fn import(&self, product: &Product) -> Result<()> {
-        let id = product.id.filter(|id| *id > 0).ok_or_else(|| Error::invalid("imported product needs a positive id"))?;
+        let id =
+            product.id.filter(|id| *id > 0).ok_or_else(|| Error::invalid("imported product needs a positive id"))?;
         put_json(&self.kv, &id_key(ROWS, id), product).await?;
         bump_seq(&self.kv, SEQ, id).await
     }
