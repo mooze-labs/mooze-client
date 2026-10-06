@@ -61,11 +61,12 @@ pub fn bitcoin_network_kind(network: AppNetwork) -> NetworkKind {
     }
 }
 
-/// LWK network. Regtest maps to Liquid testnet.
+/// LWK network. Regtest uses the default local Elements consensus parameters.
 pub fn liquid_network(network: AppNetwork) -> lwk_wollet::Network {
     match network {
         AppNetwork::Mainnet => lwk_wollet::Network::Liquid,
-        AppNetwork::Testnet | AppNetwork::Regtest => lwk_wollet::Network::TestnetLiquid,
+        AppNetwork::Testnet => lwk_wollet::Network::TestnetLiquid,
+        AppNetwork::Regtest => lwk_wollet::Network::default_regtest(),
     }
 }
 
@@ -73,7 +74,8 @@ pub fn liquid_network(network: AppNetwork) -> lwk_wollet::Network {
 pub fn liquid_policy_asset(network: AppNetwork) -> &'static str {
     match network {
         AppNetwork::Mainnet => LBTC_ASSET_ID,
-        AppNetwork::Testnet | AppNetwork::Regtest => LIQUID_TESTNET_POLICY_ASSET,
+        AppNetwork::Testnet => LIQUID_TESTNET_POLICY_ASSET,
+        AppNetwork::Regtest => "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
     }
 }
 
@@ -196,8 +198,12 @@ mod tests {
             addr(AppNetwork::Testnet),
             "tlq1qq2xvpcvfup5j8zscjq05u2wxxjcyewk7979f3mmz5l7uw5pqmx6xf5xy50hsn6vhkm5euwt72x878eq6zxx2z58hd7zrsg9qn"
         );
-        // Regtest maps to Liquid testnet.
-        assert_eq!(addr(AppNetwork::Regtest), addr(AppNetwork::Testnet));
+        assert!(addr(AppNetwork::Regtest).starts_with("el1"));
+        assert_eq!(liquid_network(AppNetwork::Regtest), lwk_wollet::Network::default_regtest());
+        assert_eq!(
+            liquid_policy_asset(AppNetwork::Regtest),
+            "5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225"
+        );
     }
 
     #[test]

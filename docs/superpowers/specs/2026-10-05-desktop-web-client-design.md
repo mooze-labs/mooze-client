@@ -73,12 +73,8 @@ into `crates/mooze-app`. The crate depends on `mooze-core` only.
   - `Timer`: `sleep(ms)`.
 - `BlockingSpawner` becomes optional in `Platform`. Only the Electrum path needs it.
 - The tokio mutex becomes `futures::lock::Mutex`. `yield_now` becomes `Timer::sleep(0)`.
-<<<<<<< HEAD
-  The facade has no tokio dependency.
-=======
   The facade has no tokio runtime dependency. It uses tokio with only the `sync` feature, which is
   runtime-free, builds on wasm32, and gives a FIFO-fair mutex that the SideSwap driver relies on.
->>>>>>> 82457a16f352ad2ddf90c258df932ee059cb9ffe
 
 API surface rules, for UniFFI, wasm-bindgen and Tauri:
 

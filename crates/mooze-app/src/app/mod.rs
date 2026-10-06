@@ -174,6 +174,11 @@ impl<P: Platform> Clone for App<P> {
 impl<P: Platform> App<P> {
     /// Opens the application over `platform`.
     pub async fn open(config: AppConfig, platform: P) -> Result<App<P>> {
+        Self::open_with_public_fallback(config, platform, false).await
+    }
+
+    /// Native opt-in fallback. Existing hosts keep their pinned-node behavior.
+    pub async fn open_with_public_fallback(config: AppConfig, platform: P, public_fallback: bool) -> Result<App<P>> {
         let network: AppNetwork = config.network.into();
         let backend = match config.backend {
             BackendDto::Esplora => ChainBackend::Esplora,
@@ -188,8 +193,8 @@ impl<P: Platform> App<P> {
             BackendDto::Electrum => return Err(AppError::invalid_state("electrum backend not compiled in")),
         };
         let endpoints = EndpointResolver::for_backend(network, &backend)
-            .with_custom_node(ChainId::Bitcoin, &config.bitcoin_node_url)
-            .with_custom_node(ChainId::Liquid, &config.liquid_node_url);
+            .with_custom_node_fallback(ChainId::Bitcoin, &config.bitcoin_node_url, public_fallback)
+            .with_custom_node_fallback(ChainId::Liquid, &config.liquid_node_url, public_fallback);
         let api_base_url = match config.api_base_url {
             Some(url) if !url.is_empty() => url,
             _ => DEFAULT_BASE_URL.to_owned(),

@@ -21,6 +21,7 @@ pub enum AppEvent {
     Transactions(Vec<TransactionEventDto>),
     PixStatus(Vec<PixStatusEventDto>),
     SyncState(SyncStateDto),
+    ChainSyncState(ChainSyncStateDto),
     PegProgress(PegRefreshDto),
     SessionLock(SessionLockStateDto),
     AuthSession(AuthEnsureDto),

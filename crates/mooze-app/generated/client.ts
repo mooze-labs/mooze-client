@@ -23,10 +23,14 @@ export interface CoreClient {
   bitcoinDisconnect(): Promise<null>;
   bitcoinSync(): Promise<T.SyncOutcomeDto>;
   bitcoinBalance(): Promise<T.BalanceDto>;
+  walletHoldings(): Promise<Array<T.HoldingDto>>;
+  walletActivity(): Promise<Array<T.WalletActivityDto>>;
   bitcoinTransactions(): Promise<Array<T.TransactionDto>>;
   bitcoinTakeEvents(): Promise<Array<T.TransactionEventDto>>;
   bitcoinReceiveAddress(label: string | null): Promise<T.ReceiveAddressDto>;
   bitcoinEstimateFee(request: T.SendRequestDto): Promise<T.FeeEstimateDto>;
+  bitcoinSendBounded(request: T.SendRequestDto, maxFeeSat: number): Promise<T.BroadcastResultDto>;
+  liquidSendBounded(request: T.SendRequestDto, maxFeeSat: number): Promise<T.BroadcastResultDto>;
   bitcoinSend(request: T.SendRequestDto): Promise<T.BroadcastResultDto>;
   bitcoinBlockHeight(): Promise<number>;
   bitcoinDerivedAddresses(keychain: T.KeychainDto, start: number, count: number): Promise<Array<T.DerivedAddressDto>>;
@@ -121,10 +125,14 @@ export const METHOD_NAMES = [
   "bitcoin_disconnect",
   "bitcoin_sync",
   "bitcoin_balance",
+  "wallet_holdings",
+  "wallet_activity",
   "bitcoin_transactions",
   "bitcoin_take_events",
   "bitcoin_receive_address",
   "bitcoin_estimate_fee",
+  "bitcoin_send_bounded",
+  "liquid_send_bounded",
   "bitcoin_send",
   "bitcoin_block_height",
   "bitcoin_derived_addresses",

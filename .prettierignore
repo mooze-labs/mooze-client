@@ -1,0 +1,4 @@
+**/*.generated.ts
+**/target/**
+**/node_modules/**
+**/dist/**

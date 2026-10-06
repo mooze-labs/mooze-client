@@ -5,6 +5,12 @@ The app logic lives in a Rust core. A Flutter app calls the core through flutter
 
 ![Mooze Logo](apps/mobile/assets/logos/logo_primary.svg)
 
+## Desktop testnet MVP
+
+A React + Tauri desktop client is available in `apps/frontend` and `apps/desktop`.
+Run `npm ci` and `npm run desktop:dev` from the repository root.
+See [desktop setup, architecture, and verification](docs/desktop-mvp.md).
+
 ## Features
 
 - **Bitcoin and Liquid**: on-chain Bitcoin and Liquid wallets in one app.
@@ -51,7 +57,7 @@ crates/mooze-core (application logic)
 - **Data**: on first launch after the update, the app copies its local data (drift database, transaction database, preferences) into the core once.
   Secrets stay in secure storage under the same keys.
 
-Read the design spec in `docs/superpowers/specs/2026-10-05-mooze-core-design.md` and the plan in `docs/superpowers/plans/2026-10-05-flutter-bridge.md`.
+See [desktop implementation notes](docs/desktop-mvp.md) for the current desktop architecture and development workflow.
 
 ## Getting started
 

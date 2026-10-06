@@ -5,6 +5,8 @@
 //! `crates/mooze-app/generated/types.ts` and `client.ts` from them.
 
 pub mod config;
+pub mod desktop_wallet;
+pub use desktop_wallet::*;
 pub mod pix;
 pub mod runtime;
 pub mod swap;

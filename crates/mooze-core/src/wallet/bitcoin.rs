@@ -680,6 +680,25 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         })
     }
 
+    pub fn activity_views(&self) -> (Vec<BdkTxView>, u32) {
+        (tx_views(&self.wallet), self.wallet.latest_checkpoint().height())
+    }
+    /// Exact recipient amount and fee for an unsigned request, including Max.
+    pub async fn prepare_exact_send(&mut self, request: &SendRequest) -> Result<(u64, u64)> {
+        let psbt = build_psbt(&mut self.wallet, request)?;
+        self.persist().await?;
+        let fee = psbt.fee().map_err(svc)?.to_sat();
+        let amount = if request.drain {
+            let tx = psbt.clone().extract_tx_unchecked_fee_rate();
+            tx.output
+                .iter()
+                .try_fold(0u64, |sum, o| sum.checked_add(o.value.to_sat()))
+                .ok_or_else(|| svc("amount overflow"))?
+        } else {
+            request.amount_sat
+        };
+        Ok((amount, fee))
+    }
     /// Builds a send for review.
     pub async fn prepare_send(
         &mut self,
@@ -754,9 +773,32 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
 
     /// Builds and signs the request. Returns the raw transaction and its fee.
     pub async fn build_signed(&mut self, request: &SendRequest) -> Result<(bdk_wallet::bitcoin::Transaction, u64)> {
+        self.build_signed_bounded(request, u64::MAX).await
+    }
+
+    /// Enforces the actual transaction fee before signing.
+    pub async fn build_signed_bounded(
+        &mut self,
+        request: &SendRequest,
+        max_fee_sat: u64,
+    ) -> Result<(bdk_wallet::bitcoin::Transaction, u64)> {
+        self.build_signed_authorized(request, max_fee_sat, || Ok(())).await
+    }
+
+    async fn build_signed_authorized(
+        &mut self,
+        request: &SendRequest,
+        max_fee_sat: u64,
+        authorize: impl FnOnce() -> Result<()> + Send,
+    ) -> Result<(bdk_wallet::bitcoin::Transaction, u64)> {
         check_request(request, "sends")?;
         let mut psbt = build_psbt(&mut self.wallet, request)?;
+        let actual_sat = psbt.fee().map_err(svc)?.to_sat();
+        if actual_sat > max_fee_sat {
+            return Err(Error::FeeLimitExceeded { actual_sat, max_sat: max_fee_sat });
+        }
         self.persist().await?;
+        authorize()?;
         let signers: Vec<&SignersContainer> = self.signers.iter().collect();
         let finalized = self
             .wallet
@@ -773,7 +815,38 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     /// Builds, signs and broadcasts.
     pub async fn send_onchain(&mut self, request: &SendRequest) -> Result<BroadcastResult> {
         let (tx, fee) = self.build_signed(request).await?;
-        self.broadcast_tx(&tx).await?;
+        self.finish_send(request, tx, fee, false).await
+    }
+
+    pub async fn send_onchain_bounded(&mut self, request: &SendRequest, max_fee_sat: u64) -> Result<BroadcastResult> {
+        self.send_onchain_authorized(request, max_fee_sat, || Ok(())).await
+    }
+
+    /// Checks host authorization after preparation, immediately before signing.
+    pub async fn send_onchain_authorized(
+        &mut self,
+        request: &SendRequest,
+        max_fee_sat: u64,
+        authorize: impl FnOnce() -> Result<()> + Send,
+    ) -> Result<BroadcastResult> {
+        let (tx, fee) = self.build_signed_authorized(request, max_fee_sat, authorize).await?;
+        self.finish_send(request, tx, fee, true).await
+    }
+
+    async fn finish_send(
+        &mut self,
+        request: &SendRequest,
+        tx: bdk_wallet::bitcoin::Transaction,
+        fee: u64,
+        bounded: bool,
+    ) -> Result<BroadcastResult> {
+        self.broadcast_tx(&tx).await.map_err(|e| {
+            if bounded {
+                Error::SubmissionUnknown { chain: CHAIN, message: e.to_string() }
+            } else {
+                e
+            }
+        })?;
         self.endpoints.report_success(CHAIN);
         let txid = tx.compute_txid().to_string();
         let now = self.clock.now_ms();
@@ -904,6 +977,21 @@ mod tests {
             EndpointResolver::with_defaults(AppNetwork::Mainnet),
         ))
         .unwrap()
+    }
+
+    #[test]
+    fn bounded_sign_rejects_fee_before_signing() {
+        let mut w = connect(MemoryKv::new());
+        fund(&mut w, 100_000);
+        let mut request = SendRequest::new(ChainId::Bitcoin, ADDR1, 10_000);
+        request.fee_rate_override_sat_per_vbyte = Some(2.0);
+        let error = block_on(w.build_signed_bounded(&request, 0)).unwrap_err();
+        assert!(matches!(error, Error::FeeLimitExceeded { max_sat: 0, .. }));
+        let (_, fee) = block_on(w.build_signed_bounded(&request, 10_000)).unwrap();
+        assert!(fee > 0 && fee < 10_000);
+        assert!(block_on(w.build_signed_bounded(&request, fee)).is_ok());
+        let canceled = block_on(w.build_signed_authorized(&request, fee, || Err(Error::Session("locked".into()))));
+        assert!(matches!(canceled, Err(Error::Session(_))));
     }
 
     #[test]

@@ -154,6 +154,12 @@ fn main() {
     use mooze_app::events::AppEvent;
     use mooze_app::{AppError, ErrorCode};
     export!(
+        WalletActivityDto,
+        AssetMovementDto,
+        AssetKeyDto,
+        AssetMetadataDto,
+        AssetAmountDto,
+        HoldingDto,
         AppError,
         ErrorCode,
         AppEvent,
@@ -192,6 +198,7 @@ fn main() {
         DeviceMetricsDto,
         SyncPhaseDto,
         SyncStateDto,
+        ChainSyncStateDto,
         SessionLockStateDto,
         StartConfigDto,
         DepositStatusDto,
