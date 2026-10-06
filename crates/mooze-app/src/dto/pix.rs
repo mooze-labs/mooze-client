@@ -7,11 +7,7 @@ use mooze_core::pix::{DepositStatus, FavoritePayer, PixDeposit, PixStatusEvent};
 
 /// Status of a PIX deposit (Dart `DepositStatus`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum DepositStatusDto {
     Pending,
     UnderReview,
@@ -61,11 +57,7 @@ impl From<DepositStatus> for DepositStatusDto {
 
 /// One PIX deposit (Dart `PixDeposit`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PixDepositDto {
     pub deposit_id: String,
     /// PIX "copia e cola" payload.
@@ -98,11 +90,7 @@ impl From<PixDeposit> for PixDepositDto {
 
 /// Status change of one deposit (Dart `PixStatusEvent`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PixStatusEventDto {
     pub deposit_id: String,
     pub status: DepositStatusDto,
@@ -125,11 +113,7 @@ impl From<PixStatusEvent> for PixStatusEventDto {
 
 /// Fee breakdown of a deposit amount in BRL (fee card and quote screen).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PixFeeDto {
     /// Percent rate, after the referral discount.
     pub fee_rate_percent: f64,
@@ -147,11 +131,7 @@ pub struct PixFeeDto {
 
 /// User level limits in BRL (Dart `levelsProvider`).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct DepositLimitsDto {
     pub absolute_min_limit: f64,
     pub allowed_spending: f64,
@@ -159,11 +139,7 @@ pub struct DepositLimitsDto {
 
 /// Why a deposit amount is not valid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum DepositValidationErrorDto {
     InvalidAmount,
     BelowMinimum,
@@ -173,11 +149,7 @@ pub enum DepositValidationErrorDto {
 
 /// Result of `pixValidateAmount`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct DepositValidationDto {
     pub is_valid: bool,
     pub error: Option<DepositValidationErrorDto>,
@@ -187,11 +159,7 @@ pub struct DepositValidationDto {
 
 /// A saved payer (Dart `FavoritePayer`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct FavoritePayerDto {
     pub id: Option<u64>,
     pub label: String,
@@ -214,22 +182,14 @@ impl From<FavoritePayer> for FavoritePayerDto {
 
 /// Why a favorite payer save was refused.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum FavoritePayerSaveErrorDto {
     DuplicateCpf,
 }
 
 /// One-time PIX flags, formerly in `SharedPreferences`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum PixFlagDto {
     LbtcWarningShown,
     MainFirstTimeDialogShown,
@@ -250,11 +210,7 @@ impl From<PixFlagDto> for PixFlag {
 
 /// Why a CPF/CNPJ input is not valid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum CpfValidationErrorDto {
     /// No digits.
     Empty,

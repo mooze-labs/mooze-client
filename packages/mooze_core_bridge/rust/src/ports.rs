@@ -93,6 +93,11 @@ pub struct TokioTimer;
 
 impl Timer for TokioTimer {
     fn sleep(&self, ms: u64) -> TaskFuture<'static, ()> {
+        if ms == 0 {
+            // The port contract: a zero sleep yields once to other tasks.
+            // A zero tokio sleep waits on the timer driver instead.
+            return Box::pin(tokio::task::yield_now());
+        }
         // `Sleep` binds to the runtime timer at creation, so the guard can
         // end before the await. The guard itself is not `Send`.
         let sleep = {
@@ -372,6 +377,25 @@ mod tests {
             .block_on(mooze_core::ports::run_blocking(&TokioSpawner, || 40 + 2))
             .unwrap();
         assert_eq!(v, 42);
+    }
+
+    #[test]
+    fn zero_sleep_yields_to_other_tasks() {
+        use mooze_core::ports::Timer;
+        // A yield is one `Pending` that wakes itself, then `Ready`. A zero
+        // tokio sleep fires at registration and never gives other tasks a turn.
+        let _guard = runtime().enter();
+        let mut sleep = TokioTimer.sleep(0);
+        let waker = futures::task::noop_waker();
+        let mut cx = std::task::Context::from_waker(&waker);
+        assert!(
+            sleep.as_mut().poll(&mut cx).is_pending(),
+            "sleep(0) must yield once"
+        );
+        assert!(
+            sleep.as_mut().poll(&mut cx).is_ready(),
+            "sleep(0) must complete after the yield"
+        );
     }
 
     #[test]

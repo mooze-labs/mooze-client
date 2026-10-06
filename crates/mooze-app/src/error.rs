@@ -4,11 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Stable error category. Serialized as `snake_case` text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
     Service,
@@ -28,11 +24,7 @@ pub enum ErrorCode {
 
 /// Error every facade method returns.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 #[error("{code:?}: {message}")]
 pub struct AppError {
     pub code: ErrorCode,

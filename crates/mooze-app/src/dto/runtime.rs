@@ -2,11 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Phase of the sync orchestrator. Mirrors `mooze_core::sync::SyncPhase`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum SyncPhaseDto {
     Idle,
     Running,
@@ -16,11 +12,7 @@ pub enum SyncPhaseDto {
 
 /// Observable sync state after a refresh.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct SyncStateDto {
     pub phase: SyncPhaseDto,
     pub last_error: Option<String>,
@@ -32,11 +24,7 @@ pub struct SyncStateDto {
 
 /// Whether the host must show the PIN or biometric challenge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum SessionLockStateDto {
     Unlocked,
     Locked,
@@ -44,11 +32,7 @@ pub enum SessionLockStateDto {
 
 /// Settings for `App::start`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct StartConfigDto {
     /// Periodic refresh cadence. `None` uses the core default (60 s).
     pub sync_tick_ms: Option<u64>,

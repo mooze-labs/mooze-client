@@ -11,11 +11,7 @@ use mooze_core::wallet as w;
 
 /// Chain of a balance or transaction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum ChainDto {
     Liquid,
     Bitcoin,
@@ -47,11 +43,7 @@ impl From<ChainDto> for d::ChainId {
 
 /// Transaction direction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum DirectionDto {
     Incoming,
     Outgoing,
@@ -62,11 +54,7 @@ pub enum DirectionDto {
 
 /// Transaction status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum StatusDto {
     Pending,
     Confirmed,
@@ -75,11 +63,7 @@ pub enum StatusDto {
 
 /// Backend that produced a transaction record.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum SourceDto {
     Lwk,
     Breez,
@@ -88,11 +72,7 @@ pub enum SourceDto {
 
 /// One wallet transaction.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct TransactionDto {
     pub id: String,
     pub chain: ChainDto,
@@ -196,11 +176,7 @@ impl From<&TransactionDto> for d::Transaction {
 
 /// Kind of transaction change found by a sync.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum TransactionEventKindDto {
     Created,
     StatusChanged,
@@ -209,11 +185,7 @@ pub enum TransactionEventKindDto {
 
 /// A transaction appeared or changed.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct TransactionEventDto {
     pub kind: TransactionEventKindDto,
     pub transaction: TransactionDto,
@@ -247,11 +219,7 @@ impl From<&d::TransactionEvent> for TransactionEventDto {
 
 /// Balance of one asset.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct AssetBalanceDto {
     pub chain: ChainDto,
     pub asset_id: Option<String>,
@@ -263,11 +231,7 @@ pub struct AssetBalanceDto {
 
 /// Snapshot of all balances of one wallet.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct BalanceDto {
     pub assets: Vec<AssetBalanceDto>,
     pub snapshot_at_ms: u64,
@@ -295,11 +259,7 @@ impl From<&d::Balance> for BalanceDto {
 
 /// Result of one sync.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct SyncOutcomeDto {
     pub chain: ChainDto,
     pub fetched: u32,
@@ -320,11 +280,7 @@ impl From<&d::SyncOutcome> for SyncOutcomeDto {
 
 /// Fee priority.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum FeePriorityDto {
     Low,
     Medium,
@@ -333,11 +289,7 @@ pub enum FeePriorityDto {
 
 /// Request to send on-chain. The chain follows from the method called.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct SendRequestDto {
     pub destination: String,
     pub amount_sat: u64,
@@ -351,11 +303,7 @@ pub struct SendRequestDto {
 
 /// Fee estimate for one send.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct FeeEstimateDto {
     pub chain: ChainDto,
     pub priority: FeePriorityDto,
@@ -382,11 +330,7 @@ impl From<&d::FeeEstimate> for FeeEstimateDto {
 
 /// Address or invoice to receive funds.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct ReceiveAddressDto {
     pub chain: ChainDto,
     pub address: Option<String>,
@@ -409,11 +353,7 @@ impl From<&d::ReceiveAddress> for ReceiveAddressDto {
 
 /// Result of a broadcast.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct BroadcastResultDto {
     pub chain: ChainDto,
     pub tx_id: String,
@@ -434,11 +374,7 @@ impl From<&d::BroadcastResult> for BroadcastResultDto {
 
 /// Unsigned L-BTC send, ready for review and signing.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct LiquidSendDraftDto {
     pub pset: String,
     pub destination: String,
@@ -463,11 +399,7 @@ impl From<&d::LiquidSendDraft> for LiquidSendDraftDto {
 
 /// Unblinded Liquid output.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct LiquidUtxoDto {
     pub txid: String,
     pub vout: u32,
@@ -492,11 +424,7 @@ impl From<&d::LiquidUtxo> for LiquidUtxoDto {
 
 /// Keychain of a derived address.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum KeychainDto {
     /// Receive chain.
     External,
@@ -524,11 +452,7 @@ impl From<KeychainDto> for w::Keychain {
 
 /// One derived wallet address.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct DerivedAddressDto {
     pub keychain: KeychainDto,
     pub index: u32,
@@ -557,11 +481,7 @@ impl From<&w::DerivedAddressInfo> for DerivedAddressDto {
 
 /// One unspent wallet output.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct WalletUtxoDto {
     pub txid: String,
     pub vout: u32,
@@ -603,11 +523,7 @@ impl From<&w::WalletUtxoInfo> for WalletUtxoDto {
 
 /// Derivation of an address the wallet owns.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct AddressOwnershipDto {
     pub keychain: KeychainDto,
     pub index: u32,
@@ -624,11 +540,7 @@ impl From<w::AddressOwnership> for AddressOwnershipDto {
 
 /// Next receive address with its index.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct NextUnusedAddressDto {
     pub index: u32,
     /// Address the UI shows. Liquid: the confidential address.
@@ -649,11 +561,7 @@ impl From<&w::NextUnusedAddress> for NextUnusedAddressDto {
 
 /// Rows copied from one source table.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct TableCountDto {
     pub table: String,
     pub count: u32,
@@ -661,11 +569,7 @@ pub struct TableCountDto {
 
 /// A row the import left out.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct SkippedRowDto {
     pub table: String,
     pub key: String,
@@ -674,11 +578,7 @@ pub struct SkippedRowDto {
 
 /// Result of the one-time data import.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct MigrationReportDto {
     pub already_done: bool,
     pub copied: Vec<TableCountDto>,
@@ -713,11 +613,7 @@ impl From<MigrationReport> for MigrationReportDto {
 /// Result of `MoozeCore.authEnsureSession`. Mirrors the flags of the Dart
 /// `ensureAuthSessionProvider`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum AuthEnsureKind {
     /// A valid session exists.
     Ready,
@@ -731,11 +627,7 @@ pub enum AuthEnsureKind {
 
 /// Outcome of the boot-time session check.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct AuthEnsureDto {
     pub kind: AuthEnsureKind,
     /// The 5xx status for `ApiDown`, if the error text holds one.
@@ -774,11 +666,7 @@ impl From<mooze_core::auth::EnsureOutcome> for AuthEnsureDto {
 
 /// HTTP method of `MoozeCore.apiRequest`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum HttpMethodDto {
     Get,
     Post,
@@ -802,11 +690,7 @@ impl From<HttpMethodDto> for mooze_core::ports::HttpMethod {
 
 /// Response of `MoozeCore.apiRequest`. Non-2xx statuses are not errors.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct ApiResponseDto {
     pub status: u16,
     /// Body as UTF-8 text, lossy.
@@ -816,11 +700,7 @@ pub struct ApiResponseDto {
 /// Device metrics the API client adds to JSON request bodies
 /// (Dart `AuthInterceptor._collectMetrics`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct DeviceMetricsDto {
     /// Value of `MoozeCore.authDeviceId`.
     pub device_id: String,

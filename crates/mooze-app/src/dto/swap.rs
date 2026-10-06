@@ -10,11 +10,7 @@ use mooze_core::sideswap::protocol::{QuoteOutcome, QuoteResponse, SideswapAsset,
 
 /// Status of one quote emission.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum QuoteStatusDto {
     Success,
     LowBalance,
@@ -23,11 +19,7 @@ pub enum QuoteStatusDto {
 
 /// One SideSwap quote emission (Dart `QuoteResponse`). Amounts in base units.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct QuoteDto {
     pub status: QuoteStatusDto,
     /// Set on success. Pass it to `sideswapExecuteSwap`.
@@ -91,11 +83,7 @@ impl From<&QuoteResponse> for QuoteDto {
 
 /// Kind of a `sideswapEvents` item.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum SideSwapEventKind {
     /// A quote for the active subscription, or a synthetic timeout error.
     Quote,
@@ -110,11 +98,7 @@ pub enum SideSwapEventKind {
 
 /// One item of the `sideswapEvents` stream.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct SideSwapEventDto {
     pub kind: SideSwapEventKind,
     pub quote: Option<QuoteDto>,
@@ -124,11 +108,7 @@ pub struct SideSwapEventDto {
 
 /// Result of `sideswapStartQuote`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct StartQuoteDto {
     /// False when another quote request still holds the lock.
     pub started: bool,
@@ -140,11 +120,7 @@ pub struct StartQuoteDto {
 
 /// A SideSwap market.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct SideswapMarketDto {
     pub base_asset_id: String,
     pub quote_asset_id: String,
@@ -166,11 +142,7 @@ impl From<&SideswapMarket> for SideswapMarketDto {
 
 /// A SideSwap asset.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct SideswapAssetDto {
     pub asset_id: String,
     pub name: String,
@@ -195,11 +167,7 @@ impl From<&SideswapAsset> for SideswapAssetDto {
 
 /// Peg direction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum PegDirectionDto {
     /// BTC to L-BTC.
     PegIn,
@@ -227,11 +195,7 @@ impl From<PegDirection> for PegDirectionDto {
 
 /// Phase of a peg.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum PegPhaseDto {
     AwaitingDeposit,
     Detected,
@@ -256,11 +220,7 @@ impl From<PegPhase> for PegPhaseDto {
 
 /// SideSwap peg minimums and fees (Dart `PegServerLimits`).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PegServerLimitsDto {
     pub min_peg_in_sat: u64,
     pub min_peg_out_sat: u64,
@@ -292,11 +252,7 @@ impl From<PegServerLimitsDto> for PegServerLimits {
 
 /// Price of a peg before confirming.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PegQuoteDto {
     pub direction: PegDirectionDto,
     pub amount_sat: u64,
@@ -323,11 +279,7 @@ impl From<PegQuote> for PegQuoteDto {
 
 /// A created peg order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PegOrderDto {
     pub order_id: String,
     pub direction: PegDirectionDto,
@@ -353,11 +305,7 @@ impl From<&PegOrder> for PegOrderDto {
 
 /// A funded peg.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PegExecutionDto {
     pub order: PegOrderDto,
     pub funding_tx_id: String,
@@ -365,11 +313,7 @@ pub struct PegExecutionDto {
 
 /// A peg the tracker follows (Dart `TrackedPeg`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct TrackedPegDto {
     pub order_id: String,
     pub direction: PegDirectionDto,
@@ -402,11 +346,7 @@ impl From<&TrackedPeg> for TrackedPegDto {
 
 /// Result of `pegRefreshDue`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PegRefreshDto {
     /// Every tracked peg after the refresh.
     pub pegs: Vec<TrackedPegDto>,
@@ -420,11 +360,7 @@ pub struct PegRefreshDto {
 
 /// One-shot status of a peg order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PegProgressDto {
     pub order_id: String,
     pub direction: PegDirectionDto,
@@ -453,11 +389,7 @@ impl From<&PegProgress> for PegProgressDto {
 
 /// A stored peg (Dart `PegSwapEntry` row).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PegRecordDto {
     pub order_id: String,
     pub direction: PegDirectionDto,
@@ -495,11 +427,7 @@ impl From<&PegRecord> for PegRecordDto {
 
 /// Why a peg amount cannot be used.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum PegAmountIssueDto {
     BelowMinimum,
     AboveBalance,
@@ -507,11 +435,7 @@ pub enum PegAmountIssueDto {
 
 /// Result of `pegValidateAmount`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct PegAmountValidationDto {
     /// False when no amount was entered.
     pub has_amount: bool,

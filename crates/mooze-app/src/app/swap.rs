@@ -425,6 +425,35 @@ mod tests {
     }
 
     #[test]
+    fn replacing_the_driver_sends_no_stale_closed() {
+        let (plat, mut exec) = TestPlatform::new();
+        let plat = plat.with_ws(MockWs::new(replies));
+        let app = block_on(App::open(test_config(), plat.clone())).unwrap();
+        block_on(app.sideswap_connect("key".into(), None)).unwrap();
+        let got = Arc::new(Mutex::new(vec![]));
+        app.subscribe(Box::new(Collect(got.clone())));
+        block_on(app.sideswap_start_events()).unwrap();
+        exec.run_until_stalled();
+        // A second start replaces the driver. The old task's final `closed`
+        // belongs to the old stream, never to the live subscriber.
+        block_on(app.sideswap_start_events()).unwrap();
+        exec.run_until_stalled();
+        assert!(block_on(app.sideswap_events_running()).unwrap());
+        assert!(
+            !sideswap_kinds(&got.lock().unwrap()).contains(&SideSwapEventKind::Closed),
+            "{:?}",
+            got.lock().unwrap()
+        );
+        block_on(app.sideswap_stop_events()).unwrap();
+        exec.run_until_stalled();
+        let closed = sideswap_kinds(&got.lock().unwrap())
+            .iter()
+            .filter(|k| **k == SideSwapEventKind::Closed)
+            .count();
+        assert_eq!(closed, 1);
+    }
+
+    #[test]
     fn driver_stops_when_last_subscriber_leaves() {
         let (plat, mut exec) = TestPlatform::new();
         let plat = plat.with_ws(MockWs::new(replies));

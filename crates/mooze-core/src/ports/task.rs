@@ -30,6 +30,11 @@ impl<T: Spawner + ?Sized> Spawner for Arc<T> {
 }
 
 /// Resolves after `ms` milliseconds.
+///
+/// Contract: `sleep(0)` yields once to other tasks and then resolves. The
+/// facade uses it to let a waiting command take a fair lock. Hosts whose
+/// zero-duration sleep resolves at once, or waits on a driver thread, must
+/// map it to their executor's yield.
 pub trait Timer: MaybeSend + MaybeSync {
     fn sleep(&self, ms: u64) -> TaskFuture<'static, ()>;
 }

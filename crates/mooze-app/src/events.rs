@@ -14,11 +14,7 @@ use crate::dto::*;
 
 /// One event. Serialized as `{"type": "...", "data": ...}`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
 pub enum AppEvent {
     SideSwap(SideSwapEventDto),

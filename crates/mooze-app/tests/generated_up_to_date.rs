@@ -13,6 +13,17 @@ fn generated_files_are_up_to_date() {
         .status()
         .unwrap();
     assert!(status.success());
+    // The binary is the single writer: no per-type ts-rs exports beside its files.
+    let mut present: Vec<String> = std::fs::read_dir(root.join("generated"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    present.sort();
+    assert_eq!(
+        present,
+        vec!["client.ts", "types.ts"],
+        "unexpected files in generated/"
+    );
     for name in ["types.ts", "client.ts"] {
         let want = std::fs::read_to_string(out.join(name)).unwrap();
         let have = std::fs::read_to_string(root.join("generated").join(name)).unwrap();

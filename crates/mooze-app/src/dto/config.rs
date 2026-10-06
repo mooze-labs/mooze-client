@@ -4,11 +4,7 @@ use mooze_core::domain as d;
 
 /// Network the wallet runs on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum NetworkDto {
     Mainnet,
     Testnet,
@@ -27,11 +23,7 @@ impl From<NetworkDto> for d::AppNetwork {
 
 /// Protocol used to reach the chains.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub enum BackendDto {
     Esplora,
     Electrum,
@@ -39,11 +31,7 @@ pub enum BackendDto {
 
 /// Settings for `App::open`. The host owns storage locations.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    feature = "codegen",
-    derive(ts_rs::TS),
-    ts(export, export_to = "../generated/")
-)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct AppConfig {
     pub network: NetworkDto,
     pub backend: BackendDto,

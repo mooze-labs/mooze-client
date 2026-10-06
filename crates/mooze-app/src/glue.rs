@@ -408,7 +408,13 @@ impl<P: Platform> SideSwapState<P> {
         spawner.spawn(Box::pin(async move {
             drive(&state, &ctl, timer.as_ref(), clock.as_ref(), &emit).await;
             ctl.cancelled.store(true, Ordering::SeqCst);
-            let _ = emit(sideswap_closed_event());
+            // `closed` ends this driver's stream. A replaced driver stays
+            // silent: its successor owns the subscribers now, and the host
+            // already closed the old stream itself.
+            let current = state.driver();
+            if current.is_none_or(|c| Arc::ptr_eq(&c, &ctl)) {
+                let _ = emit(sideswap_closed_event());
+            }
         }));
     }
 }
