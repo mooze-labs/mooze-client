@@ -24,6 +24,7 @@ export interface CoreClient {
   bitcoinSync(): Promise<T.SyncOutcomeDto>;
   bitcoinBalance(): Promise<T.BalanceDto>;
   walletHoldings(): Promise<Array<T.HoldingDto>>;
+  walletActivity(): Promise<Array<T.WalletActivityDto>>;
   bitcoinTransactions(): Promise<Array<T.TransactionDto>>;
   bitcoinTakeEvents(): Promise<Array<T.TransactionEventDto>>;
   bitcoinReceiveAddress(label: string | null): Promise<T.ReceiveAddressDto>;
@@ -125,6 +126,7 @@ export const METHOD_NAMES = [
   "bitcoin_sync",
   "bitcoin_balance",
   "wallet_holdings",
+  "wallet_activity",
   "bitcoin_transactions",
   "bitcoin_take_events",
   "bitcoin_receive_address",

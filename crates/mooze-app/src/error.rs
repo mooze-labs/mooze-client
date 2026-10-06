@@ -64,7 +64,9 @@ impl From<mooze_core::Error> for AppError {
             _ => ErrorCode::Other,
         };
         let details = match &e {
+            E::InsufficientFeeAsset { .. } => Some("insufficient_fee_asset".into()),
             E::FeeLimitExceeded { .. } => Some("fee_changed".into()),
+            E::AmountChanged { .. } => Some("amount_changed".into()),
             E::SubmissionUnknown { .. } => Some("submission_unknown".into()),
             _ => None,
         };

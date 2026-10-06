@@ -324,3 +324,63 @@ mod tests {
         assert!(!ChainBackend::default().is_electrum());
     }
 }
+
+#[cfg(test)]
+mod desktop_node_tests {
+    use super::*;
+    #[test]
+    fn testnet_node_evidence_rejects_mainnet_and_wrong_chain() {
+        let btc = bdk_wallet::bitcoin::constants::genesis_block(bdk_wallet::bitcoin::Network::Testnet)
+            .block_hash()
+            .to_string();
+        let liquid = lwk_common::Network::TestnetLiquid.genesis_hash().to_string();
+        assert!(validate_testnet_genesis(ChainId::Bitcoin, &btc).is_ok());
+        assert!(validate_testnet_genesis(ChainId::Liquid, &liquid).is_ok());
+        assert!(validate_testnet_genesis(ChainId::Bitcoin, &liquid).is_err());
+        assert!(validate_testnet_genesis(ChainId::Liquid, &btc).is_err());
+        assert!(validate_testnet_genesis(
+            ChainId::Bitcoin,
+            &bdk_wallet::bitcoin::constants::genesis_block(bdk_wallet::bitcoin::Network::Bitcoin)
+                .block_hash()
+                .to_string()
+        )
+        .is_err());
+    }
+}
+
+/// Compare server-provided chain identity with the exact networks this desktop supports.
+pub fn validate_testnet_genesis(chain: ChainId, genesis: &str) -> crate::Result<()> {
+    let expected = match chain {
+        ChainId::Bitcoin => bdk_wallet::bitcoin::constants::genesis_block(bdk_wallet::bitcoin::Network::Testnet)
+            .block_hash()
+            .to_string(),
+        ChainId::Liquid => lwk_common::Network::TestnetLiquid.genesis_hash().to_string(),
+        _ => return Err(crate::Error::InvalidInput("unsupported chain".into())),
+    };
+    if !genesis.eq_ignore_ascii_case(&expected) {
+        return Err(crate::Error::InvalidInput("node is not on the requested testnet".into()));
+    }
+    Ok(())
+}
+
+/// Read public server metadata without sending any wallet address or descriptor.
+#[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+pub async fn probe_testnet_node(chain: ChainId, url: &str, config: &ElectrumConfig) -> crate::Result<String> {
+    use bdk_electrum::electrum_client::{Client, ConfigBuilder, ElectrumApi};
+    let target = normalize_electrum_url(url);
+    let options =
+        ConfigBuilder::new().timeout(Some(std::time::Duration::from_secs(5))).retry(0).validate_domain(true).build();
+    let genesis = crate::ports::run_blocking(config.spawner.as_ref(), move || -> crate::Result<String> {
+        let client = Client::from_config(&target, options).map_err(|e| crate::Error::Network(e.to_string()))?;
+        let features =
+            client.raw_call("server.features", std::iter::empty()).map_err(|e| crate::Error::Network(e.to_string()))?;
+        features
+            .get("genesis_hash")
+            .and_then(|v| v.as_str())
+            .map(str::to_owned)
+            .ok_or_else(|| crate::Error::protocol("node did not provide a genesis hash"))
+    })
+    .await??;
+    validate_testnet_genesis(chain, &genesis)?;
+    Ok(genesis)
+}

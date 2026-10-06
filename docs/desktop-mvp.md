@@ -90,3 +90,15 @@ Environment: macOS arm64, Rust 1.98.0, Node 22.12.0; Tauri 2.12.1, React 19.3.0 
 ![Actual macOS wallet lock screen](images/desktop-native-lock.png)
 
 The normal app profile already contained a locked wallet, so its credentials and balances were not used for verification. The native smoke test used a separate random wallet and disposable credential item. A complete interactive walkthrough of the unlocked screens, minimum-window visual QA, offline/reconnect GUI behavior, and funded network broadcasts/confirmations remain unverified. No transaction ID or confirmed-send claim is recorded. The offline funded Liquid fixture verifies confidential transaction construction/signing, testnet policy identity, exact/exceeded fee limits, revoked authorization, and uncertain broadcast classification. Unit tests and local signing fixtures are not substitutes for funded public-chain checks.
+
+## Polished testnet validation
+
+The expanded wallet UI and final review findings are recorded in
+[testnet-polish-validation.md](testnet-polish-validation.md). Funded checks now use
+an opt-in [Nigiri regtest harness](../tools/wallet-regtest/README.md) on OrbStack.
+This exercises shared wallet mechanics without changing the approved public
+TEST asset or claiming mainnet/distribution readiness.
+
+## Everyday wallet UI validation
+
+See [the Quiet Navy implementation and validation report](everyday-wallet-validation.md) for current frontend changes, native observations, independent review fixes, and remaining acceptance gaps.

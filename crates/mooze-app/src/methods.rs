@@ -35,6 +35,7 @@ macro_rules! for_each_app_method {
             bitcoin_sync() -> SyncOutcomeDto;
             bitcoin_balance() -> BalanceDto;
             wallet_holdings() -> Vec<HoldingDto>;
+            wallet_activity() -> Vec<WalletActivityDto>;
             bitcoin_transactions() -> Vec<TransactionDto>;
             bitcoin_take_events() -> Vec<TransactionEventDto>;
             bitcoin_receive_address(label: Option<String>) -> ReceiveAddressDto;

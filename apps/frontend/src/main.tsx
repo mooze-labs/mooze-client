@@ -1,13 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { IntlProvider } from "react-intl";
 import "@fontsource/geist/latin-400.css";
 import "@fontsource/geist/latin-500.css";
 import "@fontsource/geist/latin-600.css";
 import "@fontsource/jetbrains-mono/latin-400.css";
 import "./styles/main.css";
+import "./styles/polish.css";
 import { App } from "./app";
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,13 +16,12 @@ const queryClient = new QueryClient({
     mutations: { retry: false },
   },
 });
+const router = createBrowserRouter([{ path: "*", element: <App /> }]);
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <IntlProvider locale="pt-BR">
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     </IntlProvider>
   </React.StrictMode>,

@@ -24,6 +24,44 @@ pub(crate) async fn load_mnemonic<P: Platform>(inner: &Inner<P>) -> Result<Strin
 }
 
 impl<P: Platform> App<P> {
+    pub async fn wallet_activity(&self) -> Result<Vec<WalletActivityDto>> {
+        let mut rows = {
+            let guard = self.inner.bitcoin.lock().await;
+            let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+            let (views, tip) = w.activity_views();
+            views.iter().map(|v| crate::activity::bitcoin_activity(v, tip)).collect::<Vec<_>>()
+        };
+        {
+            let guard = self.inner.liquid.lock().await;
+            let w = guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?;
+            let (views, tip) = w.activity_views()?;
+            let policy = mooze_core::wallet::descriptors::liquid_policy_asset(self.inner.network);
+            rows.extend(views.iter().map(|v| crate::activity::liquid_activity(v, tip, policy)));
+        }
+        rows.sort_by(|a, b| b.timestamp_ms.cmp(&a.timestamp_ms).then(a.id.cmp(&b.id)));
+        Ok(rows)
+    }
+    /// Resolve the amount and fee without signing; Max uses the chain builder.
+    pub async fn prepare_desktop_send(&self, chain: ChainDto, request: SendRequestDto) -> Result<(u64, u64)> {
+        if chain == ChainDto::Bitcoin {
+            let mut guard = self.inner.bitcoin.lock().await;
+            let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+            Ok(wallet.prepare_exact_send(&send_request(&request, ChainId::Bitcoin)).await?)
+        } else if chain == ChainDto::Liquid {
+            let mut guard = self.inner.liquid.lock().await;
+            let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+            let draft = wallet.build_send(&send_request(&request, ChainId::Liquid)).await?;
+            Ok((draft.amount_sat, draft.fee_sat))
+        } else {
+            Err(AppError::new(ErrorCode::InvalidState, "unsupported chain"))
+        }
+    }
+    pub async fn desktop_fee_rates(&self) -> Result<Vec<f64>> {
+        let mut guard = self.inner.bitcoin.lock().await;
+        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Bitcoin))?;
+        let estimates = wallet.fee_estimates().await?;
+        Ok(desktop_live_rates(&estimates.fee_by_block_target))
+    }
     /// Exact string amounts for new hosts; legacy balance DTOs remain unchanged.
     pub async fn wallet_holdings(&self) -> Result<Vec<HoldingDto>> {
         if self.inner.network != mooze_core::domain::AppNetwork::Testnet {
@@ -31,14 +69,16 @@ impl<P: Platform> App<P> {
         }
         let mut balances = self.bitcoin_balance().await?.assets;
         balances.extend(self.liquid_balance().await?.assets);
-        let mut rows: Vec<_> = balances.iter().map(crate::assets::holding).collect();
-        for metadata in crate::assets::approved_testnet_assets() {
-            if !rows.iter().any(|r| r.metadata.key == metadata.key) {
-                rows.push(HoldingDto {metadata, balance_units:"0".into(),available_units:None,pending_units:None});
-            }
-        }
-        Ok(rows)
+        let rows: Vec<_> = balances.iter().map(crate::assets::holding).collect();
+        let keys = crate::assets::approved_testnet_assets().into_iter().map(|m| m.key).chain(
+            self.wallet_activity()
+                .await?
+                .into_iter()
+                .flat_map(|row| row.movements.into_iter().map(|movement| movement.asset)),
+        );
+        Ok(crate::assets::include_historical_assets(rows, keys))
     }
+
     // ───────────────────────────── bitcoin
 
     /// Loads or creates the Bitcoin wallet for `mnemonic`.
@@ -147,6 +187,28 @@ impl<P: Platform> App<P> {
         let mnemonic = load_mnemonic(&self.inner).await?;
         Ok((&w
             .send_onchain_authorized(&send_request(&request, ChainId::Liquid), &mnemonic, max_fee_sat, authorize)
+            .await?)
+            .into())
+    }
+
+    pub async fn liquid_send_authorized_exact(
+        &self,
+        request: SendRequestDto,
+        max_fee_sat: u64,
+        expected_amount: u64,
+        authorize: impl FnOnce() -> mooze_core::Result<()> + Send,
+    ) -> Result<BroadcastResultDto> {
+        let mut guard = self.inner.liquid.lock().await;
+        let wallet = guard.as_mut().ok_or_else(|| not_connected(ChainId::Liquid))?;
+        let mnemonic = load_mnemonic(&self.inner).await?;
+        Ok((&wallet
+            .send_onchain_authorized_exact(
+                &send_request(&request, ChainId::Liquid),
+                &mnemonic,
+                max_fee_sat,
+                expected_amount,
+                authorize,
+            )
             .await?)
             .into())
     }
@@ -422,5 +484,26 @@ mod tests {
         let err =
             block_on(app.liquid_sign_swap_pset("cHNldP8BAgQCAAAAAQQBAAEFAQABBgEDAfsEAgAAAAA=".into())).unwrap_err();
         assert_eq!(err.code, ErrorCode::Credential);
+    }
+}
+
+#[cfg(test)]
+mod desktop_fee_tests {
+    #[test]
+    fn live_options_require_actual_backend_targets() {
+        let partial = [("1".to_owned(), 5.0)].into_iter().collect();
+        assert!(super::desktop_live_rates(&partial).is_empty());
+        let complete = [("1".to_owned(), 5.0), ("6".into(), 2.0), ("25".into(), 1.0)].into_iter().collect();
+        assert_eq!(super::desktop_live_rates(&complete), vec![1.0, 2.0, 5.0]);
+    }
+}
+
+fn desktop_live_rates(rates: &std::collections::BTreeMap<String, f64>) -> Vec<f64> {
+    let choose = |targets: &[&str]| {
+        targets.iter().find_map(|target| rates.get(*target).copied().filter(|v| v.is_finite() && *v > 0.0))
+    };
+    match (choose(&["144", "25", "12"]), choose(&["6", "3"]), choose(&["1", "2"])) {
+        (Some(low), Some(medium), Some(fast)) => vec![low, medium, fast],
+        _ => vec![],
     }
 }

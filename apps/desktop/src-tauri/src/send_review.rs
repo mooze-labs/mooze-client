@@ -1,12 +1,15 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dto::{ReviewRequestDto, WalletChain};
+    use crate::dto::ReviewRequestDto;
     fn request() -> ReviewRequestDto {
         ReviewRequestDto {
-            chain: WalletChain::Bitcoin,
+            asset: mooze_app::dto::AssetKeyDto {
+                chain: mooze_app::dto::ChainDto::Bitcoin,
+                asset_id: None,
+            },
             destination: "test".into(),
-            amount_sat: 1000,
+            amount: crate::dto::SendAmountDto::Exact("1000".into()),
             fee_rate_sat_per_vbyte: 1.,
         }
     }
@@ -38,18 +41,56 @@ impl ReviewBook {
         generation: u32,
         now: u64,
     ) -> Result<SendReviewDto> {
-        let total = request
-            .amount_sat
-            .checked_add(fee)
-            .filter(|v| *v <= crate::rules::MAX_SAFE)
-            .ok_or_else(|| {
-                DesktopError::new("unsupported_amount", "Valor fora do intervalo permitido.")
-            })?;
+        self.insert_resolved(request, fee, generation, now, false)
+    }
+    pub fn insert_resolved(
+        &mut self,
+        request: ReviewRequestDto,
+        fee: u64,
+        generation: u32,
+        now: u64,
+        is_max: bool,
+    ) -> Result<SendReviewDto> {
+        if fee > crate::rules::MAX_SAFE {
+            return Err(DesktopError::new(
+                "unsupported_amount",
+                "Valor fora do intervalo permitido.",
+            ));
+        }
+        let amount = request
+            .exact_amount()
+            .ok_or_else(|| DesktopError::new("invalid_input", "Revise um valor exato."))?;
+        let fee_asset = mooze_app::dto::AssetKeyDto {
+            chain: request.asset.chain,
+            asset_id: if request.asset.chain == mooze_app::dto::ChainDto::Liquid {
+                Some(mooze_core::wallet::descriptors::LIQUID_TESTNET_POLICY_ASSET.into())
+            } else {
+                None
+            },
+        };
+        let mut debits = vec![mooze_app::dto::AssetAmountDto {
+            asset: request.asset.clone(),
+            units: amount.to_string(),
+        }];
+        if request.asset == fee_asset {
+            debits[0].units = amount
+                .checked_add(fee)
+                .ok_or_else(|| {
+                    DesktopError::new("unsupported_amount", "Valor fora do intervalo permitido.")
+                })?
+                .to_string();
+        } else {
+            debits.push(mooze_app::dto::AssetAmountDto {
+                asset: fee_asset,
+                units: fee.to_string(),
+            });
+        }
         let review = SendReviewDto {
+            is_max,
             id: uuid::Uuid::new_v4().to_string(),
             request,
             fee_sat: fee,
-            total_sat: total,
+            debits,
             expires_at_ms: now + 60_000,
             generation,
         };
@@ -74,5 +115,49 @@ impl ReviewBook {
             ));
         }
         Ok(r)
+    }
+}
+
+#[cfg(test)]
+mod asset_tests {
+    use super::*;
+    use crate::dto::SendAmountDto;
+    use mooze_app::dto::{AssetKeyDto, ChainDto};
+    #[test]
+    fn test_debit_and_fee_never_add_unlike_units() {
+        let request = ReviewRequestDto {
+            asset: AssetKeyDto {
+                chain: ChainDto::Liquid,
+                asset_id: Some(mooze_app::assets::TEST_ASSET_ID.into()),
+            },
+            destination: "test".into(),
+            amount: SendAmountDto::Exact("100000000".into()),
+            fee_rate_sat_per_vbyte: 0.1,
+        };
+        let review = ReviewBook::default().insert(request, 100, 1, 0).unwrap();
+        assert_eq!(review.debits.len(), 2);
+        assert_eq!(review.debits[0].units, "100000000");
+        assert_eq!(review.debits[1].units, "100");
+        assert_ne!(review.debits[0].asset, review.debits[1].asset);
+    }
+}
+
+#[cfg(test)]
+mod precision_tests {
+    use super::*;
+    #[test]
+    fn numeric_fee_does_not_cross_javascript_precision_boundary() {
+        let request = ReviewRequestDto {
+            asset: mooze_app::dto::AssetKeyDto {
+                chain: mooze_app::dto::ChainDto::Bitcoin,
+                asset_id: None,
+            },
+            destination: "test".into(),
+            amount: crate::dto::SendAmountDto::Exact("1".into()),
+            fee_rate_sat_per_vbyte: 1.0,
+        };
+        assert!(ReviewBook::default()
+            .insert(request, crate::rules::MAX_SAFE + 1, 1, 0)
+            .is_err());
     }
 }

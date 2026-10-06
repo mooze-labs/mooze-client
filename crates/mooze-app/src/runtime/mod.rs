@@ -30,11 +30,21 @@ use crate::{Platform, Result};
 #[derive(Default)]
 pub(crate) struct RuntimeState {
     cancel: StdMutex<Option<Arc<Cancel>>>,
+    finishes: StdMutex<Vec<futures::channel::oneshot::Receiver<()>>>,
     refresh: StdMutex<Option<Arc<AtomicBool>>>,
     lock: StdMutex<SessionLockController>,
 }
 
 impl RuntimeState {
+    fn spawn(&self, spawner: &dyn mooze_core::ports::Spawner, task: mooze_core::ports::TaskFuture<'static, ()>) {
+        let (done, completion) = futures::channel::oneshot::channel();
+        self.finishes.lock().unwrap_or_else(|e| e.into_inner()).push(completion);
+        spawner.spawn(Box::pin(async move {
+            task.await;
+            let _ = done.send(());
+        }));
+    }
+
     /// Cancels the loops, if running. `Inner::drop` calls it.
     pub(crate) fn cancel_all(&self) {
         if let Some(cancel) = self.cancel.lock().unwrap_or_else(|e| e.into_inner()).take() {
@@ -122,57 +132,63 @@ impl<P: Platform> App<P> {
         });
         let sync_loop = SyncLoop::new(orchestrator, timer.clone(), inner.platform.clock(), cancel.clone(), emit);
         *inner.runtime.refresh.lock().unwrap_or_else(|e| e.into_inner()) = Some(sync_loop.refresh_handle());
-        spawner.spawn(Box::pin(sync_loop.run()));
+        inner.runtime.spawn(spawner.as_ref(), Box::pin(sync_loop.run()));
 
         // PIX poll loop.
         let (pix_weak, pix_cancel, pix_timer) = (weak.clone(), cancel.clone(), timer.clone());
-        spawner.spawn(Box::pin(async move {
-            loop {
-                if pix_cancel.sleep_or_cancel(pix_timer.as_ref(), DEPOSIT_POLL_INTERVAL_MS).await {
-                    break;
-                }
-                let Some(inner) = pix_weak.upgrade() else {
-                    break;
-                };
-                let app = App { inner };
-                if app.pix_active_polls().await.unwrap_or(0) == 0 {
-                    continue;
-                }
-                if let Ok(events) = app.pix_poll_tick().await {
-                    if !events.is_empty() {
-                        app.inner.subscribers.emit(AppEvent::PixStatus(events));
+        inner.runtime.spawn(
+            spawner.as_ref(),
+            Box::pin(async move {
+                loop {
+                    if pix_cancel.sleep_or_cancel(pix_timer.as_ref(), DEPOSIT_POLL_INTERVAL_MS).await {
+                        break;
+                    }
+                    let Some(inner) = pix_weak.upgrade() else {
+                        break;
+                    };
+                    let app = App { inner };
+                    if app.pix_active_polls().await.unwrap_or(0) == 0 {
+                        continue;
+                    }
+                    if let Ok(events) = app.pix_poll_tick().await {
+                        if !events.is_empty() {
+                            app.inner.subscribers.emit(AppEvent::PixStatus(events));
+                        }
                     }
                 }
-            }
-        }));
+            }),
+        );
 
         // Peg loop.
         if let Some(wallet_id) = config.peg_wallet_id {
             let (peg_weak, peg_cancel, peg_timer) = (weak, cancel, timer);
-            spawner.spawn(Box::pin(async move {
-                loop {
-                    let wait = {
+            inner.runtime.spawn(
+                spawner.as_ref(),
+                Box::pin(async move {
+                    loop {
+                        let wait = {
+                            let Some(inner) = peg_weak.upgrade() else {
+                                break;
+                            };
+                            let now = inner.platform.clock().now_ms();
+                            let next = inner.sideswap.pegs.lock().await.next_wakeup_ms();
+                            next.map(|t| t.saturating_sub(now)).unwrap_or(60_000).max(1_000)
+                        };
+                        if peg_cancel.sleep_or_cancel(peg_timer.as_ref(), wait).await {
+                            break;
+                        }
                         let Some(inner) = peg_weak.upgrade() else {
                             break;
                         };
-                        let now = inner.platform.clock().now_ms();
-                        let next = inner.sideswap.pegs.lock().await.next_wakeup_ms();
-                        next.map(|t| t.saturating_sub(now)).unwrap_or(60_000).max(1_000)
-                    };
-                    if peg_cancel.sleep_or_cancel(peg_timer.as_ref(), wait).await {
-                        break;
-                    }
-                    let Some(inner) = peg_weak.upgrade() else {
-                        break;
-                    };
-                    let app = App { inner };
-                    if let Ok(refresh) = app.peg_refresh_due(wallet_id.clone()).await {
-                        if !refresh.changed.is_empty() || !refresh.finished.is_empty() {
-                            app.inner.subscribers.emit(AppEvent::PegProgress(refresh));
+                        let app = App { inner };
+                        if let Ok(refresh) = app.peg_refresh_due(wallet_id.clone()).await {
+                            if !refresh.changed.is_empty() || !refresh.finished.is_empty() {
+                                app.inner.subscribers.emit(AppEvent::PegProgress(refresh));
+                            }
                         }
                     }
-                }
-            }));
+                }),
+            );
         }
         Ok(())
     }
@@ -183,6 +199,15 @@ impl<P: Platform> App<P> {
             c.cancel();
         }
         *self.inner.runtime.refresh.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        Ok(())
+    }
+
+    /// Native storage-lifecycle barrier. The host must serialize start with this call.
+    /// Cancellation alone does not guarantee pending persistence has completed.
+    pub async fn stop_and_wait(&self) -> Result<()> {
+        self.stop().await?;
+        let finishes = std::mem::take(&mut *self.inner.runtime.finishes.lock().unwrap_or_else(|e| e.into_inner()));
+        futures::future::join_all(finishes).await;
         Ok(())
     }
 
@@ -263,6 +288,19 @@ mod tests {
         assert!(block_on(app.is_running()).unwrap());
         block_on(app.stop()).unwrap();
         exec.run_until_stalled();
+        assert!(!block_on(app.is_running()).unwrap());
+    }
+
+    #[test]
+    fn stop_and_wait_observes_loop_completion() {
+        use futures::FutureExt;
+        let (app, _plat, mut exec) = open_test_app_with_executor();
+        block_on(app.start(config())).unwrap();
+        exec.run_until_stalled();
+        let mut stopped = Box::pin(app.stop_and_wait());
+        assert!(stopped.as_mut().now_or_never().is_none());
+        exec.run_until_stalled();
+        block_on(stopped).unwrap();
         assert!(!block_on(app.is_running()).unwrap());
     }
 

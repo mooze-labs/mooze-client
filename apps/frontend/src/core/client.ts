@@ -24,6 +24,47 @@ export type DesktopEvent =
   | { type: "core"; generation: number; data: AppEvent }
   | { type: "submission"; generation: number };
 export interface DesktopClient {
+  removeWallet(pin: string): Promise<void>;
+  diagnostics(): Promise<unknown>;
+  exportDiagnostics(): Promise<boolean>;
+  testNode(chain: Chain, endpoint: string): Promise<string>;
+  saveNode(
+    chain: Chain,
+    endpoint: string | null,
+    publicFallback: boolean,
+  ): Promise<import("./desktop.generated").DesktopSettingsDto>;
+  saveDisplay(
+    locale: string,
+    bitcoinUnit: string,
+    privacy: boolean,
+  ): Promise<import("./desktop.generated").DesktopSettingsDto>;
+  parsePaymentRequest(
+    input: string,
+  ): Promise<import("./desktop.generated").ParsedPaymentDto>;
+  receiveRequest(
+    asset: import("../../../../crates/mooze-app/generated/types").AssetKeyDto,
+    amountUnits: string | null,
+    description: string | null,
+  ): Promise<import("./desktop.generated").ReceiveRequestDto>;
+  feeOptions(
+    asset: import("../../../../crates/mooze-app/generated/types").AssetKeyDto,
+  ): Promise<import("./desktop.generated").FeeOptionsDto>;
+  beginSetup(
+    extended: boolean,
+  ): Promise<import("./desktop.generated").SetupDto>;
+  cancelSetup(setupId: string): Promise<void>;
+  completeSetup(
+    setupId: string,
+    answers: string[],
+    pin: string,
+  ): Promise<Session>;
+  revealRecoveryPhrase(pin: string): Promise<string[]>;
+  changePin(currentPin: string, newPin: string): Promise<void>;
+  recordActivity(generation: number): Promise<void>;
+  settings(): Promise<import("./desktop.generated").DesktopSettingsDto>;
+  setLockMinutes(
+    minutes: number,
+  ): Promise<import("./desktop.generated").DesktopSettingsDto>;
   holdings(): Promise<import("./desktop.generated").HoldingsSnapshotDto>;
   approvedAssets(): Promise<
     import("../../../../crates/mooze-app/generated/types").AssetMetadataDto[]

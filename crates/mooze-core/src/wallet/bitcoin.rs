@@ -680,6 +680,25 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         })
     }
 
+    pub fn activity_views(&self) -> (Vec<BdkTxView>, u32) {
+        (tx_views(&self.wallet), self.wallet.latest_checkpoint().height())
+    }
+    /// Exact recipient amount and fee for an unsigned request, including Max.
+    pub async fn prepare_exact_send(&mut self, request: &SendRequest) -> Result<(u64, u64)> {
+        let psbt = build_psbt(&mut self.wallet, request)?;
+        self.persist().await?;
+        let fee = psbt.fee().map_err(svc)?.to_sat();
+        let amount = if request.drain {
+            let tx = psbt.clone().extract_tx_unchecked_fee_rate();
+            tx.output
+                .iter()
+                .try_fold(0u64, |sum, o| sum.checked_add(o.value.to_sat()))
+                .ok_or_else(|| svc("amount overflow"))?
+        } else {
+            request.amount_sat
+        };
+        Ok((amount, fee))
+    }
     /// Builds a send for review.
     pub async fn prepare_send(
         &mut self,

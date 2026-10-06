@@ -106,6 +106,8 @@ async fn import_lock_restart_and_pin_retry() {
 
 #[derive(Clone, Default)]
 struct FaultStore {
+    deny_key: Arc<StdMutex<Option<String>>>,
+    fail_delete: Arc<StdMutex<Option<String>>>,
     pause_submission: Arc<AtomicBool>,
     entered: Arc<tokio::sync::Notify>,
     release: Arc<tokio::sync::Notify>,
@@ -116,7 +118,9 @@ struct FaultStore {
 }
 impl KvStore for FaultStore {
     async fn get(&self, key: &str) -> mooze_core::Result<Option<Vec<u8>>> {
-        if self.deny_reads.load(Ordering::SeqCst) {
+        if self.deny_key.lock().unwrap().as_deref() == Some(key)
+            || self.deny_reads.load(Ordering::SeqCst)
+        {
             return Err(mooze_core::Error::storage("injected read denial"));
         }
         if key == SUBMISSION && self.pause_submission.swap(false, Ordering::SeqCst) {
@@ -133,6 +137,13 @@ impl KvStore for FaultStore {
         self.data.put(key, value).await
     }
     async fn delete(&self, key: &str) -> mooze_core::Result<()> {
+        {
+            let mut fail = self.fail_delete.lock().unwrap();
+            if fail.as_deref() == Some(key) {
+                *fail = None;
+                return Err(mooze_core::Error::storage("injected delete failure"));
+            }
+        }
         self.data.delete(key).await
     }
     async fn list_keys(&self, prefix: &str) -> mooze_core::Result<Vec<String>> {
@@ -282,6 +293,9 @@ async fn unfinished_submission_survives_restart_and_requires_acknowledgment() {
     p.kv.put(
         SUBMISSION,
         serde_json::to_vec(&SubmissionDto {
+            version: 2,
+            request: None,
+            debits: None,
             phase: "submitting".into(),
             chain: WalletChain::Bitcoin,
             tx_id: None,
@@ -303,9 +317,12 @@ async fn unfinished_submission_survives_restart_and_requires_acknowledgment() {
         "uncertain"
     );
     let request = ReviewRequestDto {
-        chain: WalletChain::Bitcoin,
+        asset: AssetKeyDto {
+            chain: ChainDto::Bitcoin,
+            asset_id: None,
+        },
         destination: "tb1-test".into(),
-        amount_sat: 1000,
+        amount: SendAmountDto::Exact("1000".into()),
         fee_rate_sat_per_vbyte: 1.,
     };
     assert_eq!(
@@ -333,4 +350,209 @@ async fn lock_while_reading_submission_rejects_snapshot() {
         p.kv.release.notify_one();
     });
     assert_eq!(result.unwrap_err().code, "locked");
+}
+
+#[tokio::test]
+async fn expired_command_locks_without_timer_tick() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    let session = s
+        .import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    p.clock.advance(60_000);
+    assert!(s.approved_assets().is_err());
+    assert_eq!(s.status().await.unwrap().status, "locked");
+    assert!(s.record_activity(session.generation).is_err());
+}
+#[tokio::test]
+async fn old_generation_activity_cannot_extend_session() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    let session = s
+        .import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    p.clock.advance(50_000);
+    assert!(s.record_activity(session.generation - 1).is_err());
+    p.clock.advance(10_000);
+    assert!(s.approved_assets().is_err());
+}
+
+#[tokio::test]
+async fn setup_verifies_backup_and_discards_cancelled_candidate() {
+    let s = WalletSession::new(platform(), BackendDto::Esplora);
+    let first = s.begin_setup(false).await.unwrap();
+    assert_eq!(first.words.len(), 12);
+    assert!(s
+        .complete_setup(
+            first.setup_id.clone(),
+            vec!["wrong".into(); 3],
+            "123456".into()
+        )
+        .await
+        .is_err());
+    s.cancel_setup(first.setup_id.clone()).unwrap();
+    let answers = first
+        .challenge_indices
+        .iter()
+        .map(|i| first.words[*i as usize].clone())
+        .collect();
+    assert!(s
+        .complete_setup(first.setup_id, answers, "123456".into())
+        .await
+        .is_err());
+    let second = s.begin_setup(true).await.unwrap();
+    assert_eq!(second.words.len(), 24);
+    let answers = second
+        .challenge_indices
+        .iter()
+        .map(|i| second.words[*i as usize].clone())
+        .collect();
+    assert_eq!(
+        s.complete_setup(second.setup_id, answers, "123456".into())
+            .await
+            .unwrap()
+            .status,
+        "unlocked"
+    );
+    assert!(s.begin_setup(false).await.is_err());
+}
+
+#[tokio::test]
+async fn security_settings_and_fresh_pin_checks() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    assert_eq!(s.settings().await.unwrap().lock_minutes, 1);
+    assert!(s.set_lock_minutes(2).await.is_err());
+    assert_eq!(s.set_lock_minutes(15).await.unwrap().lock_minutes, 15);
+    assert!(s.reveal_recovery_phrase("000000".into()).await.is_err());
+    assert_eq!(
+        s.reveal_recovery_phrase("123456".into())
+            .await
+            .unwrap()
+            .join(" "),
+        PHRASE
+    );
+    s.change_pin("123456".into(), "654321".into())
+        .await
+        .unwrap();
+    s.lock().await.unwrap();
+    assert!(s.reveal_recovery_phrase("654321".into()).await.is_err());
+    assert!(s.unlock("123456".into()).await.is_err());
+    assert!(s.unlock("654321".into()).await.is_ok());
+}
+
+#[tokio::test]
+async fn display_preferences_validate_and_survive_restart() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    assert!(s
+        .save_display("fr".into(), "BTC".into(), false)
+        .await
+        .is_err());
+    assert!(s
+        .save_display("en".into(), "TEST".into(), false)
+        .await
+        .is_err());
+    s.save_display("en".into(), "sat".into(), true)
+        .await
+        .unwrap();
+    s.lock().await.unwrap();
+    let restarted = WalletSession::new(p, BackendDto::Esplora);
+    restarted.unlock("123456".into()).await.unwrap();
+    let settings = restarted.settings().await.unwrap();
+    assert_eq!(settings.locale, "en");
+    assert_eq!(settings.bitcoin_unit, "sat");
+    assert!(settings.privacy);
+}
+
+#[tokio::test]
+async fn invalid_node_keeps_settings_and_default_restore_revokes_review_generation() {
+    let p = platform();
+    let s = WalletSession::new(p, BackendDto::Esplora);
+    let session = s
+        .import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    assert!(s
+        .save_node(
+            WalletChain::Bitcoin,
+            Some("https://wrong:50002/path".into()),
+            false
+        )
+        .await
+        .is_err());
+    assert!(s.settings().await.unwrap().bitcoin_node.is_none());
+    assert_eq!(s.status().await.unwrap().generation, session.generation);
+    s.save_node(WalletChain::Bitcoin, None, false)
+        .await
+        .unwrap();
+    assert!(s.status().await.unwrap().generation > session.generation);
+    assert!(s.snapshot().await.is_ok());
+}
+
+#[tokio::test]
+async fn partial_removal_is_locked_and_can_resume_after_restart() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    assert!(s.remove_wallet("000000".into()).await.is_err());
+    assert_eq!(s.status().await.unwrap().status, "unlocked");
+    *p.secure.fail_delete.lock().unwrap() = Some("mnemonic_mainWallet".into());
+    assert!(s.remove_wallet("123456".into()).await.is_err());
+    assert_eq!(s.status().await.unwrap().status, "removal_pending");
+    assert!(s.snapshot().await.is_err());
+    let restarted = WalletSession::new(p.clone(), BackendDto::Esplora);
+    assert_eq!(restarted.status().await.unwrap().status, "removal_pending");
+    assert!(restarted.unlock("123456".into()).await.is_err());
+    restarted.remove_wallet(String::new()).await.unwrap();
+    assert_eq!(restarted.status().await.unwrap().status, "empty");
+    assert!(p.secure.list_keys("").await.unwrap().is_empty());
+    assert!(p.kv.list_keys("").await.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn failed_pin_change_preserves_existing_pin() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    p.secure
+        .fail_at
+        .store(p.secure.writes.load(Ordering::SeqCst) + 1, Ordering::SeqCst);
+    assert!(s
+        .change_pin("123456".into(), "654321".into())
+        .await
+        .is_err());
+    s.lock().await.unwrap();
+    assert!(s.unlock("123456".into()).await.is_ok());
+}
+
+#[tokio::test]
+async fn failed_node_replacement_and_restore_reconnects_on_unlock() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    *p.kv.deny_key.lock().unwrap() = Some("wallet/bitcoin/changeset".into());
+    assert!(s
+        .save_node(WalletChain::Bitcoin, None, false)
+        .await
+        .is_err());
+    assert!(s.inner.lock().await.app.is_none());
+    assert!(!s.unlocked.load(Ordering::SeqCst));
+    *p.kv.deny_key.lock().unwrap() = None;
+    s.unlock("123456".into()).await.unwrap();
+    assert!(s.snapshot().await.is_ok());
 }

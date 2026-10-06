@@ -1,4 +1,5 @@
 pub mod file_kv;
+pub mod idle_clock;
 pub mod runtime;
 pub mod secure_store;
 pub mod ws;
@@ -63,5 +64,26 @@ impl Platform for NativePlatform {
     }
     fn blocking(&self) -> Option<Arc<dyn BlockingSpawner>> {
         Some(Arc::new(runtime::TokioSpawner))
+    }
+}
+
+#[cfg(debug_assertions)]
+impl NativePlatform {
+    /// Explicit isolated profile for native QA; release builds cannot select it.
+    pub fn open_debug_profile(root: PathBuf, profile: &str) -> Result<Self> {
+        if profile.is_empty()
+            || profile.len() > 64
+            || !profile
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'-')
+        {
+            return Err(mooze_core::Error::InvalidInput(
+                "invalid validation profile".into(),
+            ));
+        }
+        Ok(Self {
+            kv: FileKv::open(root.join("testnet-validation").join(profile))?,
+            secure: KeyringStore::new(format!("app.mooze.desktop.testnet.validation.{profile}")),
+        })
     }
 }

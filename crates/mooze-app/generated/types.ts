@@ -38,6 +38,8 @@ export type AssetKeyDto = { chain: ChainDto, asset_id: string | null, };
 
 export type AssetMetadataDto = { key: AssetKeyDto, ticker: string | null, precision: number | null, approved: boolean, };
 
+export type AssetMovementDto = { asset: AssetKeyDto, delta_units: string, };
+
 export type AuthEnsureDto = { kind: AuthEnsureKind, 
 /**
  * The 5xx status for `ApiDown`, if the error text holds one.
@@ -343,6 +345,8 @@ export type TransactionDto = { id: string, chain: ChainDto, direction: Direction
 export type TransactionEventDto = { kind: TransactionEventKindDto, transaction: TransactionDto, observed_at_ms: number, previous_status: StatusDto | null, previous_confirmations: number | null, };
 
 export type TransactionEventKindDto = "Created" | "StatusChanged" | "ConfirmationsChanged";
+
+export type WalletActivityDto = { id: string, chain: ChainDto, timestamp_ms: number | null, status: StatusDto, confirmations: number, movements: Array<AssetMovementDto>, fee: AssetAmountDto | null, addresses: Array<string>, };
 
 export type WalletUtxoDto = { txid: string, vout: number, 
 /**

@@ -24,9 +24,13 @@ impl FileKv {
         f: impl FnOnce(&mut BTreeMap<String, Vec<u8>>) -> Result<T> + Send + 'static,
         write: bool,
     ) -> Result<T> {
-        let _guard = self.gate.lock().await;
+        let guard = self.gate.clone().lock_owned().await;
         let file = self.file.clone();
         tokio::task::spawn_blocking(move || {
+            // A cancelled async caller must not release the gate while its
+            // blocking filesystem operation is still running. All later reads,
+            // cleanup and writes wait for this job to finish.
+            let _guard = guard;
             let mut data: BTreeMap<String, Vec<u8>> = match std::fs::read(file.as_ref()) {
                 Ok(v) => serde_json::from_slice(&v).map_err(Error::storage)?,
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => BTreeMap::new(),
@@ -107,6 +111,35 @@ impl KvStore for FileKv {
 mod tests {
     use super::*;
     use mooze_core::ports::KvStore;
+    #[tokio::test]
+    async fn blocking_job_retains_gate_until_completion() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = FileKv::open(dir.path().join("isolated")).unwrap();
+        let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+        let worker_store = store.clone();
+        let worker = tokio::spawn(async move {
+            worker_store
+                .access(
+                    move |_| {
+                        let _ = entered_tx.send(());
+                        release_rx.recv().unwrap();
+                        Ok(())
+                    },
+                    false,
+                )
+                .await
+        });
+        entered_rx.await.unwrap();
+        worker.abort();
+        let _ = worker.await;
+        let still_owned = store.gate.try_lock().is_err();
+        release_tx.send(()).unwrap();
+        // Always release the worker before asserting to avoid a hanging test runtime.
+        assert!(still_owned);
+        store.put("after-job", vec![1]).await.unwrap();
+        assert_eq!(store.get("after-job").await.unwrap(), Some(vec![1]));
+    }
     #[tokio::test]
     async fn atomic_store_roundtrip_and_namespace() {
         let dir = tempfile::tempdir().unwrap();

@@ -1,3 +1,8 @@
+pub mod idle;
+mod payments;
+mod security;
+mod settings;
+mod setup;
 use crate::{
     dto::*,
     error::{DesktopError, Result},
@@ -21,6 +26,7 @@ use std::sync::{
     Arc, Mutex as StdMutex,
 };
 use tokio::sync::Mutex;
+const REMOVAL: &str = "desktop/removal/v1";
 const IMPORT: &str = "desktop/import";
 const SUBMISSION: &str = "desktop/submission";
 const RETRY: &str = "desktop/pinRetryAt";
@@ -32,7 +38,9 @@ struct Inner<P: Platform> {
 pub struct WalletSession<P: Platform> {
     pub platform: P,
     backend: BackendDto,
+    setup: StdMutex<Option<setup::SetupCandidate>>,
     inner: Mutex<Inner<P>>,
+    idle: StdMutex<Option<(idle::IdleState, crate::platform::idle_clock::IdleClock)>>,
     transition: StdMutex<()>,
     configured: AtomicBool,
     submitting: AtomicBool,
@@ -95,12 +103,14 @@ impl<P: Platform + Clone> WalletSession<P> {
     pub fn new(platform: P, backend: BackendDto) -> Self {
         Self {
             platform,
+            setup: StdMutex::new(None),
             backend,
             inner: Mutex::new(Inner {
                 app: None,
                 reviews: ReviewBook::default(),
             }),
             transition: StdMutex::new(()),
+            idle: StdMutex::new(None),
             configured: AtomicBool::new(false),
             submitting: AtomicBool::new(false),
             unlocked: Arc::new(AtomicBool::new(false)),
@@ -127,10 +137,16 @@ impl<P: Platform + Clone> WalletSession<P> {
         }
     }
     pub async fn status(&self) -> Result<SessionDto> {
+        if self.unlocked.load(Ordering::SeqCst) {
+            let _ = self.authorize();
+        }
+        let removing = self.platform.kv().get(REMOVAL).await?.is_some();
         let complete = self.platform.kv().get(IMPORT).await? == Some(b"complete".to_vec());
         self.configured.store(complete, Ordering::SeqCst);
         Ok(SessionDto {
-            status: if self.unlocked.load(Ordering::SeqCst) {
+            status: if removing {
+                "removal_pending"
+            } else if self.unlocked.load(Ordering::SeqCst) {
                 "unlocked"
             } else if complete {
                 "locked"
@@ -146,22 +162,89 @@ impl<P: Platform + Clone> WalletSession<P> {
                 .min(u32::MAX as u64) as u32,
         })
     }
+    pub fn check_expiry(&self) {
+        if self.unlocked.load(Ordering::SeqCst) {
+            let _ = self.authorize();
+        }
+    }
     fn authorize(&self) -> Result<u32> {
+        let transition = self.transition.lock().unwrap();
         if !self.unlocked.load(Ordering::SeqCst) {
             return Err(DesktopError::new("locked", "Desbloqueie a carteira."));
         }
+        let expired = {
+            let mut idle = self.idle.lock().unwrap();
+            idle.as_mut().is_none_or(|(state, clock)| {
+                clock
+                    .elapsed_ms(self.platform.clock().now_ms())
+                    .is_none_or(|now| state.expired(now))
+            })
+        };
+        if expired {
+            self.unlocked.store(false, Ordering::SeqCst);
+            let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
+            drop(transition);
+            self.emit_session(&SessionDto {
+                status: "locked".into(),
+                generation,
+                retry_after_ms: 0,
+            });
+            return Err(DesktopError::new("locked", "A sessão expirou."));
+        }
         Ok(self.generation.load(Ordering::SeqCst))
     }
+    pub fn record_activity(&self, generation: u32) -> Result<()> {
+        if self.authorize()? != generation {
+            return Err(DesktopError::new("locked", "Sessão alterada."));
+        }
+        let _transition = self.transition.lock().unwrap();
+        if !self.unlocked.load(Ordering::SeqCst)
+            || generation != self.generation.load(Ordering::SeqCst)
+        {
+            return Err(DesktopError::new("locked", "Sessão alterada."));
+        }
+        let mut guard = self.idle.lock().unwrap();
+        if let Some((state, clock)) = guard.as_mut() {
+            if let Some(now) = clock.elapsed_ms(self.platform.clock().now_ms()) {
+                state.activity(now);
+            }
+        }
+        Ok(())
+    }
+    pub fn set_foreground(&self, foreground: bool) {
+        {
+            let mut guard = self.idle.lock().unwrap();
+            if let Some((state, clock)) = guard.as_mut() {
+                if let Some(now) = clock.elapsed_ms(self.platform.clock().now_ms()) {
+                    if foreground {
+                        state.foreground(now);
+                    } else {
+                        state.background(now);
+                    }
+                }
+            }
+        }
+        self.check_expiry();
+    }
     async fn connect(&self, phrase: String) -> Result<App<P>> {
-        let app = App::open(
+        let settings = self.load_settings().await?;
+        self.connect_with_settings(phrase, &settings).await
+    }
+    async fn connect_with_settings(
+        &self,
+        phrase: String,
+        settings: &DesktopSettingsDto,
+    ) -> Result<App<P>> {
+        let app = App::open_with_public_fallback(
             AppConfig {
                 network: NetworkDto::Testnet,
                 backend: self.backend,
-                bitcoin_node_url: String::new(),
-                liquid_node_url: String::new(),
+                bitcoin_node_url: settings.bitcoin_node.clone().unwrap_or_default(),
+                liquid_node_url: settings.liquid_node.clone().unwrap_or_default(),
                 api_base_url: None,
             },
             self.platform_clone(),
+            settings.public_fallback,
         )
         .await?;
         app.bitcoin_connect(phrase.clone()).await?;
@@ -185,6 +268,12 @@ impl<P: Platform + Clone> WalletSession<P> {
 impl<P: Platform + Clone> WalletSession<P> {
     pub async fn import_wallet(&self, phrase: String, pin: String) -> Result<SessionDto> {
         let mut inner = self.inner.lock().await;
+        if self.platform.kv().get(REMOVAL).await?.is_some() {
+            return Err(DesktopError::new(
+                "removal_pending",
+                "Conclua a remoção local antes de continuar.",
+            ));
+        }
         let expected = self.generation.load(Ordering::SeqCst);
         if self.platform.kv().get(IMPORT).await? == Some(b"complete".to_vec()) {
             return Err(DesktopError::new(
@@ -249,6 +338,12 @@ impl<P: Platform + Clone> WalletSession<P> {
     }
     pub async fn unlock(&self, pin: String) -> Result<SessionDto> {
         let mut inner = self.inner.lock().await;
+        if self.platform.kv().get(REMOVAL).await?.is_some() {
+            return Err(DesktopError::new(
+                "removal_pending",
+                "Conclua a remoção local antes de continuar.",
+            ));
+        }
         let expected = self.generation.load(Ordering::SeqCst);
         if self.platform.kv().get(IMPORT).await? != Some(b"complete".to_vec()) {
             return Err(DesktopError::new("invalid_input", "Importe uma carteira."));
@@ -259,32 +354,7 @@ impl<P: Platform + Clone> WalletSession<P> {
                 "Use um PIN de 6 dígitos.",
             ));
         }
-        let now = self.platform.clock().now_ms();
-        let retry = self.retry_at().await?;
-        if retry > now {
-            return Err(DesktopError::new(
-                "rate_limited",
-                "Aguarde 30 segundos antes de tentar novamente.",
-            ));
-        }
-        if retry > 0 {
-            self.platform.kv().delete(RETRY).await?;
-            self.platform.kv().put("pinAttempts", b"0".to_vec()).await?;
-        }
-        let pins = PinService::new(
-            self.platform.secure(),
-            self.platform.kv(),
-            self.platform.clock(),
-        );
-        if !pins.authenticate(&pin).await? {
-            if pins.attempts().await? >= 5 {
-                self.platform
-                    .kv()
-                    .put(RETRY, serde_json::to_vec(&(now + 30_000)).unwrap())
-                    .await?;
-            }
-            return Err(DesktopError::new("invalid_input", "PIN incorreto."));
-        }
+        self.verify_pin(&pin).await?;
         if inner.app.is_none() {
             let credentials = CredentialStore::new(self.platform.secure(), AppNetwork::Testnet)
                 .load()
@@ -294,6 +364,7 @@ impl<P: Platform + Clone> WalletSession<P> {
         self.open_session(&mut inner, expected).await
     }
     async fn open_session(&self, inner: &mut Inner<P>, expected: u32) -> Result<SessionDto> {
+        let minutes = self.load_settings().await?.lock_minutes;
         {
             let _transition = self.transition.lock().unwrap();
             if self.generation.load(Ordering::SeqCst) != expected {
@@ -304,6 +375,10 @@ impl<P: Platform + Clone> WalletSession<P> {
             }
             self.generation.fetch_add(1, Ordering::SeqCst);
             inner.reviews.clear();
+            *self.idle.lock().unwrap() = Some((
+                idle::IdleState::new(minutes, 0).unwrap(),
+                crate::platform::idle_clock::IdleClock::new(self.platform.clock().now_ms()),
+            ));
             self.unlocked.store(true, Ordering::SeqCst);
         }
         if let Some(app) = &inner.app {
@@ -328,6 +403,7 @@ impl<P: Platform + Clone> WalletSession<P> {
         Ok(s)
     }
     pub async fn lock(&self) -> Result<SessionDto> {
+        *self.setup.lock().unwrap() = None;
         // Close authorization and notify the UI before waiting for a long wallet operation.
         {
             let _transition = self.transition.lock().unwrap();
@@ -358,19 +434,14 @@ impl<P: Platform + Clone> WalletSession<P> {
                 .clone()
                 .ok_or_else(|| DesktopError::new("locked", "Desbloqueie a carteira."))?
         };
-        let (bitcoin, liquid) = tokio::try_join!(app.bitcoin_balance(), app.liquid_balance())?;
-        let mut transactions = app.bitcoin_transactions().await?;
-        transactions.extend(app.liquid_transactions().await?);
-        transactions.sort_by(|a, b| b.timestamp_ms.cmp(&a.timestamp_ms));
+        let activity = app.wallet_activity().await?;
         let submission = self.submission().await?;
         if self.authorize()? != generation {
             return Err(DesktopError::new("locked", "Sessão alterada."));
         }
         let snapshot = DesktopSnapshotDto {
             submission,
-            bitcoin,
-            liquid,
-            transactions,
+            activity,
             sync: self.sync.lock().unwrap().clone(),
             chains: self.chains.lock().unwrap().clone(),
             generation,
@@ -383,10 +454,22 @@ impl<P: Platform + Clone> WalletSession<P> {
     }
     pub async fn holdings(&self) -> Result<HoldingsSnapshotDto> {
         let generation = self.authorize()?;
-        let app = self.inner.lock().await.app.clone().ok_or_else(|| DesktopError::new("locked", "Desbloqueie a carteira."))?;
+        let app = self
+            .inner
+            .lock()
+            .await
+            .app
+            .clone()
+            .ok_or_else(|| DesktopError::new("locked", "Desbloqueie a carteira."))?;
         let holdings = app.wallet_holdings().await?;
-        if generation != self.authorize()? {return Err(DesktopError::new("locked", "Sessão alterada."));}
-        Ok(HoldingsSnapshotDto {generation, holdings, chains:self.chains.lock().unwrap().clone()})
+        if generation != self.authorize()? {
+            return Err(DesktopError::new("locked", "Sessão alterada."));
+        }
+        Ok(HoldingsSnapshotDto {
+            generation,
+            holdings,
+            chains: self.chains.lock().unwrap().clone(),
+        })
     }
     pub fn approved_assets(&self) -> Result<Vec<AssetMetadataDto>> {
         self.authorize()?;
@@ -422,9 +505,10 @@ impl<P: Platform + Clone> WalletSession<P> {
         }
         Ok(address)
     }
-    pub async fn review(&self, request: ReviewRequestDto) -> Result<SendReviewDto> {
+    pub async fn review(&self, mut request: ReviewRequestDto) -> Result<SendReviewDto> {
         let generation = self.authorize()?;
-        if !rules::valid_amount(request.amount_sat)
+        if !mooze_app::assets::testnet_asset_metadata(&request.asset).approved
+            || matches!(request.amount, SendAmountDto::Exact(_)) && request.exact_amount().is_none()
             || !rules::valid_rate(request.fee_rate_sat_per_vbyte)
             || request.destination.trim().is_empty()
         {
@@ -445,19 +529,29 @@ impl<P: Platform + Clone> WalletSession<P> {
             .app
             .as_ref()
             .ok_or_else(|| DesktopError::new("locked", "Desbloqueie a carteira."))?;
+        let parsed = self.parse_payment(request.destination.clone())?;
+        if parsed.chain != request.chain()
+            || parsed.asset.as_ref().is_some_and(|a| *a != request.asset)
+        {
+            return Err(DesktopError::new(
+                "invalid_input",
+                "O pedido não corresponde ao ativo selecionado.",
+            ));
+        }
+        request.destination = parsed.address;
         let dto = send_request(&request);
-        let fee = match request.chain {
-            WalletChain::Bitcoin => app.bitcoin_estimate_fee(dto).await?,
-            WalletChain::Liquid => app.liquid_estimate_fee(dto).await?,
-        };
+        let is_max = matches!(request.amount, SendAmountDto::Max);
+        let (amount, fee) = app.prepare_desktop_send(request.asset.chain, dto).await?;
+        request.amount = SendAmountDto::Exact(amount.to_string());
         if generation != self.authorize()? {
             return Err(DesktopError::new("locked", "Sessão alterada."));
         }
-        inner.reviews.insert(
+        inner.reviews.insert_resolved(
             request,
-            fee.absolute_fee_sat,
+            fee,
             generation,
             self.platform.clock().now_ms(),
+            is_max,
         )
     }
     pub async fn submission(&self) -> Result<Option<SubmissionDto>> {
@@ -511,8 +605,11 @@ impl<P: Platform + Clone> WalletSession<P> {
                 .clone()
                 .ok_or_else(|| DesktopError::new("locked", "Desbloqueie a carteira."))?;
             let pending = SubmissionDto {
+                version: 2,
+                request: Some(review.request.clone()),
+                debits: Some(review.debits.clone()),
                 phase: "submitting".into(),
-                chain: review.request.chain,
+                chain: review.request.chain(),
                 tx_id: None,
             };
             self.platform
@@ -523,24 +620,28 @@ impl<P: Platform + Clone> WalletSession<P> {
             (app, review, generation)
         };
         self.emit_submission();
-        let request = send_request(&review.request);
+        let mut request = send_request(&review.request);
+        request.drain = review.is_max && matches!(review.request.chain(), WalletChain::Liquid);
         let authorize = || {
-            if self.unlocked.load(Ordering::SeqCst)
-                && self.generation.load(Ordering::SeqCst) == generation
-            {
+            if self.authorize().ok() == Some(generation) {
                 Ok(())
             } else {
                 Err(mooze_core::Error::Session("locked".into()))
             }
         };
-        let result = match review.request.chain {
+        let result = match review.request.chain() {
             WalletChain::Bitcoin => {
                 app.bitcoin_send_authorized(request, review.fee_sat, authorize)
                     .await
             }
             WalletChain::Liquid => {
-                app.liquid_send_authorized(request, review.fee_sat, authorize)
-                    .await
+                app.liquid_send_authorized_exact(
+                    request,
+                    review.fee_sat,
+                    review.request.exact_amount().expect("resolved review"),
+                    authorize,
+                )
+                .await
             }
         }
         .map_err(DesktopError::from);
@@ -555,8 +656,11 @@ impl<P: Platform + Clone> WalletSession<P> {
                     .put(
                         SUBMISSION,
                         serde_json::to_vec(&SubmissionDto {
+                            version: 2,
+                            request: Some(review.request.clone()),
+                            debits: Some(review.debits.clone()),
                             phase: "sent".into(),
-                            chain: review.request.chain,
+                            chain: review.request.chain(),
                             tx_id: Some(sent.tx_id.clone()),
                         })
                         .unwrap(),
@@ -585,13 +689,13 @@ impl<P: Platform + Clone> WalletSession<P> {
 fn send_request(r: &ReviewRequestDto) -> SendRequestDto {
     SendRequestDto {
         destination: r.destination.trim().into(),
-        amount_sat: r.amount_sat,
-        asset_id: None,
+        amount_sat: r.exact_amount().unwrap_or(0),
+        asset_id: r.asset.asset_id.clone(),
         fee_priority: FeePriorityDto::Medium,
         label: None,
         subtract_fee_from_amount: false,
         fee_rate_override_sat_per_vbyte: Some(r.fee_rate_sat_per_vbyte),
-        drain: false,
+        drain: matches!(r.amount, SendAmountDto::Max),
     }
 }
 fn check_safe(value: &serde_json::Value) -> Result<()> {

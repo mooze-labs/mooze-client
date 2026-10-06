@@ -3,6 +3,28 @@ import { listen } from "@tauri-apps/api/event";
 import type { DesktopClient, DesktopEvent } from "./client";
 export const inDesktop = isTauri;
 export const client: DesktopClient = {
+  removeWallet: (pin) => invoke("remove_wallet", { pin }),
+  diagnostics: () => invoke("diagnostics"),
+  exportDiagnostics: () => invoke("export_diagnostics"),
+  testNode: (chain, endpoint) => invoke("test_node", { chain, endpoint }),
+  saveNode: (chain, endpoint, publicFallback) =>
+    invoke("save_node", { chain, endpoint, publicFallback }),
+  saveDisplay: (locale, bitcoinUnit, privacy) =>
+    invoke("save_display", { locale, bitcoinUnit, privacy }),
+  parsePaymentRequest: (input) => invoke("parse_payment_request", { input }),
+  receiveRequest: (asset, amountUnits, description) =>
+    invoke("receive_request", { asset, amountUnits, description }),
+  feeOptions: (asset) => invoke("fee_options", { asset }),
+  beginSetup: (extended) => invoke("begin_setup", { extended }),
+  cancelSetup: (setupId) => invoke("cancel_setup", { setupId }),
+  completeSetup: (setupId, answers, pin) =>
+    invoke("complete_setup", { setupId, answers, pin }),
+  revealRecoveryPhrase: (pin) => invoke("reveal_recovery_phrase", { pin }),
+  changePin: (currentPin, newPin) =>
+    invoke("change_pin", { currentPin, newPin }),
+  recordActivity: (generation) => invoke("record_activity", { generation }),
+  settings: () => invoke("settings"),
+  setLockMinutes: (minutes) => invoke("set_lock_minutes", { minutes }),
   holdings: () => invoke("holdings"),
   approvedAssets: () => invoke("approved_assets"),
   hostInfo: () => invoke("host_info"),

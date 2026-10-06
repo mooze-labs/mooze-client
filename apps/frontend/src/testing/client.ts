@@ -2,8 +2,37 @@ import { vi } from "vitest";
 import type { DesktopClient } from "../core/client";
 export function fakeClient(): DesktopClient {
   return {
+    removeWallet: vi.fn(),
+    diagnostics: vi.fn(),
+    exportDiagnostics: vi.fn(),
+    testNode: vi.fn(),
+    saveNode: vi.fn(),
+    saveDisplay: vi.fn(),
+    parsePaymentRequest: vi.fn(),
+    receiveRequest: vi.fn(),
+    feeOptions: vi.fn(async () => ({
+      kind: "unavailable",
+      source: "node",
+      observed_at_ms: 0,
+      rates: [],
+    })),
+    beginSetup: vi.fn(),
+    cancelSetup: vi.fn(async () => {}),
+    completeSetup: vi.fn(),
+    revealRecoveryPhrase: vi.fn(),
+    changePin: vi.fn(),
+    recordActivity: vi.fn(async () => {}),
+    settings: vi.fn(),
+    setLockMinutes: vi.fn(),
     holdings: vi.fn(),
-    approvedAssets: vi.fn(),
+    approvedAssets: vi.fn(async () => [
+      {
+        key: { chain: "Bitcoin" as const, asset_id: null },
+        ticker: "BTC",
+        precision: 8,
+        approved: true,
+      },
+    ]),
     hostInfo: vi.fn(),
     sessionStatus: vi.fn(),
     importWallet: vi.fn(),

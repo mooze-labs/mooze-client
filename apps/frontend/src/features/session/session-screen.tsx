@@ -1,7 +1,10 @@
+import { Textarea } from "../../ui/textarea";
+import { PinField } from "../../ui/pin-field";
+import { useT } from "../../i18n/messages";
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import type { DesktopClient, Session } from "../../core/client";
 import { errorText } from "../../core/client";
-import { Button, Field, ErrorNotice } from "../../ui";
+import { Button, ErrorNotice } from "../../ui";
 export function SessionScreen({
   client,
   session,
@@ -11,6 +14,7 @@ export function SessionScreen({
   session: Session;
   onSession: (s: Session) => void;
 }) {
+  const t = useT();
   const importing = session.status === "empty";
   const [phrase, setPhrase] = useState("");
   const [pin, setPin] = useState("");
@@ -33,11 +37,11 @@ export function SessionScreen({
     if (submitting.current || remaining > 0) return;
     setError("");
     if (!/^\d{6}$/.test(pin)) {
-      setError("Use um PIN de 6 dígitos.");
+      setError(t("Use um PIN de 6 dígitos."));
       return;
     }
     if (importing && pin !== confirm) {
-      setError("Os PINs não coincidem.");
+      setError(t("Os PINs não coincidem."));
       return;
     }
     submitting.current = true;
@@ -64,27 +68,28 @@ export function SessionScreen({
   return (
     <main className="onboarding">
       <div className="wordmark">
-        mooze<span>●</span>
+        {t("mooze")}
+        <span>●</span>
       </div>
-      <span className="network-badge">TESTNET · BTC + LIQUID</span>
-      <section className="card import-card">
-        <p className="eyebrow">SUAS CHAVES, NESTE COMPUTADOR</p>
+      <span className="network-badge">{t("TESTNET · BTC + LIQUID")}</span>
+      <section className={`card import-card ${importing ? "" : "unlock-card"}`}>
+        <p className="eyebrow">{t("SUAS CHAVES, NESTE COMPUTADOR")}</p>
         <h1>
           {importing
-            ? "Importar carteira de teste"
-            : "Sua carteira está bloqueada"}
+            ? t("Importar carteira de teste")
+            : t("Sua carteira está bloqueada")}
         </h1>
         <p className="muted">
           {importing
-            ? "Use uma frase de recuperação dedicada à rede de testes."
-            : "Digite seu PIN para acessar a carteira."}
+            ? t("Use uma frase de recuperação dedicada à rede de testes.")
+            : t("Digite seu PIN para acessar a carteira.")}
         </p>
         <form onSubmit={submit}>
           {importing && (
             <label className="field">
-              <span>Frase de recuperação</span>
-              <textarea
-                aria-label="Frase de recuperação"
+              <span>{t("Frase de recuperação")}</span>
+              <Textarea
+                aria-label={t("Frase de recuperação")}
                 autoComplete="off"
                 spellCheck={false}
                 value={phrase}
@@ -92,35 +97,34 @@ export function SessionScreen({
                 required
                 rows={4}
               />
-              <small>Palavras BIP39 em inglês. Sem senha adicional.</small>
+              <small>
+                {t("Palavras BIP39 em inglês. Sem senha adicional.")}
+              </small>
             </label>
           )}
-          <Field
-            label={importing ? "Criar PIN" : "PIN"}
-            type="password"
-            inputMode="numeric"
-            maxLength={6}
-            autoComplete="off"
+          <PinField
+            label={importing ? t("Criar PIN") : "PIN"}
             value={pin}
-            onChange={(e) => setPin(e.target.value)}
+            onValueChange={setPin}
             required
+            disabled={busy}
+            invalid={!!error}
           />
           {importing && (
-            <Field
-              label="Confirmar PIN"
-              type="password"
-              inputMode="numeric"
-              maxLength={6}
-              autoComplete="off"
+            <PinField
+              label={t("Confirmar PIN")}
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onValueChange={setConfirm}
               required
+              disabled={busy}
+              invalid={!!error}
             />
           )}
           <ErrorNotice>{error}</ErrorNotice>
           {remaining > 0 && (
             <p role="status">
-              Tente novamente em {Math.ceil(remaining / 1000)} segundos.
+              {t("Tente novamente em")} {Math.ceil(remaining / 1000)}{" "}
+              {t("segundos.")}
             </p>
           )}
           <Button
@@ -129,14 +133,14 @@ export function SessionScreen({
             type="submit"
           >
             {busy
-              ? "Abrindo carteira…"
+              ? t("Abrindo carteira…")
               : importing
-                ? "Importar e continuar"
-                : "Desbloquear"}
+                ? t("Importar e continuar")
+                : t("Desbloquear")}
           </Button>
         </form>
         <p className="small muted">
-          Os ativos de teste não têm valor monetário.
+          {t("Os ativos de teste não têm valor monetário.")}
         </p>
       </section>
     </main>

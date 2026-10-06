@@ -44,6 +44,15 @@ fn svc(e: impl std::fmt::Display) -> Error {
     Error::service(CHAIN, e)
 }
 
+fn send_build_error(error: lwk_wollet::Error, policy: &str) -> Error {
+    match error {
+        lwk_wollet::Error::InsufficientFunds { missing_sats, asset_id } if asset_id.to_string() == policy => {
+            Error::InsufficientFeeAsset { missing_sat: missing_sats }
+        }
+        other => svc(format!("lwk buildAssetTx failed: {other}")),
+    }
+}
+
 /// Message when a drain amount cannot be computed.
 pub const DRAIN_AMOUNT_ERROR: &str = "não foi possível calcular o valor do envio total";
 
@@ -183,6 +192,10 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         liquid_policy_asset(self.network)
     }
 
+    pub fn activity_views(&self) -> Result<(Vec<LwkTxView>, u32)> {
+        let txs = self.wollet.transactions().map_err(|e| svc(format!("activity unavailable: {e}")))?;
+        Ok((txs.iter().map(LwkTxView::from_wallet_tx).collect(), self.wollet.tip().height()))
+    }
     /// Cached transaction list, newest first.
     pub fn list_transactions(&self) -> &[Transaction] {
         &self.last_list
@@ -581,22 +594,22 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         if amount == 0 {
             return Err(svc("amount must be positive"));
         }
-        let built = (|| -> std::result::Result<(PartiallySignedTransaction, u64), String> {
-            let address = Address::from_str(&destination).map_err(|e| e.to_string())?;
-            let asset = AssetId::from_str(&asset_id).map_err(|_| "Invalid asset".to_owned())?;
+        let built = (|| -> std::result::Result<(PartiallySignedTransaction, u64), Error> {
+            let address = Address::from_str(&destination).map_err(svc)?;
+            let asset = AssetId::from_str(&asset_id).map_err(|_| svc("Invalid asset"))?;
             let pset = self
                 .wollet
                 .tx_builder()
                 .add_recipient(&address, amount, asset)
-                .map_err(|e| describe(&e))?
+                .map_err(|e| send_build_error(e, policy))?
                 .enable_ct_discount()
                 .fee_rate(Some(fee_rate as f32))
                 .finish()
-                .map_err(|e| describe(&e))?;
-            let fee = self.pset_fee(&pset).map_err(|e| describe(&e))?;
+                .map_err(|e| send_build_error(e, policy))?;
+            let fee = self.pset_fee(&pset).map_err(svc)?;
             Ok((pset, fee))
         })();
-        let (pset, fee) = built.map_err(|e| svc(format!("lwk buildAssetTx failed: {e}")))?;
+        let (pset, fee) = built?;
         self.flush().await?;
         Ok(BuiltLiquidSend {
             pset: pset.to_string(),
@@ -660,7 +673,7 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     /// Builds, signs and broadcasts a send. The caller passes the mnemonic
     /// per call; the wallet never stores it.
     pub async fn send_onchain(&mut self, request: &SendRequest, mnemonic: &str) -> Result<BroadcastResult> {
-        self.send_with_bound(request, mnemonic, None, || Ok(())).await
+        self.send_with_bound(request, mnemonic, None, None, || Ok(())).await
     }
 
     pub async fn send_onchain_bounded(
@@ -680,7 +693,19 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         max_fee_sat: u64,
         authorize: impl FnOnce() -> Result<()> + Send,
     ) -> Result<BroadcastResult> {
-        self.send_with_bound(request, mnemonic, Some(max_fee_sat), authorize).await
+        self.send_with_bound(request, mnemonic, Some(max_fee_sat), None, authorize).await
+    }
+
+    /// Desktop Max reviews bind both the resolved recipient amount and fee.
+    pub async fn send_onchain_authorized_exact(
+        &mut self,
+        request: &SendRequest,
+        mnemonic: &str,
+        max_fee_sat: u64,
+        expected_amount: u64,
+        authorize: impl FnOnce() -> Result<()> + Send,
+    ) -> Result<BroadcastResult> {
+        self.send_with_bound(request, mnemonic, Some(max_fee_sat), Some(expected_amount), authorize).await
     }
 
     async fn send_with_bound(
@@ -688,9 +713,15 @@ impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
         request: &SendRequest,
         mnemonic: &str,
         max_fee_sat: Option<u64>,
+        expected_amount: Option<u64>,
         authorize: impl FnOnce() -> Result<()> + Send,
     ) -> Result<BroadcastResult> {
         let send = self.build_send(request).await?;
+        if let Some(expected_sat) = expected_amount {
+            if send.amount_sat != expected_sat {
+                return Err(Error::AmountChanged { expected_sat, actual_sat: send.amount_sat });
+            }
+        }
         if let Some(max_sat) = max_fee_sat {
             if send.fee_sat > max_sat {
                 return Err(Error::FeeLimitExceeded { actual_sat: send.fee_sat, max_sat });
@@ -783,6 +814,13 @@ mod tests {
     }
 
     #[test]
+    fn issued_asset_fee_shortfall_is_structured() {
+        let policy = liquid_policy_asset(AppNetwork::Testnet);
+        let error = lwk_wollet::Error::InsufficientFunds { missing_sats: 123, asset_id: policy.parse().unwrap() };
+        assert!(matches!(send_build_error(error, policy), Error::InsufficientFeeAsset { missing_sat: 123 }));
+    }
+
+    #[test]
     fn funded_testnet_build_preserves_policy_and_enforces_actual_fee() {
         use lwk_wollet::{
             elements::{
@@ -863,6 +901,26 @@ mod tests {
                 block_on(w.send_onchain_authorized(&request, ABANDON, bound, || Err(Error::Session("revoked".into()))));
             assert!(matches!(result, Err(Error::Session(_))), "{result:?}");
         }
+        let mut max_request = request.clone();
+        max_request.drain = true;
+        let maximum = block_on(w.build_send(&max_request)).unwrap();
+        max_request.amount_sat = maximum.amount_sat;
+        let resolved = block_on(w.send_onchain_authorized_exact(
+            &max_request,
+            ABANDON,
+            maximum.fee_sat,
+            maximum.amount_sat,
+            || Err(Error::Session("revoked".into())),
+        ));
+        assert!(matches!(resolved, Err(Error::Session(_))), "{resolved:?}");
+        let changed = block_on(w.send_onchain_authorized_exact(
+            &max_request,
+            ABANDON,
+            maximum.fee_sat,
+            maximum.amount_sat - 1,
+            || Ok(()),
+        ));
+        assert!(matches!(changed, Err(Error::AmountChanged { .. })), "{changed:?}");
         let bounded = block_on(w.send_onchain_bounded(&request, ABANDON, built.fee_sat + 100));
         assert!(matches!(bounded, Err(Error::SubmissionUnknown { .. })));
         let legacy = block_on(w.send_onchain(&request, ABANDON));

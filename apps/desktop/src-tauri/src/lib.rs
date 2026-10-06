@@ -1,4 +1,5 @@
 mod commands;
+mod diagnostics;
 pub mod dto;
 pub mod error;
 pub mod platform;
@@ -14,6 +15,7 @@ pub fn run() {
     runtime::install_crypto_provider();
     tauri::async_runtime::set(runtime::runtime().handle().clone());
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.show();
@@ -21,16 +23,53 @@ pub fn run() {
             }
         }))
         .setup(|app| {
-            let platform = NativePlatform::open(app.path().app_data_dir()?.join("testnet"))?;
+            let root = app.path().app_data_dir()?;
+            #[cfg(debug_assertions)]
+            let profile = std::env::var("MOOZE_TESTNET_PROFILE").ok();
+            #[cfg(debug_assertions)]
+            let platform = if let Some(profile) = profile.as_deref() {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_title("Mooze Testnet — isolated validation");
+                }
+                NativePlatform::open_debug_profile(root, profile)?
+            } else {
+                NativePlatform::open(root.join("testnet"))?
+            };
+            #[cfg(not(debug_assertions))]
+            let platform = NativePlatform::open(root.join("testnet"))?;
             let state = WalletSession::new(platform, BackendDto::Electrum);
             let handle = app.handle().clone();
             state.set_emitter(std::sync::Arc::new(move |event| {
                 let _ = handle.emit_to("main", "mooze://event", event);
             }));
             app.manage(state);
+            let tick = app.handle().clone();
+            runtime::runtime().spawn(async move {
+                loop {
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    tick.state::<WalletSession<NativePlatform>>().check_expiry();
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::record_activity,
+            commands::settings,
+            commands::remove_wallet,
+            commands::diagnostics,
+            commands::export_diagnostics,
+            commands::test_node,
+            commands::save_node,
+            commands::save_display,
+            commands::set_lock_minutes,
+            commands::begin_setup,
+            commands::cancel_setup,
+            commands::complete_setup,
+            commands::reveal_recovery_phrase,
+            commands::change_pin,
+            commands::parse_payment_request,
+            commands::receive_request,
+            commands::fee_options,
             commands::host_info,
             commands::holdings,
             commands::approved_assets,
@@ -46,12 +85,11 @@ pub fn run() {
             commands::acknowledge_submission
         ])
         .on_window_event(|window, event| {
-            if matches!(event, tauri::WindowEvent::Focused(false)) {
-                let handle = window.app_handle().clone();
-                runtime::runtime().spawn(async move {
-                    let state = handle.state::<WalletSession<NativePlatform>>();
-                    let _ = state.lock().await;
-                });
+            if let tauri::WindowEvent::Focused(focused) = event {
+                window
+                    .app_handle()
+                    .state::<WalletSession<NativePlatform>>()
+                    .set_foreground(*focused);
             }
         })
         .build(tauri::generate_context!())
@@ -63,7 +101,9 @@ pub fn run() {
             tauri::RunEvent::Resumed => {
                 let handle = app.clone();
                 runtime::runtime().spawn(async move {
-                    let _ = handle.state::<WalletSession<NativePlatform>>().lock().await;
+                    handle
+                        .state::<WalletSession<NativePlatform>>()
+                        .check_expiry();
                 });
             }
             _ => {}

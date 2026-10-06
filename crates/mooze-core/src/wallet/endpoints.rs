@@ -90,6 +90,22 @@ impl EndpointResolver {
         self
     }
 
+    /// A custom node is pinned unless the host explicitly enables public fallback.
+    pub fn with_custom_node_fallback(mut self, chain: ChainId, url: &str, fallback: bool) -> Self {
+        if !fallback {
+            return self.with_custom_node(chain, url);
+        }
+        let url = url.trim();
+        if !url.is_empty() {
+            let defaults = self.endpoints.entry(chain).or_default();
+            defaults.retain(|entry| entry != url);
+            defaults.insert(0, url.to_owned());
+            self.cursor.remove(&chain);
+            self.failures.remove(&chain);
+        }
+        self
+    }
+
     /// Configured list for a chain.
     pub fn endpoints(&self, chain: ChainId) -> &[String] {
         self.endpoints.get(&chain).map(Vec::as_slice).unwrap_or(&[])
@@ -194,5 +210,28 @@ mod backend_tests {
     fn blank_custom_node_keeps_defaults() {
         let r = EndpointResolver::with_electrum_defaults(AppNetwork::Mainnet).with_custom_node(ChainId::Liquid, "  ");
         assert_eq!(r.endpoints(ChainId::Liquid).len(), 4);
+    }
+}
+
+#[cfg(test)]
+mod explicit_fallback_tests {
+    use super::*;
+    #[test]
+    fn custom_node_fallback_is_opt_in() {
+        let only = EndpointResolver::with_electrum_defaults(AppNetwork::Testnet).with_custom_node_fallback(
+            ChainId::Bitcoin,
+            "ssl://mine:50002",
+            false,
+        );
+        assert_eq!(only.endpoints(ChainId::Bitcoin), &["ssl://mine:50002"]);
+        let fallback = EndpointResolver::with_electrum_defaults(AppNetwork::Testnet).with_custom_node_fallback(
+            ChainId::Bitcoin,
+            "ssl://mine:50002",
+            true,
+        );
+        assert_eq!(
+            fallback.endpoints(ChainId::Bitcoin),
+            &["ssl://mine:50002", "ssl://electrum.blockstream.info:60002"]
+        );
     }
 }

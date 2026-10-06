@@ -1,3 +1,4 @@
+import {PreferencesProvider} from "./i18n/preferences";
 import { client, inDesktop } from "./core/tauri";
 import { WalletClientProvider } from "./app/client-context";
 import { SessionProvider } from "./app/session-provider";
@@ -18,7 +19,7 @@ export function App() {
   return (
     <WalletClientProvider client={client}>
       <SessionProvider>
-        <WalletShell />
+        <PreferencesProvider><WalletShell /></PreferencesProvider>
       </SessionProvider>
     </WalletClientProvider>
   );

@@ -1,3 +1,4 @@
+import { activityEvents, isWalletActivity } from "./activity";
 import {
   createContext,
   useContext,
@@ -68,6 +69,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       unlisten?.();
     };
   }, [client, qc, update]);
+  useEffect(() => {
+    if (session?.status !== "unlocked") return;
+    const record = (event: Event) => {
+      if (isWalletActivity(event, document.hasFocus()))
+        void client.recordActivity(session.generation).catch(() => {});
+    };
+    for (const type of activityEvents)
+      window.addEventListener(type, record, { passive: true });
+    return () => {
+      for (const type of activityEvents)
+        window.removeEventListener(type, record);
+    };
+  }, [client, session?.status, session?.generation]);
   return (
     <Context.Provider
       value={{ session, current, startupError, update, setStartupError }}

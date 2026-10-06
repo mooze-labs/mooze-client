@@ -17,6 +17,7 @@ tauri-build = { version = "=2.7.1", features = [] }
 [dependencies]
 tauri = { version = "=2.12.1", features = [] }
 tauri-plugin-single-instance = "=2.4.5"
+tauri-plugin-dialog = "=2.8.1"
 mooze_app = { path = "../../../crates/mooze-app", features = ["electrum", "http-reqwest"] }
 mooze-core = { path = "../../../crates/mooze-core", features = ["electrum", "http-reqwest"] }
 serde = { version = "=1.0.229", features = ["derive"] }

@@ -23,3 +23,16 @@ export function formatBaseUnits(value: bigint, precision = 8): string {
     (precision ? raw.slice(0, -precision) + "," + raw.slice(-precision) : raw)
   );
 }
+
+/** Exact supported-asset input; comma or dot decimal, never grouping. */
+export function parseAssetAmount(text: string): Result<bigint, AmountError> {
+  const value = text.trim();
+  if (!/^\d+(?:[.,]\d+)?$/.test(value))
+    return { ok: false, error: "invalid_format" };
+  const [whole, fraction = ""] = value.replace(",", ".").split(".");
+  if (fraction.length > 8) return { ok: false, error: "precision" };
+  const units = BigInt(whole) * 100_000_000n + BigInt(fraction.padEnd(8, "0"));
+  if (units <= 0n) return { ok: false, error: "nonpositive" };
+  if (units > 18446744073709551615n) return { ok: false, error: "overflow" };
+  return { ok: true, value: units };
+}

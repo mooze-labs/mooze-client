@@ -1,6 +1,6 @@
 # Design System — Mooze desktop and web
 
-Date: 2026-10-05. Status: approved. Scope: `apps/frontend` (React), shipped first in the Tauri desktop app (`apps/desktop`), then in the browser. The Flutter mobile app keeps its own theme; this system shares its brand (navy surface, pink action) and departs where a wide screen with a keyboard and a mouse asks for it.
+Date: 2026-10-05. Status: approved. Scope: `apps/frontend` (React), shipped first in the Tauri desktop app (`apps/desktop`), then in the browser. The Flutter mobile app keeps its own theme; this system shares its brand (navy surface, pink action) and departs where a wide screen and pointer-friendly controls ask for it.
 
 Preview with real fonts and a rendered home screen: `~/.gstack/projects/mooze-labs-mooze-client/designs/design-system-20261005/preview.html` (user data, not in the repository).
 
@@ -23,7 +23,7 @@ Preview with real fonts and a rendered home screen: `~/.gstack/projects/mooze-la
 - **Data/Tables:** Geist with tabular figures.
 - **Code, addresses, txids, PSETs:** JetBrains Mono 400/500 at 13px. Slashed zero; 0/O and 1/l unmistakable.
 - **Retired:** Inter (mobile legacy). Never use system-ui as the primary face.
-- **Loading:** self-hosted woff2 in `apps/frontend/public/fonts` (desktop and web must work offline and under a strict CSP). Google Fonts is for previews only.
+- **Loading:** self-hosted woff2 bundled from pinned Fontsource packages (desktop and web must work offline and under a strict CSP). Google Fonts is for previews only.
 - **Scale (px / line-height):**
   - total: 40 / 1.05, 600
   - page title: 28 / 1.15, 600
@@ -51,11 +51,11 @@ Preview with real fonts and a rendered home screen: `~/.gstack/projects/mooze-la
 
 ## Layout
 - **Approach:** grid-disciplined. Sidebar plus a 12-column content grid. Nothing centered.
-- **Shell:** sidebar 224px with three groups: Início, Ativos, Histórico; Operar (PIX, Receber, Enviar, Trocar, Peg); Explorador, Ajustes. Active item carries a 2px pink left rule on surface 2. Sidebar footer: Liquid and Bitcoin sync state, "chaves neste computador", lock countdown. Top bar 48px: page title, data freshness, BTC and USDT prices, privacy toggle. Command palette (Cmd/Ctrl+K) as a shortcut to everything, never the only door. The browser build maps shortcuts that collide with the browser to alternatives.
-- **Home:** patrimony card (2/3 width): total, 30-day delta, verb buttons with key hints (P, R, E, T), area chart with range selector. Allocation card (1/3): segmented bar, legend, pegs in progress. Assets table (2/3): asset dot, 30-day sparkline, quantity, price, value. Recent activity card (1/3).
+- **Shell:** sidebar 224px with three groups: Início, Ativos, Histórico; Operar (PIX, Receber, Enviar, Trocar, Peg); Explorador, Ajustes. Active item carries a 2px pink left rule on surface 2. Sidebar footer: Liquid and Bitcoin sync state, "chaves neste computador", lock countdown. Top bar 48px: page title, data freshness, BTC and USDT prices, privacy toggle. Visible navigation and labeled, pointer-friendly controls are the primary interaction. No command palette or advertised keyboard shortcuts in the initial design. Preserve standard keyboard accessibility: logical focus order, visible focus rings, and keyboard-operable controls.
+- **Home:** patrimony card (2/3 width): total, 30-day delta, labeled action buttons (PIX, Receber, Enviar, Trocar), without shortcut chips, area chart with range selector. Allocation card (1/3): segmented bar, legend, pegs in progress. Assets table (2/3): asset dot, 30-day sparkline, quantity, price, value. Recent activity card (1/3).
 - **Grid:** 12 columns, 20px gap, 24px gutter. Breakpoints: 1440 baseline, 1180 drops to 2 content columns, 1024 minimum for desktop, below 860 the sidebar collapses to icons (web only; desktop enforces a minimum window of 1024×700).
 - **Max content width:** 1480px.
-- **Border radius:** sm 4px (keys, chips inside tables), md 8px (buttons, inputs, nav items), lg 12px (cards, dialogs), full 9999px (range pills, allocation bar).
+- **Border radius:** sm 4px (chips inside tables), md 8px (buttons, inputs, nav items), lg 12px (cards, dialogs), full 9999px (range pills, allocation bar).
 - **Charts:** patrimony area in pink `#EA1E63`, 2px line, fill from 22% to 0% opacity; gridlines `#2A2E3B`; axis labels faint 11px; sparklines 110×28 in the asset's color at 1.5px; allocation as a segmented bar with 2px gaps. No market green/red for the patrimony line.
 
 ## Motion
@@ -64,8 +64,14 @@ Preview with real fonts and a rendered home screen: `~/.gstack/projects/mooze-la
 - **Duration:** micro 100ms (hover, focus); short 160ms (entrances with 4px shift, chips); medium 240ms (chart interpolation on data change, sidebar collapse); long 400ms (page transitions, used rarely).
 - **Reduced motion:** honor `prefers-reduced-motion`; charts then snap.
 
+## Component Foundation
+- **Approach:** unstyled React primitives with Mooze-owned styling, shared by desktop and web. The visual rules in this document define the component appearance.
+- **Responsibilities:** primitives supply interaction behavior and accessibility foundations; Mooze components supply visual variants, states, and composition. Verify accessibility in the finished screens, including focus management, labels, and keyboard operation.
+- **Portability:** keep design tokens in CSS custom properties and encapsulate library-specific composition inside reusable Mooze UI components. Keep wallet business logic and Tauri integration outside these components.
+- **Library selection:** the desktop MVP uses Base UI for unstyled interaction primitives, wrapped in Mooze-owned components, alongside semantic native form controls. Styling remains project-owned.
+
 ## Components (first set)
-- **Buttons:** primary (pink fill, white text), secondary (surface 2 fill, hairline border), ghost (no border, muted text), danger (transparent, error text and 40% error border). Height 34px, radius 8px, 13px 500 weight. Key hint: 11px mono chip inside the button.
+- **Buttons:** primary (pink fill, white text), secondary (surface 2 fill, hairline border), ghost (no border, muted text), danger (transparent, error text and 40% error border). Height 34px, radius 8px, 13px 500 weight. Use clear action labels and optional icons; no keyboard shortcut chips.
 - **Inputs:** 34px, surface 1 fill, hairline border, focus ring pink. Addresses and amounts in mono.
 - **Status:** 6px dot plus 12px text; success, warning, error, muted for pending.
 - **Alerts:** surface 1 card, 1px semantic border at 45% opacity, 13px title 600 and muted body.
@@ -79,3 +85,13 @@ Preview with real fonts and a rendered home screen: `~/.gstack/projects/mooze-la
 | 2026-10-05 | Instrument-panel dashboard approved | Charts carry hierarchy; sidebar navigation; Geist replaces the serif; privacy mode replaces the default veil. |
 | 2026-10-05 | Pink stays action and brand; assets get their own categorical palette | Pink would otherwise collide with data series; DePix gets the light-pink seat as the house asset. |
 | 2026-10-05 | Dark only at launch | Matches mobile; tokens stay theme-ready. |
+| 2026-10-06 | Remove keyboard-led presentation | Owner approved the initial mockup direction with visible, pointer-friendly actions; remove shortcut chips and the command palette while preserving keyboard accessibility. |
+| 2026-10-06 | Unstyled React components with Mooze styling | Preserve the approved visual identity across desktop and web while reusing interaction primitives and keeping styling under project control. Specific library selection remains open. |
+
+## Quiet Navy everyday wallet — approved 2026-10-06
+
+For the current desktop testnet implementation, the approved everyday-wallet direction below supersedes the instrument-panel shell, chart-led hierarchy and component appearance above. Preserve those older sections as design history and broader product context, not current testnet acceptance requirements.
+
+Use continuous navy surfaces, Wallet/Activity/Settings navigation, compact exact balances, contextual Send/Receive actions, and technical details on demand. Background #10121A, raised surface #1B1E29, paper text #F0EDE9, secondary text #A1A5B4, accent #FF7AA7. The primary button uses #CF1855 (hover #DB1B5C) with white text for contrast. CSS custom properties in `apps/frontend/src/styles/tokens.css` are authoritative implementation tokens. Retain bundled Geist and JetBrains Mono; body 14px, secondary 12px minimum.
+
+Selectively owned shadcn/Base UI source supplies interaction primitives; Tailwind utilities have no global preflight. Business logic remains outside primitives. Balances and activity trim trailing zeros; reviews, receipts and details retain full approved precision. Dark only; no invented portfolio valuation or testnet price charts. Respect reduced motion, accessible focus and value masking.
