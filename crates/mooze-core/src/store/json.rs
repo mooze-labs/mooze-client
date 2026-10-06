@@ -31,10 +31,7 @@ pub async fn delete_key<K: KvStore>(kv: &K, key: &str) -> Result<()> {
 }
 
 /// Reads every value under `prefix`, in ascending key order.
-pub async fn list_json<K: KvStore, T: DeserializeOwned>(
-    kv: &K,
-    prefix: &str,
-) -> Result<Vec<(String, T)>> {
+pub async fn list_json<K: KvStore, T: DeserializeOwned>(kv: &K, prefix: &str) -> Result<Vec<(String, T)>> {
     let keys = kv.list_keys(prefix).await?;
     let mut out = Vec::with_capacity(keys.len());
     for key in keys {

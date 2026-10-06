@@ -31,15 +31,15 @@ pub enum TransactionSource {
     Bdk,
 }
 
-/// One wallet transaction. JSON field names match the Dart `toMap` keys,
-/// so records written by the Flutter app read back unchanged.
+/// One wallet transaction. JSON field names match the keys the Flutter app stores,
+/// so its records read back unchanged.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Transaction {
     pub id: String,
     pub chain: ChainId,
     pub direction: TransactionDirection,
     pub status: TransactionStatus,
-    /// Amount in base units. Signed to match the Dart `int`.
+    /// Amount in base units. Signed, as in the stored records.
     pub amount_sat: i64,
     pub fee_sat: i64,
     pub timestamp_ms: u64,
@@ -69,10 +69,8 @@ pub struct Transaction {
     pub breez_swap_id: Option<String>,
 }
 
-/// Unknown source names map to `None`, like the Dart `fromMap`.
-fn lenient_source<'de, D: serde::Deserializer<'de>>(
-    d: D,
-) -> Result<Option<TransactionSource>, D::Error> {
+/// Unknown source names map to `None`.
+fn lenient_source<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<TransactionSource>, D::Error> {
     let raw: Option<String> = Option::deserialize(d)?;
     Ok(raw.and_then(|s| serde_json::from_value(serde_json::Value::String(s)).ok()))
 }
@@ -122,7 +120,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reads_dart_map() {
+    fn reads_stored_json() {
         let json = r#"{"id":"ab","chain":"liquid","direction":"selfTransfer","status":"pending",
             "amount_sat":1000,"fee_sat":30,"timestamp_ms":1700000000000,"confirmations":0,
             "asset_id":null,"source":"unknown_backend"}"#;

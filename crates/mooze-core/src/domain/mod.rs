@@ -1,4 +1,4 @@
-//! Entities shared by every module. Port of `lib/domain/**`.
+//! Entities shared by every module.
 
 mod asset;
 mod balance;

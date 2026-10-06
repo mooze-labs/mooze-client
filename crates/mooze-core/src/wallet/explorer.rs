@@ -91,12 +91,10 @@ pub(crate) fn index_range(start: u32, count: u32) -> std::ops::Range<u32> {
 /// Lowercase hex of `bytes`.
 pub(crate) fn hex(bytes: &[u8]) -> String {
     use std::fmt::Write;
-    bytes
-        .iter()
-        .fold(String::with_capacity(bytes.len() * 2), |mut s, b| {
-            let _ = write!(s, "{b:02x}");
-            s
-        })
+    bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut s, b| {
+        let _ = write!(s, "{b:02x}");
+        s
+    })
 }
 
 #[cfg(test)]

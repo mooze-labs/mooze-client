@@ -1,8 +1,4 @@
 //! CPF/CNPJ validation and masks, and the PIX key heuristic.
-//!
-//! Port of `pix/shared/cpf/domain/cpf_validator.dart`,
-//! `cpf_cnpj_input_formatter.dart` and `PixKeyDetector` in
-//! `send_pix/presentation/widgets/clipboard_pix_key_suggestion.dart`.
 
 /// Why a CPF/CNPJ input is not valid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,7 +11,7 @@ pub enum CpfValidationError {
     Invalid,
 }
 
-/// Payer CPF is required before a PIX deposit (Dart `_kPixCpfRequired`).
+/// Payer CPF is required before a PIX deposit.
 pub const PIX_CPF_REQUIRED: bool = true;
 
 /// Keeps only ASCII digits.
@@ -25,10 +21,7 @@ pub fn strip(input: &str) -> String {
 
 /// Validates a CPF (11 digits) or CNPJ (14 digits), masked or raw.
 pub fn validate(input: &str) -> Option<CpfValidationError> {
-    let digits: Vec<u32> = strip(input)
-        .chars()
-        .map(|c| c.to_digit(10).unwrap_or(0))
-        .collect();
+    let digits: Vec<u32> = strip(input).chars().map(|c| c.to_digit(10).unwrap_or(0)).collect();
     match digits.len() {
         0 => Some(CpfValidationError::Empty),
         11 => (!is_valid_cpf(&digits)).then_some(CpfValidationError::Invalid),
@@ -59,11 +52,7 @@ fn is_valid_cpf(d: &[u32]) -> bool {
             weight -= 1;
         }
         let r = sum % 11;
-        if r < 2 {
-            0
-        } else {
-            11 - r
-        }
+        if r < 2 { 0 } else { 11 - r }
     };
     check(9) == d[9] && check(10) == d[10]
 }
@@ -77,11 +66,7 @@ fn is_valid_cnpj(d: &[u32]) -> bool {
         let weights = &BASE[BASE.len() - len..];
         let sum: u32 = d[..len].iter().zip(weights).map(|(x, w)| x * w).sum();
         let r = sum % 11;
-        if r < 2 {
-            0
-        } else {
-            11 - r
-        }
+        if r < 2 { 0 } else { 11 - r }
     };
     check(12) == d[12] && check(13) == d[13]
 }
@@ -135,21 +120,14 @@ pub fn looks_like_pix_key(value: &str) -> bool {
     if is_email(v) || is_evp(v) || is_phone(v) {
         return true;
     }
-    let digits: String = v
-        .chars()
-        .filter(|c| !matches!(c, '.' | '-' | '/' | '(' | ')' | '+') && !c.is_whitespace())
-        .collect();
-    !digits.is_empty()
-        && digits.chars().all(|c| c.is_ascii_digit())
-        && matches!(digits.len(), 11 | 13 | 14)
+    let digits: String = v.chars().filter(|c| !matches!(c, '.' | '-' | '/' | '(' | ')' | '+') && !c.is_whitespace()).collect();
+    !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) && matches!(digits.len(), 11 | 13 | 14)
 }
 
 /// `^[^\s@]+@[^\s@]+\.[^\s@]{2,}$`
 fn is_email(v: &str) -> bool {
     let ok = |c: char| c != '@' && !c.is_whitespace();
-    let Some((local, domain)) = v.split_once('@') else {
-        return false;
-    };
+    let Some((local, domain)) = v.split_once('@') else { return false };
     if local.is_empty() || !local.chars().all(ok) || !domain.chars().all(ok) {
         return false;
     }
@@ -161,10 +139,7 @@ fn is_email(v: &str) -> bool {
 fn is_evp(v: &str) -> bool {
     let parts: Vec<&str> = v.split('-').collect();
     parts.len() == 5
-        && parts
-            .iter()
-            .zip([8, 4, 4, 4, 12])
-            .all(|(p, n)| p.len() == n && p.chars().all(|c| c.is_ascii_hexdigit()))
+        && parts.iter().zip([8, 4, 4, 4, 12]).all(|(p, n)| p.len() == n && p.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
 #[derive(Clone, Copy)]
@@ -178,13 +153,7 @@ enum Tok {
 fn is_phone(v: &str) -> bool {
     use Tok::*;
     // (token, optional)
-    let mut pat: Vec<(Tok, bool)> = vec![
-        (Ch('+'), true),
-        (Ch('5'), false),
-        (Ch('5'), true),
-        (Space, true),
-        (Ch('('), true),
-    ];
+    let mut pat: Vec<(Tok, bool)> = vec![(Ch('+'), true), (Ch('5'), false), (Ch('5'), true), (Space, true), (Ch('('), true)];
     pat.extend([(Digit, false); 2]);
     pat.extend([(Ch(')'), true), (Space, true), (Ch('9'), true)]);
     pat.extend([(Digit, false); 4]);
@@ -195,9 +164,7 @@ fn is_phone(v: &str) -> bool {
 }
 
 fn match_tokens(pat: &[(Tok, bool)], s: &[char]) -> bool {
-    let Some(((tok, optional), rest)) = pat.split_first() else {
-        return s.is_empty();
-    };
+    let Some(((tok, optional), rest)) = pat.split_first() else { return s.is_empty() };
     let hit = s.first().is_some_and(|c| match tok {
         Tok::Ch(x) => c == x,
         Tok::Digit => c.is_ascii_digit(),
@@ -252,10 +219,7 @@ mod tests {
         assert_eq!(format_cpf_cnpj("52998224725"), "529.982.247-25");
         assert_eq!(format_cpf_cnpj("11222333000181"), "11.222.333/0001-81");
         assert_eq!(format_cpf_cnpj("5299"), "529.9");
-        assert_eq!(
-            mask_cpf_cnpj_input("11.222.333/0001-8199"),
-            "11.222.333/0001-81"
-        );
+        assert_eq!(mask_cpf_cnpj_input("11.222.333/0001-8199"), "11.222.333/0001-81");
     }
 
     #[test]
@@ -268,9 +232,7 @@ mod tests {
         assert!(looks_like_pix_key("00020126580014br.gov.bcb.pix0136..."));
         assert!(!looks_like_pix_key(""));
         assert!(!looks_like_pix_key("hello world"));
-        assert!(!looks_like_pix_key(
-            "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
-        ));
+        assert!(!looks_like_pix_key("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"));
         assert!(!looks_like_pix_key("1234"));
         assert!(!looks_like_pix_key("a@b.c"));
         assert!(!looks_like_pix_key(&"1".repeat(1025)));

@@ -1,5 +1,4 @@
-//! Peg quote and execution. Port of `domain/usecases/peg_orchestrator.dart`
-//! and `domain/repositories/peg_wallet.dart`.
+//! Peg quote and execution.
 
 use std::future::Future;
 
@@ -32,14 +31,10 @@ pub trait PegWallet: MaybeSend + MaybeSync {
     type Handle: MaybeSend + MaybeSync;
 
     /// Liquid address for peg-in proceeds (from LWK).
-    fn liquid_payout_address(
-        &self,
-    ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend;
+    fn liquid_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend;
 
     /// Bitcoin address for peg-out proceeds.
-    fn bitcoin_payout_address(
-        &self,
-    ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend;
+    fn bitcoin_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend;
 
     /// Sizes a Bitcoin funding transaction. Must refuse Liquid destinations.
     fn quote_bitcoin_funding(
@@ -75,18 +70,10 @@ pub trait PegWallet: MaybeSend + MaybeSync {
 /// Persistence of peg lifecycle steps.
 pub trait PegStore: MaybeSend + MaybeSync {
     /// Records a created order before any broadcast. Idempotent.
-    fn record_created(
-        &self,
-        order: &PegOrder,
-        amount_sat: u64,
-    ) -> impl Future<Output = Result<()>> + MaybeSend;
+    fn record_created(&self, order: &PegOrder, amount_sat: u64) -> impl Future<Output = Result<()>> + MaybeSend;
 
     /// Attaches the funding txid.
-    fn record_funded(
-        &self,
-        order_id: &str,
-        funding_tx_id: &str,
-    ) -> impl Future<Output = Result<()>> + MaybeSend;
+    fn record_funded(&self, order_id: &str, funding_tx_id: &str) -> impl Future<Output = Result<()>> + MaybeSend;
 
     /// Moves an order to a terminal phase.
     fn record_terminal(
@@ -139,11 +126,7 @@ pub struct PegOrchestrator<R, W, S> {
 impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
     /// New orchestrator.
     pub fn new(repository: R, wallet: W, store: S) -> Self {
-        Self {
-            repository,
-            wallet,
-            store,
-        }
+        Self { repository, wallet, store }
     }
 
     /// The repository.
@@ -153,7 +136,7 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
 
     /// Prices a peg without creating an order. The funding transaction is
     /// sized against the wallet's own address (BTC address for peg-in,
-    /// Liquid address for peg-out), like Dart.
+    /// Liquid address for peg-out).
     pub async fn quote(
         &mut self,
         direction: PegDirection,
@@ -164,26 +147,14 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
         let limits = self.repository.get_limits().await?;
         let minimum = limits.minimum_for(direction);
         if !drain && amount_sat < minimum {
-            return Err(PegError::BelowMinimum {
-                minimum_sat: minimum,
-                actual_sat: amount_sat,
-            });
+            return Err(PegError::BelowMinimum { minimum_sat: minimum, actual_sat: amount_sat });
         }
         let funding = if direction.is_peg_in() {
             let address = self.wallet.bitcoin_payout_address().await?;
-            self.wallet
-                .quote_bitcoin_funding(&address, amount_sat, fee_rate_sat_per_vbyte, drain)
-                .await?
+            self.wallet.quote_bitcoin_funding(&address, amount_sat, fee_rate_sat_per_vbyte, drain).await?
         } else {
             let address = self.wallet.liquid_payout_address().await?;
-            self.wallet
-                .quote_liquid_funding(
-                    &address,
-                    amount_sat,
-                    fee_rate_sat_per_vbyte.map(f64::from),
-                    drain,
-                )
-                .await?
+            self.wallet.quote_liquid_funding(&address, amount_sat, fee_rate_sat_per_vbyte.map(f64::from), drain).await?
         };
         Ok(PegQuote {
             direction,
@@ -201,9 +172,7 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
     ) -> std::result::Result<String, PegError> {
         if let Some(ext) = external.map(str::trim).filter(|e| !e.is_empty()) {
             if direction.is_peg_in() {
-                return Err(PegError::WalletFailure(
-                    "peg-in deve receber em endereço da própria carteira".into(),
-                ));
+                return Err(PegError::WalletFailure("peg-in deve receber em endereço da própria carteira".into()));
             }
             return Ok(ext.to_owned());
         }
@@ -223,34 +192,18 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
         drain: bool,
         external_payout_address: Option<&str>,
     ) -> std::result::Result<PegExecution, PegError> {
-        let payout = self
-            .resolve_payout_address(direction, external_payout_address)
-            .await?;
+        let payout = self.resolve_payout_address(direction, external_payout_address).await?;
         let order = self.repository.create_order(direction, &payout).await?;
 
         if let Err(e) = self.store.record_created(&order, amount_sat).await {
-            return Err(PegError::WalletFailure(format!(
-                "falha ao registrar operação: {e}"
-            )));
+            return Err(PegError::WalletFailure(format!("falha ao registrar operação: {e}")));
         }
 
         let quote = if order.direction.is_peg_in() {
-            self.wallet
-                .quote_bitcoin_funding(
-                    &order.deposit_address,
-                    amount_sat,
-                    fee_rate_sat_per_vbyte,
-                    drain,
-                )
-                .await
+            self.wallet.quote_bitcoin_funding(&order.deposit_address, amount_sat, fee_rate_sat_per_vbyte, drain).await
         } else {
             self.wallet
-                .quote_liquid_funding(
-                    &order.deposit_address,
-                    amount_sat,
-                    fee_rate_sat_per_vbyte.map(f64::from),
-                    drain,
-                )
+                .quote_liquid_funding(&order.deposit_address, amount_sat, fee_rate_sat_per_vbyte.map(f64::from), drain)
                 .await
         };
         let funding = match quote {
@@ -271,10 +224,7 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
             Ok(txid) => {
                 // Best-effort: a lost annotation must not turn a sent tx into a failure.
                 let _ = self.store.record_funded(&order.order_id, &txid).await;
-                Ok(PegExecution {
-                    order,
-                    funding_tx_id: txid,
-                })
+                Ok(PegExecution { order, funding_tx_id: txid })
             }
             Err(e) => {
                 self.mark_failed(&order.order_id, &e).await;
@@ -286,10 +236,7 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
     async fn mark_failed(&self, order_id: &str, error: &PegError) {
         let msg = error.message();
         // Best-effort: the row stays as created and is still recoverable.
-        let _ = self
-            .store
-            .record_terminal(order_id, PegPhase::Failed, None, Some(&msg))
-            .await;
+        let _ = self.store.record_terminal(order_id, PegPhase::Failed, None, Some(&msg)).await;
     }
 }
 
@@ -318,10 +265,7 @@ pub(crate) mod tests {
     }
 
     impl PegRepository for FakeRepo {
-        fn get_limits(
-            &mut self,
-        ) -> impl Future<Output = std::result::Result<PegServerLimits, PegError>> + MaybeSend
-        {
+        fn get_limits(&mut self) -> impl Future<Output = std::result::Result<PegServerLimits, PegError>> + MaybeSend {
             ready(Ok(LIMITS))
         }
         fn create_order(
@@ -329,18 +273,11 @@ pub(crate) mod tests {
             direction: PegDirection,
             payout_address: &str,
         ) -> impl Future<Output = std::result::Result<PegOrder, PegError>> + MaybeSend {
-            self.log
-                .lock()
-                .unwrap()
-                .push(format!("create:{payout_address}"));
+            self.log.lock().unwrap().push(format!("create:{payout_address}"));
             ready(Ok(PegOrder {
                 order_id: "order-1".into(),
                 direction,
-                deposit_address: if direction.is_peg_in() {
-                    "bc1-deposit".into()
-                } else {
-                    "lq1-deposit".into()
-                },
+                deposit_address: if direction.is_peg_in() { "bc1-deposit".into() } else { "lq1-deposit".into() },
                 payout_address: payout_address.to_owned(),
                 created_at_ms: 1,
                 expires_at_ms: None,
@@ -352,11 +289,7 @@ pub(crate) mod tests {
             _order_id: &str,
         ) -> impl Future<Output = std::result::Result<PegProgress, PegError>> + MaybeSend {
             self.log.lock().unwrap().push("status".into());
-            ready(
-                self.status
-                    .clone()
-                    .unwrap_or(Err(PegError::TransportFailure("none".into()))),
-            )
+            ready(self.status.clone().unwrap_or(Err(PegError::TransportFailure("none".into()))))
         }
     }
 
@@ -368,14 +301,10 @@ pub(crate) mod tests {
 
     impl PegWallet for FakeWallet {
         type Handle = String;
-        fn liquid_payout_address(
-            &self,
-        ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
+        fn liquid_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
             ready(Ok("lq1-own".into()))
         }
-        fn bitcoin_payout_address(
-            &self,
-        ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
+        fn bitcoin_payout_address(&self) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
             ready(Ok("bc1-own".into()))
         }
         fn quote_bitcoin_funding(
@@ -384,20 +313,12 @@ pub(crate) mod tests {
             amount_sat: u64,
             _fee: Option<u32>,
             _drain: bool,
-        ) -> impl Future<Output = std::result::Result<PegFundingQuote<String>, PegError>> + MaybeSend
-        {
-            self.log
-                .lock()
-                .unwrap()
-                .push(format!("quote-btc:{destination}"));
+        ) -> impl Future<Output = std::result::Result<PegFundingQuote<String>, PegError>> + MaybeSend {
+            self.log.lock().unwrap().push(format!("quote-btc:{destination}"));
             ready(if self.fail_quote {
                 Err(PegError::InsufficientFunds("no".into()))
             } else {
-                Ok(PegFundingQuote {
-                    handle: destination.to_owned(),
-                    amount_sat,
-                    network_fee_sat: 150,
-                })
+                Ok(PegFundingQuote { handle: destination.to_owned(), amount_sat, network_fee_sat: 150 })
             })
         }
         fn quote_liquid_funding(
@@ -406,51 +327,29 @@ pub(crate) mod tests {
             amount_sat: u64,
             _fee: Option<f64>,
             drain: bool,
-        ) -> impl Future<Output = std::result::Result<PegFundingQuote<String>, PegError>> + MaybeSend
-        {
-            self.log
-                .lock()
-                .unwrap()
-                .push(format!("quote-lbtc:{destination}"));
+        ) -> impl Future<Output = std::result::Result<PegFundingQuote<String>, PegError>> + MaybeSend {
+            self.log.lock().unwrap().push(format!("quote-lbtc:{destination}"));
             // Drain: balance 200 000 minus fee 26.
             let amount = if drain { 199_974 } else { amount_sat };
             ready(if self.fail_quote {
                 Err(PegError::InsufficientFunds("no".into()))
             } else {
-                Ok(PegFundingQuote {
-                    handle: destination.to_owned(),
-                    amount_sat: amount,
-                    network_fee_sat: 26,
-                })
+                Ok(PegFundingQuote { handle: destination.to_owned(), amount_sat: amount, network_fee_sat: 26 })
             })
         }
         fn broadcast_bitcoin_funding(
             &self,
             q: PegFundingQuote<String>,
         ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
-            self.log
-                .lock()
-                .unwrap()
-                .push(format!("broadcast-btc:{}", q.handle));
-            ready(if self.fail_broadcast {
-                Err(PegError::WalletFailure("x".into()))
-            } else {
-                Ok("btc-txid".into())
-            })
+            self.log.lock().unwrap().push(format!("broadcast-btc:{}", q.handle));
+            ready(if self.fail_broadcast { Err(PegError::WalletFailure("x".into())) } else { Ok("btc-txid".into()) })
         }
         fn broadcast_liquid_funding(
             &self,
             q: PegFundingQuote<String>,
         ) -> impl Future<Output = std::result::Result<String, PegError>> + MaybeSend {
-            self.log
-                .lock()
-                .unwrap()
-                .push(format!("broadcast-lbtc:{}", q.handle));
-            ready(if self.fail_broadcast {
-                Err(PegError::WalletFailure("x".into()))
-            } else {
-                Ok("lwk-txid".into())
-            })
+            self.log.lock().unwrap().push(format!("broadcast-lbtc:{}", q.handle));
+            ready(if self.fail_broadcast { Err(PegError::WalletFailure("x".into())) } else { Ok("lwk-txid".into()) })
         }
     }
 
@@ -460,30 +359,12 @@ pub(crate) mod tests {
     }
 
     impl PegStore for LogStore {
-        fn record_created(
-            &self,
-            order: &PegOrder,
-            amount_sat: u64,
-        ) -> impl Future<Output = Result<()>> + MaybeSend {
-            self.log
-                .lock()
-                .unwrap()
-                .push(format!("created:{}:{amount_sat}", order.order_id));
-            ready(if self.fail {
-                Err(Error::Storage("disk".into()))
-            } else {
-                Ok(())
-            })
+        fn record_created(&self, order: &PegOrder, amount_sat: u64) -> impl Future<Output = Result<()>> + MaybeSend {
+            self.log.lock().unwrap().push(format!("created:{}:{amount_sat}", order.order_id));
+            ready(if self.fail { Err(Error::Storage("disk".into())) } else { Ok(()) })
         }
-        fn record_funded(
-            &self,
-            order_id: &str,
-            tx: &str,
-        ) -> impl Future<Output = Result<()>> + MaybeSend {
-            self.log
-                .lock()
-                .unwrap()
-                .push(format!("funded:{order_id}:{tx}"));
+        fn record_funded(&self, order_id: &str, tx: &str) -> impl Future<Output = Result<()>> + MaybeSend {
+            self.log.lock().unwrap().push(format!("funded:{order_id}:{tx}"));
             ready(Ok(()))
         }
         fn record_terminal(
@@ -493,39 +374,18 @@ pub(crate) mod tests {
             _payout: Option<&str>,
             _err: Option<&str>,
         ) -> impl Future<Output = Result<()>> + MaybeSend {
-            self.log
-                .lock()
-                .unwrap()
-                .push(format!("terminal:{order_id}:{}", phase.name()));
-            ready(if self.fail {
-                Err(Error::Storage("disk".into()))
-            } else {
-                Ok(())
-            })
+            self.log.lock().unwrap().push(format!("terminal:{order_id}:{}", phase.name()));
+            ready(if self.fail { Err(Error::Storage("disk".into())) } else { Ok(()) })
         }
     }
 
-    fn orch(
-        fail_quote: bool,
-        fail_broadcast: bool,
-        fail_store: bool,
-    ) -> (PegOrchestrator<FakeRepo, FakeWallet, LogStore>, Log) {
+    fn orch(fail_quote: bool, fail_broadcast: bool, fail_store: bool) -> (PegOrchestrator<FakeRepo, FakeWallet, LogStore>, Log) {
         let log: Log = Arc::default();
         (
             PegOrchestrator::new(
-                FakeRepo {
-                    log: log.clone(),
-                    status: None,
-                },
-                FakeWallet {
-                    log: log.clone(),
-                    fail_quote,
-                    fail_broadcast,
-                },
-                LogStore {
-                    log: log.clone(),
-                    fail: fail_store,
-                },
+                FakeRepo { log: log.clone(), status: None },
+                FakeWallet { log: log.clone(), fail_quote, fail_broadcast },
+                LogStore { log: log.clone(), fail: fail_store },
             ),
             log,
         )
@@ -536,29 +396,13 @@ pub(crate) mod tests {
         let (mut o, log) = orch(false, false, false);
         assert_eq!(
             block_on(o.quote(PegDirection::PegOut, 12_000, None, false)),
-            Err(PegError::BelowMinimum {
-                minimum_sat: 25_000,
-                actual_sat: 12_000
-            })
+            Err(PegError::BelowMinimum { minimum_sat: 25_000, actual_sat: 12_000 })
         );
         let q = block_on(o.quote(PegDirection::PegIn, 100_000, Some(3), false)).unwrap();
-        assert_eq!(
-            (
-                q.network_fee_sat,
-                q.service_fee_sat,
-                q.estimated_receive_sat()
-            ),
-            (150, 100, 99_750)
-        );
-        assert!(log
-            .lock()
-            .unwrap()
-            .contains(&"quote-btc:bc1-own".to_owned()));
+        assert_eq!((q.network_fee_sat, q.service_fee_sat, q.estimated_receive_sat()), (150, 100, 99_750));
+        assert!(log.lock().unwrap().contains(&"quote-btc:bc1-own".to_owned()));
         let d = block_on(o.quote(PegDirection::PegOut, 0, None, true)).unwrap();
-        assert_eq!(
-            (d.amount_sat, d.service_fee_sat, d.estimated_receive_sat()),
-            (199_974, 200, 199_748)
-        );
+        assert_eq!((d.amount_sat, d.service_fee_sat, d.estimated_receive_sat()), (199_974, 200, 199_748));
         assert!(!log.lock().unwrap().iter().any(|l| l.starts_with("create")));
     }
 
@@ -586,11 +430,7 @@ pub(crate) mod tests {
             block_on(o.execute(PegDirection::PegIn, 30_000, None, false, None)),
             Err(PegError::WalletFailure(m)) if m.starts_with("falha ao registrar")
         ));
-        assert!(!log
-            .lock()
-            .unwrap()
-            .iter()
-            .any(|l| l.starts_with("broadcast")));
+        assert!(!log.lock().unwrap().iter().any(|l| l.starts_with("broadcast")));
     }
 
     #[test]
@@ -600,16 +440,10 @@ pub(crate) mod tests {
             block_on(o.execute(PegDirection::PegIn, 30_000, None, false, None)),
             Err(PegError::InsufficientFunds(_))
         ));
-        assert_eq!(
-            log.lock().unwrap().last().unwrap(),
-            "terminal:order-1:failed"
-        );
+        assert_eq!(log.lock().unwrap().last().unwrap(), "terminal:order-1:failed");
         let (mut o, log) = orch(false, true, false);
         assert!(block_on(o.execute(PegDirection::PegIn, 30_000, None, false, None)).is_err());
-        assert_eq!(
-            log.lock().unwrap().last().unwrap(),
-            "terminal:order-1:failed"
-        );
+        assert_eq!(log.lock().unwrap().last().unwrap(), "terminal:order-1:failed");
     }
 
     #[test]

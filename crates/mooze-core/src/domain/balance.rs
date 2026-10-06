@@ -25,20 +25,12 @@ pub struct Balance {
 impl Balance {
     /// Sum of confirmed amounts on `chain`.
     pub fn total_sat_for_chain(&self, chain: ChainId) -> u64 {
-        self.assets
-            .iter()
-            .filter(|a| a.chain == chain)
-            .map(|a| a.amount_sat)
-            .sum()
+        self.assets.iter().filter(|a| a.chain == chain).map(|a| a.amount_sat).sum()
     }
 
     /// Sum of pending amounts on `chain`.
     pub fn pending_sat_for_chain(&self, chain: ChainId) -> u64 {
-        self.assets
-            .iter()
-            .filter(|a| a.chain == chain)
-            .map(|a| a.pending_sat)
-            .sum()
+        self.assets.iter().filter(|a| a.chain == chain).map(|a| a.pending_sat).sum()
     }
 
     /// Confirmed amount of one asset id, 0 if absent.

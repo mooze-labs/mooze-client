@@ -1,5 +1,4 @@
-//! Pending values to receive. Port of `values_to_receive_provider.dart`
-//! (computation only; currency formatting is the `format` module's job).
+//! Pending values to receive. Currency formatting is the job of the `format` module.
 
 use super::entities::User;
 use crate::domain::{Asset, DEPIX_ASSET_ID, LBTC_ASSET_ID};
@@ -22,7 +21,7 @@ impl AssetToReceive {
     }
 }
 
-/// Maps a `to_receive` key to an asset. Only L-BTC and DePix are known, as in Dart.
+/// Maps a `to_receive` key to an asset. Only L-BTC and DePix are known.
 pub fn asset_from_receive_id(id: &str) -> Option<Asset> {
     match id {
         LBTC_ASSET_ID => Some(Asset::Lbtc),
@@ -33,7 +32,7 @@ pub fn asset_from_receive_id(id: &str) -> Option<Asset> {
 
 /// Positive pending values of known assets, highest first.
 ///
-/// `brl_to_usd_rate` is `Some` when the display currency is USD (Dart uses the
+/// `brl_to_usd_rate` is `Some` when the display currency is USD (for example, the
 /// DePix fiat price). Rates that are not positive fall back to 1.0.
 pub fn values_to_receive(user: &User, brl_to_usd_rate: Option<f64>) -> Vec<AssetToReceive> {
     let rate = brl_to_usd_rate.filter(|r| *r > 0.0).unwrap_or(1.0);
@@ -53,7 +52,7 @@ pub fn values_to_receive(user: &User, brl_to_usd_rate: Option<f64>) -> Vec<Asset
     out
 }
 
-/// Sum of display values (Dart `totalValueToReceiveProvider`).
+/// Sum of display values.
 pub fn total_value_to_receive(items: &[AssetToReceive]) -> f64 {
     items.iter().map(|i| i.display_value).sum()
 }

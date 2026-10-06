@@ -1,15 +1,11 @@
 //! Asset swap flow: markets, quotes, accept, sign, submit.
-//!
-//! Port of `swap_repository_impl.dart`, `liquid_wallet_repository_impl.dart`,
-//! the quote lock in `SideswapService.startQuote` and the quote/confirm logic
-//! of `swap_controller.dart`.
 
 use std::future::Future;
 
 use super::client::SideSwapClient;
 use super::protocol::{
-    AssetPair, AssetType, Notification, QuoteResponse, SideswapAsset, SideswapMarket, StartQuotes,
-    StartQuotesResult, SwapUtxo, TradeDir, QUOTE_TIMEOUT_ERROR,
+    AssetPair, AssetType, Notification, QuoteResponse, SideswapAsset, SideswapMarket, StartQuotes, StartQuotesResult,
+    SwapUtxo, TradeDir, QUOTE_TIMEOUT_ERROR,
 };
 use crate::domain::LiquidUtxo;
 use crate::ports::{MaybeSend, MaybeSync, WsConnector};
@@ -48,16 +44,9 @@ impl NormalizedSwap {
 }
 
 /// Maps `send -> receive` onto a market. Direct market: sell base.
-/// Inverse market: sell with `asset_type = Quote`. Port of `_normalizeSwapParams`.
-pub fn normalize_swap_params(
-    markets: &[SideswapMarket],
-    send: &str,
-    receive: &str,
-) -> Option<NormalizedSwap> {
-    if markets
-        .iter()
-        .any(|m| m.base_asset_id() == send && m.quote_asset_id() == receive)
-    {
+/// Inverse market: sell with `asset_type = Quote`.
+pub fn normalize_swap_params(markets: &[SideswapMarket], send: &str, receive: &str) -> Option<NormalizedSwap> {
+    if markets.iter().any(|m| m.base_asset_id() == send && m.quote_asset_id() == receive) {
         return Some(NormalizedSwap {
             base_asset: send.to_owned(),
             quote_asset: receive.to_owned(),
@@ -65,10 +54,7 @@ pub fn normalize_swap_params(
             asset_type: AssetType::Base,
         });
     }
-    if markets
-        .iter()
-        .any(|m| m.base_asset_id() == receive && m.quote_asset_id() == send)
-    {
+    if markets.iter().any(|m| m.base_asset_id() == receive && m.quote_asset_id() == send) {
         return Some(NormalizedSwap {
             base_asset: receive.to_owned(),
             quote_asset: send.to_owned(),
@@ -80,7 +66,6 @@ pub fn normalize_swap_params(
 }
 
 /// Picks UTXOs of `asset_id`, smallest first, until `amount` is covered.
-/// Port of `LiquidWalletRepositoryImpl.getUtxos`.
 pub fn select_utxos(utxos: &[LiquidUtxo], asset_id: &str, amount: u64) -> Result<Vec<SwapUtxo>> {
     if amount == 0 {
         return Ok(Vec::new());
@@ -98,9 +83,7 @@ pub fn select_utxos(utxos: &[LiquidUtxo], asset_id: &str, amount: u64) -> Result
         }
     }
     if remaining > 0 {
-        return Err(Error::invalid(format!(
-            "Insufficient funds: missing {remaining} sats for {asset_id}"
-        )));
+        return Err(Error::invalid(format!("Insufficient funds: missing {remaining} sats for {asset_id}")));
     }
     Ok(selected)
 }
@@ -127,7 +110,7 @@ impl QuoteGate {
     /// Returns false when another quote is still in progress.
     pub fn try_begin(&mut self, now_ms: u64) -> bool {
         if let (true, Some(last)) = (self.in_progress, self.last_quote_ms) {
-            // Dart: `inSeconds > 15`.
+            // Compares whole seconds: reset when more than 15 s elapsed.
             if now_ms.saturating_sub(last) / 1000 > QUOTE_STALE_RESET_MS / 1000 {
                 self.reset();
             }
@@ -194,13 +177,7 @@ pub struct SwapService<C: WsConnector, S: SwapSigner> {
 impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
     /// New service. Markets load on first use.
     pub fn new(client: SideSwapClient<C>, signer: S) -> Self {
-        Self {
-            client,
-            signer,
-            markets: Vec::new(),
-            gate: QuoteGate::default(),
-            active: None,
-        }
+        Self { client, signer, markets: Vec::new(), gate: QuoteGate::default(), active: None }
     }
 
     /// The underlying client.
@@ -252,9 +229,8 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
             Some(p) => p,
             None => {
                 self.get_markets().await?;
-                self.normalize(send_asset, receive_asset).ok_or_else(|| {
-                    Error::invalid(format!("no market for {send_asset} -> {receive_asset}"))
-                })?
+                self.normalize(send_asset, receive_asset)
+                    .ok_or_else(|| Error::invalid(format!("no market for {send_asset} -> {receive_asset}")))?
             }
         };
         if params.utxo_asset() != send_asset {
@@ -272,10 +248,7 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
             return Ok(StartQuoteOutcome::AlreadyInProgress);
         }
         let req = StartQuotes {
-            asset_pair: AssetPair {
-                base: params.base_asset.clone(),
-                quote: params.quote_asset.clone(),
-            },
+            asset_pair: AssetPair { base: params.base_asset.clone(), quote: params.quote_asset.clone() },
             asset_type: params.asset_type,
             amount,
             trade_dir: params.direction,
@@ -283,8 +256,7 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
             change_address: receive_address.clone(),
             receive_address,
         };
-        // NOTE(port): Dart emits a synthetic "Erro de conexão" quote when the
-        // socket is down. Here the transport error is returned instead.
+        // NOTE: when the socket is down, the transport error is returned. No synthetic quote is emitted.
         let result: StartQuotesResult = match self.client.start_quotes(&req).await {
             Ok(r) => r,
             Err(e) => {
@@ -304,23 +276,16 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
     }
 
     fn take_matching(&mut self, n: Notification) -> Option<QuoteResponse> {
-        let Notification::Quote(q) = n else {
-            return None;
-        };
+        let Notification::Quote(q) = n else { return None };
         self.gate.on_response();
         let intent = self.active.as_ref()?;
-        q.matches_intent(&intent.send_asset, &intent.receive_asset, intent.amount)
-            .then_some(q)
+        q.matches_intent(&intent.send_asset, &intent.receive_asset, intent.amount).then_some(q)
     }
 
     /// Quote emissions for the active intent that are already buffered.
     /// Non-quote notifications are dropped.
     pub fn drain_quotes(&mut self) -> Vec<QuoteResponse> {
-        self.client
-            .drain_notifications()
-            .into_iter()
-            .filter_map(|n| self.take_matching(n))
-            .collect()
+        self.client.drain_notifications().into_iter().filter_map(|n| self.take_matching(n)).collect()
     }
 
     /// Waits for the next emission matching the active intent.
@@ -355,7 +320,7 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
         self.gate.reset();
     }
 
-    /// Stops the quote subscription. Best-effort, like the fire-and-forget Dart call.
+    /// Stops the quote subscription. Best-effort: errors are ignored.
     pub async fn stop_quote(&mut self) {
         self.gate.reset();
         let had_active = self.active.take().is_some();
@@ -376,7 +341,7 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
     }
 
     /// Confirms a quote: stop quotes, get the PSET, sign, submit.
-    /// Port of `confirmSwap` + `_performSwap`. The 60 s cap is the platform's.
+    /// The platform enforces the 60 s cap.
     pub async fn execute_swap(&mut self, quote_id: u64) -> Result<String> {
         self.stop_quote().await;
         let pset = self.get_quote_pset(quote_id).await?;
@@ -416,10 +381,7 @@ mod tests {
 
     fn market(base: &str, quote: &str) -> SideswapMarket {
         SideswapMarket {
-            asset_pair: AssetPair {
-                base: base.into(),
-                quote: quote.into(),
-            },
+            asset_pair: AssetPair { base: base.into(), quote: quote.into() },
             fee_asset: "Quote".into(),
             market_type: "Stablecoin".into(),
         }
@@ -429,37 +391,20 @@ mod tests {
     fn normalizes_direct_and_inverse() {
         let m = vec![market(LBTC, USDT)];
         let d = normalize_swap_params(&m, LBTC, USDT).unwrap();
-        assert_eq!(
-            (d.asset_type, d.direction, d.utxo_asset()),
-            (AssetType::Base, TradeDir::Sell, LBTC)
-        );
+        assert_eq!((d.asset_type, d.direction, d.utxo_asset()), (AssetType::Base, TradeDir::Sell, LBTC));
         let i = normalize_swap_params(&m, USDT, LBTC).unwrap();
-        assert_eq!(
-            (i.base_asset.as_str(), i.asset_type, i.utxo_asset()),
-            (LBTC, AssetType::Quote, USDT)
-        );
+        assert_eq!((i.base_asset.as_str(), i.asset_type, i.utxo_asset()), (LBTC, AssetType::Quote, USDT));
         assert!(normalize_swap_params(&m, "x", USDT).is_none());
     }
 
     #[test]
     fn selects_smallest_first() {
-        let u = vec![
-            utxo(LBTC, 500, "a"),
-            utxo(USDT, 9999, "u"),
-            utxo(LBTC, 100, "b"),
-            utxo(LBTC, 300, "c"),
-        ];
+        let u = vec![utxo(LBTC, 500, "a"), utxo(USDT, 9999, "u"), utxo(LBTC, 100, "b"), utxo(LBTC, 300, "c")];
         let s = select_utxos(&u, LBTC, 350).unwrap();
-        assert_eq!(
-            s.iter().map(|x| x.txid.as_str()).collect::<Vec<_>>(),
-            vec!["b", "c"]
-        );
+        assert_eq!(s.iter().map(|x| x.txid.as_str()).collect::<Vec<_>>(), vec!["b", "c"]);
         assert!(select_utxos(&u, LBTC, 0).unwrap().is_empty());
         let e = select_utxos(&u, LBTC, 1000).unwrap_err();
-        assert_eq!(
-            e,
-            Error::InvalidInput("Insufficient funds: missing 100 sats for lbtc".into())
-        );
+        assert_eq!(e, Error::InvalidInput("Insufficient funds: missing 100 sats for lbtc".into()));
     }
 
     #[test]
@@ -487,10 +432,7 @@ mod tests {
         fn swap_address(&self) -> impl Future<Output = Result<String>> + MaybeSend {
             ready(Ok("lq1swap".to_owned()))
         }
-        fn sign_swap_pset(
-            &self,
-            pset_b64: &str,
-        ) -> impl Future<Output = Result<String>> + MaybeSend {
+        fn sign_swap_pset(&self, pset_b64: &str) -> impl Future<Output = Result<String>> + MaybeSend {
             self.signed.lock().unwrap().push(pset_b64.to_owned());
             ready(Ok(format!("signed:{pset_b64}")))
         }
@@ -527,9 +469,7 @@ mod tests {
             return vec![reply(json!({"stop_quotes": {}}))];
         }
         if p.get("get_quote").is_some() {
-            return vec![reply(
-                json!({"get_quote": {"pset": "cHNldA==", "ttl": 30000}}),
-            )];
+            return vec![reply(json!({"get_quote": {"pset": "cHNldA==", "ttl": 30000}}))];
         }
         if let Some(ts) = p.get("taker_sign") {
             assert_eq!(ts["pset"], "signed:cHNldA==");
@@ -542,27 +482,13 @@ mod tests {
     fn full_swap_flow() {
         let ws = MockWs::new(server);
         let signed = Arc::new(Mutex::new(Vec::new()));
-        let mut svc = SwapService::new(
-            SideSwapClient::new(ws.clone(), "k"),
-            FakeSigner {
-                signed: signed.clone(),
-            },
-        );
+        let mut svc = SwapService::new(SideSwapClient::new(ws.clone(), "k"), FakeSigner { signed: signed.clone() });
         let out = block_on(svc.start_quote(LBTC, USDT, 20_000, 1_000)).unwrap();
-        let StartQuoteOutcome::Started(intent) = out else {
-            panic!("not started")
-        };
+        let StartQuoteOutcome::Started(intent) = out else { panic!("not started") };
         assert_eq!(intent.quote_sub_id, Some(3));
 
-        let sent: Vec<Value> = ws
-            .sent()
-            .iter()
-            .map(|f| serde_json::from_str(f).unwrap())
-            .collect();
-        let sq = sent
-            .iter()
-            .find(|f| f["params"].get("start_quotes").is_some())
-            .unwrap();
+        let sent: Vec<Value> = ws.sent().iter().map(|f| serde_json::from_str(f).unwrap()).collect();
+        let sq = sent.iter().find(|f| f["params"].get("start_quotes").is_some()).unwrap();
         assert_eq!(sq["params"]["start_quotes"]["change_address"], "lq1swap");
         assert_eq!(sq["params"]["start_quotes"]["utxos"][0]["txid"], "f");
 
@@ -571,10 +497,7 @@ mod tests {
         assert_eq!(quotes.len(), 1);
         let qid = quotes[0].quote().unwrap().quote_id;
         assert_eq!(qid, 2);
-        assert!(
-            svc.poll_quote_timeout(100_000).is_none(),
-            "response released the lock"
-        );
+        assert!(svc.poll_quote_timeout(100_000).is_none(), "response released the lock");
 
         let txid = block_on(svc.execute_swap(qid)).unwrap();
         assert_eq!(txid, "swaptxid");

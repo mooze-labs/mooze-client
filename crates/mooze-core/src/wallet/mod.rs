@@ -1,9 +1,8 @@
-//! Wallet engines. Port of `lib/infra/bdk/**`, `lib/infra/lwk/**` and the
-//! wallet repositories.
+//! Wallet engines.
 //!
 //! - [`bitcoin::BitcoinWallet`] wraps a BDK wallet and an esplora client.
 //! - [`liquid::LiquidWallet`] wraps an LWK wollet and an esplora client.
-//! - [`descriptors`] derives the same keys and addresses as the Flutter app.
+//! - [`descriptors`] derives the same keys and addresses as existing user wallets.
 //! - [`endpoints`] holds default esplora URLs and the failover policy.
 //!
 //! Network I/O goes through `bdk_esplora` and `lwk_wollet::asyncr`, which
@@ -25,7 +24,5 @@ pub mod tracker;
 pub use backend::{ChainBackend, ElectrumConfig};
 pub use bitcoin::BitcoinWallet;
 pub use endpoints::EndpointResolver;
-pub use explorer::{
-    AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo,
-};
+pub use explorer::{AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo};
 pub use liquid::LiquidWallet;

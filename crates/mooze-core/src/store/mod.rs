@@ -1,7 +1,5 @@
 //! Persistence over [`crate::ports::KvStore`] and [`crate::ports::SecureStore`].
 //!
-//! Port of `lib/infra/storage/**`, `lib/infra/db/**`, `lib/database/**`
-//! (records only, no migration machinery) and `lib/shared/key_management/**`.
 //! Records are JSON values under prefixed keys.
 
 pub mod addresses;

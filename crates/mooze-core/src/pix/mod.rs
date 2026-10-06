@@ -1,14 +1,11 @@
 //! PIX deposits, PIX send entities, taxpayer ids and favorite payers.
 //!
-//! Port of `lib/features/pix/**` (data and domain layers, plus the business
-//! rules in its providers) and `lib/features/favorite_payers/**`.
-//!
 //! - [`entities`]: records with backend JSON field names.
-//! - [`client`]: [`PixClient`] for every backend endpoint the Dart code calls.
+//! - [`client`]: [`PixClient`] for the PIX backend endpoints.
 //! - [`rules`]: fees, validation, polling, status notifications, filters.
 //! - [`tax_id`]: CPF/CNPJ validation and masks, PIX key detection.
 //! - [`store`]: deposit, favorite payer and flag stores over `KvStore`.
-//! - [`service`]: repository and controller orchestration.
+//! - [`service`]: deposit orchestration.
 
 pub mod client;
 pub mod entities;
@@ -19,11 +16,8 @@ pub mod tax_id;
 
 pub use client::{PixClient, TokenProvider, DEFAULT_BACKEND_URL};
 pub use entities::{
-    DepositStatus, FavoritePayer, NewDepositRequest, PaymentDetails, PixDeposit,
-    PixDepositResponse, PixPayment, PixPaymentQuote, PixPaymentRequest, PixStatusEvent,
-    PixTransactionDetails, WithdrawStatus,
+    DepositStatus, FavoritePayer, NewDepositRequest, PaymentDetails, PixDeposit, PixDepositResponse, PixPayment,
+    PixPaymentQuote, PixPaymentRequest, PixStatusEvent, PixTransactionDetails, WithdrawStatus,
 };
 pub use service::{AddressProvider, PixService};
-pub use store::{
-    DepositRecord, DepositStore, FavoritePayerSaveError, FavoritePayerStore, PixFlag, PixFlagsStore,
-};
+pub use store::{DepositRecord, DepositStore, FavoritePayerSaveError, FavoritePayerStore, PixFlag, PixFlagsStore};

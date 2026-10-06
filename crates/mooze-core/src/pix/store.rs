@@ -1,11 +1,11 @@
-//! PIX persistence over [`KvStore`]. Replaces the drift `deposits` and
-//! `favorite_payer_entries` tables and the PIX `SharedPreferences` flags.
+//! PIX persistence over [`KvStore`]. It holds the data that the Flutter app kept in the
+//! `deposits` and `favorite_payer_entries` tables and in the PIX `SharedPreferences` flags.
 //!
 //! Keys:
 //! - `pix/deposit/<deposit_id>`: [`DepositRecord`] JSON.
 //! - `pix/favorite_payer/<id, 20 digits>`: favorite payer JSON.
 //! - `pix/favorite_payer_seq`: last favorite payer id.
-//! - `pix/flag/<dart prefs key>`: `true` for a set flag.
+//! - `pix/flag/<prefs key>`: `true` for a set flag.
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -21,14 +21,12 @@ const PAYER_PREFIX: &str = "pix/favorite_payer/";
 const PAYER_SEQ_KEY: &str = "pix/favorite_payer_seq";
 const FLAG_PREFIX: &str = "pix/flag/";
 
-/// Network name the repository reports for stored deposits.
+/// Network name reported for stored deposits.
 pub const STORED_DEPOSIT_NETWORK: &str = "liquid";
 
 async fn get_json<K: KvStore, T: DeserializeOwned>(kv: &K, key: &str) -> Result<Option<T>> {
     match kv.get(key).await? {
-        Some(bytes) => serde_json::from_slice(&bytes)
-            .map(Some)
-            .map_err(Error::storage),
+        Some(bytes) => serde_json::from_slice(&bytes).map(Some).map_err(Error::storage),
         None => Ok(None),
     }
 }
@@ -47,7 +45,7 @@ async fn delete_prefix<K: KvStore>(kv: &K, prefix: &str) -> Result<()> {
 
 // ---------------------------------------------------------------- deposits
 
-/// One stored deposit. Mirrors the drift `Deposits` row.
+/// One stored deposit. The fields match a row of the legacy `deposits` table.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DepositRecord {
     /// Backend deposit id.
@@ -71,7 +69,7 @@ pub struct DepositRecord {
 impl DepositRecord {
     /// Maps the row to a [`PixDeposit`].
     ///
-    /// Unknown asset ids map to BTC, as Dart `Asset.fromId` does.
+    /// Unknown asset ids map to BTC.
     pub fn to_deposit(&self) -> PixDeposit {
         PixDeposit {
             deposit_id: self.deposit_id.clone(),
@@ -87,9 +85,9 @@ impl DepositRecord {
     }
 }
 
-/// Deposit store. Port of `PixDepositDatabase`.
+/// Deposit store.
 ///
-/// Updates of a missing id do nothing, like a drift `UPDATE ... WHERE`.
+/// Updates of a missing id do nothing.
 #[derive(Debug, Clone)]
 pub struct DepositStore<K: KvStore> {
     kv: K,
@@ -107,8 +105,8 @@ impl<K: KvStore> DepositStore<K> {
 
     /// Inserts a deposit with status `pending`.
     ///
-    // NOTE(port): drift has no unique index on deposit_id, so a second insert
-    // adds a second row. Here it replaces the first.
+    // NOTE: a second insert with the same id replaces the first. The legacy
+    // table has no unique index on deposit_id and keeps both rows.
     pub async fn add_new_deposit(
         &self,
         deposit_id: &str,
@@ -141,9 +139,7 @@ impl<K: KvStore> DepositStore<K> {
 
     async fn modify(&self, deposit_id: &str, f: impl FnOnce(&mut DepositRecord)) -> Result<()> {
         let key = Self::key(deposit_id);
-        let Some(mut rec) = get_json::<K, DepositRecord>(&self.kv, &key).await? else {
-            return Ok(());
-        };
+        let Some(mut rec) = get_json::<K, DepositRecord>(&self.kv, &key).await? else { return Ok(()) };
         f(&mut rec);
         put_json(&self.kv, &key, &rec).await
     }
@@ -176,13 +172,8 @@ impl<K: KvStore> DepositStore<K> {
         .await
     }
 
-    /// Sets the amount and txid. Leaves the status as is, as in Dart.
-    pub async fn mark_deposit_as_completed(
-        &self,
-        deposit_id: &str,
-        asset_amount: u64,
-        blockchain_txid: &str,
-    ) -> Result<()> {
+    /// Sets the amount and txid. Leaves the status unchanged.
+    pub async fn mark_deposit_as_completed(&self, deposit_id: &str, asset_amount: u64, blockchain_txid: &str) -> Result<()> {
         let txid = blockchain_txid.to_owned();
         self.modify(deposit_id, move |r| {
             r.asset_amount = Some(asset_amount);
@@ -197,11 +188,7 @@ impl<K: KvStore> DepositStore<K> {
     }
 
     /// Lists deposits, newest first. `offset` applies only with a `limit`.
-    pub async fn get_deposits(
-        &self,
-        limit: Option<usize>,
-        offset: Option<usize>,
-    ) -> Result<Vec<DepositRecord>> {
+    pub async fn get_deposits(&self, limit: Option<usize>, offset: Option<usize>) -> Result<Vec<DepositRecord>> {
         let mut all = Vec::new();
         for key in self.kv.list_keys(DEPOSIT_PREFIX).await? {
             if let Some(rec) = get_json::<K, DepositRecord>(&self.kv, &key).await? {
@@ -238,7 +225,7 @@ struct PayerRecord {
     created_at_ms: u64,
 }
 
-/// Favorite payer store. Port of the datasource, repository and controller.
+/// Favorite payer store.
 #[derive(Debug, Clone)]
 pub struct FavoritePayerStore<K: KvStore> {
     kv: K,
@@ -254,19 +241,15 @@ impl<K: KvStore> FavoritePayerStore<K> {
         format!("{PAYER_PREFIX}{id:020}")
     }
 
-    /// Column limits of the drift table: label 1 to 255 chars, cpf 11 to 14.
+    /// Column limits of the legacy table: label 1 to 255 chars, cpf 11 to 14.
     fn check_columns(label: &str, cpf: &str) -> Result<()> {
         let l = label.chars().count();
         if !(1..=255).contains(&l) {
-            return Err(Error::invalid(
-                "favorite payer label must have 1 to 255 characters",
-            ));
+            return Err(Error::invalid("favorite payer label must have 1 to 255 characters"));
         }
         let c = cpf.chars().count();
         if !(11..=14).contains(&c) {
-            return Err(Error::invalid(
-                "favorite payer cpf must have 11 to 14 characters",
-            ));
+            return Err(Error::invalid("favorite payer cpf must have 11 to 14 characters"));
         }
         Ok(())
     }
@@ -285,14 +268,7 @@ impl<K: KvStore> FavoritePayerStore<K> {
     pub async fn get_all(&self) -> Result<Vec<FavoritePayer>> {
         let mut recs = self.records().await?;
         recs.sort_by(|a, b| b.created_at_ms.cmp(&a.created_at_ms).then(b.id.cmp(&a.id)));
-        Ok(recs
-            .into_iter()
-            .map(|r| FavoritePayer {
-                id: Some(r.id),
-                label: r.label,
-                cpf: r.cpf,
-            })
-            .collect())
+        Ok(recs.into_iter().map(|r| FavoritePayer { id: Some(r.id), label: r.label, cpf: r.cpf }).collect())
     }
 
     /// Inserts a payer and returns its new id. Ids are never reused.
@@ -301,12 +277,7 @@ impl<K: KvStore> FavoritePayerStore<K> {
         let last: u64 = get_json(&self.kv, PAYER_SEQ_KEY).await?.unwrap_or(0);
         let id = last + 1;
         put_json(&self.kv, PAYER_SEQ_KEY, &id).await?;
-        let rec = PayerRecord {
-            id,
-            label: label.to_owned(),
-            cpf: cpf.to_owned(),
-            created_at_ms: now_ms,
-        };
+        let rec = PayerRecord { id, label: label.to_owned(), cpf: cpf.to_owned(), created_at_ms: now_ms };
         put_json(&self.kv, &Self::key(id), &rec).await?;
         Ok(id)
     }
@@ -317,16 +288,9 @@ impl<K: KvStore> FavoritePayerStore<K> {
     pub async fn import(&self, id: u64, label: &str, cpf: &str, created_at_ms: u64) -> Result<()> {
         Self::check_columns(label, cpf)?;
         if id == 0 {
-            return Err(Error::invalid(
-                "imported favorite payer needs a positive id",
-            ));
+            return Err(Error::invalid("imported favorite payer needs a positive id"));
         }
-        let rec = PayerRecord {
-            id,
-            label: label.to_owned(),
-            cpf: cpf.to_owned(),
-            created_at_ms,
-        };
+        let rec = PayerRecord { id, label: label.to_owned(), cpf: cpf.to_owned(), created_at_ms };
         put_json(&self.kv, &Self::key(id), &rec).await?;
         let last: u64 = get_json(&self.kv, PAYER_SEQ_KEY).await?.unwrap_or(0);
         if id > last {
@@ -339,9 +303,7 @@ impl<K: KvStore> FavoritePayerStore<K> {
     pub async fn update(&self, id: u64, label: &str, cpf: &str) -> Result<()> {
         Self::check_columns(label, cpf)?;
         let key = Self::key(id);
-        let Some(mut rec) = get_json::<K, PayerRecord>(&self.kv, &key).await? else {
-            return Ok(());
-        };
+        let Some(mut rec) = get_json::<K, PayerRecord>(&self.kv, &key).await? else { return Ok(()) };
         rec.label = label.to_owned();
         rec.cpf = cpf.to_owned();
         put_json(&self.kv, &key, &rec).await
@@ -350,10 +312,7 @@ impl<K: KvStore> FavoritePayerStore<K> {
     /// Inserts when `payer.id` is `None`, else updates.
     pub async fn save(&self, payer: &FavoritePayer, now_ms: u64) -> Result<()> {
         match payer.id {
-            None => self
-                .insert(&payer.label, &payer.cpf, now_ms)
-                .await
-                .map(|_| ()),
+            None => self.insert(&payer.label, &payer.cpf, now_ms).await.map(|_| ()),
             Some(id) => self.update(id, &payer.label, &payer.cpf).await,
         }
     }
@@ -365,11 +324,7 @@ impl<K: KvStore> FavoritePayerStore<K> {
 
     /// True if a payer other than `excluding_id` has `cpf`.
     pub async fn cpf_exists(&self, cpf: &str, excluding_id: Option<u64>) -> Result<bool> {
-        Ok(self
-            .records()
-            .await?
-            .iter()
-            .any(|r| r.cpf == cpf && Some(r.id) != excluding_id))
+        Ok(self.records().await?.iter().any(|r| r.cpf == cpf && Some(r.id) != excluding_id))
     }
 
     /// Controller save: strips the CPF mask, rejects duplicates, trims the label.
@@ -384,15 +339,7 @@ impl<K: KvStore> FavoritePayerStore<K> {
         if self.cpf_exists(&digits, id).await? {
             return Ok(Some(FavoritePayerSaveError::DuplicateCpf));
         }
-        self.save(
-            &FavoritePayer {
-                id,
-                label: label.trim().to_owned(),
-                cpf: digits,
-            },
-            now_ms,
-        )
-        .await?;
+        self.save(&FavoritePayer { id, label: label.trim().to_owned(), cpf: digits }, now_ms).await?;
         Ok(None)
     }
 
@@ -418,7 +365,7 @@ pub enum PixFlag {
 }
 
 impl PixFlag {
-    /// Dart `SharedPreferences` key.
+    /// Legacy `SharedPreferences` key. The store key uses this name.
     pub fn prefs_key(self) -> &'static str {
         match self {
             PixFlag::LbtcWarningShown => "lbtc_fluctuation_warning_shown",
@@ -429,8 +376,7 @@ impl PixFlag {
     }
 }
 
-/// Flag store. Port of `LbtcWarningService`, `PixOnboardingService` and
-/// `PixTutorialService`.
+/// Flag store.
 #[derive(Debug, Clone)]
 pub struct PixFlagsStore<K: KvStore> {
     kv: K,
@@ -448,9 +394,7 @@ impl<K: KvStore> PixFlagsStore<K> {
 
     /// True if set. Absent means false.
     pub async fn is_set(&self, flag: PixFlag) -> Result<bool> {
-        Ok(get_json::<K, bool>(&self.kv, &Self::key(flag))
-            .await?
-            .unwrap_or(false))
+        Ok(get_json::<K, bool>(&self.kv, &Self::key(flag)).await?.unwrap_or(false))
     }
 
     /// Sets the flag.
@@ -474,42 +418,20 @@ mod tests {
     fn deposit_roundtrip_and_updates() {
         let s = DepositStore::new(MemoryKv::new());
         block_on(async {
-            s.add_new_deposit("dep-1", "qr-1", DEPIX_ASSET_ID, 1000, 100)
-                .await
-                .unwrap();
-            s.add_new_deposit("dep-2", "qr-2", "bogus-asset", 2000, 200)
-                .await
-                .unwrap();
+            s.add_new_deposit("dep-1", "qr-1", DEPIX_ASSET_ID, 1000, 100).await.unwrap();
+            s.add_new_deposit("dep-2", "qr-2", "bogus-asset", 2000, 200).await.unwrap();
             let all = s.get_deposits(None, None).await.unwrap();
-            assert_eq!(
-                all.iter()
-                    .map(|r| r.deposit_id.as_str())
-                    .collect::<Vec<_>>(),
-                vec!["dep-2", "dep-1"]
-            );
+            assert_eq!(all.iter().map(|r| r.deposit_id.as_str()).collect::<Vec<_>>(), vec!["dep-2", "dep-1"]);
             assert_eq!(all[0].to_deposit().asset, Asset::Btc);
             assert_eq!(all[1].to_deposit().asset, Asset::Depix);
             assert_eq!(all[1].to_deposit().status, DepositStatus::Pending);
 
-            s.update_deposit("dep-1", "depix_sent", Some(990), None)
-                .await
-                .unwrap();
-            s.update_deposit("dep-1", "finished", None, Some("tx1"))
-                .await
-                .unwrap();
+            s.update_deposit("dep-1", "depix_sent", Some(990), None).await.unwrap();
+            s.update_deposit("dep-1", "finished", None, Some("tx1")).await.unwrap();
             let r = s.get_deposit("dep-1").await.unwrap().unwrap();
-            assert_eq!(
-                (
-                    r.status.as_str(),
-                    r.asset_amount,
-                    r.blockchain_txid.as_deref()
-                ),
-                ("finished", Some(990), Some("tx1"))
-            );
+            assert_eq!((r.status.as_str(), r.asset_amount, r.blockchain_txid.as_deref()), ("finished", Some(990), Some("tx1")));
 
-            s.mark_deposit_as_completed("dep-2", 5, "tx2")
-                .await
-                .unwrap();
+            s.mark_deposit_as_completed("dep-2", 5, "tx2").await.unwrap();
             s.update_deposit_status("dep-2", "expired").await.unwrap();
             s.update_deposit_status("missing", "expired").await.unwrap();
             assert!(s.get_deposit("missing").await.unwrap().is_none());
@@ -529,35 +451,18 @@ mod tests {
         let s = FavoritePayerStore::new(MemoryKv::new());
         block_on(async {
             assert!(s.get_all().await.unwrap().is_empty());
-            assert_eq!(
-                s.save_checked(None, " João ", "529.982.247-25", 1)
-                    .await
-                    .unwrap(),
-                None
-            );
+            assert_eq!(s.save_checked(None, " João ", "529.982.247-25", 1).await.unwrap(), None);
             let list = s.get_all().await.unwrap();
+            assert_eq!((list[0].label.as_str(), list[0].cpf.as_str()), ("João", "52998224725"));
             assert_eq!(
-                (list[0].label.as_str(), list[0].cpf.as_str()),
-                ("João", "52998224725")
-            );
-            assert_eq!(
-                s.save_checked(None, "Outro", "52998224725", 2)
-                    .await
-                    .unwrap(),
+                s.save_checked(None, "Outro", "52998224725", 2).await.unwrap(),
                 Some(FavoritePayerSaveError::DuplicateCpf)
             );
             let id = list[0].id.unwrap();
-            assert_eq!(
-                s.save_checked(Some(id), "João S.", "52998224725", 3)
-                    .await
-                    .unwrap(),
-                None
-            );
+            assert_eq!(s.save_checked(Some(id), "João S.", "52998224725", 3).await.unwrap(), None);
             assert_eq!(s.get_all().await.unwrap()[0].label, "João S.");
 
-            s.save_checked(None, "Empresa", "11222333000181", 4)
-                .await
-                .unwrap();
+            s.save_checked(None, "Empresa", "11222333000181", 4).await.unwrap();
             let all = s.get_all().await.unwrap();
             assert_eq!(all[0].label, "Empresa");
             assert!(s.insert("", "52998224725", 5).await.is_err());

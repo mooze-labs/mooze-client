@@ -1,7 +1,7 @@
-//! Peg persistence over [`KvStore`]. Replaces `drift_peg_store.dart`.
+//! Peg persistence over [`KvStore`].
 //!
-//! One JSON record per order at `peg/<wallet_id>/<order_id>`. Fields mirror
-//! the Drift `Pegs` table.
+//! One JSON record per order at `peg/<wallet_id>/<order_id>`. Fields match
+//! the legacy Drift `Pegs` table of the Flutter app database.
 
 use std::future::{ready, Future};
 
@@ -35,7 +35,7 @@ pub fn status_for(phase: PegPhase) -> &'static str {
     }
 }
 
-/// One persisted peg. Mirrors the Drift `Pegs` row.
+/// One persisted peg. Matches a legacy Drift `Pegs` row.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PegRecord {
     pub order_id: String,
@@ -71,11 +71,7 @@ impl PegRecord {
         TrackedPeg {
             order_id: self.order_id.clone(),
             direction: self.direction(),
-            phase: if self.funding_tx_id.is_none() {
-                PegPhase::AwaitingDeposit
-            } else {
-                PegPhase::Detected
-            },
+            phase: if self.funding_tx_id.is_none() { PegPhase::AwaitingDeposit } else { PegPhase::Detected },
             amount_sat: self.amount,
             deposit_address: self.sideswap_address.clone(),
             funding_tx_id: self.funding_tx_id.clone(),
@@ -124,10 +120,7 @@ impl PendingSwapAudit {
 /// Swap history sink (`SwapAuditRepository.recordPending`). Best-effort.
 pub trait SwapAudit: MaybeSend + MaybeSync {
     /// Records a pending swap.
-    fn record_pending(
-        &self,
-        entry: PendingSwapAudit,
-    ) -> impl Future<Output = Result<()>> + MaybeSend;
+    fn record_pending(&self, entry: PendingSwapAudit) -> impl Future<Output = Result<()>> + MaybeSend;
 }
 
 /// [`SwapAudit`] that records nothing.
@@ -135,10 +128,7 @@ pub trait SwapAudit: MaybeSend + MaybeSync {
 pub struct NoAudit;
 
 impl SwapAudit for NoAudit {
-    fn record_pending(
-        &self,
-        _entry: PendingSwapAudit,
-    ) -> impl Future<Output = Result<()>> + MaybeSend {
+    fn record_pending(&self, _entry: PendingSwapAudit) -> impl Future<Output = Result<()>> + MaybeSend {
         ready(Ok(()))
     }
 }
@@ -155,24 +145,14 @@ pub struct KvPegStore<K, T, A = NoAudit> {
 impl<K: KvStore, T: Clock> KvPegStore<K, T, NoAudit> {
     /// Store for `wallet_id` without audit.
     pub fn new(kv: K, clock: T, wallet_id: impl Into<String>) -> Self {
-        Self {
-            kv,
-            clock,
-            wallet_id: wallet_id.into(),
-            audit: NoAudit,
-        }
+        Self { kv, clock, wallet_id: wallet_id.into(), audit: NoAudit }
     }
 }
 
 impl<K: KvStore, T: Clock, A: SwapAudit> KvPegStore<K, T, A> {
     /// Adds an audit sink.
     pub fn with_audit<B: SwapAudit>(self, audit: B) -> KvPegStore<K, T, B> {
-        KvPegStore {
-            kv: self.kv,
-            clock: self.clock,
-            wallet_id: self.wallet_id,
-            audit,
-        }
+        KvPegStore { kv: self.kv, clock: self.clock, wallet_id: self.wallet_id, audit }
     }
 
     fn prefix(&self) -> String {
@@ -186,9 +166,7 @@ impl<K: KvStore, T: Clock, A: SwapAudit> KvPegStore<K, T, A> {
     /// Reads one record.
     pub async fn get(&self, order_id: &str) -> Result<Option<PegRecord>> {
         match self.kv.get(&self.key(order_id)).await? {
-            Some(bytes) => serde_json::from_slice(&bytes)
-                .map(Some)
-                .map_err(Error::storage),
+            Some(bytes) => serde_json::from_slice(&bytes).map(Some).map_err(Error::storage),
             None => Ok(None),
         }
     }
@@ -223,7 +201,7 @@ impl<K: KvStore, T: Clock, A: SwapAudit> KvPegStore<K, T, A> {
         Ok(out)
     }
 
-    /// Port of `updatePegProgress`: sets only the given fields. No-op if absent.
+    /// Sets only the given fields. No-op if absent.
     async fn update(
         &self,
         order_id: &str,
@@ -232,9 +210,7 @@ impl<K: KvStore, T: Clock, A: SwapAudit> KvPegStore<K, T, A> {
         payout_tx_id: Option<&str>,
         error_message: Option<&str>,
     ) -> Result<()> {
-        let Some(mut rec) = self.get(order_id).await? else {
-            return Ok(());
-        };
+        let Some(mut rec) = self.get(order_id).await? else { return Ok(()) };
         if let Some(s) = status {
             rec.status = s.to_owned();
         }
@@ -277,16 +253,12 @@ impl<K: KvStore, T: Clock, A: SwapAudit> PegStore for KvPegStore<K, T, A> {
         };
         self.put(&rec).await?;
         // History annotation is never worth failing a peg over.
-        let _ = self
-            .audit
-            .record_pending(PendingSwapAudit::for_peg(order, amount_sat))
-            .await;
+        let _ = self.audit.record_pending(PendingSwapAudit::for_peg(order, amount_sat)).await;
         Ok(())
     }
 
     async fn record_funded(&self, order_id: &str, funding_tx_id: &str) -> Result<()> {
-        self.update(order_id, None, Some(funding_tx_id), None, None)
-            .await
+        self.update(order_id, None, Some(funding_tx_id), None, None).await
     }
 
     async fn record_terminal(
@@ -296,14 +268,7 @@ impl<K: KvStore, T: Clock, A: SwapAudit> PegStore for KvPegStore<K, T, A> {
         payout_tx_id: Option<&str>,
         error_message: Option<&str>,
     ) -> Result<()> {
-        self.update(
-            order_id,
-            Some(status_for(phase)),
-            None,
-            payout_tx_id,
-            error_message,
-        )
-        .await
+        self.update(order_id, Some(status_for(phase)), None, payout_tx_id, error_message).await
     }
 }
 
@@ -341,10 +306,7 @@ mod tests {
     struct RecAudit(Arc<Mutex<Vec<PendingSwapAudit>>>);
 
     impl SwapAudit for RecAudit {
-        fn record_pending(
-            &self,
-            entry: PendingSwapAudit,
-        ) -> impl Future<Output = Result<()>> + MaybeSend {
+        fn record_pending(&self, entry: PendingSwapAudit) -> impl Future<Output = Result<()>> + MaybeSend {
             self.0.lock().unwrap().push(entry);
             ready(Err(Error::Storage("audit down".into())))
         }
@@ -357,55 +319,28 @@ mod tests {
         let audit = RecAudit::default();
         let store = KvPegStore::new(kv.clone(), clock.clone(), "w1").with_audit(audit.clone());
         block_on(async {
-            store
-                .record_created(&order("b", PegDirection::PegOut), 30_000)
-                .await
-                .unwrap();
+            store.record_created(&order("b", PegDirection::PegOut), 30_000).await.unwrap();
             clock.advance(10);
-            store
-                .record_created(&order("a", PegDirection::PegIn), 50_000)
-                .await
-                .unwrap();
+            store.record_created(&order("a", PegDirection::PegIn), 50_000).await.unwrap();
             // Idempotent.
-            store
-                .record_created(&order("a", PegDirection::PegIn), 99)
-                .await
-                .unwrap();
+            store.record_created(&order("a", PegDirection::PegIn), 99).await.unwrap();
             assert_eq!(store.get("a").await.unwrap().unwrap().amount, 50_000);
 
             let active = store.load_active_pegs().await.unwrap();
-            assert_eq!(
-                active
-                    .iter()
-                    .map(|p| p.order_id.as_str())
-                    .collect::<Vec<_>>(),
-                ["b", "a"]
-            );
+            assert_eq!(active.iter().map(|p| p.order_id.as_str()).collect::<Vec<_>>(), ["b", "a"]);
             assert_eq!(active[0].phase, PegPhase::AwaitingDeposit);
 
             store.record_funded("b", "lwk-txid").await.unwrap();
             let active = store.load_active_pegs().await.unwrap();
-            assert_eq!(
-                (active[0].phase, active[0].funding_tx_id.as_deref()),
-                (PegPhase::Detected, Some("lwk-txid"))
-            );
+            assert_eq!((active[0].phase, active[0].funding_tx_id.as_deref()), (PegPhase::Detected, Some("lwk-txid")));
 
             clock.advance(5);
-            store
-                .record_terminal("b", PegPhase::Completed, Some("btc-payout"), None)
-                .await
-                .unwrap();
+            store.record_terminal("b", PegPhase::Completed, Some("btc-payout"), None).await.unwrap();
             let b = store.get("b").await.unwrap().unwrap();
-            assert_eq!(
-                (b.status.as_str(), b.payout_tx_id.as_deref()),
-                ("completed", Some("btc-payout"))
-            );
+            assert_eq!((b.status.as_str(), b.payout_tx_id.as_deref()), ("completed", Some("btc-payout")));
             assert_eq!(b.funding_tx_id.as_deref(), Some("lwk-txid"));
             assert_eq!(b.updated_at_ms, Some(1_015));
-            store
-                .record_terminal("a", PegPhase::InsufficientAmount, None, Some("x"))
-                .await
-                .unwrap();
+            store.record_terminal("a", PegPhase::InsufficientAmount, None, Some("x")).await.unwrap();
             assert!(store.load_active_pegs().await.unwrap().is_empty());
             // Unknown order is a no-op.
             store.record_funded("zzz", "t").await.unwrap();
@@ -414,13 +349,7 @@ mod tests {
         // Audit failure is swallowed; one entry per new order.
         let entries = audit.0.lock().unwrap();
         assert_eq!(entries.len(), 2);
-        assert_eq!(
-            (
-                entries[1].direction.as_str(),
-                entries[1].send_asset.as_str()
-            ),
-            ("btc_to_lbtc", "BTC")
-        );
+        assert_eq!((entries[1].direction.as_str(), entries[1].send_asset.as_str()), ("btc_to_lbtc", "BTC"));
         assert_eq!(entries[0].metadata["orderId"], "b");
         // Other wallets are isolated.
         let other = KvPegStore::new(kv, clock, "w2");
@@ -438,10 +367,7 @@ mod tests {
     #[test]
     fn status_strings() {
         assert_eq!(status_for(PegPhase::Failed), "failed");
-        assert_eq!(
-            status_for(PegPhase::InsufficientAmount),
-            "insufficient_amount"
-        );
+        assert_eq!(status_for(PegPhase::InsufficientAmount), "insufficient_amount");
         assert_eq!(status_for(PegPhase::Processing), "pending");
     }
 }

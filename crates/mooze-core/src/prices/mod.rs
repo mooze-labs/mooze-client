@@ -1,4 +1,4 @@
-//! Fiat prices for the wallet assets. Port of `lib/shared/prices/**`.
+//! Fiat prices for the wallet assets.
 //!
 //! Sources: Binance (`data-api.binance.vision`) and CoinGecko. [`CachedPriceService`] keeps the
 //! last price in a [`KvStore`](crate::ports::KvStore). [`HybridPriceService`] falls back from the
@@ -16,25 +16,21 @@ use std::future::Future;
 use serde::{Deserialize, Serialize};
 
 pub use binance::{
-    BinanceClient, BinanceDailyPriceVariationService, BinancePriceService, BINANCE_API_URL,
-    BINANCE_CACHE_TTL_MS, BINANCE_SYMBOLS,
+    BinanceClient, BinanceDailyPriceVariationService, BinancePriceService, BINANCE_API_URL, BINANCE_CACHE_TTL_MS,
+    BINANCE_SYMBOLS,
 };
 pub use cache::{CachedPriceData, CachedPriceService, PriceCacheService, CACHE_KEY_PREFIX};
 pub use coingecko::{CoingeckoPriceService, COINGECKO_BASE_URL};
 pub use hybrid::{Connectivity, HybridPriceService, StandardHybridPriceService};
-pub use quotes::{
-    PriceQuote, PriceQuotes, PriceQuotesStore, PRICE_REFRESH_INTERVAL_MS, QUOTE_ASSETS,
-};
+pub use quotes::{PriceQuote, PriceQuotes, PriceQuotesStore, PRICE_REFRESH_INTERVAL_MS, QUOTE_ASSETS};
 pub use settings::{CurrencyController, CurrencyItem, PriceSettingsRepository};
 
 use crate::domain::Asset;
 use crate::ports::{MaybeSend, MaybeSync};
 use crate::Result;
 
-/// Fiat currency for prices. Dart `Currency`.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, Default,
-)]
+/// Fiat currency for prices.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Currency {
     #[default]
@@ -43,7 +39,7 @@ pub enum Currency {
 }
 
 impl Currency {
-    /// Lower-case name, same as Dart `Currency.name`. Used in URLs and storage keys.
+    /// Lower-case name. Used in URLs and storage keys.
     pub fn name(self) -> &'static str {
         match self {
             Currency::Brl => "brl",
@@ -59,7 +55,7 @@ impl Currency {
         }
     }
 
-    /// Symbol: `R$` or `$`. Dart `CurrencyNotifier.icon`.
+    /// Symbol: `R$` or `$`.
     pub fn symbol(self) -> &'static str {
         match self {
             Currency::Brl => "R$",
@@ -67,7 +63,7 @@ impl Currency {
         }
     }
 
-    /// Case-insensitive lookup by code. Dart `currencyFromCode`.
+    /// Case-insensitive lookup by code.
     pub fn from_code(code: &str) -> Option<Currency> {
         match code.to_lowercase().as_str() {
             "brl" => Some(Currency::Brl),
@@ -77,7 +73,7 @@ impl Currency {
     }
 }
 
-/// Price provider. Dart `PriceSource`.
+/// Price provider.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum PriceSource {
@@ -87,7 +83,7 @@ pub enum PriceSource {
 }
 
 impl PriceSource {
-    /// Lower-case name, same as Dart `PriceSource.name`.
+    /// Lower-case name.
     pub fn name(self) -> &'static str {
         match self {
             PriceSource::Binance => "binance",
@@ -96,14 +92,14 @@ impl PriceSource {
     }
 }
 
-/// Currency and source the user picked. Dart `PriceServiceConfig`.
+/// Currency and source the user picked.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct PriceServiceConfig {
     pub currency: Currency,
     pub price_source: PriceSource,
 }
 
-/// Candle interval for Binance klines. Dart `KlineInterval`.
+/// Candle interval for Binance klines.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KlineInterval {
     OneHour,
@@ -126,29 +122,23 @@ impl KlineInterval {
     }
 }
 
-/// Price of one asset in a fiat currency. Dart `PriceService`.
+/// Price of one asset in a fiat currency.
 pub trait PriceService: MaybeSend + MaybeSync {
     /// Default currency of the service.
     fn currency(&self) -> Currency;
 
     /// Price of one whole unit of `asset`. `None` means no price is known.
     /// `currency` overrides the default currency.
-    fn get_coin_price(
-        &self,
-        asset: Asset,
-        currency: Option<Currency>,
-    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend;
+    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
+        -> impl Future<Output = Result<Option<f64>>> + MaybeSend;
 }
 
 impl<T: PriceService + ?Sized> PriceService for std::sync::Arc<T> {
     fn currency(&self) -> Currency {
         (**self).currency()
     }
-    fn get_coin_price(
-        &self,
-        asset: Asset,
-        currency: Option<Currency>,
-    ) -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
+    fn get_coin_price(&self, asset: Asset, currency: Option<Currency>)
+        -> impl Future<Output = Result<Option<f64>>> + MaybeSend {
         (**self).get_coin_price(asset, currency)
     }
 }

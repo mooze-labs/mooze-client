@@ -1,7 +1,6 @@
 //! Merchant products and their store.
 //!
-//! Port of `ProductEntity`, the product use cases and `ProductDriftDataSource`
-//! (`lib/features/merchant/**`). Prices are BRL `f64`, as in Dart.
+//! Prices are BRL `f64`.
 
 use serde::{Deserialize, Serialize};
 
@@ -31,12 +30,7 @@ pub struct Product {
 impl Product {
     /// Unsaved product.
     pub fn new(name: impl Into<String>, price: f64, created_at_ms: u64) -> Self {
-        Self {
-            id: None,
-            name: name.into(),
-            price,
-            created_at_ms,
-        }
+        Self { id: None, name: name.into(), price, created_at_ms }
     }
 
     /// True if the name is not empty and the price is above zero.
@@ -49,7 +43,7 @@ impl Product {
         if self.name.is_empty() {
             return Some(PRODUCT_NAME_EMPTY);
         }
-        // NOTE(port): NaN passes `price <= 0` in Dart too.
+        // NOTE: NaN passes `price <= 0` by design.
         if self.price <= 0.0 {
             return Some(PRODUCT_PRICE_INVALID);
         }
@@ -70,7 +64,7 @@ impl<K: KvStore> ProductStore<K> {
     }
 
     fn check_name_len(name: &str) -> Result<()> {
-        // Drift column limit: 1..=255 characters.
+        // Column limit: 1..=255 characters.
         if name.chars().count() > 255 {
             return Err(Error::invalid("product name longer than 255"));
         }
@@ -84,10 +78,7 @@ impl<K: KvStore> ProductStore<K> {
         }
         Self::check_name_len(&product.name)?;
         let id = next_id(&self.kv, SEQ).await?;
-        let row = Product {
-            id: Some(id),
-            ..product.clone()
-        };
+        let row = Product { id: Some(id), ..product.clone() };
         put_json(&self.kv, &id_key(ROWS, id), &row).await?;
         Ok(id)
     }
@@ -96,21 +87,14 @@ impl<K: KvStore> ProductStore<K> {
     /// migration. Skips validation: old rows stay readable even if they
     /// break today's rules. Replaces a product with the same id.
     pub async fn import(&self, product: &Product) -> Result<()> {
-        let id = product
-            .id
-            .filter(|id| *id > 0)
-            .ok_or_else(|| Error::invalid("imported product needs a positive id"))?;
+        let id = product.id.filter(|id| *id > 0).ok_or_else(|| Error::invalid("imported product needs a positive id"))?;
         put_json(&self.kv, &id_key(ROWS, id), product).await?;
         bump_seq(&self.kv, SEQ, id).await
     }
 
-    /// Every product in id order (drift select without `ORDER BY`).
+    /// Every product in id order.
     pub async fn get_all(&self) -> Result<Vec<Product>> {
-        Ok(list_json(&self.kv, ROWS)
-            .await?
-            .into_iter()
-            .map(|(_, p)| p)
-            .collect())
+        Ok(list_json(&self.kv, ROWS).await?.into_iter().map(|(_, p)| p).collect())
     }
 
     /// One product, or `None`.
@@ -154,14 +138,8 @@ mod tests {
 
     #[test]
     fn validation_codes() {
-        assert_eq!(
-            Product::new("", 1.0, 0).validate(),
-            Some(PRODUCT_NAME_EMPTY)
-        );
-        assert_eq!(
-            Product::new("Café", 0.0, 0).validate(),
-            Some(PRODUCT_PRICE_INVALID)
-        );
+        assert_eq!(Product::new("", 1.0, 0).validate(), Some(PRODUCT_NAME_EMPTY));
+        assert_eq!(Product::new("Café", 0.0, 0).validate(), Some(PRODUCT_PRICE_INVALID));
         assert!(Product::new("Café", 4.5, 0).is_valid());
     }
 
@@ -172,37 +150,20 @@ mod tests {
             let a = s.create(&Product::new("Café", 4.5, 1)).await.unwrap();
             let b = s.create(&Product::new("Pão", 1.25, 2)).await.unwrap();
             assert!(s.create(&Product::new("", 1.0, 3)).await.is_err());
-            assert_eq!(
-                s.get_all()
-                    .await
-                    .unwrap()
-                    .iter()
-                    .map(|p| p.id)
-                    .collect::<Vec<_>>(),
-                [Some(a), Some(b)]
-            );
+            assert_eq!(s.get_all().await.unwrap().iter().map(|p| p.id).collect::<Vec<_>>(), [Some(a), Some(b)]);
 
             let mut p = s.get_by_id(a).await.unwrap().unwrap();
             p.price = 5.0;
             assert!(s.update(&p).await.unwrap());
             assert_eq!(s.get_by_id(a).await.unwrap().unwrap().price, 5.0);
-            assert!(!s
-                .update(&Product {
-                    id: Some(99),
-                    ..p.clone()
-                })
-                .await
-                .unwrap());
+            assert!(!s.update(&Product { id: Some(99), ..p.clone() }).await.unwrap());
             assert!(s.update(&Product { id: None, ..p }).await.is_err());
 
             assert!(s.delete(0).await.is_err());
             assert!(s.delete(a).await.unwrap());
             assert!(!s.delete(a).await.unwrap());
             // Ids never repeat after delete.
-            assert_eq!(
-                s.create(&Product::new("Bolo", 9.0, 4)).await.unwrap(),
-                b + 1
-            );
+            assert_eq!(s.create(&Product::new("Bolo", 9.0, 4)).await.unwrap(), b + 1);
         });
     }
 }

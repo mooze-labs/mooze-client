@@ -1,7 +1,6 @@
 //! Decides which transaction events become "transaction received" notifications.
 //!
-//! Port of the decision logic of `V2TransactionNotifier`
-//! (`lib/infra/notification/transaction_notifier_impl.dart`). Display is out of scope.
+//! Display is out of scope.
 //!
 //! Emission needs three gates: baseline ready, home reached, app in foreground.
 //! Dedup goes through [`NotifiedTxRegistry`], so a restart never shows a tx twice.
@@ -11,8 +10,8 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::{
-    Asset, ChainId, Transaction, TransactionDirection, TransactionEvent, TransactionStatus,
-    BTC_ASSET_ID, LBTC_ASSET_ID,
+    Asset, ChainId, Transaction, TransactionDirection, TransactionEvent, TransactionStatus, BTC_ASSET_ID,
+    LBTC_ASSET_ID,
 };
 use crate::ports::KvStore;
 use crate::store::NotifiedTxRegistry;
@@ -20,12 +19,11 @@ use crate::store::NotifiedTxRegistry;
 use super::orchestrator::SyncState;
 
 /// Chains that must finish a first sync before the baseline snapshot.
-pub const BASELINE_GATE_CHAINS: [ChainId; 3] =
-    [ChainId::Liquid, ChainId::Bitcoin, ChainId::Lightning];
+pub const BASELINE_GATE_CHAINS: [ChainId; 3] = [ChainId::Liquid, ChainId::Bitcoin, ChainId::Lightning];
 /// Longest wait for the first sync before the baseline snapshot runs anyway.
 pub const FIRST_SYNC_MAX_WAIT_MS: u64 = 90_000;
 
-/// One user-facing notification (Dart `TransactionStatusEvent`).
+/// One user-facing notification.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TxNotification {
     pub transaction_id: String,
@@ -47,9 +45,7 @@ pub enum BaselinePhase {
 
 /// True when every chain in [`BASELINE_GATE_CHAINS`] has synced once.
 pub fn first_sync_settled(state: &SyncState) -> bool {
-    BASELINE_GATE_CHAINS
-        .iter()
-        .all(|c| state.first_synced_chains.contains(c))
+    BASELINE_GATE_CHAINS.iter().all(|c| state.first_synced_chains.contains(c))
 }
 
 /// Fallback asset id when the record has none. Bitcoin maps to BTC, Lightning to L-BTC.
@@ -63,13 +59,9 @@ pub fn default_asset_id_for_chain(chain: ChainId) -> Option<&'static str> {
 
 /// Ticker for an asset id.
 ///
-/// NOTE(port): the legacy Dart `Asset.fromId` falls back to BTC and never
-/// throws, so unknown ids show "BTC" and the id-prefix fallback is dead code.
+/// NOTE: unknown ids fall back to BTC and show "BTC" by design.
 pub fn ticker_for(asset_id: &str) -> String {
-    Asset::from_id(asset_id)
-        .unwrap_or(Asset::Btc)
-        .ticker()
-        .to_owned()
+    Asset::from_id(asset_id).unwrap_or(Asset::Btc).ticker().to_owned()
 }
 
 /// Twin chain used to dedup cross-chain copies of one receive across restarts.
@@ -77,11 +69,7 @@ fn twin_chain(tx: &Transaction) -> Option<ChainId> {
     match tx.chain {
         ChainId::Lightning => Some(ChainId::Liquid),
         ChainId::Bitcoin => tx.swap_claim_tx_id.as_ref().map(|_| ChainId::Liquid),
-        ChainId::Liquid => Some(if tx.swap_claim_tx_id.is_some() {
-            ChainId::Bitcoin
-        } else {
-            ChainId::Lightning
-        }),
+        ChainId::Liquid => Some(if tx.swap_claim_tx_id.is_some() { ChainId::Bitcoin } else { ChainId::Lightning }),
         ChainId::Aggregate => None,
     }
 }
@@ -152,18 +140,13 @@ impl<K: KvStore> TransactionNotifier<K> {
     /// Absorbs `stored` (the full transaction store) into the ledger without
     /// notifying, sets the baseline flag, then replays buffered events.
     ///
-    /// Storage failures are logged in Dart and do not block readiness.
-    pub async fn complete_baseline(
-        &mut self,
-        stored: &[Transaction],
-        now_ms: u64,
-    ) -> Vec<TxNotification> {
+    /// Storage failures do not block readiness.
+    pub async fn complete_baseline(&mut self, stored: &[Transaction], now_ms: u64) -> Vec<TxNotification> {
         if self.baseline == BaselinePhase::Ready {
             return Vec::new();
         }
         if !stored.is_empty() {
-            let entries: Vec<(ChainId, String)> =
-                stored.iter().map(|t| (t.chain, t.id.clone())).collect();
+            let entries: Vec<(ChainId, String)> = stored.iter().map(|t| (t.chain, t.id.clone())).collect();
             let _ = self.registry.bulk_mark(&entries, now_ms).await;
         }
         let _ = self.registry.set_baseline_complete().await;
@@ -183,11 +166,7 @@ impl<K: KvStore> TransactionNotifier<K> {
     /// Handles store change events. Returns notifications to show now.
     ///
     /// Events buffer while the baseline initializes.
-    pub async fn on_events(
-        &mut self,
-        events: &[TransactionEvent],
-        now_ms: u64,
-    ) -> Vec<TxNotification> {
+    pub async fn on_events(&mut self, events: &[TransactionEvent], now_ms: u64) -> Vec<TxNotification> {
         if self.baseline == BaselinePhase::Initializing {
             self.init_buffer.extend_from_slice(events);
             return Vec::new();
@@ -237,16 +216,9 @@ impl<K: KvStore> TransactionNotifier<K> {
         std::mem::take(&mut self.pending)
     }
 
-    async fn process_event(
-        &mut self,
-        event: &TransactionEvent,
-        now_ms: u64,
-    ) -> Option<TxNotification> {
+    async fn process_event(&mut self, event: &TransactionEvent, now_ms: u64) -> Option<TxNotification> {
         let tx = &event.transaction;
-        let is_plain_receive = matches!(
-            tx.direction,
-            TransactionDirection::Incoming | TransactionDirection::Internal
-        );
+        let is_plain_receive = matches!(tx.direction, TransactionDirection::Incoming | TransactionDirection::Internal);
         let is_swap = tx.direction == TransactionDirection::Swap;
         if !is_plain_receive && !is_swap {
             return None;
@@ -255,12 +227,7 @@ impl<K: KvStore> TransactionNotifier<K> {
             return None;
         }
         // Persisted dedup. A storage failure counts as "already seen".
-        if !self
-            .registry
-            .mark_if_new(tx.chain, &tx.id, now_ms)
-            .await
-            .unwrap_or(false)
-        {
+        if !self.registry.mark_if_new(tx.chain, &tx.id, now_ms).await.unwrap_or(false) {
             return None;
         }
         // Wallet history restored after import never notifies.
@@ -275,10 +242,7 @@ impl<K: KvStore> TransactionNotifier<K> {
                 _ => return None,
             }
         } else {
-            let asset = tx
-                .asset_id
-                .clone()
-                .or_else(|| default_asset_id_for_chain(tx.chain).map(str::to_owned))?;
+            let asset = tx.asset_id.clone().or_else(|| default_asset_id_for_chain(tx.chain).map(str::to_owned))?;
             (asset, tx.amount_sat)
         };
         let note = TxNotification {
@@ -295,7 +259,7 @@ impl<K: KvStore> TransactionNotifier<K> {
             return None;
         }
         if let Some(twin) = twin_chain(tx) {
-            // Dart fires this without awaiting and ignores the result.
+            // Best-effort: the result is ignored.
             let _ = self.registry.mark_if_new(twin, &correlation, now_ms).await;
         }
 
@@ -312,7 +276,7 @@ impl<K: KvStore> TransactionNotifier<K> {
         &self.registry
     }
 
-    /// Clears volatile state. Dart `dispose`.
+    /// Clears volatile state.
     pub fn dispose(&mut self) {
         self.init_buffer.clear();
         self.pending.clear();
@@ -352,10 +316,7 @@ mod tests {
             n.set_home_reached();
             let old = confirmed("old", ChainId::Bitcoin, TransactionDirection::Incoming, 1);
             let new = confirmed("new", ChainId::Bitcoin, TransactionDirection::Incoming, 2);
-            assert!(n
-                .on_events(&[ev(old.clone()), ev(new.clone())], 1_100)
-                .await
-                .is_empty());
+            assert!(n.on_events(&[ev(old.clone()), ev(new.clone())], 1_100).await.is_empty());
 
             let mut sync = SyncState::default();
             assert!(!n.should_complete_baseline(&sync, 1_500));
@@ -393,14 +354,8 @@ mod tests {
             let rx = confirmed("a", ChainId::Liquid, TransactionDirection::Incoming, 5);
             let mut rx_with_asset = rx.clone();
             rx_with_asset.asset_id = Some(USDT_ASSET_ID.into());
-            assert_eq!(
-                n.on_events(&[ev(rx_with_asset.clone())], 1).await[0].asset_ticker,
-                "USDT"
-            );
-            assert!(n
-                .on_events(&[ev(rx_with_asset.clone())], 2)
-                .await
-                .is_empty());
+            assert_eq!(n.on_events(&[ev(rx_with_asset.clone())], 1).await[0].asset_ticker, "USDT");
+            assert!(n.on_events(&[ev(rx_with_asset.clone())], 2).await.is_empty());
 
             // New process, same storage: no repeat.
             let mut n2 = ready_notifier(kv).await;
@@ -411,10 +366,7 @@ mod tests {
             let mut pend = confirmed("p", ChainId::Bitcoin, TransactionDirection::Incoming, 5);
             pend.status = TransactionStatus::Pending;
             let no_asset = confirmed("n", ChainId::Liquid, TransactionDirection::Incoming, 5);
-            assert!(n2
-                .on_events(&[ev(out), ev(pend), ev(no_asset)], 4)
-                .await
-                .is_empty());
+            assert!(n2.on_events(&[ev(out), ev(pend), ev(no_asset)], 4).await.is_empty());
         });
     }
 
@@ -426,10 +378,7 @@ mod tests {
             s.to_asset_id = Some(LBTC_ASSET_ID.into());
             s.received_amount_sat = Some(1234);
             let out = n.on_events(&[ev(s)], 1).await;
-            assert_eq!(
-                (out[0].amount, out[0].asset_ticker.as_str()),
-                (1234, "BTC L2")
-            );
+            assert_eq!((out[0].amount, out[0].asset_ticker.as_str()), (1234, "BTC L2"));
             let mut bad = confirmed("bad", ChainId::Liquid, TransactionDirection::Swap, 5);
             bad.to_asset_id = Some(LBTC_ASSET_ID.into());
             bad.received_amount_sat = Some(0);
@@ -449,12 +398,7 @@ mod tests {
             let before = confirmed("b", ChainId::Bitcoin, TransactionDirection::Incoming, 99);
             let after = confirmed("c", ChainId::Bitcoin, TransactionDirection::Incoming, 100);
             let out = n.on_events(&[ev(before), ev(after)], 1).await;
-            assert_eq!(
-                out.iter()
-                    .map(|o| o.transaction_id.as_str())
-                    .collect::<Vec<_>>(),
-                ["c"]
-            );
+            assert_eq!(out.iter().map(|o| o.transaction_id.as_str()).collect::<Vec<_>>(), ["c"]);
             assert!(n.registry().contains(ChainId::Bitcoin, "b").await.unwrap());
         });
     }

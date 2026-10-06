@@ -1,7 +1,5 @@
 //! Address explorer records and listing logic.
 //!
-//! Port of the pure parts of `AddressExplorerRepositoryImpl`
-//! (`lib/features/address_explorer/data/repositories/address_explorer_repository_impl.dart`).
 //! The wallet module derives addresses and lists UTXOs. These functions
 //! group them into [`WalletAddress`] rows and answer ownership probes.
 
@@ -77,14 +75,7 @@ pub struct AddressMatch {
 impl AddressMatch {
     /// Address not owned by the wallet.
     pub fn not_owned(address: impl Into<String>) -> Self {
-        Self {
-            address: address.into(),
-            is_owned: false,
-            chain: None,
-            status: None,
-            derivation_index: None,
-            utxos: vec![],
-        }
+        Self { address: address.into(), is_owned: false, chain: None, status: None, derivation_index: None, utxos: vec![] }
     }
 
     /// Owned address.
@@ -95,14 +86,7 @@ impl AddressMatch {
         derivation_index: Option<u32>,
         utxos: Vec<AddressUtxo>,
     ) -> Self {
-        Self {
-            address: address.into(),
-            is_owned: true,
-            chain: Some(chain),
-            status: Some(status),
-            derivation_index,
-            utxos,
-        }
+        Self { address: address.into(), is_owned: true, chain: Some(chain), status: Some(status), derivation_index, utxos }
     }
 
     /// Number of unspent outputs.
@@ -133,7 +117,7 @@ pub struct WalletOutput {
 /// Builds the address list from derived addresses, outputs and history keys.
 ///
 /// An address is used if it holds an unspent output or appears in `history_keys`.
-/// Rows sort by derivation index. When two indexes share a key, the later one wins, as in Dart.
+/// Rows sort by derivation index. When two indexes share a key, the later one wins.
 pub fn build_address_list(
     chain: AddressChain,
     derived: &[DerivedAddress],
@@ -147,10 +131,7 @@ pub fn build_address_list(
     let mut utxos_by_key: BTreeMap<&str, Vec<&WalletOutput>> = BTreeMap::new();
     for o in outputs.iter().filter(|o| !o.is_spent) {
         if by_key.contains_key(o.match_key.as_str()) {
-            utxos_by_key
-                .entry(o.match_key.as_str())
-                .or_default()
-                .push(o);
+            utxos_by_key.entry(o.match_key.as_str()).or_default().push(o);
         }
     }
     let mut out: Vec<WalletAddress> = by_key
@@ -164,11 +145,7 @@ pub fn build_address_list(
             WalletAddress {
                 address: d.display.clone(),
                 chain,
-                status: if used {
-                    AddressStatus::Used
-                } else {
-                    AddressStatus::Unused
-                },
+                status: if used { AddressStatus::Used } else { AddressStatus::Unused },
                 derivation_index: d.index,
                 received_sats: utxos.iter().map(|u| u.value).sum(),
                 utxos,
@@ -210,12 +187,8 @@ pub fn bitcoin_owned_match(
         .filter(|o| !o.is_spent && o.match_key == script_key)
         .map(|o| to_utxo(AddressChain::Bitcoin, address, o))
         .collect();
-    // NOTE(port): Dart decides "used" only from the used-script set, not from UTXOs.
-    let status = if used_script_keys.contains(script_key) {
-        AddressStatus::Used
-    } else {
-        AddressStatus::Unused
-    };
+    // NOTE: The "used" status comes only from the used-script set, not from UTXOs.
+    let status = if used_script_keys.contains(script_key) { AddressStatus::Used } else { AddressStatus::Unused };
     AddressMatch::owned(address, AddressChain::Bitcoin, status, index, utxos)
 }
 
@@ -250,11 +223,7 @@ pub fn liquid_owned_match(
         .map(|o| to_utxo(AddressChain::Liquid, address, o))
         .collect();
     let used = !utxos.is_empty() || history_keys.contains(&d.standard);
-    let status = if used {
-        AddressStatus::Used
-    } else {
-        AddressStatus::Unused
-    };
+    let status = if used { AddressStatus::Used } else { AddressStatus::Unused };
     AddressMatch::owned(address, AddressChain::Liquid, status, Some(d.index), utxos)
 }
 
@@ -263,38 +232,20 @@ mod tests {
     use super::*;
 
     fn d(i: u32, k: &str) -> DerivedAddress {
-        DerivedAddress {
-            index: i,
-            match_key: k.into(),
-            display: format!("addr{i}"),
-        }
+        DerivedAddress { index: i, match_key: k.into(), display: format!("addr{i}") }
     }
 
     fn o(k: &str, v: u64, spent: bool) -> WalletOutput {
-        WalletOutput {
-            match_key: k.into(),
-            outpoint: format!("tx:{v}"),
-            value: v,
-            asset_id: None,
-            is_spent: spent,
-        }
+        WalletOutput { match_key: k.into(), outpoint: format!("tx:{v}"), value: v, asset_id: None, is_spent: spent }
     }
 
     #[test]
     fn list_marks_used_and_sums_utxos() {
         let derived = [d(2, "s2"), d(0, "s0"), d(1, "s1")];
-        let outputs = [
-            o("s0", 10, false),
-            o("s0", 5, false),
-            o("s1", 7, true),
-            o("zz", 1, false),
-        ];
+        let outputs = [o("s0", 10, false), o("s0", 5, false), o("s1", 7, true), o("zz", 1, false)];
         let history = BTreeSet::from(["s1".to_string()]);
         let list = build_address_list(AddressChain::Bitcoin, &derived, &outputs, &history);
-        assert_eq!(
-            list.iter().map(|a| a.derivation_index).collect::<Vec<_>>(),
-            [0, 1, 2]
-        );
+        assert_eq!(list.iter().map(|a| a.derivation_index).collect::<Vec<_>>(), [0, 1, 2]);
         assert_eq!(list[0].received_sats, 15);
         assert!(list[0].is_used());
         assert!(list[1].is_used());
@@ -304,29 +255,13 @@ mod tests {
 
     #[test]
     fn ownership_probes() {
-        let m = bitcoin_owned_match(
-            "bc1x",
-            "s1",
-            &[d(0, "s0"), d(1, "s1")],
-            &[o("s1", 3, false)],
-            &BTreeSet::new(),
-        );
-        assert_eq!(
-            (m.derivation_index, m.status, m.utxo_count()),
-            (Some(1), Some(AddressStatus::Unused), 1)
-        );
+        let m = bitcoin_owned_match("bc1x", "s1", &[d(0, "s0"), d(1, "s1")], &[o("s1", 3, false)], &BTreeSet::new());
+        assert_eq!((m.derivation_index, m.status, m.utxo_count()), (Some(1), Some(AddressStatus::Unused), 1));
 
-        let ld = [LiquidDerived {
-            index: 4,
-            standard: "ex1".into(),
-            confidential: "lq1".into(),
-        }];
+        let ld = [LiquidDerived { index: 4, standard: "ex1".into(), confidential: "lq1".into() }];
         let m = liquid_owned_match("lq1", &ld, &[], &BTreeSet::from(["ex1".to_string()]));
         assert!(m.is_owned);
-        assert_eq!(
-            (m.derivation_index, m.status),
-            (Some(4), Some(AddressStatus::Used))
-        );
+        assert_eq!((m.derivation_index, m.status), (Some(4), Some(AddressStatus::Used)));
         assert!(!liquid_owned_match("other", &ld, &[], &BTreeSet::new()).is_owned);
     }
 }

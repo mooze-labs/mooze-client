@@ -1,13 +1,11 @@
-//! Session lifecycle. Port of `SessionManagerServiceImpl`,
-//! `RemoteAuthServiceImpl` and the logic of `ensureAuthSessionProvider`.
+//! Session lifecycle: load, refresh, create and boot-time check.
 //!
 //! Storage: the JWT and the refresh token live in [`SecureStore`] under the
 //! keys `jwt` and `refresh_token`, as raw UTF-8 strings. This matches the
-//! Flutter secure storage layout, so existing installs keep their session.
+//! `flutter_secure_storage` layout, so existing installs keep their session.
 //!
-//! NOTE(port): Dart coalesces concurrent `getSession`/refresh/create calls
-//! into one in-flight future. The core has no executor to share futures;
-//! the platform should serialize calls. The generation counter is kept, so
+//! NOTE: The manager does not coalesce concurrent get, refresh or create calls.
+//! The core has no executor to share futures. The platform must serialize calls. The generation counter is kept, so
 //! a write from a request that started before `delete_session` is dropped.
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -17,9 +15,7 @@ use serde_json::{json, Value};
 
 use super::session::{AuthChallenge, Session};
 use super::signature::{AuthKeyPair, ChallengeSigner};
-use crate::api::{
-    data_object_or_self, detect_server_error, join_url, SessionProvider, DEFAULT_BASE_URL,
-};
+use crate::api::{data_object_or_self, detect_server_error, join_url, SessionProvider, DEFAULT_BASE_URL};
 use crate::domain::WalletCredentials;
 use crate::ports::{Clock, HttpClient, HttpMethod, HttpRequest, MaybeSend, SecureStore};
 use crate::{Error, Result};
@@ -28,7 +24,7 @@ use crate::{Error, Result};
 pub const JWT_KEY: &str = "jwt";
 /// Secure-store key of the refresh token.
 pub const REFRESH_TOKEN_KEY: &str = "refresh_token";
-/// Timeout of auth requests (Dart: 10 s connect/receive/send).
+/// Timeout of auth requests.
 pub const AUTH_TIMEOUT_MS: u64 = 10_000;
 
 /// Refresh answered 404.
@@ -38,24 +34,23 @@ pub const REFRESH_TOKEN_UNAUTHORIZED: &str = "REFRESH_TOKEN_UNAUTHORIZED";
 /// Refresh answered without a JWT.
 pub const JWT_NULL_IN_REFRESH_RESPONSE: &str = "JWT_NULL_IN_REFRESH_RESPONSE";
 /// No signer configured (no mnemonic).
-pub const REMOTE_AUTH_NOT_CONFIGURED: &str =
-    "RemoteAuthService not configured to create new session";
+pub const REMOTE_AUTH_NOT_CONFIGURED: &str = "RemoteAuthService not configured to create new session";
 /// The device failed the integrity check.
 pub const UNSAFE_DEVICE: &str = "Unsafe device detected";
 
-/// Result of [`SessionManager::ensure`]. Mirrors the flags the Dart provider sets.
+/// Result of [`SessionManager::ensure`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EnsureOutcome {
     /// A valid session exists.
     Ready,
-    /// No mnemonic, so no signer (Dart "mnemonic not found" sync error).
+    /// No mnemonic, so no signer.
     MissingMnemonic,
-    /// The backend looks down (Dart `apiDownProvider`, `apiStatusCodeProvider`).
+    /// The backend looks down.
     ApiDown {
         /// The 5xx status, if the error text contains one.
         status_code: Option<u16>,
     },
-    /// Any other failure (Dart `syncErrorMessageProvider`).
+    /// Any other failure.
     Failed {
         /// Error text.
         message: String,
@@ -64,21 +59,13 @@ pub enum EnsureOutcome {
 
 /// Builds the `POST /auth/challenge` request.
 pub fn challenge_request(base_url: &str, public_key_b64: &str) -> Result<HttpRequest> {
-    Ok(HttpRequest::json(
-        HttpMethod::Post,
-        join_url(base_url, "/auth/challenge"),
-        &json!({"public_key": public_key_b64}),
-    )?
-    .header("Accept", "application/json")
-    .timeout_ms(AUTH_TIMEOUT_MS))
+    Ok(HttpRequest::json(HttpMethod::Post, join_url(base_url, "/auth/challenge"), &json!({"public_key": public_key_b64}))?
+        .header("Accept", "application/json")
+        .timeout_ms(AUTH_TIMEOUT_MS))
 }
 
 /// Builds the `POST /auth/sign` request.
-pub fn sign_request(
-    base_url: &str,
-    challenge_id: &str,
-    signature_b64: &str,
-) -> Result<HttpRequest> {
+pub fn sign_request(base_url: &str, challenge_id: &str, signature_b64: &str) -> Result<HttpRequest> {
     Ok(HttpRequest::json(
         HttpMethod::Post,
         join_url(base_url, "/auth/sign"),
@@ -90,17 +77,12 @@ pub fn sign_request(
 
 /// Builds the `POST /auth/refresh` request.
 pub fn refresh_request(base_url: &str, refresh_token: &str) -> Result<HttpRequest> {
-    Ok(HttpRequest::json(
-        HttpMethod::Post,
-        join_url(base_url, "/auth/refresh"),
-        &json!({"refresh_token": refresh_token}),
-    )?
-    .timeout_ms(AUTH_TIMEOUT_MS))
+    Ok(HttpRequest::json(HttpMethod::Post, join_url(base_url, "/auth/refresh"), &json!({"refresh_token": refresh_token}))?
+        .timeout_ms(AUTH_TIMEOUT_MS))
 }
 
 /// Owns the API session: read, refresh, create, persist.
-pub struct SessionManager<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner = AuthKeyPair>
-{
+pub struct SessionManager<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner = AuthKeyPair> {
     http: H,
     store: S,
     clock: C,
@@ -113,20 +95,9 @@ pub struct SessionManager<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeS
 }
 
 impl<H: HttpClient, S: SecureStore, C: Clock> SessionManager<H, S, C, AuthKeyPair> {
-    /// Manager for the wallet credentials. Absent mnemonic means no signer,
-    /// as in Dart `sessionManagerServiceProvider`.
-    pub fn for_credentials(
-        http: H,
-        store: S,
-        clock: C,
-        base_url: &str,
-        credentials: &WalletCredentials,
-    ) -> Result<Self> {
-        let signer = if credentials.is_absent() {
-            None
-        } else {
-            Some(AuthKeyPair::from_seed(&credentials.mnemonic)?)
-        };
+    /// Manager for the wallet credentials. Absent mnemonic means no signer.
+    pub fn for_credentials(http: H, store: S, clock: C, base_url: &str, credentials: &WalletCredentials) -> Result<Self> {
+        let signer = if credentials.is_absent() { None } else { Some(AuthKeyPair::from_seed(&credentials.mnemonic)?) };
         Ok(Self::new(http, store, clock, base_url, signer))
     }
 }
@@ -134,11 +105,7 @@ impl<H: HttpClient, S: SecureStore, C: Clock> SessionManager<H, S, C, AuthKeyPai
 impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager<H, S, C, G> {
     /// New manager. `base_url` defaults to [`DEFAULT_BASE_URL`] when empty.
     pub fn new(http: H, store: S, clock: C, base_url: &str, signer: Option<G>) -> Self {
-        let base_url = if base_url.is_empty() {
-            DEFAULT_BASE_URL
-        } else {
-            base_url
-        };
+        let base_url = if base_url.is_empty() { DEFAULT_BASE_URL } else { base_url };
         Self {
             http,
             store,
@@ -151,7 +118,7 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
         }
     }
 
-    /// Sets the device integrity result (Dart `SafeDevice.isSafeDevice`).
+    /// Sets the device integrity result.
     /// Unsafe devices cannot request a login challenge.
     pub fn set_device_safe(&self, safe: bool) {
         self.device_safe.store(safe, Ordering::SeqCst);
@@ -196,12 +163,12 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
         Ok(())
     }
 
-    /// Dart `SessionAuthenticator.invalidate`: same as [`Self::delete_session`].
+    /// Same as [`Self::delete_session`].
     pub async fn invalidate(&self) -> Result<()> {
         self.delete_session().await
     }
 
-    /// Boot-time session check (Dart `ensureAuthSessionProvider`).
+    /// Boot-time session check.
     ///
     /// Gets a session. On failure, deletes it and tries once more.
     /// Classifies the final failure as API-down or a plain error.
@@ -212,29 +179,25 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
         if self.get_session().await.is_ok() {
             return EnsureOutcome::Ready;
         }
-        // NOTE(port): Dart ignores the delete result here.
+        // NOTE: The delete result is ignored by design.
         let _ = self.delete_session().await;
         match self.get_session().await {
             Ok(_) => EnsureOutcome::Ready,
             Err(e) => match detect_server_error(&e) {
-                Some(info) => EnsureOutcome::ApiDown {
-                    status_code: info.status_code,
-                },
-                None => EnsureOutcome::Failed {
-                    message: e.to_string(),
-                },
+                Some(info) => EnsureOutcome::ApiDown { status_code: info.status_code },
+                None => EnsureOutcome::Failed { message: e.to_string() },
             },
         }
     }
 
-    /// Manual refresh (Dart `refreshAuthSessionProvider`). Returns success.
+    /// Manual refresh. Returns success.
     pub async fn refresh_current(&self) -> bool {
         match self.get_session().await {
             Err(_) => self.get_session().await.is_ok(),
             Ok(current) => match self.refresh_session(&current).await {
                 Err(_) => false,
                 Ok(refreshed) => {
-                    // NOTE(port): Dart ignores the save result.
+                    // NOTE: The save result is ignored by design.
                     let _ = self.save_session(&refreshed).await;
                     true
                 }
@@ -247,10 +210,7 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
         if !self.device_safe.load(Ordering::SeqCst) {
             return Err(Error::Session(UNSAFE_DEVICE.into()));
         }
-        let signer = self
-            .signer
-            .as_ref()
-            .ok_or_else(|| Error::Session(REMOTE_AUTH_NOT_CONFIGURED.into()))?;
+        let signer = self.signer.as_ref().ok_or_else(|| Error::Session(REMOTE_AUTH_NOT_CONFIGURED.into()))?;
         let request = challenge_request(&self.base_url, &signer.public_key_base64())?;
         let body: Value = self.http.send(request).await?.json()?;
         AuthChallenge::from_json(&body)
@@ -258,10 +218,7 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
 
     /// Signs `challenge` and exchanges it for a session.
     pub async fn sign_challenge(&self, challenge: &AuthChallenge) -> Result<Session> {
-        let signer = self
-            .signer
-            .as_ref()
-            .ok_or_else(|| Error::Session(REMOTE_AUTH_NOT_CONFIGURED.into()))?;
+        let signer = self.signer.as_ref().ok_or_else(|| Error::Session(REMOTE_AUTH_NOT_CONFIGURED.into()))?;
         let signature = signer.sign_message(&challenge.message)?;
         let request = sign_request(&self.base_url, &challenge.challenge_id, &signature)?;
         let body: Value = self.http.send(request).await?.json()?;
@@ -289,10 +246,7 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
 
     async fn do_refresh(&self, current: &Session) -> Result<Session> {
         let generation = self.generation.load(Ordering::SeqCst);
-        let response = self
-            .http
-            .send(refresh_request(&self.base_url, &current.refresh_token)?)
-            .await?;
+        let response = self.http.send(refresh_request(&self.base_url, &current.refresh_token)?).await?;
         match response.status {
             404 => return Err(Error::Session(REFRESH_TOKEN_NOT_FOUND.into())),
             401 => return Err(Error::Session(REFRESH_TOKEN_UNAUTHORIZED.into())),
@@ -353,16 +307,12 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionManager
     async fn write_session(&self, session: &Session, generation: Option<u64>) -> Result<()> {
         if let Some(generation) = generation {
             if generation != self.generation.load(Ordering::SeqCst) {
-                // NOTE(port): Dart drops the write silently and still returns the session.
+                // NOTE: A stale write is dropped silently. The caller still gets the session.
                 return Ok(());
             }
         }
-        self.store
-            .put(JWT_KEY, session.jwt.as_bytes().to_vec())
-            .await?;
-        self.store
-            .put(REFRESH_TOKEN_KEY, session.refresh_token.as_bytes().to_vec())
-            .await?;
+        self.store.put(JWT_KEY, session.jwt.as_bytes().to_vec()).await?;
+        self.store.put(REFRESH_TOKEN_KEY, session.refresh_token.as_bytes().to_vec()).await?;
         *self.cache.lock().unwrap_or_else(|e| e.into_inner()) = Some(Some(session.clone()));
         Ok(())
     }
@@ -377,9 +327,7 @@ async fn read_string<S: SecureStore>(store: &S, key: &str) -> Result<Option<Stri
 
 // Explicit futures keep the MaybeSend bound visible at the impl site.
 #[allow(clippy::manual_async_fn)]
-impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionProvider
-    for SessionManager<H, S, C, G>
-{
+impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionProvider for SessionManager<H, S, C, G> {
     fn access_token(&self) -> impl std::future::Future<Output = Result<String>> + MaybeSend {
         async move { self.get_session().await.map(|s| s.jwt) }
     }
@@ -409,15 +357,8 @@ mod tests {
         test_jwt(&json!({"exp": exp_s, "sub": "user"}))
     }
 
-    fn manager(
-        http: &MockHttp,
-        kv: &MemoryKv,
-        clock: Arc<FixedClock>,
-    ) -> SessionManager<MockHttp, MemoryKv, Arc<FixedClock>> {
-        let creds = WalletCredentials {
-            mnemonic: MNEMONIC.into(),
-            network: AppNetwork::Mainnet,
-        };
+    fn manager(http: &MockHttp, kv: &MemoryKv, clock: Arc<FixedClock>) -> SessionManager<MockHttp, MemoryKv, Arc<FixedClock>> {
+        let creds = WalletCredentials { mnemonic: MNEMONIC.into(), network: AppNetwork::Mainnet };
         SessionManager::for_credentials(http.clone(), kv.clone(), clock, BASE, &creds).unwrap()
     }
 
@@ -437,16 +378,8 @@ mod tests {
     }
 
     async fn stored(kv: &MemoryKv) -> (Option<String>, Option<String>) {
-        let j = kv
-            .get(JWT_KEY)
-            .await
-            .unwrap()
-            .map(|b| String::from_utf8(b).unwrap());
-        let r = kv
-            .get(REFRESH_TOKEN_KEY)
-            .await
-            .unwrap()
-            .map(|b| String::from_utf8(b).unwrap());
+        let j = kv.get(JWT_KEY).await.unwrap().map(|b| String::from_utf8(b).unwrap());
+        let r = kv.get(REFRESH_TOKEN_KEY).await.unwrap().map(|b| String::from_utf8(b).unwrap());
         (j, r)
     }
 
@@ -466,12 +399,7 @@ mod tests {
         let pk = challenge["public_key"].as_str().unwrap().to_owned();
         let sign: Value = serde_json::from_slice(reqs[1].body.as_ref().unwrap()).unwrap();
         assert_eq!(sign["challenge_id"], "ch-1");
-        assert!(verify_challenge_signature(
-            &pk,
-            "SGVsbG8gV29ybGQ=",
-            sign["signature"].as_str().unwrap()
-        )
-        .unwrap());
+        assert!(verify_challenge_signature(&pk, "SGVsbG8gV29ybGQ=", sign["signature"].as_str().unwrap()).unwrap());
     }
 
     #[test]
@@ -494,12 +422,7 @@ mod tests {
         let m = manager(&http, &kv, clock.clone());
         block_on(m.save_session(&Session::new(jwt(exp_s), "rt-old"))).unwrap();
         let refreshed = jwt(exp_s + 3600);
-        http.on_json(
-            HttpMethod::Post,
-            "https://api.mooze.app/auth/refresh",
-            200,
-            json!({"jwt": refreshed}),
-        );
+        http.on_json(HttpMethod::Post, "https://api.mooze.app/auth/refresh", 200, json!({"jwt": refreshed}));
 
         // Exactly at exp: not expired.
         clock.set(exp_s * 1000);
@@ -511,10 +434,7 @@ mod tests {
         let s = block_on(m.get_session()).unwrap();
         assert_eq!(s, Session::new(refreshed.clone(), "rt-old"));
         let req = http.last_request().unwrap();
-        assert_eq!(
-            serde_json::from_slice::<Value>(req.body.as_ref().unwrap()).unwrap(),
-            json!({"refresh_token": "rt-old"})
-        );
+        assert_eq!(serde_json::from_slice::<Value>(req.body.as_ref().unwrap()).unwrap(), json!({"refresh_token": "rt-old"}));
         assert_eq!(req.timeout_ms, Some(AUTH_TIMEOUT_MS));
         assert_eq!(block_on(stored(&kv)).0, Some(refreshed));
     }
@@ -525,12 +445,7 @@ mod tests {
         let kv = MemoryKv::new();
         let m = manager(&http, &kv, Arc::new(FixedClock::new(NOW_MS)));
         block_on(m.save_session(&Session::new(jwt(NOW_MS / 1000 - 10), "rt-dead"))).unwrap();
-        http.on_json(
-            HttpMethod::Post,
-            "https://api.mooze.app/auth/refresh",
-            401,
-            json!({}),
-        );
+        http.on_json(HttpMethod::Post, "https://api.mooze.app/auth/refresh", 401, json!({}));
         let fresh = jwt(NOW_MS / 1000 + 3600);
         mock_login(&http, &fresh);
         let s = block_on(m.get_session()).unwrap();
@@ -552,36 +467,17 @@ mod tests {
         let kv = MemoryKv::new();
         let m = manager(&http, &kv, Arc::new(FixedClock::new(NOW_MS)));
         let s = Session::new(jwt(0), "rt");
-        http.once_json(
-            HttpMethod::Post,
-            "https://api.mooze.app/auth/refresh",
-            404,
-            json!({}),
-        );
-        assert_eq!(
-            block_on(m.do_refresh(&s)).unwrap_err(),
-            Error::Session(REFRESH_TOKEN_NOT_FOUND.into())
-        );
-        http.once_json(
-            HttpMethod::Post,
-            "https://api.mooze.app/auth/refresh",
-            200,
-            json!({"data": {"jwt": ""}}),
-        );
-        assert_eq!(
-            block_on(m.do_refresh(&s)).unwrap_err(),
-            Error::Session(JWT_NULL_IN_REFRESH_RESPONSE.into())
-        );
+        http.once_json(HttpMethod::Post, "https://api.mooze.app/auth/refresh", 404, json!({}));
+        assert_eq!(block_on(m.do_refresh(&s)).unwrap_err(), Error::Session(REFRESH_TOKEN_NOT_FOUND.into()));
+        http.once_json(HttpMethod::Post, "https://api.mooze.app/auth/refresh", 200, json!({"data": {"jwt": ""}}));
+        assert_eq!(block_on(m.do_refresh(&s)).unwrap_err(), Error::Session(JWT_NULL_IN_REFRESH_RESPONSE.into()));
         http.once_json(
             HttpMethod::Post,
             "https://api.mooze.app/auth/refresh",
             200,
             json!({"data": {"jwt": "j2", "refresh_token": "rt2"}}),
         );
-        assert_eq!(
-            block_on(m.do_refresh(&s)).unwrap(),
-            Session::new("j2", "rt2")
-        );
+        assert_eq!(block_on(m.do_refresh(&s)).unwrap(), Session::new("j2", "rt2"));
     }
 
     #[test]
@@ -589,13 +485,8 @@ mod tests {
         let http = MockHttp::new();
         let kv = MemoryKv::new();
         let creds = WalletCredentials::absent(AppNetwork::Mainnet);
-        let m =
-            SessionManager::for_credentials(http.clone(), kv, FixedClock::new(NOW_MS), "", &creds)
-                .unwrap();
-        assert_eq!(
-            block_on(m.get_session()).unwrap_err(),
-            Error::Session(REMOTE_AUTH_NOT_CONFIGURED.into())
-        );
+        let m = SessionManager::for_credentials(http.clone(), kv, FixedClock::new(NOW_MS), "", &creds).unwrap();
+        assert_eq!(block_on(m.get_session()).unwrap_err(), Error::Session(REMOTE_AUTH_NOT_CONFIGURED.into()));
         assert_eq!(block_on(m.ensure()), EnsureOutcome::MissingMnemonic);
     }
 
@@ -604,39 +495,21 @@ mod tests {
         let http = MockHttp::new();
         let m = manager(&http, &MemoryKv::new(), Arc::new(FixedClock::new(NOW_MS)));
         m.set_device_safe(false);
-        assert_eq!(
-            block_on(m.get_session()).unwrap_err(),
-            Error::Session(UNSAFE_DEVICE.into())
-        );
+        assert_eq!(block_on(m.get_session()).unwrap_err(), Error::Session(UNSAFE_DEVICE.into()));
         assert!(http.requests().is_empty());
     }
 
     #[test]
     fn ensure_classifies_api_down() {
         let http = MockHttp::new();
-        http.on_json(
-            HttpMethod::Post,
-            "https://api.mooze.app/auth/challenge",
-            503,
-            json!({"error": "maintenance"}),
-        );
+        http.on_json(HttpMethod::Post, "https://api.mooze.app/auth/challenge", 503, json!({"error": "maintenance"}));
         let m = manager(&http, &MemoryKv::new(), Arc::new(FixedClock::new(NOW_MS)));
-        assert_eq!(
-            block_on(m.ensure()),
-            EnsureOutcome::ApiDown {
-                status_code: Some(503)
-            }
-        );
+        assert_eq!(block_on(m.ensure()), EnsureOutcome::ApiDown { status_code: Some(503) });
         // Two attempts: first get, then get after delete.
         assert_eq!(http.requests().len(), 2);
 
         let http = MockHttp::new();
-        http.on_json(
-            HttpMethod::Post,
-            "https://api.mooze.app/auth/challenge",
-            400,
-            json!({}),
-        );
+        http.on_json(HttpMethod::Post, "https://api.mooze.app/auth/challenge", 400, json!({}));
         let m = manager(&http, &MemoryKv::new(), Arc::new(FixedClock::new(NOW_MS)));
         assert!(matches!(block_on(m.ensure()), EnsureOutcome::Failed { .. }));
 
@@ -667,24 +540,9 @@ mod tests {
         let new = jwt(NOW_MS / 1000 + 7200);
         let m = Arc::new(manager(&http, &kv, clock));
         block_on(m.save_session(&Session::new(old.clone(), "rt-1"))).unwrap();
-        http.on_json(
-            HttpMethod::Post,
-            "https://api.mooze.app/auth/refresh",
-            200,
-            json!({"data": {"jwt": new}}),
-        );
-        http.on_json(
-            HttpMethod::Get,
-            "https://api.mooze.app/users/me",
-            200,
-            json!({"ok": 1}),
-        );
-        http.once_json(
-            HttpMethod::Get,
-            "https://api.mooze.app/users/me",
-            401,
-            json!({}),
-        );
+        http.on_json(HttpMethod::Post, "https://api.mooze.app/auth/refresh", 200, json!({"data": {"jwt": new}}));
+        http.on_json(HttpMethod::Get, "https://api.mooze.app/users/me", 200, json!({"ok": 1}));
+        http.once_json(HttpMethod::Get, "https://api.mooze.app/users/me", 401, json!({}));
 
         let api = MoozeApi::new(http.clone(), m.clone(), ApiConfig::default());
         let v: Value = block_on(api.get_json("/users/me")).unwrap();

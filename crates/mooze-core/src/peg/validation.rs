@@ -1,4 +1,4 @@
-//! Peg amount validation. Port of `domain/usecases/peg_amount_validation.dart`.
+//! Peg amount validation.
 
 use super::entities::{PegDirection, PegServerLimits};
 
@@ -22,32 +22,15 @@ pub struct PegAmountValidation {
 
 impl PegAmountValidation {
     /// No amount: not valid, no error shown.
-    pub const EMPTY: Self = Self {
-        has_amount: false,
-        is_valid: false,
-        issue: None,
-        minimum_sats: None,
-        maximum_sats: None,
-    };
+    pub const EMPTY: Self =
+        Self { has_amount: false, is_valid: false, issue: None, minimum_sats: None, maximum_sats: None };
 
     fn valid(min: u64, max: u64) -> Self {
-        Self {
-            has_amount: true,
-            is_valid: true,
-            issue: None,
-            minimum_sats: Some(min),
-            maximum_sats: Some(max),
-        }
+        Self { has_amount: true, is_valid: true, issue: None, minimum_sats: Some(min), maximum_sats: Some(max) }
     }
 
     fn invalid(reason: PegAmountIssue, min: u64, max: u64) -> Self {
-        Self {
-            has_amount: true,
-            is_valid: false,
-            issue: Some(reason),
-            minimum_sats: Some(min),
-            maximum_sats: Some(max),
-        }
+        Self { has_amount: true, is_valid: false, issue: Some(reason), minimum_sats: Some(min), maximum_sats: Some(max) }
     }
 
     /// True when an issue should be displayed.
@@ -105,42 +88,21 @@ mod tests {
     fn peg_in_edges() {
         let v = eval(IN, Some(50_000), 100_000);
         assert!(v.is_valid);
-        assert_eq!(
-            (v.minimum_sats, v.maximum_sats),
-            (Some(10_000), Some(100_000))
-        );
-        assert_eq!(
-            eval(IN, Some(9_999), 100_000).issue,
-            Some(PegAmountIssue::BelowMinimum)
-        );
+        assert_eq!((v.minimum_sats, v.maximum_sats), (Some(10_000), Some(100_000)));
+        assert_eq!(eval(IN, Some(9_999), 100_000).issue, Some(PegAmountIssue::BelowMinimum));
         assert!(eval(IN, Some(10_000), 100_000).is_valid);
         assert!(eval(IN, Some(12_000), 100_000).is_valid);
-        assert_eq!(
-            eval(IN, Some(100_001), 100_000).issue,
-            Some(PegAmountIssue::AboveBalance)
-        );
+        assert_eq!(eval(IN, Some(100_001), 100_000).issue, Some(PegAmountIssue::AboveBalance));
         assert!(eval(IN, Some(100_000), 100_000).is_valid);
-        assert_eq!(
-            eval(IN, Some(15_000), 5_000).issue,
-            Some(PegAmountIssue::AboveBalance)
-        );
+        assert_eq!(eval(IN, Some(15_000), 5_000).issue, Some(PegAmountIssue::AboveBalance));
     }
 
     #[test]
     fn peg_out_edges() {
         assert!(eval(OUT, Some(30_000), 100_000).is_valid);
-        assert_eq!(
-            eval(OUT, Some(24_999), 100_000).issue,
-            Some(PegAmountIssue::BelowMinimum)
-        );
-        assert_eq!(
-            eval(OUT, Some(12_000), 100_000).issue,
-            Some(PegAmountIssue::BelowMinimum)
-        );
-        assert_eq!(
-            eval(OUT, Some(200_000), 100_000).issue,
-            Some(PegAmountIssue::AboveBalance)
-        );
+        assert_eq!(eval(OUT, Some(24_999), 100_000).issue, Some(PegAmountIssue::BelowMinimum));
+        assert_eq!(eval(OUT, Some(12_000), 100_000).issue, Some(PegAmountIssue::BelowMinimum));
+        assert_eq!(eval(OUT, Some(200_000), 100_000).issue, Some(PegAmountIssue::AboveBalance));
     }
 
     #[test]
@@ -152,15 +114,9 @@ mod tests {
         assert!(d.is_valid);
         assert_eq!(d.maximum_sats, Some(100_000));
         let f = evaluate_peg_amount(IN, Some(12_000), 100_000, None, 25_000, false);
-        assert_eq!(
-            (f.issue, f.minimum_sats),
-            (Some(PegAmountIssue::BelowMinimum), Some(25_000))
-        );
+        assert_eq!((f.issue, f.minimum_sats), (Some(PegAmountIssue::BelowMinimum), Some(25_000)));
         assert!(evaluate_peg_amount(IN, Some(30_000), 100_000, None, 25_000, false).is_valid);
         // Below-minimum wins over above-balance.
-        assert_eq!(
-            eval(OUT, Some(20_000), 10_000).issue,
-            Some(PegAmountIssue::BelowMinimum)
-        );
+        assert_eq!(eval(OUT, Some(20_000), 10_000).issue, Some(PegAmountIssue::BelowMinimum));
     }
 }

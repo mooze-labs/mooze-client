@@ -3,12 +3,12 @@
 //! The Flutter app keeps its data in two SQLite databases and in
 //! SharedPreferences:
 //!
-//! - `AppDatabase` (drift): swaps, pegs, deposits, products, sync metadata,
+//! - The drift app database: swaps, pegs, deposits, products, sync metadata,
 //!   favorite payers, app logs and a legacy transactions table.
 //! - `mooze_v2.db`: transactions, notified transaction ids and notifier metadata.
 //! - SharedPreferences: flags and settings.
 //!
-//! The Dart side reads all of it and writes one JSON [`LegacySnapshot`].
+//! The Flutter app reads all of it and exports one JSON [`LegacySnapshot`].
 //! [`import_flutter_data`] writes the snapshot into the core stores once,
 //! then sets a marker. The core needs no SQLite code for this.
 //!
@@ -41,9 +41,7 @@ use crate::pix::{DepositRecord, DepositStore, FavoritePayerStore, PixFlag, PixFl
 use crate::ports::{Clock, KvStore};
 use crate::store::json::{get_json, put_json};
 use crate::store::records::{SwapRecord, SyncMetadataRecord};
-use crate::store::{
-    NodeSettings, NotifiedTxRegistry, SwapAuditStore, SyncMetadataStore, TransactionStore,
-};
+use crate::store::{NodeSettings, NotifiedTxRegistry, SwapAuditStore, SyncMetadataStore, TransactionStore};
 use crate::{Error, Result};
 
 /// Snapshot format this core reads.
@@ -58,8 +56,8 @@ const META_BASELINE: &str = "baseline_completed";
 /// Notifier metadata key: wallet import time in ms.
 const META_IMPORTED_AT: &str = "wallet_imported_at_ms";
 
-/// Everything the Dart side exports. Field names are the contract with the
-/// Dart exporter. Times are ms since the Unix epoch.
+/// Everything the Flutter app exports. Field names are the contract with the
+/// app's exporter. Times are ms since the Unix epoch.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct LegacySnapshot {
     /// Must equal [`SNAPSHOT_VERSION`].
@@ -208,11 +206,7 @@ impl MigrationReport {
     }
 
     fn skip(&mut self, table: &str, key: impl Into<String>, reason: impl std::fmt::Display) {
-        self.skipped.push(SkippedRow {
-            table: table.to_owned(),
-            key: key.into(),
-            reason: reason.to_string(),
-        });
+        self.skipped.push(SkippedRow { table: table.to_owned(), key: key.into(), reason: reason.to_string() });
     }
 }
 
@@ -250,26 +244,16 @@ fn row_result(r: Result<()>) -> Result<std::result::Result<(), Error>> {
 /// Returns at once with `already_done` set if an earlier run finished.
 /// Invalid rows are skipped and listed in the report. A storage failure
 /// returns an error and leaves the marker unset, so the platform can retry.
-pub async fn import_flutter_data<K, C>(
-    kv: &K,
-    clock: &C,
-    snapshot: &LegacySnapshot,
-) -> Result<MigrationReport>
+pub async fn import_flutter_data<K, C>(kv: &K, clock: &C, snapshot: &LegacySnapshot) -> Result<MigrationReport>
 where
     K: KvStore + Clone,
     C: Clock + Clone,
 {
     if is_migrated(kv).await? {
-        return Ok(MigrationReport {
-            already_done: true,
-            ..Default::default()
-        });
+        return Ok(MigrationReport { already_done: true, ..Default::default() });
     }
     if snapshot.version != SNAPSHOT_VERSION {
-        return Err(Error::invalid(format!(
-            "snapshot version {} is not supported",
-            snapshot.version
-        )));
+        return Err(Error::invalid(format!("snapshot version {} is not supported", snapshot.version)));
     }
     let now = clock.now_ms();
     let mut report = MigrationReport::default();
@@ -323,24 +307,16 @@ async fn import_notifier_state<K: KvStore + Clone>(
     let mut entries = Vec::new();
     for row in &snapshot.notified_tx_ids {
         match serde_json::from_value::<ChainId>(Value::String(row.chain.clone())) {
-            Ok(chain) if chain.is_real() && !row.tx_id.is_empty() => {
-                entries.push((chain, row.tx_id.clone()))
-            }
-            _ => report.skip(
-                "notified_tx_ids",
-                format!("{}:{}", row.chain, row.tx_id),
-                "unknown chain or empty id",
-            ),
+            Ok(chain) if chain.is_real() && !row.tx_id.is_empty() => entries.push((chain, row.tx_id.clone())),
+            _ => report.skip("notified_tx_ids", format!("{}:{}", row.chain, row.tx_id), "unknown chain or empty id"),
         }
     }
     registry.bulk_mark(&entries, now).await?;
-    report
-        .copied
-        .insert("notified_tx_ids".into(), entries.len());
+    report.copied.insert("notified_tx_ids".into(), entries.len());
 
     for (key, value) in &snapshot.notification_meta {
         match key.as_str() {
-            // Dart writes '1' for true.
+            // The app stores '1' for true.
             META_BASELINE if value == "1" || value == "true" => {
                 registry.set_baseline_complete().await?;
                 report.count("notification_meta");
@@ -359,11 +335,7 @@ async fn import_notifier_state<K: KvStore + Clone>(
     Ok(())
 }
 
-async fn import_swaps<K: KvStore + Clone>(
-    kv: &K,
-    snapshot: &LegacySnapshot,
-    report: &mut MigrationReport,
-) -> Result<()> {
+async fn import_swaps<K: KvStore + Clone>(kv: &K, snapshot: &LegacySnapshot, report: &mut MigrationReport) -> Result<()> {
     let store = SwapAuditStore::new(kv.clone());
     for s in &snapshot.swaps {
         let rec = SwapRecord {
@@ -396,17 +368,14 @@ async fn import_pegs<K: KvStore + Clone, C: Clock + Clone>(
 ) -> Result<()> {
     for p in &snapshot.pegs {
         let Ok(amount) = u64::try_from(p.amount) else {
-            report.skip(
-                "pegs",
-                p.order_id.clone(),
-                format!("negative amount {}", p.amount),
-            );
+            report.skip("pegs", p.order_id.clone(), format!("negative amount {}", p.amount));
             continue;
         };
         // Drift stores metadata as text. Keep invalid JSON as a string.
-        let metadata = p.metadata.as_deref().map(|text| {
-            serde_json::from_str(text).unwrap_or_else(|_| Value::String(text.to_owned()))
-        });
+        let metadata = p
+            .metadata
+            .as_deref()
+            .map(|text| serde_json::from_str(text).unwrap_or_else(|_| Value::String(text.to_owned())));
         let rec = PegRecord {
             order_id: p.order_id.clone(),
             peg_in: p.peg_in,
@@ -432,17 +401,10 @@ async fn import_pegs<K: KvStore + Clone, C: Clock + Clone>(
     Ok(())
 }
 
-async fn import_deposits<K: KvStore + Clone>(
-    kv: &K,
-    snapshot: &LegacySnapshot,
-    report: &mut MigrationReport,
-) -> Result<()> {
+async fn import_deposits<K: KvStore + Clone>(kv: &K, snapshot: &LegacySnapshot, report: &mut MigrationReport) -> Result<()> {
     let store = DepositStore::new(kv.clone());
     for d in &snapshot.deposits {
-        let (Ok(cents), asset_amount) = (
-            u64::try_from(d.amount_in_cents),
-            d.asset_amount.map(u64::try_from),
-        ) else {
+        let (Ok(cents), asset_amount) = (u64::try_from(d.amount_in_cents), d.asset_amount.map(u64::try_from)) else {
             report.skip("deposits", d.deposit_id.clone(), "negative amount");
             continue;
         };
@@ -471,19 +433,10 @@ async fn import_deposits<K: KvStore + Clone>(
     Ok(())
 }
 
-async fn import_products<K: KvStore + Clone>(
-    kv: &K,
-    snapshot: &LegacySnapshot,
-    report: &mut MigrationReport,
-) -> Result<()> {
+async fn import_products<K: KvStore + Clone>(kv: &K, snapshot: &LegacySnapshot, report: &mut MigrationReport) -> Result<()> {
     let store = ProductStore::new(kv.clone());
     for p in &snapshot.products {
-        let product = Product {
-            id: Some(p.id),
-            name: p.name.clone(),
-            price: p.price,
-            created_at_ms: p.created_at_ms,
-        };
+        let product = Product { id: Some(p.id), name: p.name.clone(), price: p.price, created_at_ms: p.created_at_ms };
         match row_result(store.import(&product).await)? {
             Ok(()) => report.count("products"),
             Err(e) => report.skip("products", p.id.to_string(), e),
@@ -531,19 +484,10 @@ async fn import_favorite_payers<K: KvStore + Clone>(
 }
 
 /// Preferences that core stores read as raw UTF-8 text.
-const RAW_TEXT_PREFS: [&str; 5] = [
-    "device_id",
-    "user_verification_level",
-    "sessionLockTimeout",
-    "pinAttempts",
-    "lastAuthTime",
-];
+const RAW_TEXT_PREFS: [&str; 5] =
+    ["device_id", "user_verification_level", "sessionLockTimeout", "pinAttempts", "lastAuthTime"];
 /// Preferences that core stores read as JSON at the same key.
-const JSON_PREFS: [&str; 3] = [
-    MERCHANT_MODE_ACTIVE_KEY,
-    MERCHANT_MODE_ORIGIN_KEY,
-    STORE_MODE_KEY,
-];
+const JSON_PREFS: [&str; 3] = [MERCHANT_MODE_ACTIVE_KEY, MERCHANT_MODE_ORIGIN_KEY, STORE_MODE_KEY];
 /// PIX flags, stored by [`PixFlagsStore`] under its own prefix.
 const PIX_FLAGS: [PixFlag; 4] = [
     PixFlag::LbtcWarningShown,
@@ -576,11 +520,7 @@ async fn import_preferences<K: KvStore + Clone>(
                 flags.set(*flag).await?;
             }
         } else if key == "bitcoin_node_url" || key == "liquid_node_url" {
-            let chain = if key == "bitcoin_node_url" {
-                ChainId::Bitcoin
-            } else {
-                ChainId::Liquid
-            };
+            let chain = if key == "bitcoin_node_url" { ChainId::Bitcoin } else { ChainId::Liquid };
             match value.as_str() {
                 Some(url) => nodes.set_node_url(chain, url).await?,
                 None => {
@@ -613,7 +553,7 @@ mod tests {
 
     const NOW: u64 = 1_759_686_400_000;
 
-    /// A snapshot with the shapes the Dart exporter writes.
+    /// A snapshot with the shapes the app's exporter writes.
     fn snapshot_json() -> serde_json::Value {
         json!({
             "version": 1,
@@ -698,11 +638,7 @@ mod tests {
         assert_eq!(report.copied["products"], 1);
         assert_eq!(report.copied["sync_metadata"], 1);
         assert_eq!(report.copied["favorite_payers"], 1);
-        let skipped: Vec<(&str, &str)> = report
-            .skipped
-            .iter()
-            .map(|s| (s.table.as_str(), s.key.as_str()))
-            .collect();
+        let skipped: Vec<(&str, &str)> = report.skipped.iter().map(|s| (s.table.as_str(), s.key.as_str())).collect();
         assert!(skipped.contains(&("notified_tx_ids", "dogecoin:zz")));
         assert!(skipped.contains(&("pegs", "ord2")));
         assert!(skipped.contains(&("favorite_payers", "5")));
@@ -729,18 +665,12 @@ mod tests {
 
             let deposits = DepositStore::new(kv.clone());
             let d = deposits.get_deposit("dep1").await.unwrap().unwrap();
-            assert_eq!(
-                (d.amount_in_cents, d.asset_amount),
-                (2500, Some(2_500_000_000))
-            );
+            assert_eq!((d.amount_in_cents, d.asset_amount), (2500, Some(2_500_000_000)));
 
             let products = ProductStore::new(kv.clone());
             assert_eq!(products.get_by_id(3).await.unwrap().unwrap().name, "Café");
             // A new product never reuses an imported id.
-            let new_id = products
-                .create(&Product::new("Pão", 1.0, NOW))
-                .await
-                .unwrap();
+            let new_id = products.create(&Product::new("Pão", 1.0, NOW)).await.unwrap();
             assert_eq!(new_id, 4);
 
             let payers = FavoritePayerStore::new(kv.clone());
@@ -751,10 +681,7 @@ mod tests {
             assert_eq!(swaps.get(7).await.unwrap().unwrap().provider, "sideswap");
 
             let meta = SyncMetadataStore::new(kv.clone());
-            assert_eq!(
-                meta.get("lwk").await.unwrap().unwrap().transaction_count,
-                42
-            );
+            assert_eq!(meta.get("lwk").await.unwrap().unwrap().transaction_count, 42);
         });
     }
 
@@ -771,28 +698,14 @@ mod tests {
             assert!(merchant.is_active().await.unwrap());
             assert_eq!(merchant.origin().await.unwrap(), "settings");
 
-            assert_eq!(
-                kv.get("device_id").await.unwrap(),
-                Some(b"dev-123".to_vec())
-            );
-            assert_eq!(
-                kv.get("user_verification_level").await.unwrap(),
-                Some(b"2".to_vec())
-            );
+            assert_eq!(kv.get("device_id").await.unwrap(), Some(b"dev-123".to_vec()));
+            assert_eq!(kv.get("user_verification_level").await.unwrap(), Some(b"2".to_vec()));
 
             let nodes = NodeSettings::new(kv.clone());
-            assert_eq!(
-                nodes.node_url(ChainId::Bitcoin).await.unwrap(),
-                "ssl://my.node:50002"
-            );
+            assert_eq!(nodes.node_url(ChainId::Bitcoin).await.unwrap(), "ssl://my.node:50002");
             assert_eq!(nodes.node_url(ChainId::Liquid).await.unwrap(), "");
 
-            assert_eq!(
-                get_json::<_, Value>(&kv, "prefs/favorite_assets")
-                    .await
-                    .unwrap(),
-                Some(json!(["btc", "usdt"]))
-            );
+            assert_eq!(get_json::<_, Value>(&kv, "prefs/favorite_assets").await.unwrap(), Some(json!(["btc", "usdt"])));
             assert_eq!(kv.get("prefs/cached_price_btc").await.unwrap(), None);
         });
     }
@@ -816,12 +729,7 @@ mod tests {
         // Missing tables default to empty.
         let empty = parse_snapshot(br#"{"version": 1}"#).unwrap();
         let kv = MemoryKv::new();
-        let report = block_on(import_flutter_data(
-            &kv,
-            &Arc::new(FixedClock::new(NOW)),
-            &empty,
-        ))
-        .unwrap();
+        let report = block_on(import_flutter_data(&kv, &Arc::new(FixedClock::new(NOW)), &empty)).unwrap();
         assert!(report.skipped.is_empty());
         assert!(block_on(is_migrated(&kv)).unwrap());
     }

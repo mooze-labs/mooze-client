@@ -1,4 +1,4 @@
-//! PIX entities. Serde names match the backend JSON and the Dart models.
+//! PIX entities. Serde names match the backend JSON.
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -6,10 +6,10 @@ use crate::domain::Asset;
 
 use super::tax_id::format_cpf_cnpj;
 
-/// Status of a PIX deposit. Port of the Dart `DepositStatus` enum.
+/// Status of a PIX deposit.
 ///
 /// Serializes to the API string (`under_review`). Unknown strings parse to
-/// [`DepositStatus::Unknown`], as in Dart `DepositStatus.fromString`.
+/// [`DepositStatus::Unknown`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DepositStatus {
     Pending,
@@ -33,7 +33,7 @@ pub enum DepositStatus {
 }
 
 impl DepositStatus {
-    /// Every status, in Dart declaration order.
+    /// Every status, in declaration order.
     pub const ALL: [DepositStatus; 18] = [
         DepositStatus::Pending,
         DepositStatus::UnderReview,
@@ -79,7 +79,7 @@ impl DepositStatus {
         }
     }
 
-    /// API string (Dart `toApiString`).
+    /// API string.
     pub fn as_api_str(self) -> &'static str {
         match self {
             Self::Pending => "pending",
@@ -103,8 +103,8 @@ impl DepositStatus {
         }
     }
 
-    /// Dart enum name (`underReview`). The history filter compares this name.
-    pub fn dart_name(self) -> &'static str {
+    /// CamelCase name (`underReview`). The history filter compares this name.
+    pub fn camel_name(self) -> &'static str {
         match self {
             Self::Pending => "pending",
             Self::UnderReview => "underReview",
@@ -186,7 +186,7 @@ pub struct PixTransactionDetails {
     pub asset_amount: Option<u64>,
 }
 
-/// Status change of one deposit. Port of the Dart `PixStatusEvent`.
+/// Status change of one deposit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PixStatusEvent {
     /// Backend deposit id.
@@ -208,17 +208,11 @@ pub struct PixStatusEvent {
 impl PixStatusEvent {
     /// Event with only an id and a status.
     pub fn new(deposit_id: impl Into<String>, status: DepositStatus) -> Self {
-        Self {
-            deposit_id: deposit_id.into(),
-            status,
-            blockchain_txid: None,
-            asset_amount: None,
-            error_message: None,
-        }
+        Self { deposit_id: deposit_id.into(), status, blockchain_txid: None, asset_amount: None, error_message: None }
     }
 }
 
-/// A PIX deposit as the app shows it. Port of the Dart `PixDeposit`.
+/// A PIX deposit as the app shows it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PixDeposit {
     /// Backend deposit id.
@@ -241,7 +235,7 @@ pub struct PixDeposit {
     pub asset_amount: Option<u64>,
 }
 
-/// Quote breakdown for a deposit. Port of the Dart `PaymentDetails`.
+/// Quote breakdown for a deposit.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PaymentDetails {
     /// Deposit amount in BRL.
@@ -329,7 +323,7 @@ pub struct PixPayment {
     pub created_at: String,
 }
 
-/// A saved payer CPF/CNPJ. Port of the Dart `FavoritePayer`.
+/// A saved payer CPF/CNPJ.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FavoritePayer {
     /// Store id. `None` for a payer not saved yet.
@@ -362,11 +356,8 @@ mod tests {
         assert_eq!(DepositStatus::from_api_str("weird"), DepositStatus::Unknown);
         let s: DepositStatus = serde_json::from_value(json!("processing_refund")).unwrap();
         assert_eq!(s, DepositStatus::ProcessingRefund);
-        assert_eq!(
-            serde_json::to_value(DepositStatus::UnderReview).unwrap(),
-            json!("under_review")
-        );
-        assert_eq!(DepositStatus::FundsPrepared.dart_name(), "fundsPrepared");
+        assert_eq!(serde_json::to_value(DepositStatus::UnderReview).unwrap(), json!("under_review"));
+        assert_eq!(DepositStatus::FundsPrepared.camel_name(), "fundsPrepared");
     }
 
     #[test]
@@ -393,10 +384,7 @@ mod tests {
         let v = serde_json::to_value(&r).unwrap();
         assert!(v.get("tax_id").is_none());
         r.tax_id_number = Some("52998224725".into());
-        assert_eq!(
-            serde_json::to_value(&r).unwrap()["tax_id"],
-            json!("52998224725")
-        );
+        assert_eq!(serde_json::to_value(&r).unwrap()["tax_id"], json!("52998224725"));
     }
 
     #[test]
@@ -415,11 +403,7 @@ mod tests {
 
     #[test]
     fn masked_cpf() {
-        let p = FavoritePayer {
-            id: None,
-            label: "a".into(),
-            cpf: "52998224725".into(),
-        };
+        let p = FavoritePayer { id: None, label: "a".into(), cpf: "52998224725".into() };
         assert_eq!(p.masked_cpf(), "529.982.247-25");
     }
 }

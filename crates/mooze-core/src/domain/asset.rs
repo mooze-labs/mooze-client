@@ -128,13 +128,7 @@ impl Asset {
     }
 
     /// Converts an amount of `self` into `target` through USD prices.
-    pub fn convert_to(
-        self,
-        sats: u64,
-        target: Asset,
-        from_price_usd: f64,
-        to_price_usd: f64,
-    ) -> u64 {
+    pub fn convert_to(self, sats: u64, target: Asset, from_price_usd: f64, to_price_usd: f64) -> u64 {
         if self == target {
             return sats;
         }
@@ -159,10 +153,7 @@ mod tests {
         assert_eq!(Asset::Btc.from_units(1.5), 150_000_000);
         assert_eq!(Asset::Usdt.to_usd(250_000_000, 1.0), 2.5);
         // 0.001 BTC at 60k USD = 60 USDT
-        assert_eq!(
-            Asset::Lbtc.convert_to(100_000, Asset::Usdt, 60_000.0, 1.0),
-            6_000_000_000
-        );
+        assert_eq!(Asset::Lbtc.convert_to(100_000, Asset::Usdt, 60_000.0, 1.0), 6_000_000_000);
         assert_eq!(Asset::Btc.from_usd(10.0, 0.0), 0);
     }
 }

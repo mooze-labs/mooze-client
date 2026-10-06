@@ -1,5 +1,4 @@
-//! User API calls and referral flow. Port of `UserServiceImpl`,
-//! `UserLevelStorageService` and `features/referral_input/**` (data/domain).
+//! User API calls and referral flow.
 
 use serde_json::{json, Value};
 
@@ -9,18 +8,18 @@ use crate::ports::{HttpClient, HttpMethod, KvStore};
 use crate::{Error, Result};
 
 /// Preferences key of the last seen spending level.
-/// NOTE(port): Dart names it "verification level" but stores `spending_level`.
+/// NOTE: the key says "verification level", but the value is `spending_level`.
 pub const STORED_LEVEL_KEY: &str = "user_verification_level";
 
 /// `POST /users/me/referral` answered 400.
 pub const REFERRAL_CODE_INVALID: &str = "referral_code_invalid";
 /// `POST /users/me/referral` answered 409.
 pub const REFERRAL_CODE_ALREADY_USED: &str = "referral_code_already_used";
-/// Apply use case: empty code.
+/// [`UserService::apply_referral_code`]: empty code.
 pub const REFERRAL_ERROR_EMPTY_CODE: &str = "referral_error_empty_code";
-/// Apply use case: validation failed or the code is invalid.
+/// [`UserService::apply_referral_code`]: validation failed or the code is invalid.
 pub const REFERRAL_ERROR_INVALID_CODE: &str = "referral_error_invalid_code";
-/// Apply use case: the apply call failed.
+/// [`UserService::apply_referral_code`]: the apply call failed.
 pub const REFERRAL_ERROR_APPLY_FAILED: &str = "referral_error_apply_failed";
 
 /// Result of [`UserService::get_user`].
@@ -28,7 +27,7 @@ pub const REFERRAL_ERROR_APPLY_FAILED: &str = "referral_error_apply_failed";
 pub struct UserFetch {
     /// The user.
     pub user: User,
-    /// Level change since the last fetch (Dart `levelChanges` stream event).
+    /// Level change since the last fetch.
     pub level_change: Option<LevelChange>,
 }
 
@@ -62,9 +61,7 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
     pub async fn detect_level_change(&self, new_level: i64) -> Result<Option<LevelChange>> {
         let stored = match self.prefs.get(STORED_LEVEL_KEY).await? {
             None => None,
-            Some(b) => String::from_utf8(b)
-                .ok()
-                .and_then(|t| t.trim().parse::<i64>().ok()),
+            Some(b) => String::from_utf8(b).ok().and_then(|t| t.trim().parse::<i64>().ok()),
         };
         match stored {
             None => {
@@ -85,9 +82,7 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
     }
 
     async fn store_level(&self, level: i64) -> Result<()> {
-        self.prefs
-            .put(STORED_LEVEL_KEY, level.to_string().into_bytes())
-            .await
+        self.prefs.put(STORED_LEVEL_KEY, level.to_string().into_bytes()).await
     }
 
     /// `GET /users/referral/{code}`.
@@ -105,30 +100,17 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
             return Ok(false);
         }
         let body: Value = serde_json::from_slice(&response.body).unwrap_or(Value::Null);
-        let valid = body.get("valid").or_else(|| {
-            body.get("data")
-                .filter(|d| d.is_object())
-                .and_then(|d| d.get("valid"))
-        });
+        let valid = body.get("valid").or_else(|| body.get("data").filter(|d| d.is_object()).and_then(|d| d.get("valid")));
         match valid {
             None => Ok(true),
-            Some(v) => v
-                .as_bool()
-                .ok_or_else(|| Error::protocol("referral: `valid` is not a bool")),
+            Some(v) => v.as_bool().ok_or_else(|| Error::protocol("referral: `valid` is not a bool")),
         }
     }
 
     /// `POST /users/me/referral {referral_code}`.
     /// 400 gives [`REFERRAL_CODE_INVALID`], 409 gives [`REFERRAL_CODE_ALREADY_USED`].
     pub async fn add_referral(&self, code: &str) -> Result<()> {
-        let response = self
-            .api
-            .send(
-                HttpMethod::Post,
-                "/users/me/referral",
-                Some(json!({"referral_code": code})),
-            )
-            .await?;
+        let response = self.api.send(HttpMethod::Post, "/users/me/referral", Some(json!({"referral_code": code}))).await?;
         match response.status {
             400 => Err(Error::InvalidInput(REFERRAL_CODE_INVALID.into())),
             409 => Err(Error::InvalidState(REFERRAL_CODE_ALREADY_USED.into())),
@@ -136,13 +118,13 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
         }
     }
 
-    /// The referral code on the account, if any (Dart `GetExistingReferralUseCase`).
+    /// The referral code on the account, if any.
     pub async fn get_existing_referral(&self) -> Result<Option<String>> {
         let fetch = self.get_user().await?;
         Ok(fetch.user.referred_by.filter(|c| !c.is_empty()))
     }
 
-    /// Validates then applies a code (Dart `ApplyReferralCodeUseCase`).
+    /// Validates then applies a code.
     ///
     /// Errors: empty code ([`Error::InvalidInput`] with
     /// [`REFERRAL_ERROR_EMPTY_CODE`]), invalid code or failed validation
@@ -156,9 +138,7 @@ impl<H: HttpClient, P: SessionProvider, K: KvStore> UserService<H, P, K> {
             Ok(true) => {}
             _ => return Err(Error::InvalidInput(REFERRAL_ERROR_INVALID_CODE.into())),
         }
-        self.add_referral(code)
-            .await
-            .map_err(|_| Error::InvalidState(REFERRAL_ERROR_APPLY_FAILED.into()))
+        self.add_referral(code).await.map_err(|_| Error::InvalidState(REFERRAL_ERROR_APPLY_FAILED.into()))
     }
 }
 
@@ -182,10 +162,7 @@ mod tests {
     }
 
     fn service(http: &MockHttp) -> UserService<MockHttp, StaticToken, MemoryKv> {
-        UserService::new(
-            MoozeApi::new(http.clone(), StaticToken, ApiConfig::default()),
-            MemoryKv::new(),
-        )
+        UserService::new(MoozeApi::new(http.clone(), StaticToken, ApiConfig::default()), MemoryKv::new())
     }
 
     const ME: &str = "https://api.mooze.app/users/me";
@@ -206,10 +183,7 @@ mod tests {
         let change = block_on(svc.get_user()).unwrap().level_change.unwrap();
         assert_eq!(change, LevelChange::new(1, 2));
         assert!(change.is_upgrade());
-        assert_eq!(
-            http.last_request().unwrap().headers["Authorization"],
-            "Bearer jwt"
-        );
+        assert_eq!(http.last_request().unwrap().headers["Authorization"], "Bearer jwt");
     }
 
     #[test]
@@ -217,37 +191,19 @@ mod tests {
         let http = MockHttp::new();
         let svc = service(&http);
         let url = "https://api.mooze.app/users/referral/";
-        http.on_json(
-            HttpMethod::Get,
-            &format!("{url}A1"),
-            200,
-            json!({"valid": false}),
-        );
-        http.on_json(
-            HttpMethod::Get,
-            &format!("{url}B2"),
-            200,
-            json!({"data": {"valid": true}}),
-        );
+        http.on_json(HttpMethod::Get, &format!("{url}A1"), 200, json!({"valid": false}));
+        http.on_json(HttpMethod::Get, &format!("{url}B2"), 200, json!({"data": {"valid": true}}));
         http.on_json(HttpMethod::Get, &format!("{url}C3"), 200, json!({"ok": 1}));
         http.on_json(HttpMethod::Get, &format!("{url}D4"), 404, json!({}));
         http.on_json(HttpMethod::Get, &format!("{url}E5"), 204, json!({}));
         http.on_json(HttpMethod::Get, &format!("{url}F6"), 500, json!({}));
-        http.on_json(
-            HttpMethod::Get,
-            &format!("{url}a%20b"),
-            200,
-            json!({"valid": true}),
-        );
+        http.on_json(HttpMethod::Get, &format!("{url}a%20b"), 200, json!({"valid": true}));
         assert!(!block_on(svc.validate_referral_code("A1")).unwrap());
         assert!(block_on(svc.validate_referral_code("B2")).unwrap());
         assert!(block_on(svc.validate_referral_code("C3")).unwrap());
         assert!(!block_on(svc.validate_referral_code("D4")).unwrap());
         assert!(!block_on(svc.validate_referral_code("E5")).unwrap());
-        assert!(matches!(
-            block_on(svc.validate_referral_code("F6")),
-            Err(Error::Http { status: 500, .. })
-        ));
+        assert!(matches!(block_on(svc.validate_referral_code("F6")), Err(Error::Http { status: 500, .. })));
         assert!(block_on(svc.validate_referral_code("a b")).unwrap());
     }
 
@@ -257,19 +213,12 @@ mod tests {
         let svc = service(&http);
         let url = "https://api.mooze.app/users/me/referral";
         http.once_json(HttpMethod::Post, url, 400, json!({}));
-        assert_eq!(
-            block_on(svc.add_referral("X")),
-            Err(Error::InvalidInput(REFERRAL_CODE_INVALID.into()))
-        );
+        assert_eq!(block_on(svc.add_referral("X")), Err(Error::InvalidInput(REFERRAL_CODE_INVALID.into())));
         http.once_json(HttpMethod::Post, url, 409, json!({}));
-        assert_eq!(
-            block_on(svc.add_referral("X")),
-            Err(Error::InvalidState(REFERRAL_CODE_ALREADY_USED.into()))
-        );
+        assert_eq!(block_on(svc.add_referral("X")), Err(Error::InvalidState(REFERRAL_CODE_ALREADY_USED.into())));
         http.once_json(HttpMethod::Post, url, 201, json!({}));
         assert_eq!(block_on(svc.add_referral("X")), Ok(()));
-        let body: Value =
-            serde_json::from_slice(http.last_request().unwrap().body.as_ref().unwrap()).unwrap();
+        let body: Value = serde_json::from_slice(http.last_request().unwrap().body.as_ref().unwrap()).unwrap();
         assert_eq!(body, json!({"referral_code": "X"}));
     }
 
@@ -277,42 +226,13 @@ mod tests {
     fn apply_referral_use_case() {
         let http = MockHttp::new();
         let svc = service(&http);
-        assert_eq!(
-            block_on(svc.apply_referral_code("")),
-            Err(Error::InvalidInput(REFERRAL_ERROR_EMPTY_CODE.into()))
-        );
-        http.on_json(
-            HttpMethod::Get,
-            "https://api.mooze.app/users/referral/BAD",
-            200,
-            json!({"valid": false}),
-        );
-        assert_eq!(
-            block_on(svc.apply_referral_code("BAD")),
-            Err(Error::InvalidInput(REFERRAL_ERROR_INVALID_CODE.into()))
-        );
-        http.on_json(
-            HttpMethod::Get,
-            "https://api.mooze.app/users/referral/OK",
-            200,
-            json!({"valid": true}),
-        );
-        http.once_json(
-            HttpMethod::Post,
-            "https://api.mooze.app/users/me/referral",
-            409,
-            json!({}),
-        );
-        assert_eq!(
-            block_on(svc.apply_referral_code("OK")),
-            Err(Error::InvalidState(REFERRAL_ERROR_APPLY_FAILED.into()))
-        );
-        http.once_json(
-            HttpMethod::Post,
-            "https://api.mooze.app/users/me/referral",
-            200,
-            json!({}),
-        );
+        assert_eq!(block_on(svc.apply_referral_code("")), Err(Error::InvalidInput(REFERRAL_ERROR_EMPTY_CODE.into())));
+        http.on_json(HttpMethod::Get, "https://api.mooze.app/users/referral/BAD", 200, json!({"valid": false}));
+        assert_eq!(block_on(svc.apply_referral_code("BAD")), Err(Error::InvalidInput(REFERRAL_ERROR_INVALID_CODE.into())));
+        http.on_json(HttpMethod::Get, "https://api.mooze.app/users/referral/OK", 200, json!({"valid": true}));
+        http.once_json(HttpMethod::Post, "https://api.mooze.app/users/me/referral", 409, json!({}));
+        assert_eq!(block_on(svc.apply_referral_code("OK")), Err(Error::InvalidState(REFERRAL_ERROR_APPLY_FAILED.into())));
+        http.once_json(HttpMethod::Post, "https://api.mooze.app/users/me/referral", 200, json!({}));
         assert_eq!(block_on(svc.apply_referral_code("OK")), Ok(()));
     }
 
@@ -321,10 +241,7 @@ mod tests {
         let http = MockHttp::new();
         let svc = service(&http);
         http.on_json(HttpMethod::Get, ME, 200, user_fixture());
-        assert_eq!(
-            block_on(svc.get_existing_referral()).unwrap().as_deref(),
-            Some("MOOZE10")
-        );
+        assert_eq!(block_on(svc.get_existing_referral()).unwrap().as_deref(), Some("MOOZE10"));
         let mut empty = user_fixture();
         empty["data"]["referred_by"] = json!("");
         http.on_json(HttpMethod::Get, ME, 200, empty);

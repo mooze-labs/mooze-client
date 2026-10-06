@@ -1,5 +1,4 @@
-//! On-chain bitcoin wallet. Port of `lib/infra/bdk/**` and the bitcoin part
-//! of the wallet repositories.
+//! On-chain bitcoin wallet.
 //!
 //! The BDK wallet lives in memory. Its `ChangeSet` is serialized to JSON in
 //! a [`KvStore`] after every change, so the wallet reloads without a full
@@ -12,9 +11,9 @@ use std::time::Duration;
 
 use bdk_esplora::esplora_client::{self, r#async::Sleeper, AsyncClient};
 use bdk_esplora::EsploraAsyncExt;
-use bdk_wallet::bitcoin::secp256k1::Secp256k1;
 use bdk_wallet::bitcoin::{Address, Amount, FeeRate, Psbt, ScriptBuf};
 use bdk_wallet::chain::{ChainPosition, Merge};
+use bdk_wallet::bitcoin::secp256k1::Secp256k1;
 use bdk_wallet::descriptor::IntoWalletDescriptor;
 use bdk_wallet::signer::SignersContainer;
 use bdk_wallet::{ChangeSet, KeychainKind, SignOptions, Wallet};
@@ -22,20 +21,15 @@ use bdk_wallet::{ChangeSet, KeychainKind, SignOptions, Wallet};
 use super::backend::ChainBackend;
 #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
 use super::backend::{BitcoinElectrum, ElectrumConfig};
-use super::descriptors::{
-    bitcoin_descriptors, bitcoin_network, bitcoin_network_kind, BitcoinDescriptors,
-};
+use super::descriptors::{bitcoin_descriptors, bitcoin_network, bitcoin_network_kind, BitcoinDescriptors};
 use super::endpoints::EndpointResolver;
-use super::explorer::{
-    hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress,
-    WalletUtxoInfo,
-};
+use super::explorer::{hex, index_range, AddressOwnership, DerivedAddressInfo, Keychain, NextUnusedAddress, WalletUtxoInfo};
 use super::fees::BitcoinFeeEstimate;
 use super::tracker::{sort_newest_first, TxTracker};
 use crate::domain::{
-    AppNetwork, AssetBalance, Balance, BroadcastResult, ChainId, FeeEstimate, ReceiveAddress,
-    SendRequest, ServiceLifecycle, ServiceState, SyncOutcome, Transaction, TransactionDirection,
-    TransactionEvent, TransactionSource, TransactionStatus, WalletCredentials,
+    AppNetwork, AssetBalance, Balance, BroadcastResult, ChainId, FeeEstimate, ReceiveAddress, SendRequest,
+    ServiceLifecycle, ServiceState, SyncOutcome, Transaction, TransactionDirection, TransactionEvent,
+    TransactionSource, TransactionStatus, WalletCredentials,
 };
 use crate::ports::{Clock, KvStore};
 use crate::{Error, Result};
@@ -81,12 +75,10 @@ impl Sleeper for NoopSleeper {
 
 /// Builds an async esplora client for `url`.
 pub fn esplora_client(url: &str) -> Result<AsyncClient<NoopSleeper>> {
-    esplora_client::Builder::new(url)
-        .build_async_with_sleeper::<NoopSleeper>()
-        .map_err(|e| Error::Network(e.to_string()))
+    esplora_client::Builder::new(url).build_async_with_sleeper::<NoopSleeper>().map_err(|e| Error::Network(e.to_string()))
 }
 
-/// Flat view of one wallet transaction. Port of `BdkTxView`.
+/// Flat view of one wallet transaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BdkTxView {
     pub txid: String,
@@ -106,7 +98,7 @@ impl BdkTxView {
     }
 }
 
-/// Classifies a BDK transaction. Port of `_mapTx`.
+/// Classifies a BDK transaction.
 ///
 /// Order: self-transfer (sent and received, delta within slack of the fee),
 /// outgoing, incoming, internal. Slack is `max(1, fee / 100)` for fees over 100.
@@ -134,7 +126,7 @@ pub fn map_tx(t: &BdkTxView, now_ms: u64) -> Transaction {
     };
 
     let (status, ts, confirmations) = match t.confirmation_time_s {
-        // NOTE(port): Dart reports 1 confirmation for any confirmed tx.
+        // NOTE: any confirmed tx reports 1 confirmation, by design.
         Some(s) => (TransactionStatus::Confirmed, s * 1000, 1),
         None => (TransactionStatus::Pending, now_ms, 0),
     };
@@ -144,10 +136,10 @@ pub fn map_tx(t: &BdkTxView, now_ms: u64) -> Transaction {
     tx
 }
 
-/// Maps a BDK balance. Port of `_mapBalance`.
+/// Maps a BDK balance.
 ///
-/// NOTE(port): `amount_sat` is the BDK total, which already includes the
-/// pending amounts also reported in `pending_sat`. Kept as in Dart.
+/// NOTE: `amount_sat` is the BDK total. It already includes the pending
+/// amounts that `pending_sat` also reports. This is by design.
 pub fn map_balance(b: &bdk_wallet::Balance, now_ms: u64) -> Balance {
     let pending = b.trusted_pending.to_sat() + b.untrusted_pending.to_sat() + b.immature.to_sat();
     Balance {
@@ -163,7 +155,7 @@ pub fn map_balance(b: &bdk_wallet::Balance, now_ms: u64) -> Balance {
     }
 }
 
-/// Every canonical wallet transaction as a [`BdkTxView`]. Port of `txViews`.
+/// Every canonical wallet transaction as a [`BdkTxView`].
 pub fn tx_views(wallet: &Wallet) -> Vec<BdkTxView> {
     wallet
         .transactions()
@@ -172,9 +164,7 @@ pub fn tx_views(wallet: &Wallet) -> Vec<BdkTxView> {
             let (sent, received) = wallet.sent_and_received(tx);
             let fee = wallet.calculate_fee(tx).ok().map(|a| a.to_sat());
             let (time, height) = match &c.chain_position {
-                ChainPosition::Confirmed { anchor, .. } => {
-                    (Some(anchor.confirmation_time), Some(anchor.block_id.height))
-                }
+                ChainPosition::Confirmed { anchor, .. } => (Some(anchor.confirmation_time), Some(anchor.block_id.height)),
                 ChainPosition::Unconfirmed { .. } => (None, None),
             };
             BdkTxView {
@@ -190,12 +180,9 @@ pub fn tx_views(wallet: &Wallet) -> Vec<BdkTxView> {
 }
 
 /// Scripts that ever received funds: UTXOs plus every output of every
-/// wallet transaction. Port of `usedScriptHexes`.
+/// wallet transaction.
 fn used_scripts(wallet: &Wallet) -> HashSet<ScriptBuf> {
-    let mut used: HashSet<ScriptBuf> = wallet
-        .list_unspent()
-        .map(|u| u.txout.script_pubkey)
-        .collect();
+    let mut used: HashSet<ScriptBuf> = wallet.list_unspent().map(|u| u.txout.script_pubkey).collect();
     for c in wallet.transactions() {
         for out in &c.tx_node.tx.output {
             used.insert(out.script_pubkey.clone());
@@ -204,9 +191,9 @@ fn used_scripts(wallet: &Wallet) -> HashSet<ScriptBuf> {
     used
 }
 
-/// Next receive address with no on-chain history. Port of
-/// `nextFreshReceiveAddress`: start at BDK's first unused address, walk
-/// past used scripts, reveal up to the chosen index. Stages changes.
+/// Next receive address with no on-chain history. Starts at BDK's first
+/// unused address, walks past used scripts and reveals up to the chosen
+/// index. Stages changes.
 /// Returns the address and its external index.
 pub fn next_fresh_receive_address(wallet: &mut Wallet, cap: u32) -> Result<(u32, Address)> {
     let used = used_scripts(wallet);
@@ -217,9 +204,7 @@ pub fn next_fresh_receive_address(wallet: &mut Wallet, cap: u32) -> Result<(u32,
         info = wallet.peek_address(KeychainKind::External, info.index + 1);
     }
     if used.contains(&info.address.script_pubkey()) {
-        return Err(svc(format!(
-            "no unused receive address found within {cap}-index window"
-        )));
+        return Err(svc(format!("no unused receive address found within {cap}-index window")));
     }
     let _ = wallet.reveal_addresses_to(KeychainKind::External, info.index);
     Ok((info.index, info.address))
@@ -241,13 +226,8 @@ fn to_bdk_keychain(k: Keychain) -> KeychainKind {
 
 /// Addresses of `keychain` at `start..start + count`, without revealing them.
 /// An address is used if its script holds a UTXO or appears in any wallet
-/// transaction output (Dart `usedScriptHexes`).
-pub fn derived_addresses(
-    wallet: &Wallet,
-    keychain: Keychain,
-    start: u32,
-    count: u32,
-) -> Vec<DerivedAddressInfo> {
+/// transaction output.
+pub fn derived_addresses(wallet: &Wallet, keychain: Keychain, start: u32, count: u32) -> Vec<DerivedAddressInfo> {
     let used = used_scripts(wallet);
     index_range(start, count)
         .map(|i| {
@@ -300,7 +280,7 @@ pub fn unspent_outputs(wallet: &Wallet) -> Vec<WalletUtxoInfo> {
 /// Derivation of `address` if the wallet owns it.
 ///
 /// BDK knows the scripts up to the last revealed index plus the lookahead,
-/// so an owned address past that window reports `None`, as `isMine` did in Dart.
+/// so an owned address past that window reports `None`.
 /// Fails for an unparseable address or one of another network.
 pub fn address_ownership(wallet: &Wallet, address: &str) -> Result<Option<AddressOwnership>> {
     let parsed = Address::from_str(address.trim())
@@ -308,10 +288,7 @@ pub fn address_ownership(wallet: &Wallet, address: &str) -> Result<Option<Addres
         .map_err(|e| Error::invalid(format!("invalid bitcoin address: {e}")))?;
     Ok(wallet
         .derivation_of_spk(parsed.script_pubkey())
-        .map(|(k, index)| AddressOwnership {
-            keychain: to_keychain(k),
-            index,
-        }))
+        .map(|(k, index)| AddressOwnership { keychain: to_keychain(k), index }))
 }
 
 /// Signers for the receive and change descriptors.
@@ -320,15 +297,13 @@ fn build_signers(desc: &BitcoinDescriptors, network: AppNetwork) -> Result<Vec<S
     [desc.external.as_str(), desc.internal.as_str()]
         .into_iter()
         .map(|d| {
-            let (public, keymap) = d
-                .into_wallet_descriptor(&secp, bitcoin_network_kind(network))
-                .map_err(svc)?;
+            let (public, keymap) = d.into_wallet_descriptor(&secp, bitcoin_network_kind(network)).map_err(svc)?;
             Ok(SignersContainer::build(keymap, &public, &secp))
         })
         .collect()
 }
 
-/// Rejects requests this service cannot handle, with the Dart messages.
+/// Rejects requests this service cannot handle.
 fn check_request(request: &SendRequest, verb: &str) -> Result<()> {
     if request.chain != CHAIN {
         return Err(svc(format!(
@@ -337,14 +312,12 @@ fn check_request(request: &SendRequest, verb: &str) -> Result<()> {
         )));
     }
     if let Some(a) = &request.asset_id {
-        return Err(svc(format!(
-            "bitcoin service does not handle asset sends (got assetId: {a})"
-        )));
+        return Err(svc(format!("bitcoin service does not handle asset sends (got assetId: {a})")));
     }
     Ok(())
 }
 
-/// Builds an unsigned PSBT. Port of `_buildPsbt`.
+/// Builds an unsigned PSBT.
 ///
 /// `drain` or `subtract_fee_from_amount` drains the whole wallet to the
 /// destination and ignores `amount_sat`. A fee-rate override is rounded up
@@ -361,27 +334,23 @@ pub fn build_psbt(wallet: &mut Wallet, request: &SendRequest) -> Result<Psbt> {
         builder.add_recipient(script, Amount::from_sat(request.amount_sat));
     }
     if let Some(rate) = request.fee_rate_override_sat_per_vbyte {
-        builder.fee_rate(FeeRate::from_sat_per_vb_u32(
-            rate.ceil().clamp(0.0, u32::MAX as f64) as u32,
-        ));
+        builder.fee_rate(FeeRate::from_sat_per_vb_u32(rate.ceil().clamp(0.0, u32::MAX as f64) as u32));
     }
-    builder
-        .finish()
-        .map_err(|e| svc(format!("bdk build PSBT failed: {e}")))
+    builder.finish().map_err(|e| svc(format!("bdk build PSBT failed: {e}")))
 }
 
-/// Reviewed on-chain send. Port of `PreparedOnchainBitcoinTransaction`.
+/// Reviewed on-chain send.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PreparedBitcoinSend {
     pub destination: String,
-    /// For a drain: total value of the wallet inputs spent (legacy `details.sent`).
+    /// For a drain: total value of the wallet inputs spent.
     pub amount_sat: u64,
     pub network_fee_sat: u64,
     pub drain: bool,
     pub fee_rate_sat_per_vbyte: Option<u64>,
 }
 
-/// BDK wallet plus esplora client. Port of `BitcoinWalletServiceImpl`.
+/// BDK wallet plus esplora client.
 pub struct BitcoinWallet<K: KvStore, C: Clock> {
     wallet: Wallet,
     /// Software signers for both keychains. Built from the mnemonic at connect.
@@ -406,13 +375,7 @@ pub struct BitcoinWallet<K: KvStore, C: Clock> {
 impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     /// Loads the wallet from `kv`, or creates it if the store is empty.
     /// Primes balance and history from the stored state (cold restore).
-    /// Port of `connect`.
-    pub async fn connect(
-        credentials: &WalletCredentials,
-        kv: K,
-        clock: C,
-        endpoints: EndpointResolver,
-    ) -> Result<Self> {
+    pub async fn connect(credentials: &WalletCredentials, kv: K, clock: C, endpoints: EndpointResolver) -> Result<Self> {
         if credentials.is_absent() {
             return Err(Error::Credential("mnemonic is empty".into()));
         }
@@ -432,16 +395,10 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
                     .map_err(|e| svc(format!("bdk init failed: {e}")))?;
                 match loaded {
                     Some(w) => (w, cs),
-                    None => (
-                        Self::create(&desc.external, &desc.internal, network)?,
-                        ChangeSet::default(),
-                    ),
+                    None => (Self::create(&desc.external, &desc.internal, network)?, ChangeSet::default()),
                 }
             }
-            None => (
-                Self::create(&desc.external, &desc.internal, network)?,
-                ChangeSet::default(),
-            ),
+            None => (Self::create(&desc.external, &desc.internal, network)?, ChangeSet::default()),
         };
         let now = clock.now_ms();
         let signers = build_signers(&desc, network)?;
@@ -467,11 +424,7 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         this.persist().await?;
         this.refresh_cache(now);
         this.tracker.prime(&this.last_list);
-        this.state = ServiceState {
-            lifecycle: ServiceLifecycle::Connected,
-            failure: None,
-            last_sync_at_ms: None,
-        };
+        this.state = ServiceState { lifecycle: ServiceLifecycle::Connected, failure: None, last_sync_at_ms: None };
         Ok(this)
     }
 
@@ -488,11 +441,7 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     /// Electrum needs the `electrum` feature and a native target. Pair the
     /// switch with matching endpoints, for example
     /// [`EndpointResolver::with_electrum_defaults`].
-    pub fn set_backend(
-        &mut self,
-        backend: ChainBackend,
-        endpoints: EndpointResolver,
-    ) -> Result<()> {
+    pub fn set_backend(&mut self, backend: ChainBackend, endpoints: EndpointResolver) -> Result<()> {
         ensure_backend_supported(&backend)?;
         self.backend = backend;
         self.endpoints = endpoints;
@@ -511,11 +460,7 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
 
     /// Electrum client for the current endpoint, connecting if needed.
     #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
-    async fn electrum_client(
-        &mut self,
-        config: &ElectrumConfig,
-        what: &str,
-    ) -> Result<BitcoinElectrum> {
+    async fn electrum_client(&mut self, config: &ElectrumConfig, what: &str) -> Result<BitcoinElectrum> {
         let url = self.endpoints.current(CHAIN)?.to_owned();
         if let Some(c) = &self.electrum {
             if c.url() == url {
@@ -545,38 +490,21 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         if let ChainBackend::Electrum(config) = self.backend.clone() {
             let client = self.electrum_client(&config, "bdk sync failed").await?;
             let result = if full {
-                client
-                    .full_scan(
-                        self.wallet.start_full_scan_at(start_s).build(),
-                        self.stop_gap,
-                    )
-                    .await
+                client.full_scan(self.wallet.start_full_scan_at(start_s).build(), self.stop_gap).await
             } else {
-                client
-                    .sync(
-                        self.wallet
-                            .start_sync_with_revealed_spks_at(start_s)
-                            .build(),
-                    )
-                    .await
+                client.sync(self.wallet.start_sync_with_revealed_spks_at(start_s).build()).await
             };
             return result.map_err(|e| self.electrum_err("bdk sync failed", e));
         }
         let client = self.client()?;
         if full {
             let req = self.wallet.start_full_scan_at(start_s).build();
-            match client
-                .full_scan(req, self.stop_gap, PARALLEL_REQUESTS)
-                .await
-            {
+            match client.full_scan(req, self.stop_gap, PARALLEL_REQUESTS).await {
                 Ok(u) => Ok(u.into()),
                 Err(e) => Err(self.net_err("bdk sync failed", e)),
             }
         } else {
-            let req = self
-                .wallet
-                .start_sync_with_revealed_spks_at(start_s)
-                .build();
+            let req = self.wallet.start_sync_with_revealed_spks_at(start_s).build();
             match client.sync(req, PARALLEL_REQUESTS).await {
                 Ok(u) => Ok(u.into()),
                 Err(e) => Err(self.net_err("bdk sync failed", e)),
@@ -635,10 +563,7 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     }
 
     fn refresh_cache(&mut self, now_ms: u64) {
-        let mut mapped: Vec<Transaction> = tx_views(&self.wallet)
-            .iter()
-            .map(|v| map_tx(v, now_ms))
-            .collect();
+        let mut mapped: Vec<Transaction> = tx_views(&self.wallet).iter().map(|v| map_tx(v, now_ms)).collect();
         sort_newest_first(&mut mapped);
         self.last_list = mapped;
         self.last_balance = map_balance(&self.wallet.balance(), now_ms);
@@ -663,16 +588,14 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
 
     /// Full scan on the first call of the session, then revealed-script
     /// syncs. Applies the update, persists, diffs and queues events.
-    /// Port of `sync`. NOTE(port): the 60 s Dart timeout is the platform's job.
+    /// NOTE: the platform enforces the sync timeout.
     pub async fn sync(&mut self) -> Result<SyncOutcome> {
         let t0 = self.clock.now_ms();
         let start_s = t0 / 1000;
         let full = self.needs_full_scan;
         let update = self.fetch_update(full, start_s).await?;
         self.endpoints.report_success(CHAIN);
-        self.wallet
-            .apply_update(update)
-            .map_err(|e| svc(format!("bdk sync failed: {e}")))?;
+        self.wallet.apply_update(update).map_err(|e| svc(format!("bdk sync failed: {e}")))?;
         self.persist().await?;
         if full {
             self.needs_full_scan = false;
@@ -681,26 +604,16 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         self.refresh_cache(now);
         let changed = self.tracker.diff(&self.last_list, now);
         let end = self.clock.now_ms();
-        self.state = ServiceState {
-            lifecycle: ServiceLifecycle::Connected,
-            failure: None,
-            last_sync_at_ms: Some(end),
-        };
-        Ok(SyncOutcome {
-            chain: CHAIN,
-            fetched: self.last_list.len(),
-            changed,
-            duration_ms: end.saturating_sub(t0),
-        })
+        self.state =
+            ServiceState { lifecycle: ServiceLifecycle::Connected, failure: None, last_sync_at_ms: Some(end) };
+        Ok(SyncOutcome { chain: CHAIN, fetched: self.last_list.len(), changed, duration_ms: end.saturating_sub(t0) })
     }
 
-    /// Chain tip height. Port of `getBlockHeight`.
+    /// Chain tip height.
     pub async fn block_height(&mut self) -> Result<u32> {
         #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
         if let ChainBackend::Electrum(config) = self.backend.clone() {
-            let client = self
-                .electrum_client(&config, "bdk getHeight failed")
-                .await?;
+            let client = self.electrum_client(&config, "bdk getHeight failed").await?;
             return match client.tip_height().await {
                 Ok(h) => {
                     self.endpoints.report_success(CHAIN);
@@ -723,9 +636,7 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     pub async fn fee_estimates(&mut self) -> Result<BitcoinFeeEstimate> {
         #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
         if let ChainBackend::Electrum(config) = self.backend.clone() {
-            let client = self
-                .electrum_client(&config, "fee estimates failed")
-                .await?;
+            let client = self.electrum_client(&config, "fee estimates failed").await?;
             return match client.fee_estimates().await {
                 Ok(m) => {
                     self.endpoints.report_success(CHAIN);
@@ -744,14 +655,12 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         }
     }
 
-    /// Fee of the PSBT the request would build. Port of `estimateFee`.
+    /// Fee of the PSBT the request would build.
     pub async fn estimate_fee(&mut self, request: &SendRequest) -> Result<FeeEstimate> {
         check_request(request, "estimates")?;
         let psbt = build_psbt(&mut self.wallet, request)?;
         self.persist().await?;
-        let fee = psbt
-            .fee()
-            .map_err(|e| svc(format!("bdk estimateFee failed: {e}")))?;
+        let fee = psbt.fee().map_err(|e| svc(format!("bdk estimateFee failed: {e}")))?;
         Ok(FeeEstimate {
             chain: CHAIN,
             priority: request.fee_priority,
@@ -761,9 +670,7 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         })
     }
 
-    /// Builds a send for review. Port of the legacy
-    /// `buildOnchainBitcoinPaymentTransaction` and
-    /// `buildDrainOnchainBitcoinTransaction`.
+    /// Builds a send for review.
     pub async fn prepare_send(
         &mut self,
         destination: &str,
@@ -792,16 +699,10 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         })
     }
 
-    /// Next unused receive address. Port of `nextReceiveAddress`.
-    pub async fn next_receive_address(
-        &mut self,
-        asset_id: Option<&str>,
-        label: Option<&str>,
-    ) -> Result<ReceiveAddress> {
+    /// Next unused receive address.
+    pub async fn next_receive_address(&mut self, asset_id: Option<&str>, label: Option<&str>) -> Result<ReceiveAddress> {
         if let Some(a) = asset_id {
-            return Err(svc(format!(
-                "bitcoin service does not handle asset receives (got assetId: {a})"
-            )));
+            return Err(svc(format!("bitcoin service does not handle asset receives (got assetId: {a})")));
         }
         let (_, address) = next_fresh_receive_address(&mut self.wallet, FRESH_ADDRESS_CAP)
             .map_err(|e| svc(format!("bdk nextReceiveAddress failed: {e}")))?;
@@ -814,25 +715,16 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     /// Next receive address with no on-chain history, with its index.
     ///
     /// Same walk as [`Self::next_receive_address`]: it reveals up to the
-    /// chosen index and persists, as Dart `getNextUnusedBitcoinAddress` did.
+    /// chosen index and persists.
     pub async fn next_unused_address(&mut self) -> Result<NextUnusedAddress> {
         let (index, address) = next_fresh_receive_address(&mut self.wallet, FRESH_ADDRESS_CAP)
             .map_err(|e| svc(format!("bdk nextUnusedAddress failed: {e}")))?;
         self.persist().await?;
-        Ok(NextUnusedAddress {
-            index,
-            address: address.to_string(),
-            used: false,
-        })
+        Ok(NextUnusedAddress { index, address: address.to_string(), used: false })
     }
 
     /// Addresses of `keychain` at `start..start + count`. Reveals nothing.
-    pub fn derived_addresses(
-        &self,
-        keychain: Keychain,
-        start: u32,
-        count: u32,
-    ) -> Vec<DerivedAddressInfo> {
+    pub fn derived_addresses(&self, keychain: Keychain, start: u32, count: u32) -> Vec<DerivedAddressInfo> {
         derived_addresses(&self.wallet, keychain, start, count)
     }
 
@@ -847,10 +739,7 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     }
 
     /// Builds and signs the request. Returns the raw transaction and its fee.
-    pub async fn build_signed(
-        &mut self,
-        request: &SendRequest,
-    ) -> Result<(bdk_wallet::bitcoin::Transaction, u64)> {
+    pub async fn build_signed(&mut self, request: &SendRequest) -> Result<(bdk_wallet::bitcoin::Transaction, u64)> {
         check_request(request, "sends")?;
         let mut psbt = build_psbt(&mut self.wallet, request)?;
         self.persist().await?;
@@ -862,24 +751,19 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         if !finalized {
             return Err(svc("bdk sign returned false (watch-only descriptor?)"));
         }
-        let fee = psbt
-            .fee()
-            .map_err(|e| svc(format!("bdk sendOnchain failed: {e}")))?
-            .to_sat();
-        let tx = psbt
-            .extract_tx()
-            .map_err(|e| svc(format!("bdk sendOnchain failed: {e}")))?;
+        let fee = psbt.fee().map_err(|e| svc(format!("bdk sendOnchain failed: {e}")))?.to_sat();
+        let tx = psbt.extract_tx().map_err(|e| svc(format!("bdk sendOnchain failed: {e}")))?;
         Ok((tx, fee))
     }
 
-    /// Builds, signs and broadcasts. Port of `sendOnchain`.
+    /// Builds, signs and broadcasts.
     pub async fn send_onchain(&mut self, request: &SendRequest) -> Result<BroadcastResult> {
         let (tx, fee) = self.build_signed(request).await?;
         self.broadcast_tx(&tx).await?;
         self.endpoints.report_success(CHAIN);
         let txid = tx.compute_txid().to_string();
         let now = self.clock.now_ms();
-        // NOTE(port): amount is the requested amount even for a drain, as in Dart.
+        // NOTE: amount is the requested amount even for a drain, by design.
         let mut mapped = Transaction::new(
             txid.clone(),
             CHAIN,
@@ -894,21 +778,14 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         mapped.source = Some(TransactionSource::Bdk);
         self.tracker.force_register(&mapped, now);
         self.last_list.insert(0, mapped.clone());
-        Ok(BroadcastResult {
-            chain: CHAIN,
-            tx_id: txid,
-            transaction: mapped,
-            fee_paid_sat: Some(fee),
-        })
+        Ok(BroadcastResult { chain: CHAIN, tx_id: txid, transaction: mapped, fee_paid_sat: Some(fee) })
     }
 
     /// Broadcasts through the configured backend.
     async fn broadcast_tx(&mut self, tx: &bdk_wallet::bitcoin::Transaction) -> Result<()> {
         #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
         if let ChainBackend::Electrum(config) = self.backend.clone() {
-            let client = self
-                .electrum_client(&config, "bdk sendOnchain failed")
-                .await?;
+            let client = self.electrum_client(&config, "bdk sendOnchain failed").await?;
             return match client.broadcast(tx.clone()).await {
                 Ok(_) => Ok(()),
                 Err(e) => Err(self.electrum_err("bdk sendOnchain failed", e)),
@@ -922,7 +799,6 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     }
 
     /// Adds a transaction broadcast elsewhere. Idempotent by id.
-    /// Port of `registerExternalBroadcast`.
     pub fn register_external_broadcast(&mut self, tx: Transaction) {
         if tx.chain != CHAIN {
             return;
@@ -958,56 +834,32 @@ mod tests {
         let t = map_tx(&view(0, 5_000, None, Some(1_700_000_000)), 9);
         assert_eq!(t.direction, TransactionDirection::Incoming);
         assert_eq!((t.amount_sat, t.fee_sat), (5_000, 0));
-        assert_eq!(
-            (t.status, t.confirmations, t.timestamp_ms),
-            (TransactionStatus::Confirmed, 1, 1_700_000_000_000)
-        );
+        assert_eq!((t.status, t.confirmations, t.timestamp_ms), (TransactionStatus::Confirmed, 1, 1_700_000_000_000));
         assert_eq!(t.source, Some(TransactionSource::Bdk));
 
         let t = map_tx(&view(10_000, 0, Some(200), None), 9);
-        assert_eq!(
-            (t.direction, t.amount_sat),
-            (TransactionDirection::Outgoing, 10_000)
-        );
-        assert_eq!(
-            (t.status, t.confirmations, t.timestamp_ms),
-            (TransactionStatus::Pending, 0, 9)
-        );
+        assert_eq!((t.direction, t.amount_sat), (TransactionDirection::Outgoing, 10_000));
+        assert_eq!((t.status, t.confirmations, t.timestamp_ms), (TransactionStatus::Pending, 0, 9));
 
         // Payment with change: sent 10_000, change 3_000, fee 200.
         let t = map_tx(&view(10_000, 3_000, Some(200), None), 9);
-        assert_eq!(
-            (t.direction, t.amount_sat),
-            (TransactionDirection::Outgoing, 7_000)
-        );
+        assert_eq!((t.direction, t.amount_sat), (TransactionDirection::Outgoing, 7_000));
 
         // Consolidation: change equals inputs minus fee.
         let t = map_tx(&view(10_000, 9_800, Some(200), None), 9);
-        assert_eq!(
-            (t.direction, t.amount_sat),
-            (TransactionDirection::SelfTransfer, 200)
-        );
+        assert_eq!((t.direction, t.amount_sat), (TransactionDirection::SelfTransfer, 200));
         // Slack: fee 5_000 -> slack 50.
         let t = map_tx(&view(100_000, 94_950, Some(5_000), None), 9);
         assert_eq!(t.direction, TransactionDirection::SelfTransfer);
         let t = map_tx(&view(100_000, 94_900, Some(5_000), None), 9);
-        assert_eq!(
-            (t.direction, t.amount_sat),
-            (TransactionDirection::Outgoing, 5_100)
-        );
+        assert_eq!((t.direction, t.amount_sat), (TransactionDirection::Outgoing, 5_100));
 
         // Received more than sent (payjoin-like).
         let t = map_tx(&view(1_000, 4_000, Some(100), None), 9);
-        assert_eq!(
-            (t.direction, t.amount_sat),
-            (TransactionDirection::Incoming, 3_000)
-        );
+        assert_eq!((t.direction, t.amount_sat), (TransactionDirection::Incoming, 3_000));
 
         let t = map_tx(&view(0, 0, None, None), 9);
-        assert_eq!(
-            (t.direction, t.amount_sat),
-            (TransactionDirection::Internal, 0)
-        );
+        assert_eq!((t.direction, t.amount_sat), (TransactionDirection::Internal, 0));
     }
 
     #[test]
@@ -1021,19 +873,13 @@ mod tests {
         let m = map_balance(&b, 7);
         assert_eq!(m.assets.len(), 1);
         let a = &m.assets[0];
-        assert_eq!(
-            (a.amount_sat, a.pending_sat, a.asset_id.clone()),
-            (1_111, 111, None)
-        );
+        assert_eq!((a.amount_sat, a.pending_sat, a.asset_id.clone()), (1_111, 111, None));
         assert_eq!(a.ticker.as_deref(), Some("BTC"));
         assert_eq!(m.snapshot_at_ms, 7);
     }
 
     fn creds() -> WalletCredentials {
-        WalletCredentials {
-            mnemonic: ABANDON.into(),
-            network: AppNetwork::Mainnet,
-        }
+        WalletCredentials { mnemonic: ABANDON.into(), network: AppNetwork::Mainnet }
     }
 
     fn connect(kv: MemoryKv) -> BitcoinWallet<MemoryKv, FixedClock> {
@@ -1052,10 +898,7 @@ mod tests {
         let mut w = connect(kv.clone());
         assert!(w.state().is_operational());
         let a0 = block_on(w.next_receive_address(None, Some("x"))).unwrap();
-        assert_eq!(
-            a0.address.as_deref(),
-            Some("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu")
-        );
+        assert_eq!(a0.address.as_deref(), Some("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"));
         assert_eq!(a0.label.as_deref(), Some("x"));
         // Unused address is handed out again.
         let again = block_on(w.next_receive_address(None, None)).unwrap();
@@ -1078,41 +921,17 @@ mod tests {
         let mut w = connect(MemoryKv::new());
         let liquid = SendRequest::new(ChainId::Liquid, "lq1x", 1);
         let e = block_on(w.estimate_fee(&liquid)).unwrap_err();
-        assert!(
-            e.to_string()
-                .contains("only handles Bitcoin on-chain estimates (got: liquid)"),
-            "{e}"
-        );
+        assert!(e.to_string().contains("only handles Bitcoin on-chain estimates (got: liquid)"), "{e}");
         let mut asset = SendRequest::new(ChainId::Bitcoin, "bc1q", 1);
         asset.asset_id = Some("x".into());
-        assert!(block_on(w.send_onchain(&asset))
-            .unwrap_err()
-            .to_string()
-            .contains("asset sends"));
+        assert!(block_on(w.send_onchain(&asset)).unwrap_err().to_string().contains("asset sends"));
         let bad = SendRequest::new(ChainId::Bitcoin, "not-an-address", 1);
-        assert!(block_on(w.estimate_fee(&bad))
-            .unwrap_err()
-            .to_string()
-            .contains("invalid address"));
-        let testnet = SendRequest::new(
-            ChainId::Bitcoin,
-            "tb1qcr8te4kr609gcawutmrza0j4xv80jy8zeqchgx",
-            1,
-        );
-        assert!(block_on(w.estimate_fee(&testnet))
-            .unwrap_err()
-            .to_string()
-            .contains("invalid address"));
+        assert!(block_on(w.estimate_fee(&bad)).unwrap_err().to_string().contains("invalid address"));
+        let testnet = SendRequest::new(ChainId::Bitcoin, "tb1qcr8te4kr609gcawutmrza0j4xv80jy8zeqchgx", 1);
+        assert!(block_on(w.estimate_fee(&testnet)).unwrap_err().to_string().contains("invalid address"));
         // Empty wallet cannot fund a send.
-        let ok = SendRequest::new(
-            ChainId::Bitcoin,
-            "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g",
-            1_000,
-        );
-        assert!(block_on(w.estimate_fee(&ok))
-            .unwrap_err()
-            .to_string()
-            .contains("bdk build PSBT failed"));
+        let ok = SendRequest::new(ChainId::Bitcoin, "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g", 1_000);
+        assert!(block_on(w.estimate_fee(&ok)).unwrap_err().to_string().contains("bdk build PSBT failed"));
     }
 
     #[test]
@@ -1159,17 +978,12 @@ mod tests {
             lock_time: absolute::LockTime::ZERO,
             input: vec![TxIn {
                 previous_output: OutPoint::new(
-                    "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
-                        .parse()
-                        .unwrap(),
+                    "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b".parse().unwrap(),
                     0,
                 ),
                 ..Default::default()
             }],
-            output: vec![TxOut {
-                value: Amount::from_sat(sats),
-                script_pubkey: to.script_pubkey(),
-            }],
+            output: vec![TxOut { value: Amount::from_sat(sats), script_pubkey: to.script_pubkey() }],
         };
         w.wallet.apply_unconfirmed_txs([(tx, 1)]);
         w.refresh_cache(5);
@@ -1180,21 +994,14 @@ mod tests {
         let mut w = connect(MemoryKv::new());
         fund(&mut w, 100_000);
         assert_eq!(w.balance().pending_sat_for_chain(ChainId::Bitcoin), 100_000);
-        assert_eq!(
-            w.list_transactions()[0].direction,
-            TransactionDirection::Incoming
-        );
+        assert_eq!(w.list_transactions()[0].direction, TransactionDirection::Incoming);
         let dest = "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g";
 
         let mut req = SendRequest::new(ChainId::Bitcoin, dest, 30_000);
         req.fee_rate_override_sat_per_vbyte = Some(1.2);
         let est = block_on(w.estimate_fee(&req)).unwrap();
         // One P2WPKH input, two outputs at 2 sat/vB (1.2 rounded up).
-        assert!(
-            est.absolute_fee_sat >= 2 * 140 && est.absolute_fee_sat <= 2 * 145,
-            "{}",
-            est.absolute_fee_sat
-        );
+        assert!(est.absolute_fee_sat >= 2 * 140 && est.absolute_fee_sat <= 2 * 145, "{}", est.absolute_fee_sat);
         assert_eq!(est.fee_rate_sat_per_vbyte, Some(1.2));
 
         let (tx, fee) = block_on(w.build_signed(&req)).unwrap();
@@ -1224,24 +1031,12 @@ mod tests {
     fn derived_addresses_follow_bip84_and_reveal_nothing() {
         let w = connect(MemoryKv::new());
         let ext = w.derived_addresses(Keychain::External, 0, 2);
-        assert_eq!(
-            ext.iter().map(|a| a.address.as_str()).collect::<Vec<_>>(),
-            [ADDR0, ADDR1]
-        );
+        assert_eq!(ext.iter().map(|a| a.address.as_str()).collect::<Vec<_>>(), [ADDR0, ADDR1]);
         assert_eq!(ext.iter().map(|a| a.index).collect::<Vec<_>>(), [0, 1]);
-        assert!(ext
-            .iter()
-            .all(|a| !a.used && a.keychain == Keychain::External && a.unconfidential.is_none()));
-        assert!(
-            ext[0].script_hex.starts_with("0014") && ext[0].script_hex.len() == 44,
-            "{}",
-            ext[0].script_hex
-        );
+        assert!(ext.iter().all(|a| !a.used && a.keychain == Keychain::External && a.unconfidential.is_none()));
+        assert!(ext[0].script_hex.starts_with("0014") && ext[0].script_hex.len() == 44, "{}", ext[0].script_hex);
         let int = w.derived_addresses(Keychain::Internal, 0, 1);
-        assert_eq!(
-            (int[0].address.as_str(), int[0].keychain),
-            (CHANGE0, Keychain::Internal)
-        );
+        assert_eq!((int[0].address.as_str(), int[0].keychain), (CHANGE0, Keychain::Internal));
         let page = w.derived_addresses(Keychain::External, 1, 1);
         assert_eq!(page[0].address, ADDR1);
         assert!(w.derived_addresses(Keychain::External, 0, 0).is_empty());
@@ -1251,41 +1046,15 @@ mod tests {
     #[test]
     fn is_mine_reports_keychain_and_index() {
         let w = connect(MemoryKv::new());
-        assert_eq!(
-            w.is_mine(ADDR1).unwrap(),
-            Some(AddressOwnership {
-                keychain: Keychain::External,
-                index: 1
-            })
-        );
-        assert_eq!(
-            w.is_mine(CHANGE0).unwrap(),
-            Some(AddressOwnership {
-                keychain: Keychain::Internal,
-                index: 0
-            })
-        );
+        assert_eq!(w.is_mine(ADDR1).unwrap(), Some(AddressOwnership { keychain: Keychain::External, index: 1 }));
+        assert_eq!(w.is_mine(CHANGE0).unwrap(), Some(AddressOwnership { keychain: Keychain::Internal, index: 0 }));
         // Foreign mainnet address.
-        assert_eq!(
-            w.is_mine("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq")
-                .unwrap(),
-            None
-        );
+        assert_eq!(w.is_mine("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq").unwrap(), None);
         // Past the lookahead window (no index revealed yet).
-        let far = w
-            .wallet
-            .peek_address(KeychainKind::External, LOOKAHEAD + 5)
-            .address
-            .to_string();
+        let far = w.wallet.peek_address(KeychainKind::External, LOOKAHEAD + 5).address.to_string();
         assert_eq!(w.is_mine(&far).unwrap(), None);
-        assert!(matches!(
-            w.is_mine("not-an-address"),
-            Err(Error::InvalidInput(_))
-        ));
-        assert!(matches!(
-            w.is_mine("tb1qcr8te4kr609gcawutmrza0j4xv80jy8zeqchgx"),
-            Err(Error::InvalidInput(_))
-        ));
+        assert!(matches!(w.is_mine("not-an-address"), Err(Error::InvalidInput(_))));
+        assert!(matches!(w.is_mine("tb1qcr8te4kr609gcawutmrza0j4xv80jy8zeqchgx"), Err(Error::InvalidInput(_))));
     }
 
     #[test]
@@ -1293,46 +1062,23 @@ mod tests {
         let mut w = connect(MemoryKv::new());
         assert!(w.unspent_outputs().is_empty());
         let first = block_on(w.next_unused_address()).unwrap();
-        assert_eq!(
-            first,
-            NextUnusedAddress {
-                index: 0,
-                address: ADDR0.into(),
-                used: false
-            }
-        );
+        assert_eq!(first, NextUnusedAddress { index: 0, address: ADDR0.into(), used: false });
 
         fund(&mut w, 42_000);
         let utxos = w.unspent_outputs();
         assert_eq!(utxos.len(), 1);
         let u = &utxos[0];
-        assert_eq!(
-            (u.address.as_str(), u.keychain, u.index, u.amount_sat),
-            (ADDR0, Keychain::External, 0, 42_000)
-        );
-        assert_eq!(
-            (u.vout, u.asset_id.clone(), u.is_confirmed()),
-            (0, None, false)
-        );
+        assert_eq!((u.address.as_str(), u.keychain, u.index, u.amount_sat), (ADDR0, Keychain::External, 0, 42_000));
+        assert_eq!((u.vout, u.asset_id.clone(), u.is_confirmed()), (0, None, false));
         assert_eq!(u.outpoint(), format!("{}:0", u.txid));
-        assert_eq!(
-            u.script_hex,
-            w.derived_addresses(Keychain::External, 0, 1)[0].script_hex
-        );
+        assert_eq!(u.script_hex, w.derived_addresses(Keychain::External, 0, 1)[0].script_hex);
 
         let ext = w.derived_addresses(Keychain::External, 0, 2);
         assert_eq!((ext[0].used, ext[1].used), (true, false));
 
         // Index 0 has history: the walk moves to index 1 and reveals it.
         let next = block_on(w.next_unused_address()).unwrap();
-        assert_eq!(
-            next,
-            NextUnusedAddress {
-                index: 1,
-                address: ADDR1.into(),
-                used: false
-            }
-        );
+        assert_eq!(next, NextUnusedAddress { index: 1, address: ADDR1.into(), used: false });
         assert_eq!(w.bdk().derivation_index(KeychainKind::External), Some(1));
         // Unused: the same address comes back.
         assert_eq!(block_on(w.next_unused_address()).unwrap().index, 1);

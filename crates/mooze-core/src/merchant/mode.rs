@@ -1,8 +1,6 @@
 //! Merchant mode flags.
 //!
-//! Port of `MerchantModeLocalDataSource` and its use cases, plus
-//! `StoreModeHandler` (`lib/utils/store_mode.dart`). Dart keeps these in
-//! SharedPreferences. Here they are JSON values in a [`KvStore`] under the same keys.
+//! The flags are JSON values in a [`KvStore`]. The key names are part of the stored data format.
 
 use crate::ports::KvStore;
 use crate::store::json::{delete_key, get_json, put_json};
@@ -31,9 +29,7 @@ impl<K: KvStore> MerchantModeStore<K> {
 
     /// True if merchant mode is on. Absent means off.
     pub async fn is_active(&self) -> Result<bool> {
-        Ok(get_json(&self.kv, MERCHANT_MODE_ACTIVE_KEY)
-            .await?
-            .unwrap_or(false))
+        Ok(get_json(&self.kv, MERCHANT_MODE_ACTIVE_KEY).await?.unwrap_or(false))
     }
 
     /// Sets the flag. Saves `origin` only when activating.
@@ -45,20 +41,17 @@ impl<K: KvStore> MerchantModeStore<K> {
         Ok(())
     }
 
-    /// Activates with `origin`, default [`DEFAULT_ORIGIN`]. Port of `ActivateMerchantModeUseCase`.
+    /// Activates with `origin`, default [`DEFAULT_ORIGIN`].
     pub async fn activate(&self, origin: Option<&str>) -> Result<()> {
-        self.set_active(true, origin.unwrap_or(DEFAULT_ORIGIN))
-            .await
+        self.set_active(true, origin.unwrap_or(DEFAULT_ORIGIN)).await
     }
 
     /// Saved origin, default [`DEFAULT_ORIGIN`].
     pub async fn origin(&self) -> Result<String> {
-        Ok(get_json(&self.kv, MERCHANT_MODE_ORIGIN_KEY)
-            .await?
-            .unwrap_or_else(|| DEFAULT_ORIGIN.to_owned()))
+        Ok(get_json(&self.kv, MERCHANT_MODE_ORIGIN_KEY).await?.unwrap_or_else(|| DEFAULT_ORIGIN.to_owned()))
     }
 
-    /// Removes flag and origin. Port of `DeactivateMerchantModeUseCase`.
+    /// Removes flag and origin.
     pub async fn clear(&self) -> Result<()> {
         delete_key(&self.kv, MERCHANT_MODE_ACTIVE_KEY).await?;
         delete_key(&self.kv, MERCHANT_MODE_ORIGIN_KEY).await
@@ -89,7 +82,7 @@ mod tests {
             m.activate(Some("/wallet")).await.unwrap();
             assert!(m.is_active().await.unwrap());
             assert_eq!(m.origin().await.unwrap(), "/wallet");
-            // Deactivating through set_active keeps the old origin, as in Dart.
+            // Deactivating through set_active keeps the old origin by design.
             m.set_active(false, "/ignored").await.unwrap();
             assert_eq!(m.origin().await.unwrap(), "/wallet");
             m.clear().await.unwrap();

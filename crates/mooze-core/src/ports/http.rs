@@ -41,30 +41,14 @@ pub struct HttpRequest {
 impl HttpRequest {
     /// GET request without a body.
     pub fn get(url: impl Into<String>) -> Self {
-        Self {
-            method: HttpMethod::Get,
-            url: url.into(),
-            headers: BTreeMap::new(),
-            body: None,
-            timeout_ms: None,
-        }
+        Self { method: HttpMethod::Get, url: url.into(), headers: BTreeMap::new(), body: None, timeout_ms: None }
     }
 
     /// Request with a JSON body and a JSON content type.
-    pub fn json<T: serde::Serialize>(
-        method: HttpMethod,
-        url: impl Into<String>,
-        body: &T,
-    ) -> Result<Self> {
+    pub fn json<T: serde::Serialize>(method: HttpMethod, url: impl Into<String>, body: &T) -> Result<Self> {
         let mut headers = BTreeMap::new();
         headers.insert("Content-Type".to_owned(), "application/json".to_owned());
-        Ok(Self {
-            method,
-            url: url.into(),
-            headers,
-            body: Some(serde_json::to_vec(body)?),
-            timeout_ms: None,
-        })
+        Ok(Self { method, url: url.into(), headers, body: Some(serde_json::to_vec(body)?), timeout_ms: None })
     }
 
     /// Adds or replaces one header.
@@ -104,10 +88,7 @@ impl HttpResponse {
         if self.is_success() {
             Ok(self)
         } else {
-            Err(Error::Http {
-                status: self.status,
-                body: self.text(),
-            })
+            Err(Error::Http { status: self.status, body: self.text() })
         }
     }
 
@@ -165,32 +146,16 @@ impl HttpClient for ReqwestHttpClient {
                 builder = builder.timeout(std::time::Duration::from_millis(ms));
             }
             let resp = builder.send().await.map_err(|e| {
-                if e.is_timeout() {
-                    Error::Timeout(e.to_string())
-                } else {
-                    Error::Network(e.to_string())
-                }
+                if e.is_timeout() { Error::Timeout(e.to_string()) } else { Error::Network(e.to_string()) }
             })?;
             let status = resp.status().as_u16();
             let headers = resp
                 .headers()
                 .iter()
-                .filter_map(|(k, v)| {
-                    v.to_str()
-                        .ok()
-                        .map(|v| (k.as_str().to_owned(), v.to_owned()))
-                })
+                .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.as_str().to_owned(), v.to_owned())))
                 .collect();
-            let body = resp
-                .bytes()
-                .await
-                .map_err(|e| Error::Network(e.to_string()))?
-                .to_vec();
-            Ok(HttpResponse {
-                status,
-                headers,
-                body,
-            })
+            let body = resp.bytes().await.map_err(|e| Error::Network(e.to_string()))?.to_vec();
+            Ok(HttpResponse { status, headers, body })
         }
     }
 }

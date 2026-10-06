@@ -19,7 +19,7 @@ impl ChainId {
         self != ChainId::Aggregate
     }
 
-    /// Lower-case name, same as the Dart `enum.name`.
+    /// Lower-case name.
     pub fn as_str(self) -> &'static str {
         match self {
             ChainId::Liquid => "liquid",
@@ -41,7 +41,7 @@ pub enum AppNetwork {
 }
 
 impl AppNetwork {
-    /// Parses a name. Unknown names fall back to mainnet, like the Dart code.
+    /// Parses a name. Unknown names fall back to mainnet.
     pub fn from_name(name: &str) -> Self {
         match name {
             "testnet" => AppNetwork::Testnet,
@@ -65,9 +65,7 @@ pub struct ChainFilter {
 impl ChainFilter {
     /// Filter that matches one chain.
     pub fn only(chain: ChainId) -> Self {
-        Self {
-            chains: BTreeSet::from([chain]),
-        }
+        Self { chains: BTreeSet::from([chain]) }
     }
 
     /// True if `chain` is in the filter.

@@ -1,7 +1,6 @@
 //! Persisted dedup ledger for transaction notifications.
 //!
-//! Port of `SqliteNotifiedTxRegistry` (`lib/infra/storage/notified_tx_registry_impl.dart`).
-//! Tables `notified_tx_ids` and `notification_meta` become two key prefixes.
+//! Two key prefixes hold the notified transaction ids and the notification metadata.
 
 use serde::{Deserialize, Serialize};
 
@@ -49,21 +48,14 @@ impl<K: KvStore> NotifiedTxRegistry<K> {
 
     /// Returns `true` the first time `(chain, tx_id)` is seen, `false` after.
     ///
-    /// NOTE(port): Dart relies on SQLite `INSERT OR IGNORE` for atomicity.
-    /// Here callers must not run two `mark_if_new` calls for the same key at once.
+    /// NOTE: The check and the write are not atomic.
+    /// Callers must not run two `mark_if_new` calls for the same key at once.
     pub async fn mark_if_new(&self, chain: ChainId, tx_id: &str, now_ms: u64) -> Result<bool> {
         let key = notified_key(chain, tx_id);
         if self.kv.get(&key).await?.is_some() {
             return Ok(false);
         }
-        put_json(
-            &self.kv,
-            &key,
-            &NotifiedRow {
-                notified_at_ms: now_ms,
-            },
-        )
-        .await?;
+        put_json(&self.kv, &key, &NotifiedRow { notified_at_ms: now_ms }).await?;
         Ok(true)
     }
 
@@ -82,10 +74,7 @@ impl<K: KvStore> NotifiedTxRegistry<K> {
 
     /// True once the baseline absorb pass has completed.
     pub async fn is_baseline_complete(&self) -> Result<bool> {
-        Ok(get_string(&self.kv, &meta_key(BASELINE_KEY))
-            .await?
-            .as_deref()
-            == Some(BASELINE_TRUE))
+        Ok(get_string(&self.kv, &meta_key(BASELINE_KEY)).await?.as_deref() == Some(BASELINE_TRUE))
     }
 
     /// Marks the baseline absorb pass as complete. Sticky until [`Self::clear`].
@@ -95,9 +84,7 @@ impl<K: KvStore> NotifiedTxRegistry<K> {
 
     /// Wallet import time in epoch ms. `None` if absent or unparsable.
     pub async fn imported_at_ms(&self) -> Result<Option<i64>> {
-        Ok(get_string(&self.kv, &meta_key(IMPORTED_AT_KEY))
-            .await?
-            .and_then(|s| s.parse().ok()))
+        Ok(get_string(&self.kv, &meta_key(IMPORTED_AT_KEY)).await?.and_then(|s| s.parse().ok()))
     }
 
     /// Stores the wallet import time in epoch ms.
@@ -130,14 +117,7 @@ mod tests {
             assert!(r.mark_if_new(ChainId::Liquid, "t", 1).await.unwrap());
             assert!(!r.mark_if_new(ChainId::Liquid, "t", 2).await.unwrap());
             assert!(r.mark_if_new(ChainId::Lightning, "t", 3).await.unwrap());
-            assert_eq!(
-                r.row(ChainId::Liquid, "t")
-                    .await
-                    .unwrap()
-                    .unwrap()
-                    .notified_at_ms,
-                1
-            );
+            assert_eq!(r.row(ChainId::Liquid, "t").await.unwrap().unwrap().notified_at_ms, 1);
         });
     }
 
@@ -149,15 +129,7 @@ mod tests {
             assert_eq!(r.imported_at_ms().await.unwrap(), None);
             r.set_baseline_complete().await.unwrap();
             r.set_imported_at_ms(1_700_000_000_000).await.unwrap();
-            r.bulk_mark(
-                &[
-                    (ChainId::Bitcoin, "a".into()),
-                    (ChainId::Bitcoin, "b".into()),
-                ],
-                5,
-            )
-            .await
-            .unwrap();
+            r.bulk_mark(&[(ChainId::Bitcoin, "a".into()), (ChainId::Bitcoin, "b".into())], 5).await.unwrap();
             assert!(r.is_baseline_complete().await.unwrap());
             assert_eq!(r.imported_at_ms().await.unwrap(), Some(1_700_000_000_000));
             assert!(r.contains(ChainId::Bitcoin, "b").await.unwrap());

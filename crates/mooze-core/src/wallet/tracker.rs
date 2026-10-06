@@ -1,8 +1,7 @@
-//! Transaction change tracking shared by both wallets. Port of the
-//! `_seen` map and `_diffAndEmit` in the BDK and LWK services.
+//! Transaction change tracking shared by both wallets.
 //!
-//! Dart pushed events into a broadcast stream. Here the wallet keeps an
-//! outbox; the caller drains it with `take_events`.
+//! The wallet keeps an outbox of events. The caller drains it with
+//! `take_events`.
 
 use std::collections::HashMap;
 
@@ -24,8 +23,7 @@ impl TxTracker {
     /// Records the list without emitting events (cold restore priming).
     pub fn prime(&mut self, txs: &[Transaction]) {
         for tx in txs {
-            self.seen
-                .insert(tx.id.clone(), (tx.status, tx.confirmations));
+            self.seen.insert(tx.id.clone(), (tx.status, tx.confirmations));
         }
     }
 
@@ -44,16 +42,14 @@ impl TxTracker {
                 Some(&(status, conf)) if status != tx.status => {
                     Some((TransactionEventKind::StatusChanged, Some((status, conf))))
                 }
-                Some(&(status, conf)) if conf != tx.confirmations => Some((
-                    TransactionEventKind::ConfirmationsChanged,
-                    Some((status, conf)),
-                )),
+                Some(&(status, conf)) if conf != tx.confirmations => {
+                    Some((TransactionEventKind::ConfirmationsChanged, Some((status, conf))))
+                }
                 Some(_) => None,
             };
             if let Some((kind, prev)) = kind {
                 changes += 1;
-                self.seen
-                    .insert(tx.id.clone(), (tx.status, tx.confirmations));
+                self.seen.insert(tx.id.clone(), (tx.status, tx.confirmations));
                 self.outbox.push(TransactionEvent {
                     kind,
                     transaction: tx.clone(),
@@ -72,8 +68,7 @@ impl TxTracker {
         if self.seen.contains_key(&tx.id) {
             return false;
         }
-        self.seen
-            .insert(tx.id.clone(), (tx.status, tx.confirmations));
+        self.seen.insert(tx.id.clone(), (tx.status, tx.confirmations));
         self.outbox.push(TransactionEvent {
             kind: TransactionEventKind::Created,
             transaction: tx.clone(),
@@ -84,8 +79,8 @@ impl TxTracker {
         true
     }
 
-    /// Records a transaction and always queues a `created` event, like the
-    /// BDK `sendOnchain` path (it does not check `_seen`).
+    /// Records a transaction and always queues a `created` event. It ignores
+    /// the seen state. The bitcoin wallet calls it after a broadcast.
     pub fn force_register(&mut self, tx: &Transaction, now_ms: u64) {
         self.seen.remove(&tx.id);
         self.register(tx, now_ms);
@@ -114,15 +109,7 @@ mod tests {
     use crate::domain::{ChainId, TransactionDirection};
 
     fn tx(id: &str, status: TransactionStatus, conf: u32) -> Transaction {
-        let mut t = Transaction::new(
-            id,
-            ChainId::Bitcoin,
-            TransactionDirection::Incoming,
-            status,
-            10,
-            1,
-            5,
-        );
+        let mut t = Transaction::new(id, ChainId::Bitcoin, TransactionDirection::Incoming, status, 10, 1, 5);
         t.confirmations = conf;
         t
     }

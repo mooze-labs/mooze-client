@@ -1,4 +1,4 @@
-//! Reconnect and keepalive policy. Port of `lib/utils/websocket.dart`.
+//! Reconnect and keepalive policy.
 //!
 //! The core never sleeps. The platform reads the delays and schedules.
 
@@ -45,19 +45,16 @@ impl Default for ReconnectPolicy {
 
 impl ReconnectPolicy {
     /// Backoff for 1-based `attempt`: `initial * 2^(attempt-1)`, capped.
-    /// The shift is clamped to 0..=20, like Dart.
+    /// The shift is clamped to 0..=20.
     pub fn backoff_delay_ms(&self, attempt: u32) -> u64 {
         let shift = attempt.saturating_sub(1).min(20);
-        let exp = self
-            .initial_reconnect_delay_ms
-            .saturating_mul(1u64 << shift);
+        let exp = self.initial_reconnect_delay_ms.saturating_mul(1u64 << shift);
         exp.min(self.max_reconnect_delay_ms)
     }
 
     /// Delay before reconnect `attempt`, or `None` when the budget is spent.
     pub fn next_delay_ms(&self, attempt: u32) -> Option<u64> {
-        (attempt >= 1 && attempt <= self.max_reconnect_attempts)
-            .then(|| self.backoff_delay_ms(attempt))
+        (attempt >= 1 && attempt <= self.max_reconnect_attempts).then(|| self.backoff_delay_ms(attempt))
     }
 
     /// Ping/idle check interval.
@@ -91,11 +88,7 @@ pub struct ReconnectTracker {
 impl ReconnectTracker {
     /// New tracker in [`ConnectionState::Disconnected`].
     pub fn new(policy: ReconnectPolicy) -> Self {
-        Self {
-            policy,
-            attempt: 0,
-            state: ConnectionState::Disconnected,
-        }
+        Self { policy, attempt: 0, state: ConnectionState::Disconnected }
     }
 
     /// Current state.
@@ -110,11 +103,7 @@ impl ReconnectTracker {
 
     /// Call before dialing. Returns `Connecting` or `Reconnecting`.
     pub fn on_connect_start(&mut self) -> ConnectionState {
-        self.state = if self.attempt == 0 {
-            ConnectionState::Connecting
-        } else {
-            ConnectionState::Reconnecting
-        };
+        self.state = if self.attempt == 0 { ConnectionState::Connecting } else { ConnectionState::Reconnecting };
         self.state
     }
 
@@ -132,10 +121,7 @@ impl ReconnectTracker {
         }
         self.attempt += 1;
         self.state = ConnectionState::Reconnecting;
-        ReconnectAction::Retry {
-            attempt: self.attempt,
-            delay_ms: self.policy.backoff_delay_ms(self.attempt),
-        }
+        ReconnectAction::Retry { attempt: self.attempt, delay_ms: self.policy.backoff_delay_ms(self.attempt) }
     }
 
     /// `ensureConnected`: a user retry after `Error` gets a fresh budget.

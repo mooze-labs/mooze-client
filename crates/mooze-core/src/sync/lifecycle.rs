@@ -1,7 +1,6 @@
 //! Top-level app phase: boot, then sync.
 //!
-//! Port of the logic of `AppLifecycleControllerImpl`
-//! (`lib/app/lifecycle/app_lifecycle_controller_impl.dart`) as a pure state machine.
+//! Pure state machine.
 //! The caller runs boot, sync and wallet deletion and reports the results here.
 
 use crate::{Error, Result};
@@ -78,14 +77,9 @@ impl AppLifecycle {
         StartStep::RunBoot
     }
 
-    /// Applies the boot result. Branches on the boot phase first, like Dart,
+    /// Applies the boot result. Branches on the boot phase first
     /// because needs-setup can come back as either side of the result.
-    pub fn finish_boot(
-        &mut self,
-        boot: &BootState,
-        result: &Result<BootState>,
-        now_ms: u64,
-    ) -> BootOutcome {
+    pub fn finish_boot(&mut self, boot: &BootState, result: &Result<BootState>, now_ms: u64) -> BootOutcome {
         if boot.phase == BootPhase::NeedsSetup {
             self.state.phase = AppPhase::NeedsSetup;
             return BootOutcome::NeedsSetup;
@@ -132,18 +126,9 @@ mod tests {
     fn ready_path_and_idempotent_start() {
         let mut a = AppLifecycle::new();
         assert_eq!(a.begin_start(5), StartStep::RunBoot);
-        let boot = BootState {
-            phase: BootPhase::Ready,
-            ..Default::default()
-        };
-        assert_eq!(
-            a.finish_boot(&boot, &Ok(boot.clone()), 9),
-            BootOutcome::ReadyStartSync
-        );
-        assert_eq!(
-            (a.state().phase, a.state().ready_at_ms),
-            (AppPhase::Ready, Some(9))
-        );
+        let boot = BootState { phase: BootPhase::Ready, ..Default::default() };
+        assert_eq!(a.finish_boot(&boot, &Ok(boot.clone()), 9), BootOutcome::ReadyStartSync);
+        assert_eq!((a.state().phase, a.state().ready_at_ms), (AppPhase::Ready, Some(9)));
         assert_eq!(a.begin_start(10), StartStep::AlreadyReady);
     }
 
@@ -151,14 +136,8 @@ mod tests {
     fn needs_setup_wins_over_error_side() {
         let mut a = AppLifecycle::new();
         a.begin_start(0);
-        let boot = BootState {
-            phase: BootPhase::NeedsSetup,
-            ..Default::default()
-        };
-        let r = Err(Error::Boot {
-            phase: "loadingCredentials".into(),
-            message: "mnemonic absent".into(),
-        });
+        let boot = BootState { phase: BootPhase::NeedsSetup, ..Default::default() };
+        let r = Err(Error::Boot { phase: "loadingCredentials".into(), message: "mnemonic absent".into() });
         assert_eq!(a.finish_boot(&boot, &r, 1), BootOutcome::NeedsSetup);
         assert_eq!(a.state().phase, AppPhase::NeedsSetup);
     }
@@ -167,25 +146,14 @@ mod tests {
     fn failure_shutdown_and_reimport() {
         let mut a = AppLifecycle::new();
         a.begin_start(0);
-        let boot = BootState {
-            phase: BootPhase::Error,
-            ..Default::default()
-        };
-        let e = Error::Boot {
-            phase: "platform".into(),
-            message: "x".into(),
-        };
-        assert_eq!(
-            a.finish_boot(&boot, &Err(e.clone()), 1),
-            BootOutcome::Failed(e)
-        );
+        let boot = BootState { phase: BootPhase::Error, ..Default::default() };
+        let e = Error::Boot { phase: "platform".into(), message: "x".into() };
+        assert_eq!(a.finish_boot(&boot, &Err(e.clone()), 1), BootOutcome::Failed(e));
         assert_eq!(a.state().phase, AppPhase::Error);
         assert!(a.begin_shutdown());
         a.finish_shutdown();
         assert!(!a.begin_shutdown());
-        assert!(a
-            .finish_delete_for_reimport(&Err(Error::Storage("x".into())))
-            .is_err());
+        assert!(a.finish_delete_for_reimport(&Err(Error::Storage("x".into()))).is_err());
         assert_eq!(a.state().phase, AppPhase::Terminated);
         a.finish_delete_for_reimport(&Ok(())).unwrap();
         assert_eq!(a.state().phase, AppPhase::Uninitialized);

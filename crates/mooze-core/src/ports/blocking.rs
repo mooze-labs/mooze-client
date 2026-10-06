@@ -8,8 +8,7 @@ use crate::{Error, Result};
 /// are an example. A blocking call inside an async task stalls the whole
 /// executor thread, so the core hands that work to the platform instead.
 /// Native platforms use a blocking-task pool, for example
-/// `tokio::task::spawn_blocking`. The Dart app used `Isolate.run` for the
-/// same reason.
+/// `tokio::task::spawn_blocking`.
 ///
 /// The trait is object safe, so services can hold an `Arc<dyn BlockingSpawner>`.
 pub trait BlockingSpawner: Send + Sync {
@@ -31,6 +30,5 @@ where
         // The receiver is gone only if the caller stopped waiting.
         let _ = tx.send(f());
     }));
-    rx.await
-        .map_err(|_| Error::Unexpected("blocking task dropped before it finished".into()))
+    rx.await.map_err(|_| Error::Unexpected("blocking task dropped before it finished".into()))
 }

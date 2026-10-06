@@ -11,8 +11,8 @@ use std::sync::{Arc, Mutex};
 use futures::channel::{mpsc, oneshot};
 
 use crate::ports::{
-    BlockingSpawner, Clock, HttpClient, HttpMethod, HttpRequest, HttpResponse, KvStore, MaybeSend,
-    SecureStore, Spawner, TaskFuture, Timer, WsConnection, WsConnector, WsMessage,
+    BlockingSpawner, Clock, HttpClient, HttpMethod, HttpRequest, HttpResponse, KvStore, MaybeSend, SecureStore, WsConnection,
+    WsConnector, WsMessage, Spawner, TaskFuture, Timer,
 };
 use crate::{Error, Result};
 
@@ -45,10 +45,7 @@ impl KvStore for MemoryKv {
     }
 
     fn put(&self, key: &str, value: Vec<u8>) -> impl Future<Output = Result<()>> + MaybeSend {
-        self.inner
-            .lock()
-            .expect("poisoned")
-            .insert(key.to_owned(), value);
+        self.inner.lock().expect("poisoned").insert(key.to_owned(), value);
         ready(Ok(()))
     }
 
@@ -81,9 +78,7 @@ pub struct FixedClock {
 impl FixedClock {
     /// Clock fixed at `now_ms`.
     pub fn new(now_ms: u64) -> Self {
-        Self {
-            now: AtomicU64::new(now_ms),
-        }
+        Self { now: AtomicU64::new(now_ms) }
     }
 
     /// Moves the clock forward.
@@ -127,21 +122,8 @@ impl MockHttp {
         Self::default()
     }
 
-    fn add(
-        &self,
-        method: HttpMethod,
-        url: &str,
-        prefix: bool,
-        response: Result<HttpResponse>,
-        once: bool,
-    ) {
-        self.routes.lock().expect("poisoned").push(Route {
-            method,
-            url: url.to_owned(),
-            prefix,
-            response,
-            once,
-        });
+    fn add(&self, method: HttpMethod, url: &str, prefix: bool, response: Result<HttpResponse>, once: bool) {
+        self.routes.lock().expect("poisoned").push(Route { method, url: url.to_owned(), prefix, response, once });
     }
 
     /// Answers `method url` (exact match) with `status` and a JSON body.
@@ -150,29 +132,13 @@ impl MockHttp {
     }
 
     /// Answers every URL that starts with `prefix`.
-    pub fn on_prefix_json(
-        &self,
-        method: HttpMethod,
-        prefix: &str,
-        status: u16,
-        body: serde_json::Value,
-    ) {
-        self.add(
-            method,
-            prefix,
-            true,
-            Ok(json_response(status, &body)),
-            false,
-        );
+    pub fn on_prefix_json(&self, method: HttpMethod, prefix: &str, status: u16, body: serde_json::Value) {
+        self.add(method, prefix, true, Ok(json_response(status, &body)), false);
     }
 
     /// Answers `method url` once with a raw body.
     pub fn once_raw(&self, method: HttpMethod, url: &str, status: u16, body: &str) {
-        let resp = HttpResponse {
-            status,
-            headers: BTreeMap::new(),
-            body: body.as_bytes().to_vec(),
-        };
+        let resp = HttpResponse { status, headers: BTreeMap::new(), body: body.as_bytes().to_vec() };
         self.add(method, url, false, Ok(resp), true);
     }
 
@@ -201,27 +167,16 @@ impl MockHttp {
 pub fn json_response(status: u16, body: &serde_json::Value) -> HttpResponse {
     let mut headers = BTreeMap::new();
     headers.insert("content-type".to_owned(), "application/json".to_owned());
-    HttpResponse {
-        status,
-        headers,
-        body: serde_json::to_vec(body).expect("json"),
-    }
+    HttpResponse { status, headers, body: serde_json::to_vec(body).expect("json") }
 }
 
 impl HttpClient for MockHttp {
     fn send(&self, request: HttpRequest) -> impl Future<Output = Result<HttpResponse>> + MaybeSend {
-        self.requests
-            .lock()
-            .expect("poisoned")
-            .push(request.clone());
+        self.requests.lock().expect("poisoned").push(request.clone());
         let mut routes = self.routes.lock().expect("poisoned");
         let hit = routes.iter().rposition(|r| {
             r.method == request.method
-                && if r.prefix {
-                    request.url.starts_with(&r.url)
-                } else {
-                    request.url == r.url
-                }
+                && if r.prefix { request.url.starts_with(&r.url) } else { request.url == r.url }
         });
         let result = match hit {
             Some(i) if routes[i].once => routes.remove(i).response,
@@ -229,8 +184,7 @@ impl HttpClient for MockHttp {
             None => Ok(HttpResponse {
                 status: 404,
                 headers: BTreeMap::new(),
-                body: format!("no mock for {} {}", request.method.as_str(), request.url)
-                    .into_bytes(),
+                body: format!("no mock for {} {}", request.method.as_str(), request.url).into_bytes(),
             }),
         };
         ready(result)
@@ -250,20 +204,14 @@ pub struct MockWs {
 
 impl std::fmt::Debug for MockWs {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MockWs")
-            .field("preload", &self.preload)
-            .finish_non_exhaustive()
+        f.debug_struct("MockWs").field("preload", &self.preload).finish_non_exhaustive()
     }
 }
 
 impl MockWs {
     /// Connector with a responder.
     pub fn new(responder: impl Fn(&str) -> Vec<String> + Send + Sync + 'static) -> Self {
-        Self {
-            responder: Arc::new(responder),
-            preload: Vec::new(),
-            sent: Arc::default(),
-        }
+        Self { responder: Arc::new(responder), preload: Vec::new(), sent: Arc::default() }
     }
 
     /// Frames every new connection receives before any send.
@@ -480,35 +428,12 @@ mod tests {
     #[test]
     fn mock_http_once_then_fallback() {
         let http = MockHttp::new();
-        http.on_json(
-            HttpMethod::Get,
-            "https://x/y",
-            200,
-            serde_json::json!({"a":1}),
-        );
+        http.on_json(HttpMethod::Get, "https://x/y", 200, serde_json::json!({"a":1}));
         http.once_json(HttpMethod::Get, "https://x/y", 500, serde_json::json!({}));
         block_on(async {
-            assert_eq!(
-                http.send(HttpRequest::get("https://x/y"))
-                    .await
-                    .unwrap()
-                    .status,
-                500
-            );
-            assert_eq!(
-                http.send(HttpRequest::get("https://x/y"))
-                    .await
-                    .unwrap()
-                    .status,
-                200
-            );
-            assert_eq!(
-                http.send(HttpRequest::get("https://x/z"))
-                    .await
-                    .unwrap()
-                    .status,
-                404
-            );
+            assert_eq!(http.send(HttpRequest::get("https://x/y")).await.unwrap().status, 500);
+            assert_eq!(http.send(HttpRequest::get("https://x/y")).await.unwrap().status, 200);
+            assert_eq!(http.send(HttpRequest::get("https://x/z")).await.unwrap().status, 404);
         });
         assert_eq!(http.requests().len(), 3);
     }
