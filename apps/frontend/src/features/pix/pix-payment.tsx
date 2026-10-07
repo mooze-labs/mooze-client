@@ -44,16 +44,18 @@ export function PixPayment({ deposit }: { deposit: PixDepositViewDto }) {
       className="card pix-payment transaction-receipt"
       aria-label={t("Pagamento Pix")}
     >
-      <div
-        className={`receipt-symbol ${completed ? "is-complete" : ""}`}
-        key={stage}
-        aria-hidden="true"
-      >
-        <Icon size={24} />
+      <div className="pix-payment-heading">
+        <div
+          className={`receipt-symbol ${completed ? "is-complete" : ""}`}
+          key={stage}
+          aria-hidden="true"
+        >
+          <Icon size={24} />
+        </div>
+        <h2 aria-live="polite">
+          {t(expired ? "QR code expirado" : statusLabels[stage])}
+        </h2>
       </div>
-      <h2 aria-live="polite">
-        {t(expired ? "QR code expirado" : statusLabels[stage])}
-      </h2>
       <p className="receipt-amount">
         <SensitiveValue>
           {formatBrlCents(deposit.amount_in_cents)}

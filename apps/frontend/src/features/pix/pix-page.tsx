@@ -1,4 +1,6 @@
-import { QrCode, RefreshCw } from "lucide-react";
+import { FlowStep } from "../../ui/flow-step";
+import { PageHeader } from "../../ui/page-header";
+import { RefreshCw } from "lucide-react";
 import { LoadingRows } from "../../ui/loading-rows";
 import { formatTaxId, taxIdDigits, formatBrlInput } from "./pix-input";
 import { useState } from "react";
@@ -103,26 +105,28 @@ export function PixPage() {
     return (
       <section>
         <h1>Pix</h1>
-        <p>{t("Pix está disponível apenas na mainnet.")}</p>
+        <p>{t("Pix indisponível nesta rede.")}</p>
         <ErrorNotice>{host.error ? errorText(host.error) : ""}</ErrorNotice>
       </section>
     );
   return (
-    <section className="flow-page">
-      <div className="page-heading">
-        <h1>{t("Receber com Pix")}</h1>
-        <Button
-          className="ghost"
-          disabled={history.isFetching}
-          onClick={() => void history.refetch()}
-        >
-          <RefreshCw size={15} aria-hidden="true" />
-          {t(history.isFetching ? "Atualizando…" : "Atualizar")}
-        </Button>
-      </div>
-      <p className="muted">
-        {t("Pague em reais e receba ativos na sua carteira Liquid.")}
-      </p>
+    <section className="flow-page pix-page">
+      <PageHeader
+        title={t("Receber com Pix")}
+        description={t(
+          "Pague em reais e receba ativos na sua carteira Liquid.",
+        )}
+        actions={
+          <Button
+            variant="ghost"
+            disabled={history.isFetching}
+            onClick={() => void history.refetch()}
+          >
+            <RefreshCw size={15} aria-hidden="true" />
+            {t(history.isFetching ? "Atualizando…" : "Atualizar")}
+          </Button>
+        }
+      />
       <ErrorNotice>
         {error ||
           (history.error ? errorText(history.error) : "") ||
@@ -153,144 +157,139 @@ export function PixPage() {
           </Button>
         </div>
       )}
-      <div className="service-columns">
-        <form
-          className="card pix-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void create();
-          }}
-        >
-          <h2>{t("Novo Pix")}</h2>
-          <Field
-            label={t("Valor em reais")}
-            inputMode="decimal"
-            value={amount}
-            placeholder="0,00"
-            required
-            autoComplete="off"
-            aria-invalid={touched.amount && !!amount && !cents}
-            help={
-              touched.amount && !!amount && !cents
-                ? t(
-                    "Informe um valor maior que zero, com até duas casas decimais.",
-                  )
-                : t("Valor em BRL · R$")
-            }
-            onBlur={() => setTouched((old) => ({ ...old, amount: true }))}
-            onChange={(e) => setAmount(formatBrlInput(e.target.value))}
-            disabled={busy}
-          />
-          <SelectField
-            label={t("Ativo a receber")}
-            value={selected}
-            items={assets.map((a) => ({
-              value: a.key.asset_id!,
-              label: (
-                <span className="swap-asset-label">
-                  <AssetMark metadata={a} />
-                  <span>{a.ticker || a.key.asset_id}</span>
-                </span>
-              ),
-            }))}
-            onValueChange={setAsset}
-            disabled={busy}
-          />
-          <Field
-            label={t("CPF ou CNPJ do pagador")}
-            required
-            value={tax}
-            inputMode="numeric"
-            autoComplete="off"
-            aria-invalid={touched.tax && !!tax && !taxValid}
-            help={
-              touched.tax && !!tax && !taxValid
-                ? t("Use 11 dígitos para CPF ou 14 para CNPJ.")
-                : t("Documento de quem fará o pagamento.")
-            }
-            onBlur={() => setTouched((old) => ({ ...old, tax: true }))}
-            onChange={(e) => setTax(formatTaxId(e.target.value))}
-            disabled={busy}
-          />
-          <p className="muted small">
-            {t("Taxas e limites são definidos pelo serviço Pix.")}
-          </p>
-          <div className="flow-actions">
-            <Button
-              className="primary"
-              aria-describedby="pix-availability"
-              type="submit"
-              disabled={
-                busy ||
-                !cents ||
-                !taxValid ||
-                !selected ||
-                backend.data?.state !== "Ready" ||
-                !!history.data?.creation_uncertain ||
-                !!current
-              }
-            >
-              {t(busy ? "Criando…" : "Criar Pix")}
-            </Button>
-            {current && (
+      <div className="pix-workspace">
+        <FlowStep className="pix-current" step={current?.deposit_id ?? "edit"}>
+          {current ? (
+            <div className="flow-step">
+              <PixPayment key={current.deposit_id} deposit={current} />
               <Button
-                type="button"
-                className="ghost"
-                onClick={() => setDeposit(null)}
+                onClick={() => {
+                  setDeposit(null);
+                  setAmount("");
+                  setTax("");
+                  setTouched({ amount: false, tax: false });
+                  setError("");
+                }}
               >
                 {t("Nova solicitação")}
               </Button>
-            )}
-          </div>
-          <p id="pix-availability" className="form-guidance muted small">
-            {unavailable}
-          </p>
-        </form>
-        {current ? (
-          <PixPayment key={current.deposit_id} deposit={current} />
-        ) : (
-          <div className="pix-placeholder">
-            <span className="receipt-symbol" aria-hidden="true">
-              <QrCode size={28} />
-            </span>
-            <h2>{t("Seu Pix começa aqui")}</h2>
-            <p className="muted">
-              {t(
-                "Preencha os dados para gerar um QR code. Depois, acompanhe o pagamento e a entrega dos ativos neste espaço.",
-              )}
-            </p>
-          </div>
-        )}
-      </div>
-      <section className="card">
-        <h2>{t("Histórico Pix")}</h2>
-        {history.isPending ? (
-          <LoadingRows label={t("Carregando…")} rows={2} />
-        ) : !history.data?.deposits.length ? (
-          <p className="muted">{t("Nenhuma solicitação Pix ainda.")}</p>
-        ) : (
-          <div className="service-history">
-            {history.data.deposits.map((d) => (
-              <Button
-                className="ghost service-history-row"
-                key={d.deposit_id}
-                onClick={() => setDeposit(d)}
-              >
-                <span>{new Date(d.created_at_ms).toLocaleDateString()}</span>
-                <SensitiveValue>
-                  {formatBrlCents(d.amount_in_cents)}
-                </SensitiveValue>
-                <span
-                  className="status-label"
-                  data-stage={depositStage(d.status)}
+            </div>
+          ) : (
+            <form
+              className="card pix-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void create();
+              }}
+            >
+              <h2>{t("Novo Pix")}</h2>
+              <Field
+                label={t("Valor em reais")}
+                inputMode="decimal"
+                value={amount}
+                placeholder="0,00"
+                required
+                autoComplete="off"
+                aria-invalid={touched.amount && !!amount && !cents}
+                help={
+                  touched.amount && !!amount && !cents
+                    ? t(
+                        "Informe um valor maior que zero, com até duas casas decimais.",
+                      )
+                    : t("Valor em BRL · R$")
+                }
+                onBlur={() => setTouched((old) => ({ ...old, amount: true }))}
+                onChange={(e) => setAmount(formatBrlInput(e.target.value))}
+                disabled={busy}
+              />
+              <SelectField
+                label={t("Ativo a receber")}
+                value={selected}
+                items={assets.map((a) => ({
+                  value: a.key.asset_id!,
+                  label: (
+                    <span className="swap-asset-label">
+                      <AssetMark metadata={a} />
+                      <span>{a.ticker || a.key.asset_id}</span>
+                    </span>
+                  ),
+                }))}
+                onValueChange={setAsset}
+                disabled={busy}
+              />
+              <Field
+                label={t("CPF ou CNPJ do pagador")}
+                required
+                value={tax}
+                inputMode="numeric"
+                autoComplete="off"
+                aria-invalid={touched.tax && !!tax && !taxValid}
+                help={
+                  touched.tax && !!tax && !taxValid
+                    ? t("Use 11 dígitos para CPF ou 14 para CNPJ.")
+                    : t("Documento de quem fará o pagamento.")
+                }
+                onBlur={() => setTouched((old) => ({ ...old, tax: true }))}
+                onChange={(e) => setTax(formatTaxId(e.target.value))}
+                disabled={busy}
+              />
+              <p className="muted small">
+                {t("Taxas e limites são definidos pelo serviço Pix.")}
+              </p>
+              <div className="flow-actions">
+                <Button
+                  className="primary"
+                  aria-describedby="pix-availability"
+                  type="submit"
+                  disabled={
+                    busy ||
+                    !cents ||
+                    !taxValid ||
+                    !selected ||
+                    backend.data?.state !== "Ready" ||
+                    !!history.data?.creation_uncertain ||
+                    !!current
+                  }
                 >
-                  {t(statusLabels[depositStage(d.status)])}
-                </span>
-              </Button>
-            ))}
-          </div>
-        )}
-      </section>
+                  {t(busy ? "Criando…" : "Criar Pix")}
+                </Button>
+              </div>
+              <p id="pix-availability" className="form-guidance muted small">
+                {unavailable}
+              </p>
+            </form>
+          )}
+        </FlowStep>
+        <section className="card pix-history">
+          <h2>{t("Histórico Pix")}</h2>
+          {history.isPending ? (
+            <LoadingRows label={t("Carregando…")} rows={2} />
+          ) : !history.data?.deposits.length ? (
+            <p className="muted">{t("Nenhuma solicitação Pix ainda.")}</p>
+          ) : (
+            <div className="service-history">
+              {history.data.deposits.map((d) => (
+                <Button
+                  className="ghost service-history-row"
+                  key={d.deposit_id}
+                  onClick={() => setDeposit(d)}
+                >
+                  <span>{new Date(d.created_at_ms).toLocaleDateString()}</span>
+                  <SensitiveValue>
+                    {formatBrlCents(d.amount_in_cents)}
+                  </SensitiveValue>
+                  <span
+                    className="status-label"
+                    data-stage={depositStage(d.status)}
+                  >
+                    {t(statusLabels[depositStage(d.status)])}
+                  </span>
+                </Button>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </section>
   );
 }

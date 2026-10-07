@@ -1,4 +1,5 @@
-import { useNetwork } from "../../core/network";
+import { FlowStep } from "../../ui/flow-step";
+import { useNetwork, networkLabel } from "../../core/network";
 import { SelectField } from "../../ui/select-field";
 import { SetupProgress } from "./setup-progress";
 import { PinField } from "../../ui/pin-field";
@@ -17,9 +18,9 @@ export function SetupPage({
 }) {
   const t = useT();
   const network = useNetwork();
-  const [mode, setMode] = useState<"welcome" | "import" | "backup" | "verify">(
-    "welcome",
-  );
+  const [mode, setMode] = useState<
+    "welcome" | "import" | "backup" | "verify" | "pin"
+  >("welcome");
   const [extended, setExtended] = useState(false);
   const [setup, setSetup] = useState<SetupDto | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
@@ -114,99 +115,139 @@ export function SetupPage({
         {t("mooze")}
         <span>●</span>
       </div>
-      <span className="network-badge">{network} · BTC + LIQUID</span>
+      {networkLabel(network) && (
+        <span className="network-badge">{networkLabel(network)}</span>
+      )}
       <section className="card import-card setup-card">
         <SetupProgress
-          step={mode === "welcome" ? 0 : mode === "backup" ? 1 : 2}
+          step={
+            mode === "welcome"
+              ? 0
+              : mode === "backup"
+                ? 1
+                : mode === "verify"
+                  ? 2
+                  : 3
+          }
         />
         <ErrorNotice>{error}</ErrorNotice>
-        <div key={mode} className="flow-step">
-          {mode === "welcome" ? (
-            <>
-              <h1>{t("Sua carteira")}</h1>
-              <p>
-                {t(
-                  "Crie uma carteira ou importe sua frase de recuperação. Guarde-a em um lugar seguro.",
-                )}
-              </p>
-              <SelectField
-                label={t("Frase de recuperação")}
-                value={extended ? "24" : "12"}
-                onValueChange={(value) => setExtended(value === "24")}
-                items={[
-                  { value: "12", label: <>{t("12 palavras")}</> },
-                  { value: "24", label: <>{t("24 palavras")}</> },
-                ]}
-              />
-              <div className="setup-actions">
-                <Button
-                  className="primary"
-                  disabled={busy}
-                  onClick={() => void begin()}
-                >
-                  {t("Criar carteira")}
-                </Button>
-                <Button disabled={busy} onClick={() => setMode("import")}>
-                  {t("Importar carteira")}
-                </Button>
-              </div>
-            </>
-          ) : mode === "backup" && setup ? (
-            <>
-              <h1>{t("Guarde sua frase")}</h1>
-              <p>
-                {t(
-                  "Anote as palavras na ordem indicada. Elas permitem recuperar sua carteira.",
-                )}
-              </p>
-              <ol className="seed-grid">
-                {setup.words.map((word, i) => (
-                  <li key={i}>{word}</li>
-                ))}
-              </ol>
-            </>
-          ) : setup ? (
-            <form id="wallet-setup" onSubmit={complete}>
-              <h1>{t("Confirme sua recuperação")}</h1>
-              <p className="muted">
-                {t(
-                  "Confira as palavras e escolha um PIN de 6 dígitos para desbloquear sua carteira.",
-                )}
-              </p>
-              {setup.challenge_indices.map((index, i) => (
-                <Field
-                  key={index}
-                  label={t("Palavra {number}", { number: index + 1 })}
-                  value={answers[i]}
-                  autoComplete="off"
-                  spellCheck={false}
-                  required
-                  onChange={(e) =>
-                    setAnswers((old) =>
-                      old.map((v, j) => (i === j ? e.target.value : v)),
-                    )
-                  }
+        <FlowStep step={mode}>
+          <div key={mode} className="flow-step">
+            {mode === "welcome" ? (
+              <>
+                <h1>{t("Sua carteira")}</h1>
+                <p>
+                  {t(
+                    "Crie uma carteira ou importe sua frase de recuperação. Guarde-a em um lugar seguro.",
+                  )}
+                </p>
+                <SelectField
+                  label={t("Frase de recuperação")}
+                  value={extended ? "24" : "12"}
+                  onValueChange={(value) => setExtended(value === "24")}
+                  items={[
+                    { value: "12", label: <>{t("12 palavras")}</> },
+                    { value: "24", label: <>{t("24 palavras")}</> },
+                  ]}
                 />
-              ))}
-              <PinField
-                label={t("Criar PIN")}
-                required
-                value={pin}
-                onValueChange={setPin}
-                disabled={busy}
-                invalid={!!error}
-              />
-              <PinField
-                label={t("Confirmar PIN")}
-                required
-                value={confirm}
-                onValueChange={setConfirm}
-                disabled={busy}
-                invalid={!!error}
-              />
-            </form>
-          ) : null}
-        </div>
+                <div className="setup-actions">
+                  <Button
+                    className="primary"
+                    disabled={busy}
+                    onClick={() => void begin()}
+                  >
+                    {t("Criar carteira")}
+                  </Button>
+                  <Button disabled={busy} onClick={() => setMode("import")}>
+                    {t("Importar carteira")}
+                  </Button>
+                </div>
+              </>
+            ) : mode === "backup" && setup ? (
+              <>
+                <h1>{t("Guarde sua frase")}</h1>
+                <p>
+                  {t(
+                    "Anote as palavras na ordem indicada. Elas permitem recuperar sua carteira.",
+                  )}
+                </p>
+                <ol className="seed-grid">
+                  {setup.words.map((word, i) => (
+                    <li key={i}>{word}</li>
+                  ))}
+                </ol>
+              </>
+            ) : mode === "verify" && setup ? (
+              <form
+                id="wallet-setup"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (
+                    !setup.challenge_indices.every(
+                      (index, i) =>
+                        answers[i].trim().toLowerCase() === setup.words[index],
+                    )
+                  ) {
+                    setError(t("Confira as palavras na ordem indicada."));
+                    return;
+                  }
+                  setAnswers(
+                    answers.map((answer) => answer.trim().toLowerCase()),
+                  );
+                  setError("");
+                  setMode("pin");
+                }}
+              >
+                <h1>{t("Confirme sua recuperação")}</h1>
+                <p className="muted">
+                  {t(
+                    "Preencha as palavras solicitadas para conferir sua recuperação.",
+                  )}
+                </p>
+                {setup.challenge_indices.map((index, i) => (
+                  <Field
+                    key={index}
+                    label={t("Palavra {number}", { number: index + 1 })}
+                    value={answers[i]}
+                    autoComplete="off"
+                    spellCheck={false}
+                    required
+                    onChange={(e) =>
+                      setAnswers((old) =>
+                        old.map((v, j) => (i === j ? e.target.value : v)),
+                      )
+                    }
+                  />
+                ))}
+              </form>
+            ) : mode === "pin" && setup ? (
+              <form id="wallet-setup" onSubmit={complete}>
+                <h1>{t("Proteja sua carteira")}</h1>
+                <p className="muted">
+                  {t(
+                    "Escolha um PIN de 6 dígitos para desbloquear sua carteira.",
+                  )}
+                </p>
+                <PinField
+                  label={t("Criar PIN")}
+                  required
+                  value={pin}
+                  onValueChange={setPin}
+                  disabled={busy}
+                  invalid={!!error}
+                />
+                <PinField
+                  label={t("Confirmar PIN")}
+                  required
+                  value={confirm}
+                  onValueChange={setConfirm}
+                  disabled={busy}
+                  invalid={!!error}
+                />
+              </form>
+            ) : null}
+          </div>
+        </FlowStep>
         {mode !== "welcome" && (
           <div className="setup-actions">
             {mode === "backup" ? (
@@ -226,7 +267,20 @@ export function SetupPage({
                 className="primary"
                 disabled={busy}
               >
-                {t("Concluir criação")}
+                {t(mode === "verify" ? "Continuar" : "Concluir criação")}
+              </Button>
+            )}
+            {mode === "pin" && (
+              <Button
+                disabled={busy}
+                onClick={() => {
+                  setPin("");
+                  setConfirm("");
+                  setError("");
+                  setMode("verify");
+                }}
+              >
+                {t("Voltar")}
               </Button>
             )}
             <Button

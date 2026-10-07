@@ -22,7 +22,7 @@ export function SecurityPage() {
   return (
     <>
       <section className="card">
-        <h1>{t("Segurança e recuperação")}</h1>
+        <h2>{t("Segurança e recuperação")}</h2>
         <ErrorNotice>
           {error || (settings.error ? errorText(settings.error) : "")}
         </ErrorNotice>
@@ -48,9 +48,7 @@ export function SecurityPage() {
           ]}
         />
         <p className="muted">
-          {t(
-            "Aplica-se à inatividade e ao tempo em segundo plano. A sincronização continua com a carteira bloqueada.",
-          )}
+          {t("A carteira é bloqueada após este período de inatividade.")}
         </p>
         <Button
           onClick={() =>

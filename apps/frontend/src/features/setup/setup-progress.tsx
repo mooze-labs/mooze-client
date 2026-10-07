@@ -1,10 +1,10 @@
 import { Check } from "lucide-react";
 import { useT } from "../../i18n/messages";
-export function SetupProgress({ step }: { step: 0 | 1 | 2 }) {
+export function SetupProgress({ step }: { step: 0 | 1 | 2 | 3 }) {
   const t = useT();
   return (
     <ol className="setup-progress" aria-label={t("Criar carteira")}>
-      {["Carteira", "Recuperação", "Confirmação"].map((label, index) => (
+      {["Carteira", "Recuperação", "Confirmação", "PIN"].map((label, index) => (
         <li
           key={label}
           aria-current={index === step ? "step" : undefined}

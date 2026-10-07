@@ -1,0 +1,764 @@
+/* Desktop composition. Component internals remain in main/polish; page rhythm,
+   widths and responsive disposition are owned here. */
+:root {
+  --page-width: 1120px;
+  --transaction-width: 600px;
+  --page-gap: 24px;
+  --panel-radius: 16px;
+}
+.workspace {
+  min-width: 0;
+}
+.content {
+  max-width: none;
+  padding: 24px 36px 48px;
+}
+.wallet-overview,
+.flow-page,
+.history-page,
+.settings-page {
+  width: 100%;
+  max-width: var(--page-width);
+  margin: 0 auto;
+}
+.transaction-page {
+  max-width: var(--transaction-width);
+}
+.page-heading,
+.flow-page .page-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.page-heading h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.7px;
+  margin: 0;
+}
+.page-heading p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+  max-width: 62ch;
+}
+.page-heading-actions {
+  flex-shrink: 0;
+}
+.header-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+}
+.workspace > header {
+  min-height: 64px;
+  height: auto;
+  padding: 12px 36px;
+  gap: 16px;
+}
+.header-context .service-status {
+  margin: 0;
+  padding: 0;
+}
+.header-context .service-status > .small {
+  font-size: 12px;
+}
+.shell > aside {
+  background: var(--surface);
+}
+@supports (backdrop-filter: blur(16px)) {
+  .shell > aside {
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(16px);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .shell > aside {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
+}
+.network-badge,
+.network-pill,
+.eyebrow,
+.status-label,
+.setup-progress li,
+.pix-step,
+.settings-row {
+  font-size: 12px;
+}
+.wallet-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 24px;
+}
+.wallet-quick-actions .quick-action {
+  display: inline-flex;
+  gap: 8px;
+  padding: 10px 16px;
+  margin: 0;
+  border-radius: 10px;
+  min-height: 44px;
+  color: var(--foreground);
+}
+.quick-action > span {
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: none;
+}
+.quick-action strong {
+  font-size: 14px;
+  font-weight: 550;
+}
+.quick-action:hover {
+  transform: none;
+}
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: var(--page-gap);
+  align-items: start;
+}
+.overview-grid > section {
+  min-width: 0;
+}
+.balance-panel,
+.recent-activity {
+  border: 1px solid var(--separator);
+  border-radius: var(--panel-radius);
+  padding: 0 20px;
+  background: var(--surface);
+}
+.recent-activity {
+  margin: 0;
+}
+.balance-heading,
+.recent-activity > .card-top {
+  padding: 20px 0;
+  margin: 0;
+  border-bottom: 1px solid var(--separator);
+  gap: 12px;
+}
+.balance-heading h2,
+.recent-activity h2 {
+  font-size: 16px;
+  margin: 0;
+}
+.recent-activity .card-top a {
+  font-size: 12px;
+  color: var(--muted);
+}
+.holding-row {
+  padding: 18px 0;
+  gap: 12px;
+  min-height: 80px;
+}
+.holding-balance .amount-value {
+  font-size: 20px;
+  letter-spacing: -0.4px;
+}
+.holding-balance .pending-amount .amount-value {
+  font-size: 12px;
+}
+.holding-name,
+.holding-balance {
+  min-width: 0;
+  gap: 4px;
+}
+.holding-balance {
+  overflow-wrap: anywhere;
+}
+.pending-amount {
+  max-width: 25ch;
+  line-height: 1.5;
+}
+.pending-amount .amount-value {
+  white-space: nowrap;
+}
+.amount-value small {
+  font-size: max(12px, 0.65em);
+}
+.overview-grid .activity {
+  gap: 10px;
+  padding: 18px 0;
+  min-height: 80px;
+}
+.overview-grid .activity-mark {
+  width: 32px;
+  height: 32px;
+}
+.activity-amount {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.activity-status {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.activity-status[data-status="Pending"] {
+  color: var(--gold);
+}
+.activity-status[data-status="Failed"] {
+  color: var(--destructive);
+}
+.activity-status[data-status="Confirmed"] {
+  color: var(--green);
+}
+.swap-container,
+.send-layout.focused-flow {
+  max-width: none;
+  margin: 0;
+}
+.swap-card-heading {
+  margin-bottom: 16px;
+}
+.swap-card,
+.focused-flow > .card {
+  padding: 24px;
+}
+.swap-token-panel {
+  padding: 16px;
+}
+.swap-panel-label {
+  margin-bottom: 10px;
+}
+.swap-quote-details:empty {
+  display: none;
+}
+.swap-review {
+  margin: 0;
+}
+.swap-review + .flow-actions {
+  margin-top: 12px;
+}
+.swap-review .receipt-asset-amount {
+  overflow-wrap: anywhere;
+}
+.focused-flow .send-form > .field {
+  margin-bottom: 18px;
+}
+.send-form .checkbox-row {
+  margin: 12px 0 20px;
+}
+.focused-flow .review-row {
+  padding: 16px 0;
+}
+.fee-guidance {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+}
+.pix-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: var(--page-gap);
+}
+.pix-current,
+.pix-history {
+  min-width: 0;
+}
+.pix-current .card {
+  margin: 0 0 16px;
+  padding: 24px;
+}
+.pix-history {
+  padding: 20px;
+}
+.pix-history h2 {
+  font-size: 16px;
+}
+.pix-payment-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.pix-payment-heading .receipt-symbol {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.pix-payment-heading h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.pix-payment .receipt-amount {
+  font-size: 30px;
+  margin: 16px 0;
+}
+.pix-payment .payment-progress {
+  margin: 16px 0;
+}
+.payment-progress li {
+  font-size: 12px;
+}
+.pix-payment .pix-qr {
+  width: 208px;
+  height: 208px;
+  margin: 12px auto;
+}
+.swap-review > .button {
+  width: 100%;
+  min-height: 44px;
+}
+.pix-history .service-history-row {
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 64px;
+}
+.receive-columns {
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 1.2fr);
+  gap: 32px;
+  align-items: start;
+}
+.receive-columns > div:first-child {
+  padding-top: 0;
+}
+.receive-output {
+  padding: 24px;
+  border: 1px solid var(--separator);
+}
+.request-options {
+  padding: 18px 0;
+  border-top: 1px solid var(--separator);
+  border-bottom: 1px solid var(--separator);
+  margin: 20px 0;
+}
+.request-options summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.request-options[open] summary {
+  margin-bottom: 20px;
+}
+.request-options .field:last-child {
+  margin-bottom: 0;
+}
+.receive-copy-actions {
+  flex-direction: column;
+  gap: 8px;
+}
+.receive-copy-actions .copy-control,
+.receive-copy-actions .button {
+  width: 100%;
+}
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: var(--muted);
+}
+.asset-history-actions {
+  display: flex;
+  margin-top: 24px;
+}
+.asset-summary {
+  padding: 28px;
+}
+.asset-summary h1 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+.asset-total {
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 550;
+  letter-spacing: -0.8px;
+  overflow-wrap: anywhere;
+  margin: 0 0 12px;
+}
+.asset-summary .asset-identity {
+  margin: 20px 0;
+}
+.assets-page .actions {
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.assets-page .actions > .field {
+  flex: 1;
+  max-width: 480px;
+}
+.settings-tabs {
+  margin-top: 0;
+}
+.settings-page > .page-heading h1 {
+  font-size: 28px;
+}
+.settings-page .settings-row p {
+  font-size: 14px;
+}
+.history-backdrop {
+  z-index: 99;
+}
+.history-panel {
+  width: min(560px, 100vw);
+  padding: 0;
+}
+.history-panel .dialog-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--separator);
+}
+.history-panel .dialog-heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.transaction-details {
+  padding: 24px;
+}
+.transaction-summary {
+  padding: 20px;
+  border: 1px solid var(--separator);
+  border-radius: 16px;
+  background: var(--surface-raised, #ffffff05);
+}
+.transaction-summary-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.transaction-direction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+.transaction-status {
+  margin-left: auto;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #ffffff08;
+}
+.transaction-status[data-status="Confirmed"] {
+  color: var(--green);
+}
+.transaction-status[data-status="Pending"] {
+  color: var(--gold);
+}
+.transaction-status[data-status="Failed"] {
+  color: var(--destructive);
+}
+.history-panel .transaction-amounts {
+  padding: 20px 0 8px;
+}
+.transaction-amounts .amount-value {
+  font-size: 30px;
+  line-height: 1.3;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+.transaction-summary > p {
+  margin: 0;
+}
+.transaction-facts {
+  margin: 20px 0 28px;
+}
+.transaction-facts > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(0, 1.5fr);
+  align-items: baseline;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--separator);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.transaction-facts dt {
+  color: var(--muted);
+}
+.transaction-facts dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.history-panel h3 {
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.transaction-address {
+  padding: 14px;
+  border: 1px solid var(--separator);
+  border-radius: 12px;
+  margin-top: 10px;
+}
+.transaction-address p {
+  margin: 0 0 12px;
+}
+.history-panel .mono {
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.transaction-technical {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--separator);
+}
+.transaction-technical summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+}
+.transaction-technical h3 {
+  margin-top: 24px;
+}
+summary:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+@media (max-width: 1200px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+  .content {
+    padding-inline: 24px;
+  }
+  .workspace > header {
+    padding-inline: 24px;
+  }
+}
+@media (max-width: 900px) {
+  .pix-workspace,
+  .receive-columns {
+    grid-template-columns: 1fr;
+  }
+  .receive-output {
+    max-width: 600px;
+    width: 100%;
+  }
+  .page-heading {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 640px) {
+  .content {
+    padding: 20px 16px 32px;
+  }
+  .page-heading h1 {
+    font-size: 24px;
+  }
+  .swap-card,
+  .focused-flow > .card,
+  .pix-current .card {
+    padding: 16px;
+  }
+  .wallet-quick-actions .quick-action {
+    flex: 1 1 40%;
+    justify-content: center;
+  }
+  .holding-balance .amount-value {
+    font-size: 18px;
+  }
+  .setup-progress li {
+    font-size: 12px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .setup-progress li:not(:last-child)::after {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Account levels and public market reference charts. */
+.account-level-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.account-level-summary h2 {
+  margin: 0;
+  font-size: 28px;
+}
+.account-level-summary .eyebrow {
+  margin: 0 0 6px;
+}
+.account-level-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #ffffff08;
+  color: var(--gold);
+}
+.account-progress {
+  flex: 1;
+  min-width: 240px;
+  margin-left: 24px;
+}
+.account-progress progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+}
+.account-progress .card-top {
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.account-tiers {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.account-tiers .card {
+  padding: 20px;
+}
+.account-tiers .card[data-current="true"] {
+  border-color: var(--accent);
+}
+.account-tiers h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.account-tiers p:last-child {
+  font-size: 14px;
+  margin-bottom: 0;
+}
+.price-chart-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.price-chart-heading h2 {
+  margin: 0;
+}
+.chart-controls,
+.chart-controls [role="group"] {
+  display: flex;
+  gap: 4px;
+}
+.chart-controls {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.chart-controls .button {
+  min-width: 40px;
+  padding-inline: 10px;
+}
+.chart-controls [aria-pressed="true"] {
+  color: var(--foreground);
+  border-color: var(--accent);
+  background: #ffffff0a;
+}
+.price-chart-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin: 24px 0;
+}
+.market-price {
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.market-change {
+  color: var(--destructive);
+  font-variant-numeric: tabular-nums;
+}
+.market-change[data-positive="true"] {
+  color: var(--green);
+}
+.price-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.price-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  margin: 12px 0;
+  overflow: visible;
+}
+.chart-positive {
+  color: var(--green);
+}
+.chart-negative {
+  color: var(--destructive);
+}
+.chart-grid {
+  stroke: var(--separator);
+  stroke-dasharray: 3 5;
+}
+.chart-cursor {
+  stroke: var(--muted);
+  stroke-dasharray: 4 4;
+}
+.chart-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  color: var(--muted);
+}
+.chart-scrubber {
+  width: 100%;
+  margin: 18px 0 0;
+  accent-color: var(--accent);
+}
+.chart-attribution {
+  margin-bottom: 0;
+}
+@media (max-width: 1100px) {
+  .account-tiers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .account-progress {
+    margin-left: 0;
+  }
+}
+.account-progress progress {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--separator);
+}
+.account-progress progress::-webkit-progress-bar {
+  background: var(--separator);
+  border-radius: 8px;
+}
+.account-progress progress::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 8px;
+}
+.account-progress progress::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 8px;
+}

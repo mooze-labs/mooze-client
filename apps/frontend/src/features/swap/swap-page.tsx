@@ -1,3 +1,5 @@
+import { FlowStep } from "../../ui/flow-step";
+import { PageHeader } from "../../ui/page-header";
 import { ArrowDownUp, Layers2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -51,6 +53,7 @@ export function SwapPage() {
     refetchInterval: 1000,
     retry: false,
   });
+  const [reviewing, setReviewing] = useState(false);
   const [reviewAllowed, setReviewAllowed] = useState(false);
   const [send, setSend] = useState("");
   const [receive, setReceive] = useState("");
@@ -177,6 +180,7 @@ export function SwapPage() {
     stopEditing();
   }
   function stopEditing() {
+    setReviewing(false);
     setReviewAllowed(false);
     setError("");
   }
@@ -210,7 +214,7 @@ export function SwapPage() {
         <p>
           {t(
             host.data?.network === "Testnet"
-              ? "Trocas estão disponíveis apenas na mainnet."
+              ? "Trocas indisponíveis nesta rede."
               : "Trocas indisponíveis no momento.",
           )}
         </p>
@@ -218,11 +222,11 @@ export function SwapPage() {
       </section>
     );
   return (
-    <section className="flow-page">
-      <h1>{t("Trocar ativos")}</h1>
-      <p className="muted">
-        {t("Troque ativos Liquid com cotação em tempo real.")}
-      </p>
+    <section className="flow-page transaction-page">
+      <PageHeader
+        title={t("Trocar ativos")}
+        description={t("Troque ativos Liquid com cotação em tempo real.")}
+      />
       <ErrorNotice>
         {error ||
           (markets.error ? errorText(markets.error) : "") ||
@@ -243,144 +247,183 @@ export function SwapPage() {
           }}
         />
       ) : (
-        <div className="swap-container">
-          <form
-            className="card swap-card"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void quote();
-            }}
-          >
-            <div className="swap-card-heading">
-              <h2>{t("Trocar")}</h2>
-              <span className="swap-network">
-                <Layers2 size={14} /> Liquid
-              </span>
-            </div>
-            <div className="swap-token-panel">
-              <label className="swap-panel-label" htmlFor="swap-send-amount">
-                {t("Você envia")}
-              </label>
-              <div className="swap-token-row">
-                <Input
-                  id="swap-send-amount"
-                  className="swap-amount-input"
-                  aria-label={t("Quantidade a trocar")}
-                  aria-describedby="swap-amount-guidance"
-                  aria-invalid={!!amount && (!parsed.ok || exceeds)}
-                  inputMode="decimal"
-                  placeholder="0"
-                  autoComplete="off"
-                  value={amount}
-                  disabled={busy}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    stopEditing();
-                  }}
-                />
-                <SelectField
-                  className="swap-asset-select"
-                  label={t("Ativo de origem")}
-                  value={source}
-                  items={ids.map((id) => ({
-                    value: id,
-                    label: assetLabel(id),
-                  }))}
-                  disabled={busy}
-                  onValueChange={(id) => {
-                    setSend(id);
-                    stopEditing();
-                  }}
-                />
-              </div>
-              <div className="swap-balance muted small">
-                {t("Saldo disponível")}:{" "}
-                <SensitiveValue>
-                  {balance === undefined
-                    ? "—"
-                    : formatBaseUnits(BigInt(balance))}{" "}
-                  {ticker(source)}
-                </SensitiveValue>
+        <FlowStep
+          className="swap-container"
+          step={reviewing && currentReview ? "review" : "edit"}
+        >
+          {reviewing && currentReview ? (
+            <div className="flow-step" key="review">
+              <SwapReview
+                review={currentReview}
+                asset={asset}
+                now={now}
+                enabled={reviewAllowed && canConfirm(state.data, now, busy)}
+                confirm={() => void confirm()}
+              />
+              <div className="flow-actions">
+                <Button disabled={busy} onClick={() => setReviewing(false)}>
+                  {t("Editar troca")}
+                </Button>
+                {currentReview.expires_at_ms <= now && (
+                  <Button
+                    disabled={busy || quoting}
+                    onClick={() => {
+                      setReviewing(false);
+                      quote();
+                    }}
+                  >
+                    {t("Obter cotação")}
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="swap-direction-wrap">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="swap-direction"
-                aria-label={t("Inverter ativos")}
-                disabled={busy || !source || !target}
-                onClick={reverse}
-              >
-                <ArrowDownUp size={18} />
-              </Button>
-            </div>
-            <div className="swap-token-panel">
-              <span className="swap-panel-label">{t("Você recebe")}</span>
-              <div className="swap-token-row">
-                <output
-                  className="swap-receive-amount"
-                  aria-label={t("Quantidade a receber")}
-                  aria-live="polite"
-                >
+          ) : (
+            <form
+              className="card swap-card flow-step"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (currentReview && canConfirm(state.data, Date.now(), busy)) {
+                  setReviewing(true);
+                } else quote();
+              }}
+            >
+              <div className="swap-card-heading">
+                <h2>{t("Trocar")}</h2>
+                <span className="swap-network">
+                  <Layers2 size={14} /> Liquid
+                </span>
+              </div>
+              <div className="swap-token-panel">
+                <label className="swap-panel-label" htmlFor="swap-send-amount">
+                  {t("Você envia")}
+                </label>
+                <div className="swap-token-row">
+                  <Input
+                    id="swap-send-amount"
+                    className="swap-amount-input"
+                    aria-label={t("Quantidade a trocar")}
+                    aria-describedby="swap-amount-guidance"
+                    aria-invalid={!!amount && (!parsed.ok || exceeds)}
+                    inputMode="decimal"
+                    placeholder="0"
+                    autoComplete="off"
+                    value={amount}
+                    disabled={busy}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      stopEditing();
+                    }}
+                  />
+                  <SelectField
+                    className="swap-asset-select"
+                    label={t("Ativo de origem")}
+                    value={source}
+                    items={ids.map((id) => ({
+                      value: id,
+                      label: assetLabel(id),
+                    }))}
+                    disabled={busy}
+                    onValueChange={(id) => {
+                      setSend(id);
+                      stopEditing();
+                    }}
+                  />
+                </div>
+                <div className="swap-balance muted small">
+                  {t("Saldo disponível")}:{" "}
                   <SensitiveValue>
-                    {currentReview && currentReview.expires_at_ms > now
-                      ? formatBaseUnits(BigInt(currentReview.receive_units))
-                      : "—"}
+                    {balance === undefined
+                      ? "—"
+                      : formatBaseUnits(BigInt(balance))}{" "}
+                    {ticker(source)}
                   </SensitiveValue>
-                </output>
-                <SelectField
-                  className="swap-asset-select"
-                  label={t("Ativo de destino")}
-                  value={target}
-                  items={destinations.map((id) => ({
-                    value: id,
-                    label: assetLabel(id),
-                  }))}
-                  disabled={busy}
-                  onValueChange={(id) => {
-                    setReceive(id);
-                    stopEditing();
-                  }}
-                />
+                </div>
               </div>
-              <p className="muted small">
-                {t("O valor será atualizado com a cotação.")}
+              <div className="swap-direction-wrap">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="swap-direction"
+                  aria-label={t("Inverter ativos")}
+                  disabled={busy || !source || !target}
+                  onClick={reverse}
+                >
+                  <ArrowDownUp size={18} />
+                </Button>
+              </div>
+              <div className="swap-token-panel">
+                <span className="swap-panel-label">{t("Você recebe")}</span>
+                <div className="swap-token-row">
+                  <output
+                    className="swap-receive-amount"
+                    aria-label={t("Quantidade a receber")}
+                    aria-live="polite"
+                  >
+                    <SensitiveValue>
+                      {currentReview && currentReview.expires_at_ms > now
+                        ? formatBaseUnits(BigInt(currentReview.receive_units))
+                        : "—"}
+                    </SensitiveValue>
+                  </output>
+                  <SelectField
+                    className="swap-asset-select"
+                    label={t("Ativo de destino")}
+                    value={target}
+                    items={destinations.map((id) => ({
+                      value: id,
+                      label: assetLabel(id),
+                    }))}
+                    disabled={busy}
+                    onValueChange={(id) => {
+                      setReceive(id);
+                      stopEditing();
+                    }}
+                  />
+                </div>
+                <p className="muted small">
+                  {t("O valor será atualizado com a cotação.")}
+                </p>
+              </div>
+              <p
+                id="swap-amount-guidance"
+                className="form-guidance small"
+                data-invalid={exceeds || (!!amount && !parsed.ok)}
+              >
+                {exceeds
+                  ? t("Saldo insuficiente.")
+                  : !amount
+                    ? t("Informe a quantidade para obter uma cotação.")
+                    : !parsed.ok
+                      ? t(
+                          "Informe uma quantidade válida, com até oito casas decimais.",
+                        )
+                      : !source || !target
+                        ? t("Escolha os ativos da troca.")
+                        : t("Você revisará os valores antes de confirmar.")}
               </p>
-            </div>
-            <p
-              id="swap-amount-guidance"
-              className="form-guidance small"
-              data-invalid={exceeds || (!!amount && !parsed.ok)}
-            >
-              {exceeds
-                ? t("Saldo insuficiente.")
-                : !amount
-                  ? t("Informe a quantidade para obter uma cotação.")
-                  : !parsed.ok
-                    ? t(
-                        "Informe uma quantidade válida, com até oito casas decimais.",
-                      )
-                    : !source || !target
-                      ? t("Escolha os ativos da troca.")
-                      : t("Você revisará os valores antes de confirmar.")}
-            </p>
-            <Button
-              type="submit"
-              variant="default"
-              className="swap-primary-action primary"
-              disabled={
-                busy || quoting || !parsed.ok || !source || !target || exceeds
-              }
-            >
-              {t(busy || quoting ? "Aguarde…" : "Obter cotação")}
-            </Button>
-            {markets.isPending && <p>{t("Carregando mercados…")}</p>}
-            {markets.data?.length === 0 && (
-              <p>{t("Nenhum mercado disponível.")}</p>
-            )}
-          </form>
+              <Button
+                type="submit"
+                variant="default"
+                className="swap-primary-action primary"
+                disabled={
+                  busy || quoting || !parsed.ok || !source || !target || exceeds
+                }
+              >
+                {t(
+                  busy || quoting
+                    ? "Aguarde…"
+                    : currentReview && canConfirm(state.data, now, busy)
+                      ? "Revisar troca"
+                      : "Obter cotação",
+                )}
+              </Button>
+              {markets.isPending && <p>{t("Carregando mercados…")}</p>}
+              {markets.data?.length === 0 && (
+                <p>{t("Nenhum mercado disponível.")}</p>
+              )}
+            </form>
+          )}
           <div className="swap-quote-details">
             {state.data?.phase === "Quoting" && (
               <div className="card quote-loading">
@@ -393,22 +436,8 @@ export function SwapPage() {
             {state.data?.phase === "Expired" && !currentReview && (
               <p>{t("Cotação expirada. Solicite uma nova cotação.")}</p>
             )}
-            {currentReview && (
-              <SwapReview
-                review={currentReview}
-                asset={asset}
-                now={now}
-                enabled={
-                  reviewAllowed &&
-                  canConfirm(state.data, now, busy) &&
-                  currentReview.send_asset_id === source &&
-                  currentReview.receive_asset_id === target
-                }
-                confirm={() => void confirm()}
-              />
-            )}
           </div>
-        </div>
+        </FlowStep>
       )}
     </section>
   );

@@ -91,4 +91,10 @@ it("creates exactly one BRL request and shows its payment code without claiming 
     tax_id_number: "52998224725",
   });
   expect(screen.queryByText("Ativos recebidos")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Valor em reais")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Nova solicitação" }));
+  expect(screen.getByRole("heading", { name: "Novo Pix" })).toHaveFocus();
+  expect(screen.getByLabelText("Valor em reais")).toHaveValue("");
+  expect(screen.getByLabelText("CPF ou CNPJ do pagador")).toHaveValue("");
+  expect(client.pixCreate).toHaveBeenCalledTimes(1);
 });

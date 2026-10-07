@@ -1,27 +1,21 @@
-import { useNetwork } from "../../core/network";
+import { X } from "lucide-react";
+import { TransactionDetails } from "./transaction-details";
+import { PageHeader } from "../../ui/page-header";
 import { Input } from "../../ui/input";
 import { SelectField } from "../../ui/select-field";
-import { usePreferences } from "../../i18n/preferences";
 import { useT } from "../../i18n/messages";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { Snapshot } from "../../core/client";
 import { useWalletHoldings } from "../../app/session-provider";
 import { Button, Modal } from "../../ui";
-import { Activity, Movement, statusText } from "./activity";
-import {
-  filterActivity,
-  type ActivityFilter,
-  direction,
-} from "./activity-model";
+import { Activity } from "./activity";
+import { filterActivity, type ActivityFilter } from "./activity-model";
 import { assetKey } from "../dashboard/holdings-model";
 export function HistoryPage({ data }: { data?: Snapshot }) {
   const t = useT();
-  const network = useNetwork();
-  const { preferences } = usePreferences();
   const [filter, setFilter] = useState<ActivityFilter>({});
   const [params, setParams] = useSearchParams();
-  const [copied, setCopied] = useState("");
   const holdings = useWalletHoldings();
   const rows = filterActivity(data?.activity ?? [], filter);
   const selected = data?.activity.find(
@@ -31,7 +25,7 @@ export function HistoryPage({ data }: { data?: Snapshot }) {
     setFilter((old) => ({ ...old, [key]: value || undefined }));
   return (
     <section className="history-page">
-      <h1>{t("Atividade")}</h1>
+      <PageHeader title={t("Atividade")} />
       {params.get("tx") && !selected && (
         <div className="notice">
           <p>{t("Aguardando dados desta transação.")}</p>
@@ -129,70 +123,29 @@ export function HistoryPage({ data }: { data?: Snapshot }) {
       <Modal
         title={t("Detalhes da transação")}
         className="history-panel"
+        backdropClassName="history-backdrop"
+        presentation="drawer"
+        headerActions={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="icon-button"
+            aria-label={t("Fechar")}
+            onClick={() => setParams({})}
+          >
+            <X size={20} aria-hidden="true" />
+          </Button>
+        }
         open={!!selected}
         onOpenChange={(open) => {
           if (!open) setParams({});
         }}
       >
         {selected && (
-          <>
-            <p>
-              {selected.chain} {network + " ·"} {t(statusText(selected))}
-            </p>
-            <p>
-              {t("Confirmações:")}
-              {selected.confirmations}
-            </p>
-            <p>
-              {selected.timestamp_ms
-                ? new Date(selected.timestamp_ms).toLocaleString(
-                    preferences.locale,
-                  )
-                : t("Data indisponível")}
-            </p>
-            <p className="mono wrap">{selected.id}</p>
-            <Button
-              onClick={() =>
-                void navigator.clipboard
-                  .writeText(selected.id)
-                  .then(() => setCopied(t("ID copiado")))
-                  .catch(() => setCopied(t("Não foi possível copiar.")))
-              }
-            >
-              {t("Copiar ID")}
-            </Button>
-            <p role="status">{copied}</p>
-            <h3>{t("Movimentações (sem taxa)")}</h3>
-            {selected.movements.map((m) => (
-              <div key={assetKey(m.asset)}>
-                <Movement mode="exact" asset={m.asset} units={m.delta_units} />
-                {m.asset.asset_id && (
-                  <p className="small mono wrap">{m.asset.asset_id}</p>
-                )}
-              </div>
-            ))}
-            <h3>{t("Taxa debitada da carteira")}</h3>
-            {selected.fee ? (
-              <Movement
-                mode="exact"
-                asset={selected.fee.asset}
-                units={selected.fee.units}
-              />
-            ) : (
-              <p>{t("Indisponível ou paga pelo remetente.")}</p>
-            )}
-            <h3>{t("Endereços")}</h3>
-            {selected.addresses.length ? (
-              selected.addresses.map((a) => (
-                <p className="mono wrap" key={a}>
-                  {a}
-                </p>
-              ))
-            ) : (
-              <p>{t("Indisponíveis nesta transação.")}</p>
-            )}
-            <Button onClick={() => setParams({})}>{t("Fechar")}</Button>
-          </>
+          <TransactionDetails
+            key={selected.chain + selected.id}
+            transaction={selected}
+          />
         )}
       </Modal>
     </section>

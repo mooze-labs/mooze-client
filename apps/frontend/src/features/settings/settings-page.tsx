@@ -1,3 +1,4 @@
+import { PageHeader } from "../../ui/page-header";
 import { useState } from "react";
 import {
   Link,
@@ -37,7 +38,7 @@ export function SettingsPage() {
   });
   return (
     <div className="settings-page">
-      <h1>{t("Ajustes")}</h1>
+      <PageHeader title={t("Ajustes")} />
       <nav className="settings-tabs" aria-label={t("Ajustes")}>
         {sections.map(([key, label]) => (
           <Link

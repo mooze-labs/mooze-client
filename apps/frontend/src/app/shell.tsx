@@ -1,12 +1,15 @@
+import { AccountPage } from "../features/account/account-page";
+import { ScreenTransition } from "../ui/screen-transition";
 import { SwapPage } from "../features/swap/swap-page";
 import { PixPage } from "../features/pix/pix-page";
 import { BackendStatus } from "../features/dashboard/backend-status";
-import { NetworkContext } from "../core/network";
+import { NetworkContext, networkLabel } from "../core/network";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Routes, Route } from "react-router-dom";
 import {
   Wallet,
+  UserRound,
   Clock,
   Settings,
   Eye,
@@ -38,6 +41,7 @@ const links = [
   ["/pix", "Pix", QrCode],
   ["/swap", "Trocar", ArrowLeftRight],
   ["/history", "Atividade", Clock],
+  ["/account", "Conta", UserRound],
   ["/settings", "Ajustes", Settings],
 ] as const;
 export function WalletShell() {
@@ -112,7 +116,11 @@ function WalletShellContent() {
               ))}
             </nav>
             <footer>
-              <span className="network-badge">{host.data?.network}</span>
+              {networkLabel(host.data?.network) && (
+                <span className="network-badge">
+                  {networkLabel(host.data?.network)}
+                </span>
+              )}
               <NetworkStatus />
               <Button
                 className="ghost"
@@ -130,7 +138,9 @@ function WalletShellContent() {
           </aside>
           <div className="workspace">
             <header>
-              <span className="muted small">{t("Bitcoin + Liquid")}</span>
+              <div className="header-context">
+                {host.data?.pix_enabled && <BackendStatus />}
+              </div>
               <div className="header-right">
                 <Button
                   className="icon-button"
@@ -148,7 +158,6 @@ function WalletShellContent() {
               </div>
             </header>
             <main className="content">
-              {host.data?.pix_enabled && <BackendStatus />}
               <ErrorNotice>{preferencesError}</ErrorNotice>
               <ErrorNotice>
                 {snapshot.error
@@ -166,50 +175,61 @@ function WalletShellContent() {
               )}
               {host.data && (
                 <SendDraftProvider key={session.generation}>
-                  <Routes>
-                    <Route path="/swap" element={<SwapPage />} />
-                    <Route path="/pix" element={<PixPage />} />
-                    <Route
-                      path="/assets"
-                      element={<AssetsPage data={snapshot.data} />}
-                    />
-                    <Route
-                      path="/"
-                      element={
-                        <DashboardPage data={snapshot.data} host={host.data} />
-                      }
-                    />
-                    <Route
-                      path="/assets/:chain/:assetKey"
-                      element={<AssetPage data={snapshot.data} />}
-                    />
-                    <Route
-                      path="/history"
-                      element={<HistoryPage data={snapshot.data} />}
-                    />
-                    <Route path="/receive" element={<ReceivePage />} />
-                    <Route
-                      path="/send"
-                      element={
-                        <SendPage
-                          client={client}
-                          generation={session.generation}
-                          submission={snapshot.data?.submission}
-                          activity={snapshot.data?.activity}
-                          onSent={() =>
-                            void qc.invalidateQueries({ queryKey: ["wallet"] })
-                          }
-                        />
-                      }
-                    />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route
-                      path="*"
-                      element={
-                        <DashboardPage data={snapshot.data} host={host.data} />
-                      }
-                    />
-                  </Routes>
+                  <ScreenTransition>
+                    <Routes>
+                      <Route path="/swap" element={<SwapPage />} />
+                      <Route path="/pix" element={<PixPage />} />
+                      <Route
+                        path="/assets"
+                        element={<AssetsPage data={snapshot.data} />}
+                      />
+                      <Route
+                        path="/"
+                        element={
+                          <DashboardPage
+                            data={snapshot.data}
+                            host={host.data}
+                          />
+                        }
+                      />
+                      <Route
+                        path="/assets/:chain/:assetKey"
+                        element={<AssetPage data={snapshot.data} />}
+                      />
+                      <Route
+                        path="/history"
+                        element={<HistoryPage data={snapshot.data} />}
+                      />
+                      <Route path="/receive" element={<ReceivePage />} />
+                      <Route
+                        path="/send"
+                        element={
+                          <SendPage
+                            client={client}
+                            generation={session.generation}
+                            submission={snapshot.data?.submission}
+                            activity={snapshot.data?.activity}
+                            onSent={() =>
+                              void qc.invalidateQueries({
+                                queryKey: ["wallet"],
+                              })
+                            }
+                          />
+                        }
+                      />
+                      <Route path="/account" element={<AccountPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route
+                        path="*"
+                        element={
+                          <DashboardPage
+                            data={snapshot.data}
+                            host={host.data}
+                          />
+                        }
+                      />
+                    </Routes>
+                  </ScreenTransition>
                 </SendDraftProvider>
               )}
             </main>

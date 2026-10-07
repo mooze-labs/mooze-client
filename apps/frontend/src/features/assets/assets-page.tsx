@@ -1,4 +1,6 @@
-import { useNetwork } from "../../core/network";
+import { AssetPriceChart } from "../prices/asset-price-chart";
+import { PageHeader } from "../../ui/page-header";
+import { useNetworkLabel } from "../../core/network";
 import { SelectField } from "../../ui/select-field";
 import { Input } from "../../ui/input";
 import { Amount } from "../../ui/amount";
@@ -39,7 +41,7 @@ export function HoldingValue({
   mode?: "compact" | "exact";
 }) {
   const t = useT();
-  const buildNetwork = useNetwork();
+  const buildNetwork = useNetworkLabel();
   return row.balanceText === null ? (
     <span className="muted">{t("Aguardando sincronização")}</span>
   ) : (
@@ -51,7 +53,7 @@ export function HoldingValue({
 }
 export function HoldingsTable({ rows }: { rows: HoldingView[] }) {
   const t = useT();
-  const buildNetwork = useNetwork();
+  const buildNetwork = useNetworkLabel();
   return (
     <div className="holding-list">
       {rows.map((row) => (
@@ -99,7 +101,7 @@ export function HoldingsTable({ rows }: { rows: HoldingView[] }) {
 }
 export function AssetsPage({ data }: { data?: Snapshot }) {
   const t = useT();
-  const buildNetwork = useNetwork();
+  const buildNetwork = useNetworkLabel();
   const { query, rows } = useHoldingViews(data);
   const [search, setSearch] = useState("");
   const [network, setNetwork] = useState("all");
@@ -111,8 +113,8 @@ export function AssetsPage({ data }: { data?: Snapshot }) {
         .includes(search.toLowerCase().trim()),
   );
   return (
-    <section className="card">
-      <h1>{t("Meus ativos")}</h1>
+    <section className="flow-page assets-page">
+      <PageHeader title={t("Meus ativos")} />
       <div className="actions">
         <label className="field">
           {t("Buscar ativo")}
@@ -146,7 +148,7 @@ export function AssetsPage({ data }: { data?: Snapshot }) {
 }
 export function AssetPage({ data }: { data?: Snapshot }) {
   const t = useT();
-  const buildNetwork = useNetwork();
+  const buildNetwork = useNetworkLabel();
   const { chain, assetKey: routeKey } = useParams();
   const { query } = useHoldingViews(data);
   const holding = query.data?.holdings.find(
@@ -177,17 +179,43 @@ export function AssetPage({ data }: { data?: Snapshot }) {
     asset: row.metadata.key.asset_id ?? "native",
   });
   return (
-    <>
-      <section className="card">
+    <div className="flow-page asset-page">
+      <NavLink className="back-link" to="/assets">
+        ← {t("Meus ativos")}
+      </NavLink>
+      <section className="card asset-summary">
         <p className="eyebrow">
           {chain} {buildNetwork}
         </p>
         <h1>{row.metadata.ticker ?? t("Ativo não listado")}</h1>
-        <h2>
+        <p className="asset-total">
           <HoldingValue row={row} mode="exact" />
-        </h2>
+        </p>
+        {row.available_units !== null && (
+          <p className="muted">
+            {t("Saldo disponível")}:{" "}
+            <Amount
+              units={row.available_units}
+              metadata={row.metadata}
+              mode="exact"
+            />
+          </p>
+        )}
+        {row.pending_units !== null && BigInt(row.pending_units) !== 0n && (
+          <p className="muted">
+            {t("Pendente (incluído no saldo)")}:{" "}
+            <Amount
+              units={row.pending_units}
+              metadata={row.metadata}
+              mode="exact"
+            />
+          </p>
+        )}
         {row.metadata.key.asset_id && (
-          <p className="mono wrap">{row.metadata.key.asset_id}</p>
+          <details className="asset-identity">
+            <summary>{t("ID do ativo:")}</summary>
+            <p className="mono wrap">{row.metadata.key.asset_id}</p>
+          </details>
         )}
         {row.metadata.approved ? (
           <div className="actions">
@@ -206,6 +234,7 @@ export function AssetPage({ data }: { data?: Snapshot }) {
           </div>
         )}
       </section>
+      <AssetPriceChart key={row.key} asset={row.metadata} />
       <section className="card section-gap">
         <h2>{t("Atividade do ativo")}</h2>
         <Activity
@@ -219,8 +248,12 @@ export function AssetPage({ data }: { data?: Snapshot }) {
             ) ?? []
           }
         />
-        <NavLink to="/history">{t("Abrir histórico")}</NavLink>
+        <div className="asset-history-actions">
+          <NavLink className="button" to="/history">
+            {t("Abrir histórico")}
+          </NavLink>
+        </div>
       </section>
-    </>
+    </div>
   );
 }
