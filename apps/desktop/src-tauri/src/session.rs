@@ -1,6 +1,7 @@
 mod account;
 pub mod backend;
 pub mod idle;
+mod native_auth;
 mod payments;
 mod pix;
 mod prices;
@@ -41,6 +42,9 @@ struct Inner<P: Platform> {
     reviews: ReviewBook,
 }
 pub struct WalletSession<P: Platform> {
+    native: Arc<dyn crate::native_auth::NativeAuthenticator>,
+    native_attempt: Arc<StdMutex<crate::native_auth::attempt::AttemptState>>,
+    native_setup_generation: StdMutex<Option<u32>>,
     services: backend::ServiceConfig,
     backend_state: Mutex<Option<(u32, BackendSessionDto)>>,
     pix_gate: Mutex<()>,
@@ -148,6 +152,9 @@ impl<P: Platform + Clone> WalletSession<P> {
             pix_gate: Mutex::new(()),
             swap_gate: Mutex::new(()),
             swaps: Arc::new(StdMutex::new(crate::swap_review::SwapBook::default())),
+            native: crate::native_auth::unsupported(),
+            native_attempt: Arc::new(StdMutex::new(Default::default())),
+            native_setup_generation: StdMutex::new(None),
             setup: StdMutex::new(None),
             backend,
             inner: Mutex::new(Inner {
@@ -229,6 +236,8 @@ impl<P: Platform + Clone> WalletSession<P> {
             self.unlocked.store(false, Ordering::SeqCst);
             let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
             drop(transition);
+            let _ = self.cancel_native_auth();
+            *self.native_setup_generation.lock().unwrap() = None;
             self.emit_session(&SessionDto {
                 status: "locked".into(),
                 generation,
@@ -373,7 +382,7 @@ impl<P: Platform + Clone> WalletSession<P> {
             }
         };
         inner.app = Some(app);
-        self.open_session(&mut inner, expected).await
+        self.open_session(&mut inner, expected, None, true).await
     }
     async fn clear_incomplete(&self) -> Result<()> {
         for k in self.platform.secure().list_keys("").await? {
@@ -388,6 +397,7 @@ impl<P: Platform + Clone> WalletSession<P> {
         Ok(())
     }
     pub async fn unlock(&self, pin: String) -> Result<SessionDto> {
+        self.cancel_native_auth()?;
         let mut inner = self.inner.lock().await;
         if self.platform.kv().get(REMOVAL).await?.is_some() {
             return Err(DesktopError::new(
@@ -406,6 +416,14 @@ impl<P: Platform + Clone> WalletSession<P> {
             ));
         }
         self.verify_pin(&pin).await?;
+        self.load_and_open(&mut inner, expected, None).await
+    }
+    async fn load_and_open(
+        &self,
+        inner: &mut Inner<P>,
+        expected: u32,
+        attempt: Option<crate::native_auth::attempt::Attempt>,
+    ) -> Result<SessionDto> {
         if let Some(old) = inner.app.take() {
             old.stop_and_wait().await?;
             old.sideswap_disconnect().await?;
@@ -417,9 +435,15 @@ impl<P: Platform + Clone> WalletSession<P> {
                     .await?;
             inner.app = Some(self.connect(credentials.mnemonic).await?);
         }
-        self.open_session(&mut inner, expected).await
+        self.open_session(inner, expected, attempt, false).await
     }
-    async fn open_session(&self, inner: &mut Inner<P>, expected: u32) -> Result<SessionDto> {
+    async fn open_session(
+        &self,
+        inner: &mut Inner<P>,
+        expected: u32,
+        attempt: Option<crate::native_auth::attempt::Attempt>,
+        offer: bool,
+    ) -> Result<SessionDto> {
         let minutes = self.load_settings().await?.lock_minutes;
         {
             let _transition = self.transition.lock().unwrap();
@@ -429,7 +453,11 @@ impl<P: Platform + Clone> WalletSession<P> {
                     "A carteira foi bloqueada. Desbloqueie para continuar.",
                 ));
             }
-            self.generation.fetch_add(1, Ordering::SeqCst);
+            if let Some(attempt) = attempt {
+                self.validate_native_attempt(attempt)?;
+            }
+            let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
+            *self.native_setup_generation.lock().unwrap() = offer.then_some(generation);
             inner.reviews.clear();
             *self.idle.lock().unwrap() = Some((
                 idle::IdleState::new(minutes, 0).unwrap(),
@@ -460,6 +488,8 @@ impl<P: Platform + Clone> WalletSession<P> {
         Ok(s)
     }
     pub async fn lock(&self) -> Result<SessionDto> {
+        self.cancel_native_auth()?;
+        *self.native_setup_generation.lock().unwrap() = None;
         *self.setup.lock().unwrap() = None;
         // Close authorization and notify the UI before waiting for a long wallet operation.
         {
