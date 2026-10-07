@@ -16,12 +16,12 @@ Behavior tests cover explicit Swap review and expiry, Pix creation/payment navig
 
 ## Constraints
 
-No new UI vendor dependency or backend contract changes. No real funds, keys or external payments. Preserve the unrelated mobile Podfile.lock edit. Glass is progressive enhancement for navigation only, with opaque fallback and reduced-transparency support.
+The initial composition pass added no UI dependency or backend contract changes; subsequent drawer and page transitions use the pinned Motion dependency, and account/chart contracts are documented in [the parity update](2026-10-07-desktop-account-and-charts.md). No real funds, keys or external payments. Preserve the unrelated mobile Podfile.lock edit. Glass is progressive enhancement for navigation only, with opaque fallback and reduced-transparency support.
 
 ## Results
 
-- Behavior changes were exercised with failing tests before implementation. Final suite: 73 tests across 34 files passed. The setup test also verifies successful native-client handoff with the checked words and PIN; receive verifies both copy modes.
-- TypeScript and production Vite build passed. Vite reports a chunk-size advisory (836 kB main JS before gzip); no new dependency was introduced. No synthetic-preview markers were found in production output.
+- Behavior changes were exercised with failing tests before implementation. At the end of the initial composition pass, 73 tests across 34 files passed. The setup test also verifies successful native-client handoff with the checked words and PIN; receive verifies both copy modes.
+- TypeScript and production Vite build passed. Vite reports a chunk-size advisory (836 kB main JS before gzip); no new dependency was introduced in that initial pass. No synthetic-preview markers were found in production output.
 - Safari visual walkthrough covered overview, privacy masking, Swap editing/review, Receive, Pix form/payment, Send, asset details, activity details and settings. Responsive inspection included the desktop minimum 1024 × 700. Longer forms remain scrollable at that height.
 - Independent final code review identified focus loss during step replacement. Fixed with shared `FlowStep` and verified with component and integration tests. No other important findings were reported.
-- Reduced motion/transparency rules were checked in source; OS preference emulation and native Tauri smoke testing were not performed. No changes were committed or published.
+- Reduced motion/transparency rules were checked in source; OS preference emulation and native Tauri smoke testing were not performed. These observations describe the initial composition pass; later motion and account/chart changes are included in the branch submitted for review.
