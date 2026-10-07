@@ -1,10 +1,22 @@
 import { Check } from "lucide-react";
 import { useT } from "../../i18n/messages";
-export function SetupProgress({ step }: { step: 0 | 1 | 2 | 3 }) {
+export function SetupProgress({
+  step,
+  importing = false,
+}: {
+  step: number;
+  importing?: boolean;
+}) {
   const t = useT();
+  const labels = importing
+    ? ["Carteira", "Recuperação", "PIN", "Preparação"]
+    : ["Carteira", "Recuperação", "Confirmação", "PIN", "Preparação"];
   return (
-    <ol className="setup-progress" aria-label={t("Criar carteira")}>
-      {["Carteira", "Recuperação", "Confirmação", "PIN"].map((label, index) => (
+    <ol
+      className="setup-progress"
+      aria-label={t(importing ? "Importar carteira" : "Criar carteira")}
+    >
+      {labels.map((label, index) => (
         <li
           key={label}
           aria-current={index === step ? "step" : undefined}

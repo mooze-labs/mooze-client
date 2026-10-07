@@ -1072,3 +1072,140 @@
 .swap-receive-amount > .mono {
   font-family: Geist, sans-serif;
 }
+
+/* Desktop setup keeps recovery and security in the same accessible shell. */
+.onboarding .setup-card {
+  width: min(100%, 640px);
+}
+.setup-card .setup-context {
+  padding: 16px;
+  margin-block: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--raised);
+}
+.setup-context p:last-child {
+  margin-bottom: 0;
+}
+.phrase-options {
+  padding: 0;
+  margin: 24px 0;
+  border: 0;
+  display: grid;
+  gap: 12px;
+}
+.phrase-options legend {
+  margin-bottom: 12px;
+}
+.phrase-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.phrase-option[data-selected="true"] {
+  border-color: var(--accent);
+}
+.phrase-option small {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.phrase-option input[type="radio"] {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
+}
+.phrase-option > span {
+  min-width: 0;
+}
+.phrase-option:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.import-word-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-block: 20px;
+}
+.import-word-grid .field {
+  margin: 0;
+  min-width: 0;
+}
+.import-word-grid input {
+  width: 100%;
+}
+.setup-cancel {
+  margin-top: 24px;
+}
+.setup-card .setup-progress {
+  gap: 8px;
+}
+.setup-card .setup-progress li {
+  min-width: 0;
+  text-align: center;
+}
+@media (max-width: 600px) {
+  .import-word-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .setup-card .setup-progress li {
+    font-size: 10px;
+  }
+  .setup-card .setup-actions {
+    flex-wrap: wrap;
+  }
+}
+.first-sync-notice ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  padding: 0;
+  list-style: none;
+}
+.first-sync-notice li {
+  display: flex;
+  gap: 12px;
+}
+.setup-terms {
+  margin-block: 24px;
+}
+.setup-terms-acceptance {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.setup-terms-acceptance .ui-checkbox {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.setup-terms-acceptance label {
+  cursor: pointer;
+  line-height: 1.5;
+}
+.setup-terms-dialog {
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+.setup-terms-body {
+  overflow-y: auto;
+  min-height: 0;
+  margin-block: 16px;
+  padding-right: 12px;
+}
+.setup-terms-body p {
+  line-height: 1.7;
+}
+.setup-terms-dialog > .button {
+  flex-shrink: 0;
+  align-self: flex-end;
+}

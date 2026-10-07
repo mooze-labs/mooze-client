@@ -762,3 +762,382 @@ a:focus-visible {
   background: var(--accent);
   border-radius: 8px;
 }
+
+/* Setup uses one spacing rhythm across welcome, recovery, import and PIN.
+   Short steps fit the minimum 1024 × 700 desktop window; long recovery forms
+   scroll with the page rather than adding an inner scrolling surface. */
+.setup-onboarding {
+  padding: 32px 24px 48px;
+  gap: 24px;
+  background: var(--bg);
+}
+.setup-onboarding > .wordmark {
+  margin: 0;
+  line-height: 1;
+}
+.setup-onboarding > .network-badge {
+  margin-block: -8px;
+}
+.setup-onboarding .setup-card {
+  width: min(100%, 640px);
+  margin: 0;
+  padding: 32px;
+  border-radius: 16px;
+}
+.setup-card .setup-progress {
+  margin: 0 0 28px;
+  gap: 8px;
+}
+.setup-card .setup-progress li {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.setup-card h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+}
+.setup-card p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+.setup-card p.small {
+  font-size: 12px;
+}
+.setup-card .field {
+  min-width: 0;
+  gap: 8px;
+}
+.setup-card .field > label,
+.setup-card .field > span {
+  font-size: 13px;
+  line-height: 1.4;
+}
+.setup-card .setup-context {
+  margin: 24px 0 0;
+}
+.setup-card .setup-context p:first-child {
+  margin-top: 0;
+}
+.setup-card .setup-context > .button {
+  margin-top: 16px;
+  min-height: 40px;
+}
+.setup-card .phrase-options {
+  margin: 24px 0 16px;
+}
+.setup-card .phrase-options legend {
+  padding: 0;
+  font-size: 13px;
+}
+.setup-card .phrase-option {
+  min-height: 72px;
+}
+.setup-card .setup-actions {
+  margin-top: 24px;
+  gap: 12px;
+}
+.setup-card .setup-cancel {
+  min-height: 36px;
+  margin-top: 12px;
+  padding-inline: 0;
+}
+.setup-card .setup-terms {
+  margin: 24px 0 0;
+}
+.setup-card .setup-terms > .button {
+  padding-inline: 0;
+  min-height: 32px;
+}
+.setup-card .setup-terms-acceptance {
+  margin-top: 12px;
+}
+.setup-card .seed-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: recovery-word;
+}
+.setup-card .seed-grid li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.setup-card .seed-grid li::before {
+  counter-increment: recovery-word;
+  content: counter(recovery-word) ".";
+  flex-shrink: 0;
+  min-width: 2ch;
+  color: var(--muted);
+  font-size: 12px;
+}
+.setup-card[data-step="verify"] #wallet-setup,
+.setup-card[data-step="pin"] #wallet-setup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 16px;
+}
+.setup-card #wallet-setup > :is(h1, p, .alert, .setup-actions) {
+  grid-column: 1 / -1;
+}
+.setup-card #wallet-setup > .field {
+  margin: 24px 0 0;
+}
+.setup-card[data-step="pin"] #wallet-setup {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+}
+.setup-card .pin-input {
+  width: 100%;
+  max-width: 304px;
+}
+.setup-card .pin-slots {
+  width: 100%;
+  gap: 6px;
+}
+.setup-card .pin-slots [data-slot="input-otp-slot"] {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  height: 48px;
+}
+.setup-card .import-word-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 12px;
+  margin: 24px 0 16px;
+}
+.setup-card .import-word-grid .field {
+  margin: 0;
+  gap: 6px;
+}
+.setup-card .import-word-grid input {
+  min-width: 0;
+  padding-inline: 10px;
+}
+.setup-card .alert {
+  margin: 0 0 24px;
+}
+.setup-card #wallet-setup > .alert {
+  margin: 16px 0 0;
+}
+.setup-card[data-step="expired"] .alert {
+  margin-top: 16px;
+}
+.setup-terms-dialog {
+  padding: 24px;
+  gap: 0;
+}
+.setup-terms-dialog > h2 {
+  margin: 0;
+  line-height: 1.3;
+}
+.setup-terms-dialog > p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.setup-terms-body {
+  margin-block: 24px;
+  scrollbar-gutter: stable;
+}
+.setup-terms-body p {
+  margin: 0 0 16px;
+}
+.setup-terms-body p:last-child {
+  margin-bottom: 0;
+}
+.setup-terms-dialog > .button {
+  min-height: 40px;
+}
+@media (max-width: 640px) {
+  .setup-onboarding {
+    padding: 24px 16px 32px;
+    gap: 20px;
+  }
+  .setup-onboarding .setup-card {
+    padding: 24px;
+  }
+  .setup-card h1 {
+    font-size: 24px;
+  }
+  .setup-card .setup-progress {
+    gap: 4px;
+    margin-bottom: 24px;
+  }
+  .setup-card .setup-progress li {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .setup-card .seed-grid,
+  .setup-card .import-word-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .setup-card[data-step="verify"] #wallet-setup,
+  .setup-card[data-step="pin"] #wallet-setup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .setup-card .setup-actions > .button {
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 480px) {
+  .setup-card .setup-progress li {
+    min-width: 0;
+  }
+  .setup-card .setup-progress li > span:last-child {
+    white-space: nowrap;
+  }
+  .setup-card .setup-progress li:not([aria-current="step"]) > span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+@media (max-width: 380px) {
+  .setup-onboarding .setup-card {
+    padding: 20px 16px;
+  }
+  .setup-card .seed-grid li {
+    padding-inline: 8px;
+    gap: 6px;
+  }
+}
+
+/* Sidebar mode belongs to the local desktop layout, not wallet settings. */
+.shell[data-sidebar] {
+  --sidebar-width: 208px;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+}
+.shell[data-sidebar="compact"] {
+  --sidebar-width: 72px;
+}
+.shell[data-sidebar] > aside {
+  width: auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 24px 12px;
+}
+.sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+.shell .sidebar-heading .wordmark {
+  padding: 0 0 0 10px;
+  font-size: 28px;
+}
+.shell .sidebar-heading .sidebar-brand {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+  vertical-align: baseline;
+}
+.sidebar-toggle {
+  width: 32px;
+  min-width: 32px;
+  padding: 0;
+}
+.shell[data-sidebar] > aside nav a {
+  min-height: 44px;
+}
+.shell[data-sidebar] footer {
+  padding: 24px 0 0;
+}
+.sidebar-lock {
+  font-size: 12px;
+  width: 100%;
+}
+.sidebar-tooltip {
+  z-index: 100;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--foreground);
+  font-size: 12px;
+  box-shadow: 0 4px 16px #0003;
+}
+.shell[data-sidebar="compact"] .sidebar-heading {
+  flex-direction: column;
+  gap: 16px;
+}
+.shell[data-sidebar="compact"] .wordmark {
+  padding: 0;
+}
+.shell[data-sidebar="compact"] .sidebar-label {
+  display: none;
+}
+.shell[data-sidebar="compact"] > aside nav a {
+  justify-content: center;
+  padding: 12px 0;
+}
+.shell[data-sidebar="compact"] footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.shell[data-sidebar="compact"] .sidebar-network {
+  font-size: 12px;
+  letter-spacing: 0;
+  padding: 3px;
+}
+.shell[data-sidebar="compact"] .network-trigger {
+  width: 40px;
+  min-height: 40px;
+  justify-content: center;
+  padding: 0;
+  border-radius: 8px;
+}
+.shell[data-sidebar="compact"] .network-trigger:hover {
+  background: var(--raised);
+}
+.shell[data-sidebar="compact"] .sidebar-lock {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .shell[data-sidebar] {
+    transition: grid-template-columns 180ms ease;
+  }
+}
+
+.fiat-summary {
+  margin: 0 0 24px;
+}
+.fiat-summary p {
+  margin: 6px 0;
+}
+.fiat-summary .fiat-total {
+  display: block;
+  font-size: 32px;
+  line-height: 1.25;
+  font-weight: 600;
+  margin: 8px 0 12px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.holding-fiat {
+  display: block;
+  font-size: 12px;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.fiat-retry {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}

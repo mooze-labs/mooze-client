@@ -79,6 +79,8 @@ export interface DesktopClient {
   feeOptions(
     asset: import("../../../../crates/mooze-app/generated/types").AssetKeyDto,
   ): Promise<import("./desktop.generated").FeeOptionsDto>;
+  recoveryWords(): Promise<string[]>;
+  validateRecoveryPhrase(phrase: string): Promise<void>;
   beginSetup(
     extended: boolean,
   ): Promise<import("./desktop.generated").SetupDto>;

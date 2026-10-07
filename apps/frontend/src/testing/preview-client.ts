@@ -221,8 +221,11 @@ export function createPreviewClient(mode = "unlocked"): DesktopClient {
     swapStop: noop,
     swapConfirm: unsupported,
     swapAcknowledge: noop,
+    recoveryWords: async () => [],
+    validateRecoveryPhrase: unsupported,
     beginSetup: async (extended) => ({
       setup_id: "preview",
+      expires_at_ms: Date.now() + 600_000,
       words: Array.from(
         { length: extended ? 24 : 12 },
         (_, i) => `example${i + 1}`,

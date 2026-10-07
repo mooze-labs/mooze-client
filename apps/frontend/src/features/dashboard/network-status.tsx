@@ -6,7 +6,7 @@ import { usePreferences } from "../../i18n/preferences";
 import { useT } from "../../i18n/messages";
 import { Button, ErrorNotice } from "../../ui";
 import { errorText } from "../../core/client";
-export function NetworkStatus() {
+export function NetworkStatus({ compact = false }: { compact?: boolean }) {
   const query = useWalletHoldings();
   const client = useWalletClient();
   const t = useT();
@@ -16,19 +16,24 @@ export function NetworkStatus() {
     query.data?.chains.length === 2 &&
     query.data.chains.every((c) => c.phase === "ready");
   const failed = query.data?.chains.some((c) => c.phase === "error");
+  const label = query.isFetching
+    ? t("Atualizando…")
+    : ready
+      ? t("Redes sincronizadas")
+      : failed
+        ? t("Falha de conexão")
+        : t("Aguardando sincronização");
   return (
     <Popover.Root>
-      <Popover.Trigger className="network-trigger">
+      <Popover.Trigger
+        className="network-trigger"
+        aria-label={label}
+        title={compact ? label : undefined}
+      >
         <span
           className={`status-dot ${ready ? "ready" : failed ? "failed" : "waiting"}`}
         />
-        {query.isFetching
-          ? t("Atualizando…")
-          : ready
-            ? t("Redes sincronizadas")
-            : failed
-              ? t("Falha de conexão")
-              : t("Aguardando sincronização")}
+        <span className="sidebar-label">{label}</span>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="right" sideOffset={12}>

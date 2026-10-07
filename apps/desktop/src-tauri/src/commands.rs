@@ -292,3 +292,69 @@ pub async fn price_history(
 ) -> Result<PriceHistoryDto> {
     state.price_history(market, currency, days).await
 }
+
+// Local-only input assistance: neither command persists or transmits the phrase.
+#[tauri::command]
+pub fn recovery_words() -> Vec<String> {
+    mooze_core::wallet::mnemonic::english_words()
+        .iter()
+        .map(|word| (*word).to_owned())
+        .collect()
+}
+#[tauri::command]
+pub fn validate_recovery_phrase(phrase: String) -> Result<()> {
+    use crate::error::DesktopError;
+    use mooze_core::wallet::mnemonic;
+    let normalized = mnemonic::normalize(&phrase).to_lowercase();
+    let words: Vec<_> = normalized.split_whitespace().collect();
+    if ![12, 15, 18, 21, 24].contains(&words.len()) {
+        return Err(DesktopError::new(
+            "invalid_word_count",
+            "Use uma frase de 12, 15, 18, 21 ou 24 palavras.",
+        ));
+    }
+    let invalid: Vec<_> = words
+        .iter()
+        .enumerate()
+        .filter(|(_, word)| !mnemonic::english_words().contains(word))
+        .map(|(index, _)| (index + 1).to_string())
+        .collect();
+    if !invalid.is_empty() {
+        let mut error =
+            DesktopError::new("invalid_recovery_words", "Confira as palavras indicadas.");
+        error.details = Some(invalid.join(", "));
+        return Err(error);
+    }
+    mnemonic::parse(&normalized).map(|_| ()).map_err(|_| {
+        DesktopError::new(
+            "invalid_checksum",
+            "As palavras não formam uma frase válida. Confira a ordem e o conteúdo.",
+        )
+    })
+}
+
+#[cfg(test)]
+mod recovery_tests {
+    use super::*;
+    #[test]
+    fn validates_words_count_and_checksum_without_echoing_secrets() {
+        assert_eq!(
+            validate_recovery_phrase("abandon".into()).unwrap_err().code,
+            "invalid_word_count"
+        );
+        assert_eq!(
+            validate_recovery_phrase(vec!["abandon"; 12].join(" "))
+                .unwrap_err()
+                .code,
+            "invalid_checksum"
+        );
+        let mut words = vec!["abandon"; 12];
+        words[4] = "notaword";
+        let error = validate_recovery_phrase(words.join(" ")).unwrap_err();
+        assert_eq!(error.code, "invalid_recovery_words");
+        assert_eq!(error.details.as_deref(), Some("5"));
+        words[4] = "abandon";
+        words[11] = "about";
+        assert!(validate_recovery_phrase(words.join("\n").to_uppercase()).is_ok());
+    }
+}

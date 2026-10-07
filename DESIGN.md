@@ -109,3 +109,11 @@ Use existing 140–200ms interaction/step motion; honor reduced motion. Navigati
 ## Account and market data — 2026-10-07
 
 Account level is a dedicated page with current tier, progression and a tier comparison. The separate personal Pix limits card has been removed. Asset details may show public reference-market charts: 1D/7D/1M, BRL/USD, timestamped observations, accessible pointer/keyboard exploration and visible source/update time. L-BTC uses a labeled Bitcoin reference. Unsupported assets and test coins receive no fabricated valuation. Network failure must not produce a default tier or simulated price curve.
+
+## Sidebar modes — 2026-10-07
+
+The existing Quiet Navy shell supports an expanded 208px sidebar and a compact 72px icon rail. A persistent toggle switches modes; the local device preference is stored separately from wallet display settings. Without a saved preference, windows at or below 1100px start compact. Resizing does not override an explicit choice. Compact navigation retains accessible labels, hover/focus tooltips, active-route styling, network status, and wallet locking. Layout motion respects reduced motion. Native window styling remains outside this change.
+
+## Holdings in BRL — 2026-10-07
+
+Display estimated BRL values alongside asset quantities and an overview total. Verified mainnet DePix uses the requested fixed rate of 1 DePix = R$1; BTC and L-BTC share the Bitcoin reference price, and USDT uses the Tether market price. Reuse the existing public price-history service's latest one-day observation, refreshing every five minutes and expiring observations after one hour (also reevaluate on focus/visibility changes). Keep wallet quantities in integer base units and round valuations to cents. Missing prices, unknown assets, unsynchronized or stale balances, and test coins are unavailable; label incomplete totals as partial. Pending balances are already included and must not be added again. Both per-asset and total fiat values follow privacy masking. Show market source/time and conversion assumptions.

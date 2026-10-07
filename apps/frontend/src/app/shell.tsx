@@ -1,3 +1,4 @@
+import { SidebarLayout, SidebarHint } from "./sidebar";
 import { AccountPage } from "../features/account/account-page";
 import { ScreenTransition } from "../ui/screen-transition";
 import { SwapPage } from "../features/swap/swap-page";
@@ -7,17 +8,7 @@ import { NetworkContext, networkLabel } from "../core/network";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Routes, Route } from "react-router-dom";
-import {
-  Wallet,
-  UserRound,
-  Clock,
-  Settings,
-  Eye,
-  EyeOff,
-  Lock,
-  QrCode,
-  ArrowLeftRight,
-} from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 import { useT } from "../i18n/messages";
 import { usePreferences } from "../i18n/preferences";
 import { useWalletClient } from "./client-context";
@@ -36,14 +27,6 @@ import { ReceivePage } from "../features/receive/receive-page";
 import { HistoryPage } from "../features/history/history-page";
 import { SetupPage } from "../features/setup/setup-page";
 import { SessionScreen } from "../features/session/session-screen";
-const links = [
-  ["/", "Carteira", Wallet],
-  ["/pix", "Pix", QrCode],
-  ["/swap", "Trocar", ArrowLeftRight],
-  ["/history", "Atividade", Clock],
-  ["/account", "Conta", UserRound],
-  ["/settings", "Ajustes", Settings],
-] as const;
 export function WalletShell() {
   const client = useWalletClient();
   const host = useQuery({
@@ -99,43 +82,35 @@ function WalletShellContent() {
   return (
     <NetworkContext.Provider value={host.data?.network ?? ""}>
       <PrivacyContext.Provider value={privateMode}>
-        <div className="shell">
-          <aside>
-            <div className="wordmark">
-              {t("mooze")}
-              <span>●</span>
-            </div>
-            <nav>
-              {links.map(([to, label, Icon]) => (
-                <div key={to}>
-                  <NavLink to={to} end={to === "/"}>
-                    <Icon size={18} />
-                    {t(label)}
-                  </NavLink>
-                </div>
-              ))}
-            </nav>
-            <footer>
+        <SidebarLayout
+          footer={(compact) => (
+            <>
               {networkLabel(host.data?.network) && (
-                <span className="network-badge">
+                <span className="network-badge sidebar-network">
                   {networkLabel(host.data?.network)}
                 </span>
               )}
-              <NetworkStatus />
-              <Button
-                className="ghost"
-                onClick={() =>
-                  void client
-                    .lock()
-                    .then(update)
-                    .catch((e) => setStartupError(errorText(e)))
-                }
-              >
-                <Lock size={14} />
-                {t("Bloquear carteira")}
-              </Button>
-            </footer>
-          </aside>
+              <NetworkStatus compact={compact} />
+              <SidebarHint label={t("Bloquear carteira")} enabled={compact}>
+                <Button
+                  className="ghost sidebar-lock"
+                  aria-label={t("Bloquear carteira")}
+                  onClick={() =>
+                    void client
+                      .lock()
+                      .then(update)
+                      .catch((e) => setStartupError(errorText(e)))
+                  }
+                >
+                  <Lock size={14} aria-hidden="true" />
+                  <span className="sidebar-label">
+                    {t("Bloquear carteira")}
+                  </span>
+                </Button>
+              </SidebarHint>
+            </>
+          )}
+        >
           <div className="workspace">
             <header>
               <div className="header-context">
@@ -234,7 +209,7 @@ function WalletShellContent() {
               )}
             </main>
           </div>
-        </div>
+        </SidebarLayout>
       </PrivacyContext.Provider>
     </NetworkContext.Provider>
   );

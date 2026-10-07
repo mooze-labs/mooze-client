@@ -1,34 +1,47 @@
+import { useEffect, useReducer, useRef, useState } from "react";
 import { FlowStep } from "../../ui/flow-step";
+import { useNow } from "../../ui/use-now";
 import { useNetwork, networkLabel } from "../../core/network";
-import { SelectField } from "../../ui/select-field";
-import { SetupProgress } from "./setup-progress";
-import { PinField } from "../../ui/pin-field";
 import { useT } from "../../i18n/messages";
-import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button, Field, ErrorNotice } from "../../ui";
 import { errorText, type DesktopClient, type Session } from "../../core/client";
-import type { SetupDto } from "../../core/desktop.generated";
-import { SessionScreen } from "../session/session-screen";
+import { SetupProgress } from "./setup-progress";
+import { ImportPhrase } from "./import-phrase";
+import { SetupPin } from "./setup-pin";
+import { SetupTerms } from "./setup-terms";
+import {
+  backupMatches,
+  setupReducer,
+  validWordCount,
+  type SetupAction,
+} from "./setup-state";
+
 export function SetupPage({
   client,
   onSession,
 }: {
   client: DesktopClient;
-  onSession: (s: Session) => void;
+  onSession: (session: Session) => void;
 }) {
   const t = useT();
   const network = useNetwork();
-  const [mode, setMode] = useState<
-    "welcome" | "import" | "backup" | "verify" | "pin"
-  >("welcome");
+  const [state, dispatch] = useReducer(setupReducer, { step: "welcome" });
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [extended, setExtended] = useState(false);
-  const [setup, setSetup] = useState<SetupDto | null>(null);
-  const [answers, setAnswers] = useState<string[]>([]);
-  const [pin, setPin] = useState("");
-  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const active = useRef(true);
+  const submitting = useRef(false);
+  const candidate =
+    "draft" in state && state.draft.kind === "create"
+      ? state.draft.setup
+      : null;
+  const now = useNow(!!candidate);
+  const inFlight = state.step === "preparing" || state.step === "recover";
+  const remaining = candidate ? Math.max(0, candidate.expires_at_ms - now) : 0;
+  const importing =
+    state.step === "import" ||
+    ("draft" in state && state.draft.kind === "import");
   useEffect(() => {
     active.current = true;
     return () => {
@@ -36,81 +49,138 @@ export function SetupPage({
     };
   }, []);
   useEffect(() => {
-    if (!setup) return;
-    const timer = setTimeout(() => {
-      setSetup(null);
-      setPin("");
-      setConfirm("");
-      setAnswers([]);
-      setMode("welcome");
-      setError(t("A criação expirou. Comece novamente."));
-    }, 600_000);
+    if (!candidate) return;
     return () => {
-      clearTimeout(timer);
-      void client.cancelSetup(setup.setup_id).catch(() => {});
+      void client.cancelSetup(candidate.setup_id).catch(() => {});
     };
-  }, [setup, client]);
-  async function begin() {
+  }, [candidate, client]);
+  useEffect(() => {
+    // A submission owns its outcome; expiration must not replace an in-flight
+    // operation with a new wallet. Reconcile the host status first.
+    if (candidate && remaining === 0 && !inFlight) dispatch({ type: "expire" });
+  }, [candidate, remaining, inFlight]);
+  function move(action: SetupAction) {
+    if (
+      (action.type === "create" || action.type === "import") &&
+      !termsAccepted
+    )
+      return;
+    setError("");
+    dispatch(action);
+  }
+  async function run(action: () => Promise<void>) {
+    if (submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError("");
     try {
-      const result = await client.beginSetup(extended);
+      await action();
+    } catch (e) {
+      if (active.current) setError(errorText(e));
+    } finally {
+      submitting.current = false;
+      if (active.current) setBusy(false);
+    }
+  }
+  async function begin() {
+    await run(async () => {
+      const setup = await client.beginSetup(extended);
       if (!active.current) {
-        void client.cancelSetup(result.setup_id);
+        await client.cancelSetup(setup.setup_id);
         return;
       }
-      setSetup(result);
-      setAnswers(result.challenge_indices.map(() => ""));
-      setMode("backup");
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy(false);
-    }
+      dispatch({ type: "generated", setup });
+    });
   }
-  async function complete(e: FormEvent) {
-    e.preventDefault();
-    if (!setup || busy) return;
-    if (pin !== confirm) {
-      setError(t("Os PINs não coincidem."));
-      return;
-    }
-    if (!/^\d{6}$/.test(pin)) {
-      setError(t("Use um PIN de 6 dígitos."));
-      return;
-    }
-    setBusy(true);
-    setError("");
+  async function validateImport() {
+    if (state.step !== "import") return;
+    await run(async () => {
+      try {
+        await client.validateRecoveryPhrase(state.words.join(" "));
+        if (active.current) dispatch({ type: "continue" });
+      } catch (e) {
+        if (!active.current) return;
+        const failure = e as { code?: string; details?: string };
+        setError(
+          failure?.code === "invalid_recovery_words"
+            ? t("Confira as palavras nas posições: {positions}.", {
+                positions: failure.details ?? "",
+              })
+            : failure?.code === "invalid_checksum"
+              ? t(
+                  "As palavras não formam uma frase válida. Confira a ordem e o conteúdo.",
+                )
+              : failure?.code === "invalid_word_count"
+                ? t("Use uma frase de 12, 15, 18, 21 ou 24 palavras.")
+                : errorText(e),
+        );
+      }
+    });
+  }
+  async function reconcile(message: string, expired = false) {
     try {
-      const session = await client.completeSetup(setup.setup_id, answers, pin);
-      setSetup(null);
-      setPin("");
-      setConfirm("");
-      setAnswers([]);
-      onSession(session);
-    } catch (e) {
-      setError(errorText(e));
-      setPin("");
-      setConfirm("");
-    } finally {
-      setBusy(false);
+      const session = await client.sessionStatus();
+      if (!active.current) return;
+      if (session.status !== "empty") {
+        dispatch({ type: "cancel" });
+        onSession(session);
+      } else {
+        dispatch({ type: expired ? "expire" : "retry" });
+        setError(message);
+      }
+    } catch {
+      if (!active.current) return;
+      dispatch({ type: "recover" });
+      setError(
+        t(
+          "Não foi possível confirmar se a carteira foi salva. Verifique o estado antes de tentar novamente.",
+        ),
+      );
     }
   }
-  if (mode === "import")
-    return (
-      <>
-        <SessionScreen
-          client={client}
-          session={{ status: "empty", generation: 0, retry_after_ms: 0 }}
-          onSession={onSession}
-        />
-        <div className="setup-back">
-          <Button onClick={() => setMode("welcome")}>{t("Voltar")}</Button>
-        </div>
-      </>
-    );
+  async function complete(pin: string) {
+    if (state.step !== "pin") return;
+    const draft = state.draft;
+    await run(async () => {
+      dispatch({ type: "prepare" });
+      try {
+        const session =
+          draft.kind === "create"
+            ? await client.completeSetup(
+                draft.setup.setup_id,
+                draft.answers,
+                pin,
+              )
+            : await client.importWallet(draft.words.join(" "), pin);
+        if (!active.current) return;
+        dispatch({ type: "cancel" });
+        onSession(session);
+      } catch (e) {
+        await reconcile(
+          errorText(e),
+          (e as { code?: string } | null)?.code === "setup_expired",
+        );
+      }
+    });
+  }
+  const progressStep =
+    state.step === "welcome" ||
+    state.step === "configure" ||
+    state.step === "expired"
+      ? 0
+      : state.step === "backup" || state.step === "import"
+        ? 1
+        : state.step === "verify"
+          ? 2
+          : state.step === "pin"
+            ? importing
+              ? 2
+              : 3
+            : importing
+              ? 3
+              : 4;
   return (
-    <main className="onboarding">
+    <main className="onboarding setup-onboarding">
       <div className="wordmark">
         {t("mooze")}
         <span>●</span>
@@ -118,52 +188,121 @@ export function SetupPage({
       {networkLabel(network) && (
         <span className="network-badge">{networkLabel(network)}</span>
       )}
-      <section className="card import-card setup-card">
-        <SetupProgress
-          step={
-            mode === "welcome"
-              ? 0
-              : mode === "backup"
-                ? 1
-                : mode === "verify"
-                  ? 2
-                  : 3
-          }
-        />
-        <ErrorNotice>{error}</ErrorNotice>
-        <FlowStep step={mode}>
-          <div key={mode} className="flow-step">
-            {mode === "welcome" ? (
+      <section
+        className="card import-card setup-card"
+        data-step={state.step}
+        aria-busy={busy}
+      >
+        <SetupProgress step={progressStep} importing={importing} />
+        <ErrorNotice>{state.step === "expired" ? "" : error}</ErrorNotice>
+        {candidate && remaining > 0 && remaining <= 120_000 && !inFlight && (
+          <p className="notice" role="status">
+            {t(
+              "Esta frase expira em {seconds}s. Ao reiniciar, uma nova frase será gerada.",
+              { seconds: Math.ceil(remaining / 1000) },
+            )}
+          </p>
+        )}
+        <FlowStep step={state.step}>
+          <div key={state.step} className="flow-step">
+            {state.step === "welcome" && (
               <>
-                <h1>{t("Sua carteira")}</h1>
+                <h1>{t("Como você quer começar?")}</h1>
                 <p>
                   {t(
-                    "Crie uma carteira ou importe sua frase de recuperação. Guarde-a em um lugar seguro.",
+                    "Crie uma carteira sob seu controle ou recupere uma carteira existente com sua frase.",
                   )}
                 </p>
-                <SelectField
-                  label={t("Frase de recuperação")}
-                  value={extended ? "24" : "12"}
-                  onValueChange={(value) => setExtended(value === "24")}
-                  items={[
-                    { value: "12", label: <>{t("12 palavras")}</> },
-                    { value: "24", label: <>{t("24 palavras")}</> },
-                  ]}
+                <div className="setup-context">
+                  <strong>{t("Suas chaves, sua carteira")}</strong>
+                  <p>
+                    {t(
+                      "A frase de recuperação é seu backup. O PIN protege o acesso neste computador.",
+                    )}
+                  </p>
+                </div>
+                <SetupTerms
+                  accepted={termsAccepted}
+                  onAcceptedChange={setTermsAccepted}
                 />
+                <div className="setup-actions">
+                  <Button
+                    className="primary"
+                    disabled={!termsAccepted}
+                    onClick={() => move({ type: "create" })}
+                  >
+                    {t("Criar carteira")}
+                  </Button>
+                  <Button
+                    disabled={!termsAccepted}
+                    onClick={() => move({ type: "import" })}
+                  >
+                    {t("Importar carteira")}
+                  </Button>
+                </div>
+              </>
+            )}
+            {state.step === "configure" && (
+              <>
+                <h1>{t("Prepare sua recuperação")}</h1>
+                <p>
+                  {t(
+                    "Escolha o tamanho da frase e tenha onde anotá-la antes de continuar.",
+                  )}
+                </p>
+                <fieldset className="phrase-options">
+                  <legend>{t("Frase de recuperação")}</legend>
+                  {[false, true].map((value) => (
+                    <label
+                      key={String(value)}
+                      className="phrase-option"
+                      data-selected={extended === value}
+                    >
+                      <input
+                        type="radio"
+                        name="phrase-length"
+                        checked={extended === value}
+                        disabled={busy}
+                        onChange={() => setExtended(value)}
+                      />
+                      <span>
+                        <strong>
+                          {t(value ? "24 palavras" : "12 palavras")}
+                        </strong>
+                        <small>
+                          {t(
+                            value
+                              ? "Uma frase mais longa para guardar e conferir."
+                              : "Mais simples de anotar e recuperar.",
+                          )}
+                        </small>
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+                <p className="small muted">
+                  {t(
+                    "Nunca compartilhe sua frase. Quem a possui pode acessar sua carteira.",
+                  )}
+                </p>
                 <div className="setup-actions">
                   <Button
                     className="primary"
                     disabled={busy}
                     onClick={() => void begin()}
                   >
-                    {t("Criar carteira")}
+                    {t(busy ? "Gerando frase…" : "Gerar frase")}
                   </Button>
-                  <Button disabled={busy} onClick={() => setMode("import")}>
-                    {t("Importar carteira")}
+                  <Button
+                    disabled={busy}
+                    onClick={() => move({ type: "back" })}
+                  >
+                    {t("Voltar")}
                   </Button>
                 </div>
               </>
-            ) : mode === "backup" && setup ? (
+            )}
+            {state.step === "backup" && (
               <>
                 <h1>{t("Guarde sua frase")}</h1>
                 <p>
@@ -171,131 +310,184 @@ export function SetupPage({
                     "Anote as palavras na ordem indicada. Elas permitem recuperar sua carteira.",
                   )}
                 </p>
-                <ol className="seed-grid">
-                  {setup.words.map((word, i) => (
-                    <li key={i}>{word}</li>
-                  ))}
-                </ol>
+                {state.revealed ? (
+                  <ol className="seed-grid">
+                    {state.draft.setup.words.map((word, i) => (
+                      <li key={i}>{word}</li>
+                    ))}
+                  </ol>
+                ) : (
+                  <div className="setup-context">
+                    <p>
+                      {t(
+                        "Confira se ninguém está vendo sua tela. Guarde a frase em um lugar privado e seguro.",
+                      )}
+                    </p>
+                    <Button
+                      className="primary"
+                      onClick={() => move({ type: "reveal" })}
+                    >
+                      {t("Revelar frase")}
+                    </Button>
+                  </div>
+                )}
+                {state.revealed && (
+                  <div className="setup-actions">
+                    <Button
+                      className="primary"
+                      onClick={() => move({ type: "continue" })}
+                    >
+                      {t("Anotei minha frase")}
+                    </Button>
+                  </div>
+                )}
               </>
-            ) : mode === "verify" && setup ? (
+            )}
+            {state.step === "verify" && (
               <form
                 id="wallet-setup"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (
-                    !setup.challenge_indices.every(
-                      (index, i) =>
-                        answers[i].trim().toLowerCase() === setup.words[index],
-                    )
-                  ) {
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!backupMatches(state.draft)) {
                     setError(t("Confira as palavras na ordem indicada."));
                     return;
                   }
-                  setAnswers(
-                    answers.map((answer) => answer.trim().toLowerCase()),
-                  );
-                  setError("");
-                  setMode("pin");
+                  move({ type: "continue" });
                 }}
               >
                 <h1>{t("Confirme sua recuperação")}</h1>
-                <p className="muted">
+                <p>
                   {t(
                     "Preencha as palavras solicitadas para conferir sua recuperação.",
                   )}
                 </p>
-                {setup.challenge_indices.map((index, i) => (
+                {state.draft.setup.challenge_indices.map((index, i) => (
                   <Field
                     key={index}
                     label={t("Palavra {number}", { number: index + 1 })}
-                    value={answers[i]}
+                    value={state.draft.answers[i]}
                     autoComplete="off"
+                    autoCapitalize="none"
                     spellCheck={false}
                     required
                     onChange={(e) =>
-                      setAnswers((old) =>
-                        old.map((v, j) => (i === j ? e.target.value : v)),
-                      )
+                      move({ type: "answer", index: i, value: e.target.value })
                     }
                   />
                 ))}
+                <div className="setup-actions">
+                  <Button type="submit" className="primary">
+                    {t("Continuar")}
+                  </Button>
+                  <Button onClick={() => move({ type: "back" })}>
+                    {t("Rever minha frase")}
+                  </Button>
+                </div>
               </form>
-            ) : mode === "pin" && setup ? (
-              <form id="wallet-setup" onSubmit={complete}>
-                <h1>{t("Proteja sua carteira")}</h1>
+            )}
+            {state.step === "import" && (
+              <>
+                <ImportPhrase
+                  client={client}
+                  words={state.words}
+                  busy={busy}
+                  onChange={(words) => move({ type: "words", words })}
+                />
+                <div className="setup-actions">
+                  <Button
+                    className="primary"
+                    disabled={
+                      busy ||
+                      !validWordCount(state.words.length) ||
+                      state.words.some((word) => !word || /\s/.test(word))
+                    }
+                    onClick={() => void validateImport()}
+                  >
+                    {t(busy ? "Verificando frase…" : "Continuar")}
+                  </Button>
+                  <Button
+                    disabled={busy}
+                    onClick={() => move({ type: "back" })}
+                  >
+                    {t("Voltar")}
+                  </Button>
+                </div>
+              </>
+            )}
+            {state.step === "pin" && (
+              <>
+                <SetupPin onSubmit={(pin) => void complete(pin)} />
+                <div className="setup-actions">
+                  <Button
+                    form="wallet-setup"
+                    type="submit"
+                    className="primary"
+                    disabled={busy}
+                  >
+                    {t(importing ? "Importar e continuar" : "Concluir criação")}
+                  </Button>
+                  <Button
+                    disabled={busy}
+                    onClick={() => move({ type: "back" })}
+                  >
+                    {t("Voltar")}
+                  </Button>
+                </div>
+              </>
+            )}
+            {state.step === "preparing" && (
+              <>
+                <h1>{t("Preparando sua carteira")}</h1>
+                <p role="status">
+                  {t("Salvando sua carteira e iniciando os serviços…")}
+                </p>
                 <p className="muted">
                   {t(
-                    "Escolha um PIN de 6 dígitos para desbloquear sua carteira.",
+                    "Seus saldos e histórico serão atualizados durante a sincronização. Mantenha o aplicativo aberto.",
                   )}
                 </p>
-                <PinField
-                  label={t("Criar PIN")}
-                  required
-                  value={pin}
-                  onValueChange={setPin}
+              </>
+            )}
+            {state.step === "recover" && (
+              <>
+                <h1>{t("Verifique o estado da carteira")}</h1>
+                <Button
+                  className="primary"
                   disabled={busy}
-                  invalid={!!error}
-                />
-                <PinField
-                  label={t("Confirmar PIN")}
-                  required
-                  value={confirm}
-                  onValueChange={setConfirm}
-                  disabled={busy}
-                  invalid={!!error}
-                />
-              </form>
-            ) : null}
+                  onClick={() =>
+                    void run(() => reconcile(t("Tente novamente com seu PIN.")))
+                  }
+                >
+                  {t("Verificar estado")}
+                </Button>
+              </>
+            )}
+            {state.step === "expired" && (
+              <>
+                <h1>{t("Sua criação expirou")}</h1>
+                <div className="alert error" role="alert">
+                  {t(
+                    "A criação expirou. Ao reiniciar, anote a nova frase; a anterior não será usada.",
+                  )}
+                </div>
+                <Button
+                  className="primary"
+                  onClick={() => move({ type: "create" })}
+                >
+                  {t("Começar novamente")}
+                </Button>
+              </>
+            )}
           </div>
         </FlowStep>
-        {mode !== "welcome" && (
-          <div className="setup-actions">
-            {mode === "backup" ? (
-              <Button
-                key="backup-confirm"
-                type="button"
-                className="primary"
-                onClick={() => setMode("verify")}
-              >
-                {t("Anotei minha frase")}
-              </Button>
-            ) : (
-              <Button
-                key="create-wallet"
-                type="submit"
-                form="wallet-setup"
-                className="primary"
-                disabled={busy}
-              >
-                {t(mode === "verify" ? "Continuar" : "Concluir criação")}
-              </Button>
-            )}
-            {mode === "pin" && (
-              <Button
-                disabled={busy}
-                onClick={() => {
-                  setPin("");
-                  setConfirm("");
-                  setError("");
-                  setMode("verify");
-                }}
-              >
-                {t("Voltar")}
-              </Button>
-            )}
-            <Button
-              disabled={busy}
-              onClick={() => {
-                setSetup(null);
-                setAnswers([]);
-                setPin("");
-                setConfirm("");
-                setMode("welcome");
-              }}
-            >
-              {t("Cancelar criação")}
-            </Button>
-          </div>
+        {candidate && !inFlight && (
+          <Button
+            className="ghost setup-cancel"
+            disabled={busy}
+            onClick={() => move({ type: "cancel" })}
+          >
+            {t("Cancelar criação")}
+          </Button>
         )}
         {network === "Testnet" && (
           <p className="small muted">
