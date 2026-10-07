@@ -64,19 +64,21 @@ impl<P: Platform> App<P> {
     }
     /// Exact string amounts for new hosts; legacy balance DTOs remain unchanged.
     pub async fn wallet_holdings(&self) -> Result<Vec<HoldingDto>> {
-        if self.inner.network != mooze_core::domain::AppNetwork::Testnet {
-            return Err(AppError::new(ErrorCode::InvalidState, "testnet holdings only"));
-        }
+        let network = match self.inner.network {
+            mooze_core::domain::AppNetwork::Mainnet => NetworkDto::Mainnet,
+            mooze_core::domain::AppNetwork::Testnet => NetworkDto::Testnet,
+            mooze_core::domain::AppNetwork::Regtest => NetworkDto::Regtest,
+        };
         let mut balances = self.bitcoin_balance().await?.assets;
         balances.extend(self.liquid_balance().await?.assets);
-        let rows: Vec<_> = balances.iter().map(crate::assets::holding).collect();
-        let keys = crate::assets::approved_testnet_assets().into_iter().map(|m| m.key).chain(
+        let rows: Vec<_> = balances.iter().map(|b| crate::assets::holding_for_network(network, b)).collect();
+        let keys = crate::assets::approved_assets(network).into_iter().map(|m| m.key).chain(
             self.wallet_activity()
                 .await?
                 .into_iter()
                 .flat_map(|row| row.movements.into_iter().map(|movement| movement.asset)),
         );
-        Ok(crate::assets::include_historical_assets(rows, keys))
+        Ok(crate::assets::include_historical_assets_for_network(network, rows, keys))
     }
 
     // ───────────────────────────── bitcoin

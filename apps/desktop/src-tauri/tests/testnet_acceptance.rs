@@ -1,3 +1,4 @@
+#![cfg(feature = "testnet")]
 //! Opt-in disposable profile. Prints only public testnet addresses and chain data.
 #![cfg(debug_assertions)]
 use mooze_app::dto::BackendDto;

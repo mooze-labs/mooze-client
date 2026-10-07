@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Mooze Testnet",
+  "productName": "Mooze",
   "version": "0.1.0",
-  "identifier": "app.mooze.desktop.testnet",
+  "identifier": "app.mooze.desktop",
   "build": {
     "beforeDevCommand": "npm run dev --workspace @mooze/frontend",
     "devUrl": "http://127.0.0.1:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Mooze · Testnet",
+        "title": "Mooze",
         "width": 1440,
         "height": 900,
         "minWidth": 1024,
@@ -25,5 +25,10 @@
       "devCsp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost http://127.0.0.1:1420 ws://127.0.0.1:1420; object-src 'none'"
     }
   },
-  "bundle": { "active": true, "targets": ["app"] }
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app"
+    ]
+  }
 }

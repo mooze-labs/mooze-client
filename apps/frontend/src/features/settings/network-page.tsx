@@ -59,7 +59,7 @@ export function NetworkPage({
         setMessage(t("Nó salvo. Sincronizando novamente."));
       } else {
         await client.testNode(chain, endpoint);
-        setMessage(t("Conexão e rede de teste verificadas."));
+        setMessage(t("Conexão e rede verificadas."));
       }
     } catch (e) {
       setError(errorText(e));
@@ -71,9 +71,7 @@ export function NetworkPage({
     <section className="card section-gap">
       <h2>{t("Conexões de rede")}</h2>
       <p>
-        {t(
-          "Bitcoin testnet3 e Liquid testnet. O nó recebe as consultas públicas da carteira.",
-        )}
+        {t("Bitcoin e Liquid. O nó recebe as consultas públicas da carteira.")}
       </p>
       <ErrorNotice>
         {error || (settings.error ? errorText(settings.error) : "")}
@@ -101,7 +99,7 @@ export function NetworkPage({
           setEndpoint(e.target.value);
           setMessage("");
         }}
-        help={t("Deixe vazio para usar os servidores padrão de testnet.")}
+        help={t("Deixe vazio para usar os servidores padrão da rede.")}
       />
       <label className="checkbox-row">
         <Checkbox

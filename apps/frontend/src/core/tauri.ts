@@ -3,6 +3,17 @@ import { listen } from "@tauri-apps/api/event";
 import type { DesktopClient, DesktopEvent } from "./client";
 export const inDesktop = isTauri;
 export const client: DesktopClient = {
+  swapMarkets: () => invoke("swap_markets"),
+  swapStart: (request) => invoke("swap_start", { request }),
+  swapStatus: () => invoke("swap_status"),
+  swapStop: () => invoke("swap_stop"),
+  swapConfirm: (reviewId) => invoke("swap_confirm", { reviewId }),
+  swapAcknowledge: () => invoke("swap_acknowledge"),
+  backendStatus: () => invoke("backend_status"),
+  backendRetry: () => invoke("backend_retry"),
+  pixHistory: () => invoke("pix_history"),
+  pixCreate: (request) => invoke("pix_create", { request }),
+  pixAcknowledgeUncertain: () => invoke("pix_acknowledge_uncertain"),
   removeWallet: (pin) => invoke("remove_wallet", { pin }),
   diagnostics: () => invoke("diagnostics"),
   exportDiagnostics: () => invoke("export_diagnostics"),

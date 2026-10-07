@@ -3,6 +3,7 @@ use mooze_core::ports::{BlockingSpawner, Spawner, TaskFuture, Timer};
 use mooze_core::testing::{FixedClock, MemoryKv, MockHttp, MockWs};
 #[derive(Clone)]
 struct TestPlatform {
+    http: MockHttp,
     kv: FaultStore,
     secure: FaultStore,
     clock: Arc<FixedClock>,
@@ -32,7 +33,7 @@ impl Platform for TestPlatform {
         self.clock.clone()
     }
     fn http(&self) -> MockHttp {
-        MockHttp::default()
+        self.http.clone()
     }
     fn ws(&self) -> MockWs {
         MockWs::new(|_| vec![])
@@ -49,6 +50,7 @@ impl Platform for TestPlatform {
 }
 fn platform() -> TestPlatform {
     TestPlatform {
+        http: MockHttp::default(),
         kv: FaultStore::default(),
         secure: FaultStore::default(),
         clock: Arc::new(FixedClock::new(1000)),
@@ -209,6 +211,10 @@ async fn lock_during_authentication_cannot_reopen_the_session() {
 fn chain_health_retains_last_good_snapshot_and_recovers_independently() {
     let s = WalletSession::new(platform(), BackendDto::Esplora);
     let sink = Sink {
+        transition: s.transition.clone(),
+        expected: 0,
+        swaps: s.swaps.clone(),
+        clock: Arc::new(s.platform.clock()),
         unlocked: s.unlocked.clone(),
         generation: s.generation.clone(),
         sync: s.sync.clone(),
@@ -555,4 +561,268 @@ async fn failed_node_replacement_and_restore_reconnects_on_unlock() {
     *p.kv.deny_key.lock().unwrap() = None;
     s.unlock("123456".into()).await.unwrap();
     assert!(s.snapshot().await.is_ok());
+}
+
+#[tokio::test]
+async fn service_calls_require_unlock_and_never_expose_tokens() {
+    let s = WalletSession::new(platform(), BackendDto::Esplora);
+    assert!(s.backend_status().await.is_err());
+    assert!(s.pix_history().await.is_err());
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    let status = s.backend_retry().await.unwrap();
+    assert_ne!(status.state, "Ready");
+    assert!(s.snapshot().await.is_ok());
+    let json = serde_json::to_string(&status).unwrap();
+    assert!(!json.contains("jwt"));
+    assert!(!json.contains("refresh_token"));
+}
+
+#[tokio::test]
+async fn uncertain_swap_survives_restart_and_blocks_onchain_send() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    p.kv.put(
+        swaps::SWAP_SUBMISSION,
+        serde_json::to_vec(&SwapStateDto::phase("Submitting")).unwrap(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(s.swap_status().await.unwrap().phase, "Uncertain");
+    assert!(s.swap_acknowledge().await.is_err());
+    let error = s
+        .review(ReviewRequestDto {
+            asset: AssetKeyDto {
+                chain: ChainDto::Bitcoin,
+                asset_id: None,
+            },
+            destination: "address".into(),
+            amount: SendAmountDto::Exact("1000".into()),
+            fee_rate_sat_per_vbyte: 1.0,
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, "submission_unknown");
+    s.lock().await.unwrap();
+    let restarted = WalletSession::new(p, BackendDto::Esplora);
+    restarted.unlock("123456".into()).await.unwrap();
+    assert_eq!(restarted.swap_status().await.unwrap().phase, "Uncertain");
+}
+#[tokio::test]
+async fn idle_cleanup_drops_app_and_unlock_rebuilds_it() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    p.clock.advance(60_001);
+    s.check_expiry();
+    s.cleanup_locked().await;
+    assert!(s.inner.lock().await.app.is_none());
+    s.unlock("123456".into()).await.unwrap();
+    assert!(s.snapshot().await.is_ok());
+}
+#[test]
+fn obsolete_sink_does_not_update_new_session_state() {
+    let s = WalletSession::new(platform(), BackendDto::Esplora);
+    let sink = Sink {
+        transition: s.transition.clone(),
+        expected: 0,
+        swaps: s.swaps.clone(),
+        clock: Arc::new(s.platform.clock()),
+        unlocked: s.unlocked.clone(),
+        generation: s.generation.clone(),
+        sync: s.sync.clone(),
+        chains: s.chains.clone(),
+        emit: s.emit.clone(),
+    };
+    s.generation.store(1, Ordering::SeqCst);
+    assert!(!sink.send(AppEvent::ChainSyncState(ChainSyncStateDto {
+        chain: ChainDto::Bitcoin,
+        succeeded: true,
+        observed_at_ms: 100
+    })));
+    assert!(s.chains.lock().unwrap().is_empty());
+}
+
+#[cfg(not(feature = "testnet"))]
+fn authenticated_platform() -> TestPlatform {
+    use mooze_core::ports::HttpMethod;
+    let p = platform();
+    let base = mooze_core::api::DEFAULT_BASE_URL;
+    p.http.on_json(
+        HttpMethod::Post,
+        &format!("{base}/auth/challenge"),
+        200,
+        serde_json::json!({"data":{"id":"challenge","message":"SGVsbG8gV29ybGQ="}}),
+    );
+    p.http.on_json(HttpMethod::Post,&format!("{base}/auth/sign"),200,serde_json::json!({"data":{"jwt":"eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6InUxIn0.sig","refresh_token":"mock-refresh"}}));
+    p
+}
+#[cfg(not(feature = "testnet"))]
+#[tokio::test]
+async fn pix_authenticates_creates_persists_and_does_not_retry_ambiguous_creation() {
+    use mooze_core::ports::HttpMethod;
+    let p = authenticated_platform();
+    let base = mooze_core::api::DEFAULT_BASE_URL;
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    assert_eq!(s.backend_retry().await.unwrap().state, "Ready");
+    p.http.on_json(HttpMethod::Post,&format!("{base}/v2/transactions"),200,serde_json::json!({"data":{"transaction_id":"dep1","qr_copy_paste":"qr-copy","qr_image_url":"https://unused.test"}}));
+    let request = PixCreateRequestDto {
+        amount_in_cents: "1234".into(),
+        asset_id: mooze_core::domain::DEPIX_ASSET_ID.into(),
+        tax_id_number: "52998224725".into(),
+    };
+    let deposit = s.pix_create(request.clone()).await.unwrap();
+    assert_eq!(deposit.amount_in_cents, "1234");
+    assert_eq!(deposit.pix_key, "qr-copy");
+    assert_eq!(s.pix_history().await.unwrap().deposits.len(), 1);
+    p.http.on_json(
+        HttpMethod::Post,
+        &format!("{base}/v2/transactions"),
+        503,
+        serde_json::json!({"error":"unavailable"}),
+    );
+    assert_eq!(
+        s.pix_create(request.clone()).await.unwrap_err().code,
+        "pix_uncertain"
+    );
+    let count = p.http.requests().len();
+    assert_eq!(
+        s.pix_create(request).await.unwrap_err().code,
+        "pix_uncertain"
+    );
+    assert_eq!(p.http.requests().len(), count);
+    assert!(s.pix_history().await.unwrap().creation_uncertain);
+    s.lock().await.unwrap();
+    s.unlock("123456".into()).await.unwrap();
+    assert!(s.pix_history().await.unwrap().creation_uncertain);
+}
+#[cfg(feature = "testnet")]
+#[tokio::test]
+async fn testnet_never_contacts_production_payment_services() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    assert_eq!(s.backend_retry().await.unwrap().state, "Disabled");
+    assert!(s.pix_history().await.is_err());
+    assert!(s.swap_markets().await.is_err());
+    assert!(p.http.requests().is_empty());
+}
+
+#[cfg(not(feature = "testnet"))]
+#[tokio::test]
+async fn concurrent_pix_creation_is_rejected_without_waiting_or_posting() {
+    let p = authenticated_platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    s.backend_retry().await.unwrap();
+    let _pending = s.pix_gate.lock().await;
+    let before = p.http.requests().len();
+    let result = tokio::time::timeout(
+        std::time::Duration::from_millis(50),
+        s.pix_create(PixCreateRequestDto {
+            amount_in_cents: "1234".into(),
+            asset_id: mooze_core::domain::DEPIX_ASSET_ID.into(),
+            tax_id_number: "52998224725".into(),
+        }),
+    )
+    .await
+    .expect("concurrent creation must not queue");
+    assert_eq!(result.unwrap_err().code, "busy");
+    assert_eq!(p.http.requests().len(), before);
+}
+
+#[tokio::test]
+async fn authentication_continuation_is_dropped_after_lock() {
+    let s = WalletSession::new(platform(), BackendDto::Esplora);
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    let generation = s.authorize().unwrap();
+    let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+    let continued = AtomicBool::new(false);
+    let operation = async {
+        rx.await.unwrap(); // e.g. an outstanding auth challenge or refresh
+        continued.store(true, Ordering::SeqCst);
+    };
+    let guarded = s.run_session_service(generation, operation);
+    tokio::pin!(guarded);
+    assert!(futures::poll!(&mut guarded).is_pending());
+    s.lock().await.unwrap();
+    tx.send(()).unwrap();
+    assert_eq!(guarded.await.unwrap_err().code, "locked");
+    assert!(!continued.load(Ordering::SeqCst));
+}
+
+#[test]
+fn sink_waiting_across_transition_cannot_mutate_the_new_session() {
+    let s = WalletSession::new(platform(), BackendDto::Esplora);
+    let sink = Sink {
+        transition: s.transition.clone(),
+        expected: 0,
+        swaps: s.swaps.clone(),
+        clock: Arc::new(s.platform.clock()),
+        unlocked: s.unlocked.clone(),
+        generation: s.generation.clone(),
+        sync: s.sync.clone(),
+        chains: s.chains.clone(),
+        emit: s.emit.clone(),
+    };
+    let transition = s.transition.lock().unwrap();
+    let (started_tx, started_rx) = std::sync::mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        started_tx.send(()).unwrap();
+        sink.send(AppEvent::ChainSyncState(ChainSyncStateDto {
+            chain: ChainDto::Bitcoin,
+            succeeded: true,
+            observed_at_ms: 100,
+        }))
+    });
+    started_rx.recv().unwrap();
+    s.generation.store(1, Ordering::SeqCst);
+    drop(transition);
+    assert!(!worker.join().unwrap());
+    assert!(s.chains.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn locked_service_cancels_without_a_transport_wake() {
+    let s = Arc::new(WalletSession::new(platform(), BackendDto::Esplora));
+    s.import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    let generation = s.authorize().unwrap();
+    let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+    let worker_session = s.clone();
+    let worker = tokio::spawn(async move {
+        worker_session
+            .run_session_service(generation, async {
+                started_tx.send(()).unwrap();
+                std::future::pending::<()>().await;
+            })
+            .await
+    });
+    started_rx.await.unwrap();
+    s.lock().await.unwrap();
+    let result = tokio::time::timeout(std::time::Duration::from_millis(500), worker).await;
+    assert_eq!(
+        result
+            .expect("stalled transport must be dropped promptly")
+            .unwrap()
+            .unwrap_err()
+            .code,
+        "locked"
+    );
 }

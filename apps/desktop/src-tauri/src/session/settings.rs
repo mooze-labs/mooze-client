@@ -115,14 +115,19 @@ impl<P: Platform + Clone> WalletSession<P> {
             WalletChain::Bitcoin => mooze_core::domain::ChainId::Bitcoin,
             WalletChain::Liquid => mooze_core::domain::ChainId::Liquid,
         };
-        let genesis = mooze_core::wallet::backend::probe_testnet_node(chain, &endpoint, &config)
-            .await
-            .map_err(|_| {
-                DesktopError::new(
-                    "invalid_node",
-                    "Não foi possível verificar este nó na rede de teste selecionada.",
-                )
-            })?;
+        let genesis = mooze_core::wallet::backend::probe_node(
+            chain,
+            crate::network::app_network(),
+            &endpoint,
+            &config,
+        )
+        .await
+        .map_err(|_| {
+            DesktopError::new(
+                "invalid_node",
+                "Não foi possível verificar este nó na rede selecionada.",
+            )
+        })?;
         if generation != self.authorize()? {
             return Err(DesktopError::new("locked", "Sessão alterada."));
         }
@@ -156,9 +161,10 @@ impl<P: Platform + Clone> WalletSession<P> {
             WalletChain::Liquid => next.liquid_node = endpoint,
         };
         next.public_fallback = public_fallback;
-        let credentials = CredentialStore::new(self.platform.secure(), AppNetwork::Testnet)
-            .load()
-            .await?;
+        let credentials =
+            CredentialStore::new(self.platform.secure(), crate::network::app_network())
+                .load()
+                .await?;
         if generation != self.authorize()? {
             return Err(DesktopError::new("locked", "Sessão alterada."));
         }
@@ -211,7 +217,8 @@ impl<P: Platform + Clone> WalletSession<P> {
                     }
                 }
                 if let Some(app) = &inner.app {
-                    app.start(StartConfigDto {
+                    self.subscribe_app(app);
+                    app.start_wallet_sync(StartConfigDto {
                         sync_tick_ms: None,
                         sync_timeout_ms: None,
                         startup_sync: true,
@@ -230,7 +237,8 @@ impl<P: Platform + Clone> WalletSession<P> {
         }
         // Keep the existing idle deadline; reconfiguration is not an unlock.
         if let Some(app) = &inner.app {
-            app.start(StartConfigDto {
+            self.subscribe_app(app);
+            app.start_wallet_sync(StartConfigDto {
                 sync_tick_ms: None,
                 sync_timeout_ms: None,
                 startup_sync: true,

@@ -544,3 +544,531 @@
   line-height: 1.5;
   cursor: pointer;
 }
+
+/* Shared rhythm and motion for wallet flows. */
+:root {
+  --motion-fast: 140ms;
+  --motion-step: 200ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.button {
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast);
+}
+.button:disabled {
+  cursor: not-allowed;
+}
+.button:not(:disabled):active {
+  transform: translateY(1px);
+}
+.flow-page > h1 {
+  margin-bottom: 10px;
+}
+.flow-page > .muted {
+  max-width: 62ch;
+  margin-bottom: 28px;
+}
+.flow-page .page-heading {
+  margin-bottom: 10px;
+}
+.flow-page .card,
+.focused-flow > .card {
+  border: 1px solid var(--separator);
+  border-radius: 18px;
+}
+.field small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: 7px;
+}
+.field:has([aria-invalid="true"]) small,
+.form-guidance[data-invalid="true"] {
+  color: var(--destructive);
+}
+.form-guidance {
+  min-height: 36px;
+  line-height: 1.5;
+  margin: 14px 0 0;
+  color: var(--muted);
+}
+.flow-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.flow-actions > .button {
+  min-height: 44px;
+  height: auto;
+  flex: 1 1 160px;
+  white-space: normal;
+}
+.copy-label {
+  display: grid;
+}
+.copy-label > span {
+  grid-area: 1 / 1;
+}
+.copy-control [data-copied="true"] .copy-label > span:first-child {
+  visibility: hidden;
+}
+.copy-control [data-copied="true"] {
+  color: var(--green);
+}
+.copy-control .primary[data-copied="true"] {
+  color: white;
+}
+.copy-feedback:empty {
+  min-height: 0;
+  padding: 0;
+}
+
+.overview-heading {
+  align-items: start;
+}
+.overview-heading .eyebrow {
+  margin: 0 0 12px;
+}
+.overview-heading h1 {
+  margin-bottom: 10px;
+}
+.overview-heading p:last-child {
+  margin-bottom: 0;
+}
+.network-pill {
+  display: inline-flex;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  border-radius: 24px;
+  color: var(--muted);
+  padding: 8px 12px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.wallet-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 28px 0;
+}
+.wallet-quick-actions .quick-action {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  column-gap: 12px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--separator);
+  border-radius: 14px;
+  background: var(--surface);
+  transition:
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    transform var(--motion-fast);
+}
+.quick-action > span {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #ff7aa70c;
+  color: var(--accent);
+}
+.quick-action strong {
+  font-size: 13px;
+  font-weight: 550;
+}
+.quick-action small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 3px;
+}
+.quick-action:hover {
+  background: var(--raised);
+  border-color: #ff7aa740;
+  transform: translateY(-2px);
+}
+.quick-action:active {
+  transform: none;
+}
+.balance-panel {
+  border: 1px solid var(--separator);
+}
+.balance-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0 16px;
+  border-bottom: 1px solid var(--separator);
+}
+.balance-heading h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.balance-heading a {
+  font-size: 12px;
+  color: var(--muted);
+}
+.balance-heading a:hover {
+  color: var(--foreground);
+}
+.holding-balance .amount-value {
+  font-size: 23px;
+  letter-spacing: -0.6px;
+}
+.holding-balance .pending-amount .amount-value {
+  font-size: inherit;
+  letter-spacing: normal;
+}
+.pending-amount {
+  color: var(--gold);
+}
+
+.pix-form .field:first-of-type .ui-input {
+  min-height: 62px;
+  font-size: 30px;
+  letter-spacing: -0.8px;
+  font-variant-numeric: tabular-nums;
+}
+.pix-placeholder {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  min-height: 360px;
+  padding: 32px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+}
+.pix-placeholder p {
+  max-width: 36ch;
+  margin-bottom: 0;
+}
+.receipt-symbol {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  border-radius: 18px;
+  background: #edb5640c;
+  border: 1px solid #edb56426;
+  color: var(--gold);
+}
+.pix-placeholder .receipt-symbol {
+  color: var(--accent);
+  background: #ff7aa708;
+  border-color: #ff7aa726;
+}
+.receipt-symbol.is-complete {
+  color: var(--green);
+  background: #8bd0b70a;
+  border-color: #8bd0b733;
+}
+.transaction-receipt h2 {
+  font-size: 21px;
+  letter-spacing: -0.4px;
+}
+.pix-payment,
+.swap-result {
+  text-align: center;
+}
+.receipt-amount {
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 550;
+  letter-spacing: -1px;
+  margin: 18px 0 24px;
+  overflow-wrap: anywhere;
+}
+.pix-payment .pix-qr {
+  padding: 8px;
+  width: 224px;
+  height: 224px;
+  max-width: 100%;
+  border-radius: 14px;
+  margin: 24px auto;
+}
+.payment-progress {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+  gap: 8px;
+}
+.payment-progress li {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.payment-progress li > span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.payment-progress [aria-current="step"] {
+  color: var(--foreground);
+}
+.payment-progress [aria-current="step"] > span {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.payment-progress [data-complete="true"] > span {
+  border-color: #8bd0b740;
+  color: var(--green);
+  background: #8bd0b70a;
+}
+.quote-deadline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin: 18px 0;
+}
+.quote-deadline[data-expired="true"] {
+  color: var(--gold);
+}
+.receipt-details {
+  text-align: left;
+  padding: 14px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.receipt-details summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+.receipt-details p {
+  margin-top: 12px;
+}
+.receipt-meta {
+  margin-top: 20px;
+  border-top: 1px solid var(--separator);
+  text-align: left;
+}
+.transaction-receipt .review-row {
+  align-items: baseline;
+  gap: 20px;
+  font-size: 12px;
+  padding: 14px 0;
+}
+.transaction-receipt .review-row > :first-child {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.transaction-receipt .review-row > :last-child {
+  text-align: right;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.service-history-row {
+  min-height: 64px;
+  height: auto;
+  white-space: normal;
+  padding: 14px 16px;
+  border: 1px solid var(--separator) !important;
+  border-radius: 10px;
+}
+.status-label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: var(--raised);
+  color: var(--muted);
+}
+.status-label[data-stage="payment"],
+.status-label[data-stage="processing"] {
+  color: var(--gold);
+  background: #edb5640d;
+}
+.status-label[data-stage="settled"] {
+  color: var(--green);
+  background: #8bd0b70d;
+}
+.receipt-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.receipt-heading h2 {
+  margin: 0;
+}
+.swap-receipt-amounts {
+  background: var(--bg);
+  border: 1px solid var(--separator);
+  border-radius: 14px;
+  padding: 20px;
+  text-align: left;
+}
+.receipt-asset {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.receipt-asset > div {
+  min-width: 0;
+}
+.receipt-asset .asset-mark {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.receipt-asset-amount {
+  margin-top: 5px;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.6px;
+  overflow-wrap: anywhere;
+}
+.receipt-asset-amount span span {
+  font-size: 14px;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.receipt-direction {
+  color: var(--muted);
+  margin: 12px 0 12px 9px;
+}
+.swap-result {
+  max-width: 540px;
+  margin: 28px auto;
+  padding: 28px;
+}
+.quote-loading {
+  min-height: 232px;
+  padding: 20px;
+}
+.swap-token-panel {
+  border-color: var(--separator);
+}
+.swap-token-panel:focus-within {
+  border-color: #ff7aa740;
+}
+.swap-direction:hover svg {
+  transform: rotate(180deg);
+}
+.swap-direction svg {
+  transition: transform var(--motion-step) var(--ease-out);
+}
+.send-result .receipt {
+  margin-block: 24px;
+}
+.setup-card p {
+  color: var(--muted);
+}
+@keyframes flow-enter {
+  from {
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flow-step,
+  .swap-review,
+  .swap-result,
+  .pix-payment {
+    animation: flow-enter var(--motion-step) var(--ease-out) both;
+  }
+  .receipt-symbol.is-complete svg {
+    animation: result-enter 240ms var(--ease-out);
+  }
+}
+@media (max-width: 1100px) {
+  .overview-heading {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .wallet-quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pix-placeholder {
+    min-height: 220px;
+  }
+}
+@media (max-width: 600px) {
+  .quick-action {
+    grid-template-columns: 1fr;
+    padding: 14px;
+    gap: 8px;
+  }
+  .quick-action > span {
+    grid-row: auto;
+  }
+  .service-history-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .service-history-row .status-label {
+    flex-basis: 100%;
+  }
+  .receipt-heading {
+    flex-wrap: wrap;
+  }
+  .transaction-receipt .review-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .swap-token-row {
+    flex-wrap: wrap;
+  }
+  .swap-token-row .swap-amount-input,
+  .swap-receive-amount {
+    flex: 1 1 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quick-action,
+  .swap-direction svg,
+  .button {
+    transition: none;
+  }
+  .quick-action:hover,
+  .swap-direction:hover svg,
+  .button:not(:disabled):active {
+    transform: none;
+  }
+}
+
+.wallet-quick-actions .quick-action {
+  margin-bottom: 0;
+  color: var(--foreground);
+}
+.receipt-amount > .mono,
+.receipt-asset-amount > .mono {
+  font-family: Geist, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.focused-flow .review-amount .amount-value {
+  font-size: 26px;
+  letter-spacing: -0.6px;
+}
+
+.swap-receive-amount > .mono {
+  font-family: Geist, sans-serif;
+}

@@ -153,6 +153,15 @@ impl<P: Platform> App<P> {
         Ok(session(&mut *self.inner.sideswap.lock().await)?.execute_swap(quote_id).await?)
     }
 
+    /// Confirms with native session authorization at the signing boundary.
+    pub async fn sideswap_execute_swap_authorized(
+        &self,
+        quote_id: u64,
+        authorize: &(dyn Fn() -> mooze_core::Result<()> + Send + Sync),
+    ) -> Result<String> {
+        Ok(session(&mut *self.inner.sideswap.lock().await)?.execute_swap_authorized(quote_id, authorize).await?)
+    }
+
     // ───────────────────────────── pegs
 
     /// Peg minimums and fees from `server_status`.

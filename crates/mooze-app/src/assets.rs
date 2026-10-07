@@ -1,12 +1,21 @@
-//! Network-scoped display and approval metadata for the desktop testnet product.
+//! Network-scoped display and approval metadata for desktop wallets.
 use crate::dto::*;
 pub const TEST_ASSET_ID: &str = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5";
 pub fn testnet_asset_metadata(key: &AssetKeyDto) -> AssetMetadataDto {
+    asset_metadata(NetworkDto::Testnet, key)
+}
+pub fn asset_metadata(network: NetworkDto, key: &AssetKeyDto) -> AssetMetadataDto {
     use mooze_core::wallet::descriptors::LIQUID_TESTNET_POLICY_ASSET;
     let ticker = match (key.chain, key.asset_id.as_deref()) {
         (ChainDto::Bitcoin, None) => Some("BTC"),
-        (ChainDto::Liquid, Some(LIQUID_TESTNET_POLICY_ASSET)) => Some("L-BTC"),
-        (ChainDto::Liquid, Some(TEST_ASSET_ID)) => Some("TEST"),
+        (ChainDto::Liquid, Some(LIQUID_TESTNET_POLICY_ASSET)) if network == NetworkDto::Testnet => Some("L-BTC"),
+        (ChainDto::Liquid, Some(TEST_ASSET_ID)) if network == NetworkDto::Testnet => Some("TEST"),
+        (ChainDto::Liquid, Some(id)) if network == NetworkDto::Mainnet => match id {
+            mooze_core::domain::LBTC_ASSET_ID => Some("L-BTC"),
+            mooze_core::domain::DEPIX_ASSET_ID => Some("DEPIX"),
+            mooze_core::domain::USDT_ASSET_ID => Some("USDT"),
+            _ => None,
+        },
         _ => None,
     };
     AssetMetadataDto {
@@ -17,9 +26,12 @@ pub fn testnet_asset_metadata(key: &AssetKeyDto) -> AssetMetadataDto {
     }
 }
 pub fn holding(balance: &AssetBalanceDto) -> HoldingDto {
+    holding_for_network(NetworkDto::Testnet, balance)
+}
+pub fn holding_for_network(network: NetworkDto, balance: &AssetBalanceDto) -> HoldingDto {
     let key = AssetKeyDto { chain: balance.chain, asset_id: balance.asset_id.clone() };
     HoldingDto {
-        metadata: testnet_asset_metadata(&key),
+        metadata: asset_metadata(network, &key),
         balance_units: balance.amount_sat.to_string(),
         available_units: None,
         pending_units: (balance.chain == ChainDto::Bitcoin).then(|| balance.pending_sat.to_string()),
@@ -72,6 +84,26 @@ mod tests {
     }
 }
 
+pub fn approved_assets(network: NetworkDto) -> Vec<AssetMetadataDto> {
+    if network == NetworkDto::Mainnet {
+        return mooze_core::domain::Asset::ALL
+            .iter()
+            .map(|asset| {
+                asset_metadata(
+                    network,
+                    &AssetKeyDto {
+                        chain: if asset.is_native_bitcoin() { ChainDto::Bitcoin } else { ChainDto::Liquid },
+                        asset_id: (!asset.is_native_bitcoin()).then(|| asset.id().to_owned()),
+                    },
+                )
+            })
+            .collect();
+    }
+    if network == NetworkDto::Regtest {
+        return vec![asset_metadata(network, &AssetKeyDto { chain: ChainDto::Bitcoin, asset_id: None })];
+    }
+    approved_testnet_assets()
+}
 pub fn approved_testnet_assets() -> Vec<AssetMetadataDto> {
     [
         AssetKeyDto { chain: ChainDto::Bitcoin, asset_id: None },
@@ -104,13 +136,20 @@ mod historical_tests {
 /// Keep previously held assets discoverable after their last output is spent.
 /// Catalog metadata is derived from identity, never historical ticker hints.
 pub fn include_historical_assets(
+    rows: Vec<HoldingDto>,
+    keys: impl IntoIterator<Item = AssetKeyDto>,
+) -> Vec<HoldingDto> {
+    include_historical_assets_for_network(NetworkDto::Testnet, rows, keys)
+}
+pub fn include_historical_assets_for_network(
+    network: NetworkDto,
     mut rows: Vec<HoldingDto>,
     keys: impl IntoIterator<Item = AssetKeyDto>,
 ) -> Vec<HoldingDto> {
     for key in keys {
         if !rows.iter().any(|row| row.metadata.key == key) {
             rows.push(HoldingDto {
-                metadata: testnet_asset_metadata(&key),
+                metadata: asset_metadata(network, &key),
                 balance_units: "0".into(),
                 available_units: None,
                 pending_units: None,
@@ -118,4 +157,37 @@ pub fn include_historical_assets(
         }
     }
     rows
+}
+
+#[cfg(test)]
+mod mainnet_tests {
+    use super::*;
+    #[test]
+    fn mainnet_catalog_is_network_scoped_and_exact() {
+        let rows = approved_assets(NetworkDto::Mainnet);
+        assert_eq!(rows.len(), 4);
+        for asset in mooze_core::domain::Asset::ALL {
+            let key = AssetKeyDto {
+                chain: if asset.is_native_bitcoin() { ChainDto::Bitcoin } else { ChainDto::Liquid },
+                asset_id: (!asset.is_native_bitcoin()).then(|| asset.id().into()),
+            };
+            let metadata = asset_metadata(NetworkDto::Mainnet, &key);
+            assert!(metadata.approved);
+            assert_eq!(metadata.precision, Some(asset.precision()));
+        }
+        assert!(
+            !asset_metadata(
+                NetworkDto::Mainnet,
+                &AssetKeyDto { chain: ChainDto::Liquid, asset_id: Some(TEST_ASSET_ID.into()) }
+            )
+            .approved
+        );
+        assert!(
+            !asset_metadata(
+                NetworkDto::Testnet,
+                &AssetKeyDto { chain: ChainDto::Liquid, asset_id: Some(mooze_core::domain::DEPIX_ASSET_ID.into()) }
+            )
+            .approved
+        );
+    }
 }

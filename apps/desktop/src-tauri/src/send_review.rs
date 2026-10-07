@@ -63,7 +63,7 @@ impl ReviewBook {
         let fee_asset = mooze_app::dto::AssetKeyDto {
             chain: request.asset.chain,
             asset_id: if request.asset.chain == mooze_app::dto::ChainDto::Liquid {
-                Some(mooze_core::wallet::descriptors::LIQUID_TESTNET_POLICY_ASSET.into())
+                Some(crate::network::policy_asset().into())
             } else {
                 None
             },

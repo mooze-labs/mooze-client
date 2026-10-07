@@ -1,3 +1,4 @@
+import { useNetwork } from "../../core/network";
 import { Checkbox } from "../../ui/checkbox";
 import { SelectField } from "../../ui/select-field";
 import type { FormEvent } from "react";
@@ -45,6 +46,7 @@ export function SendForm({
   ticker: string;
 }) {
   const t = useT();
+  const network = useNetwork();
   const { preferences } = usePreferences();
   return (
     <form className="send-form" onSubmit={onReview}>
@@ -63,7 +65,7 @@ export function SendForm({
             value: String(assetKey(a.key)),
             label: (
               <>
-                {a.ticker} · {a.key.chain} {t("Testnet")}
+                {a.ticker} · {a.key.chain} {network}
               </>
             ),
           })) ?? []),

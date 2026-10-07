@@ -1,3 +1,4 @@
+#![cfg(feature = "testnet")]
 //! Explicit opt-in: real OS credential store and public testnet endpoints.
 use mooze_app::dto::BackendDto;
 use mooze_desktop::{

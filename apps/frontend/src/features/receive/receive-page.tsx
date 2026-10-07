@@ -1,3 +1,4 @@
+import { useNetwork } from "../../core/network";
 import { SelectField } from "../../ui/select-field";
 import { RequestPanel } from "./request-panel";
 import { useT } from "../../i18n/messages";
@@ -12,6 +13,7 @@ import { Field, ErrorNotice } from "../../ui";
 import { errorText } from "../../core/client";
 export function ReceivePage() {
   const t = useT();
+  const network = useNetwork();
   const client = useWalletClient();
   const { session } = useWalletSession();
   const [params] = useSearchParams();
@@ -59,7 +61,7 @@ export function ReceivePage() {
                 value: String(assetKey(a.key)),
                 label: (
                   <>
-                    {a.ticker} · {a.key.chain} {t("Testnet")}
+                    {a.ticker} · {a.key.chain} {network}
                   </>
                 ),
               })) ?? []),
@@ -101,12 +103,16 @@ export function ReceivePage() {
               ? t(
                   "Um endereço Liquid pode receber vários ativos. O pedido de pagamento identifica o ativo solicitado.",
                 )
-              : t("Envie apenas BTC de teste nesta rede.")}
+              : t(
+                  network === "Testnet"
+                    ? "Envie apenas BTC de teste nesta rede."
+                    : "Envie apenas BTC nesta rede.",
+                )}
           </p>
         </div>
         <div className="receive-output">
           <p className="muted">
-            {asset?.key.chain} {t("Testnet ·")} {asset?.ticker}
+            {asset?.key.chain} {network + " ·"} {asset?.ticker}
           </p>
           <RequestPanel
             key={`${selected}:${units}:${description}`}

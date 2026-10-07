@@ -56,11 +56,16 @@ export function CopyButton({
         ) : (
           <Copy size={16} aria-hidden="true" />
         )}
-        {label}
+        <span className="copy-label" aria-live="polite">
+          <span aria-hidden={status === "copied"}>{label}</span>
+          {status === "copied" && (
+            <span className="copy-label-done">{t("Copiado")}</span>
+          )}
+        </span>
       </Button>
       <span className="copy-feedback" role="status">
         {status === "copied"
-          ? t("Copiado")
+          ? ""
           : status === "error"
             ? t("Não foi possível copiar. Selecione o texto.")
             : ""}

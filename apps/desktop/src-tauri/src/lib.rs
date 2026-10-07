@@ -2,11 +2,14 @@ mod commands;
 mod diagnostics;
 pub mod dto;
 pub mod error;
+pub mod network;
 pub mod platform;
 #[path = "session/rules.rs"]
 pub mod rules;
 pub mod send_review;
+mod service_dto;
 pub mod session;
+mod swap_review;
 use mooze_app::dto::BackendDto;
 use platform::{runtime, NativePlatform};
 use session::WalletSession;
@@ -33,11 +36,12 @@ pub fn run() {
                 }
                 NativePlatform::open_debug_profile(root, profile)?
             } else {
-                NativePlatform::open(root.join("testnet"))?
+                NativePlatform::open(root.join(network::data_directory()))?
             };
             #[cfg(not(debug_assertions))]
-            let platform = NativePlatform::open(root.join("testnet"))?;
-            let state = WalletSession::new(platform, BackendDto::Electrum);
+            let platform = NativePlatform::open(root.join(network::data_directory()))?;
+            let state = WalletSession::new(platform, BackendDto::Electrum)
+                .with_services(session::backend::ServiceConfig::from_env());
             let handle = app.handle().clone();
             state.set_emitter(std::sync::Arc::new(move |event| {
                 let _ = handle.emit_to("main", "mooze://event", event);
@@ -48,11 +52,25 @@ pub fn run() {
                 loop {
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     tick.state::<WalletSession<NativePlatform>>().check_expiry();
+                    tick.state::<WalletSession<NativePlatform>>()
+                        .cleanup_locked()
+                        .await;
                 }
             });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::backend_status,
+            commands::backend_retry,
+            commands::pix_history,
+            commands::pix_create,
+            commands::pix_acknowledge_uncertain,
+            commands::swap_markets,
+            commands::swap_start,
+            commands::swap_status,
+            commands::swap_stop,
+            commands::swap_confirm,
+            commands::swap_acknowledge,
             commands::record_activity,
             commands::settings,
             commands::remove_wallet,

@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build --bundles app",
-    "codegen": "cargo run --manifest-path src-tauri/Cargo.toml --features codegen --bin codegen"
+    "codegen": "cargo run --manifest-path src-tauri/Cargo.toml --features codegen --bin codegen",
+    "dev:testnet": "tauri dev --features testnet --config src-tauri/tauri.testnet.conf.json",
+    "build:testnet": "tauri build --bundles app --features testnet --config src-tauri/tauri.testnet.conf.json"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.1"

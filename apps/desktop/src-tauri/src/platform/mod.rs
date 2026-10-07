@@ -31,7 +31,7 @@ impl NativePlatform {
     pub fn open(dir: PathBuf) -> Result<Self> {
         Ok(Self {
             kv: FileKv::open(dir)?,
-            secure: KeyringStore::new("app.mooze.desktop.testnet".into()),
+            secure: KeyringStore::new(crate::network::credential_service().into()),
         })
     }
 }
@@ -71,7 +71,8 @@ impl Platform for NativePlatform {
 impl NativePlatform {
     /// Explicit isolated profile for native QA; release builds cannot select it.
     pub fn open_debug_profile(root: PathBuf, profile: &str) -> Result<Self> {
-        if profile.is_empty()
+        if !cfg!(feature = "testnet")
+            || profile.is_empty()
             || profile.len() > 64
             || !profile
                 .bytes()

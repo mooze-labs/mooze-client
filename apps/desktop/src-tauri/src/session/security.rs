@@ -39,9 +39,10 @@ impl<P: Platform + Clone> WalletSession<P> {
         let _inner = self.inner.lock().await;
         let generation = self.authorize()?;
         self.verify_pin(&pin).await?;
-        let credentials = CredentialStore::new(self.platform.secure(), AppNetwork::Testnet)
-            .load()
-            .await?;
+        let credentials =
+            CredentialStore::new(self.platform.secure(), crate::network::app_network())
+                .load()
+                .await?;
         if generation != self.authorize()? {
             return Err(DesktopError::new("locked", "Sessão alterada."));
         }
@@ -84,6 +85,9 @@ impl<P: Platform + Clone> WalletSession<P> {
 
 impl<P: Platform + Clone> WalletSession<P> {
     pub async fn remove_wallet(&self, pin: String) -> Result<()> {
+        let _pix = self.pix_gate.lock().await;
+        let _swap = self.swap_gate.lock().await;
+        let _auth = self.backend_state.lock().await;
         let mut inner = self.inner.lock().await;
         if self.submitting.load(Ordering::SeqCst) {
             return Err(DesktopError::new(

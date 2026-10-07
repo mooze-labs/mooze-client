@@ -2,6 +2,25 @@ import { vi } from "vitest";
 import type { DesktopClient } from "../core/client";
 export function fakeClient(): DesktopClient {
   return {
+    swapMarkets: vi.fn(async () => []),
+    swapStart: vi.fn(),
+    swapStatus: vi.fn(async () => ({
+      phase: "Idle",
+      review: null,
+      txid: null,
+      message: null,
+    })),
+    swapStop: vi.fn(async () => {}),
+    swapConfirm: vi.fn(),
+    swapAcknowledge: vi.fn(),
+    backendStatus: vi.fn(async () => ({ state: "Ready", retryable: false })),
+    backendRetry: vi.fn(async () => ({ state: "Ready", retryable: false })),
+    pixHistory: vi.fn(async () => ({
+      deposits: [],
+      creation_uncertain: false,
+    })),
+    pixCreate: vi.fn(),
+    pixAcknowledgeUncertain: vi.fn(),
     removeWallet: vi.fn(),
     diagnostics: vi.fn(),
     exportDiagnostics: vi.fn(),

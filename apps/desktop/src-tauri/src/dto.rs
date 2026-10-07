@@ -1,3 +1,4 @@
+pub use crate::service_dto::*;
 use mooze_app::dto::{AssetAmountDto, AssetKeyDto, HoldingDto, SyncStateDto, WalletActivityDto};
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,6 +17,8 @@ pub struct SessionDto {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct HostInfoDto {
+    pub pix_enabled: bool,
+    pub swaps_enabled: bool,
     pub network: String,
     pub backend: String,
     pub liquid_policy_asset: String,
@@ -95,6 +98,13 @@ pub fn generated_types() -> String {
     let config = Config::new().with_large_int("number");
     macro_rules! export {($($t:ty),*)=>{$(out.push_str("export ");out.push_str(&<$t>::decl(&config));out.push('\n');)*};}
     export!(
+        SwapRequestDto,
+        SwapReviewDto,
+        SwapStateDto,
+        BackendSessionDto,
+        PixCreateRequestDto,
+        PixDepositViewDto,
+        PixHistoryDto,
         SendAmountDto,
         ParsedPaymentDto,
         ReceiveRequestDto,
