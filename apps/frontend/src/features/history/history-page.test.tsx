@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, it, vi } from "vitest";
 import { HistoryPage } from "./history-page";
@@ -64,5 +64,13 @@ it("keeps a direct transaction lookup visible until data arrives, then shows exa
     await screen.findByRole("dialog", { name: "Detalhes da transação" }),
   ).toBeInTheDocument();
   expect(screen.getByText("0,00100000 BTC")).toBeInTheDocument();
+  const details = within(screen.getByRole("dialog"));
+  expect(details.getByText("Pendente")).toBeInTheDocument();
+  expect(details.getByText("Confirmações")).toBeInTheDocument();
+  expect(
+    details.getByText("Indisponível ou paga pelo remetente."),
+  ).toBeInTheDocument();
+  fireEvent.click(details.getByText("Detalhes técnicos"));
+  expect(details.getByText("tx")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Fechar" }));
 });

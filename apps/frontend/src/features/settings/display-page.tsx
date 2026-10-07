@@ -58,7 +58,7 @@ export function DisplayPage() {
       />
       <p className="muted">
         {t(
-          "TEST mantém oito casas decimais. Ativos não listados usam unidades brutas.",
+          "A unidade selecionada se aplica a BTC e L-BTC. Ativos não listados usam unidades brutas.",
         )}
       </p>
       <SwitchField

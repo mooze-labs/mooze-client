@@ -1,4 +1,4 @@
-import { useNetwork } from "../../core/network";
+import { useNetworkLabel } from "../../core/network";
 import { useSendAmount } from "./send-amount";
 import type { Review } from "../../core/client";
 import type {
@@ -29,7 +29,7 @@ export function SendReviewView({
   name: (asset: AssetKeyDto) => string;
 }) {
   const t = useT();
-  const network = useNetwork();
+  const network = useNetworkLabel();
   const format = useSendAmount(assets);
   return (
     <div className="flow-step">

@@ -208,8 +208,19 @@ it("shows the automatic quote and cancels a duplicate debounced fetch after manu
   expect(screen.getByLabelText("Quantidade a receber")).toHaveTextContent(
     "1,23000000",
   );
+  expect(
+    screen.queryByRole("button", { name: "Confirmar troca" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Revisar troca" }));
   expect(screen.getByRole("button", { name: "Confirmar troca" })).toBeEnabled();
-  fireEvent.change(input, { target: { value: "2" } });
+  expect(screen.getByRole("heading", { name: "Revisar troca" })).toHaveFocus();
+  expect(
+    screen.queryByLabelText("Quantidade a trocar"),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Editar troca" }));
+  fireEvent.change(screen.getByLabelText("Quantidade a trocar"), {
+    target: { value: "2" },
+  });
   expect(
     screen.queryByRole("button", { name: "Confirmar troca" }),
   ).not.toBeInTheDocument();

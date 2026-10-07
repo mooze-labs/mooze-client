@@ -72,10 +72,11 @@ PODS:
   - GoogleUtilities/UserDefaults (8.1.4):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
+  - integration_test (0.0.1):
+    - Flutter
   - local_auth_darwin (0.0.1):
     - Flutter
     - FlutterMacOS
-  - lwk (0.1.5)
   - mobile_scanner (7.0.0):
     - Flutter
     - FlutterMacOS
@@ -150,8 +151,8 @@ DEPENDENCIES:
   - flutter_email_sender (from `.symlinks/plugins/flutter_email_sender/ios`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
+  - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
-  - lwk (from `.symlinks/plugins/lwk/ios`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
   - mooze_core_bridge (from `.symlinks/plugins/mooze_core_bridge/ios`)
   - no_screenshot (from `.symlinks/plugins/no_screenshot/ios`)
@@ -202,10 +203,10 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_local_notifications/ios"
   flutter_secure_storage:
     :path: ".symlinks/plugins/flutter_secure_storage/ios"
+  integration_test:
+    :path: ".symlinks/plugins/integration_test/ios"
   local_auth_darwin:
     :path: ".symlinks/plugins/local_auth_darwin/darwin"
-  lwk:
-    :path: ".symlinks/plugins/lwk/ios"
   mobile_scanner:
     :path: ".symlinks/plugins/mobile_scanner/darwin"
   mooze_core_bridge:
@@ -255,8 +256,8 @@ SPEC CHECKSUMS:
   flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13
   GoogleDataTransport: a24e58982ab3ba2f64d79613e027fe7f57e88539
   GoogleUtilities: db34c1c11c6f2eccb6fab2340cb8ceb1451299dc
+  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
   local_auth_darwin: d2e8c53ef0c4f43c646462e3415432c4dab3ae19
-  lwk: 22e06bc5664247d6b2dac91cfe209b63b70dd580
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
   mooze_core_bridge: 993eb68d9f2de5cc4110864ffa4a5c07c93a0b83
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275

@@ -12,6 +12,8 @@ npm run desktop:dev
 npm run desktop:build
 ```
 
+For browser-only visual work, use the [synthetic desktop preview](../apps/frontend/src/testing/PREVIEW.md). It runs the real screen components with in-memory fixtures and no native wallet access. See the [composition report](superpowers/plans/2026-10-07-desktop-wallet-redesign.md) and [account/chart implementation notes](superpowers/plans/2026-10-07-desktop-account-and-charts.md) for the current UI changes and validation boundaries.
+
 Testnet keeps the previous bundle identity and wallet storage:
 
 ```sh

@@ -60,6 +60,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::account_level,
+            commands::price_history,
             commands::backend_status,
             commands::backend_retry,
             commands::pix_history,

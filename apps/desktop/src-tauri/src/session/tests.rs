@@ -826,3 +826,87 @@ async fn locked_service_cancels_without_a_transport_wake() {
         "locked"
     );
 }
+
+#[tokio::test]
+async fn account_and_market_reads_require_an_unlocked_session() {
+    let p = platform();
+    let session = WalletSession::new(p.clone(), BackendDto::Esplora);
+    assert_eq!(session.account_level().await.unwrap_err().code, "locked");
+    assert_eq!(
+        session
+            .price_history(PriceMarketDto::Bitcoin, "brl".into(), 7)
+            .await
+            .unwrap_err()
+            .code,
+        "locked"
+    );
+    assert!(p.http.requests().is_empty());
+}
+
+#[cfg(not(feature = "testnet"))]
+#[tokio::test]
+async fn account_level_reads_authenticated_profile_and_shared_tiers() {
+    use mooze_core::ports::HttpMethod;
+    let p = authenticated_platform();
+    p.http.on_json(HttpMethod::Get, &format!("{}/users/me", mooze_core::api::DEFAULT_BASE_URL), 200,
+        serde_json::json!({"data":{"user_id":"test-user","verification_level":0,"allowed_spending":25000,"daily_spending":10000,"spending_level":0,"level_progress":0.2}}));
+    p.http.on_json(HttpMethod::Get, mooze_core::user::WALLET_LEVELS_URL, 200,
+        serde_json::json!({"data":{"bronze":{"min_limit":2000,"max_limit":25000},"silver":{"min_limit":2000,"max_limit":50000},"gold":{"min_limit":2000,"max_limit":100000},"diamond":{"min_limit":2000,"max_limit":300000}}}));
+    let session = WalletSession::new(p.clone(), BackendDto::Esplora);
+    session
+        .import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    let result = session.account_level().await.unwrap();
+    assert_eq!(result.current_level, "bronze");
+    assert_eq!(result.per_transaction_brl, 250.0);
+    assert_eq!(result.spent_today_brl, 100.0);
+    let requests = p.http.requests();
+    let profile = requests
+        .iter()
+        .find(|r| r.url.ends_with("/users/me"))
+        .unwrap();
+    assert!(profile
+        .headers
+        .keys()
+        .any(|k| k.eq_ignore_ascii_case("authorization")));
+    let tiers = requests
+        .iter()
+        .find(|r| r.url == mooze_core::user::WALLET_LEVELS_URL)
+        .unwrap();
+    assert!(!tiers
+        .headers
+        .keys()
+        .any(|k| k.eq_ignore_ascii_case("authorization")));
+}
+
+#[tokio::test]
+async fn market_history_returns_timestamps_without_wallet_data_or_auth() {
+    use mooze_core::ports::HttpMethod;
+    let p = platform();
+    let url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=brl&days=7";
+    p.http.on_json(
+        HttpMethod::Get,
+        url,
+        200,
+        serde_json::json!({"prices":[[1000,100.0],[2000,110.0]]}),
+    );
+    let session = WalletSession::new(p.clone(), BackendDto::Esplora);
+    session
+        .import_wallet(PHRASE.into(), "123456".into())
+        .await
+        .unwrap();
+    let result = session
+        .price_history(PriceMarketDto::Bitcoin, "brl".into(), 7)
+        .await
+        .unwrap();
+    assert_eq!(result.points[0].timestamp_ms, 1000);
+    assert_eq!(result.points[1].price, 110.0);
+    let requests = p.http.requests();
+    let request = requests.iter().find(|r| r.url == url).unwrap();
+    assert!(request.body.is_none());
+    assert!(!request
+        .headers
+        .keys()
+        .any(|k| k.eq_ignore_ascii_case("authorization")));
+}

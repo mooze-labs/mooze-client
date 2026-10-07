@@ -1,4 +1,4 @@
-import { useNetwork } from "../../core/network";
+import { useNetworkLabel } from "../../core/network";
 import { Checkbox } from "../../ui/checkbox";
 import { SelectField } from "../../ui/select-field";
 import type { FormEvent } from "react";
@@ -46,7 +46,7 @@ export function SendForm({
   ticker: string;
 }) {
   const t = useT();
-  const network = useNetwork();
+  const network = useNetworkLabel();
   const { preferences } = usePreferences();
   return (
     <form className="send-form" onSubmit={onReview}>

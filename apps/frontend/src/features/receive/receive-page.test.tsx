@@ -70,6 +70,9 @@ it("copies an address separately from the exact TEST payment request", async () 
   await waitFor(() =>
     expect(writeText).toHaveBeenLastCalledWith("tlq-address"),
   );
+  expect(
+    screen.getByRole("button", { name: "Copiar pedido de pagamento" }),
+  ).toHaveClass("primary");
   fireEvent.click(
     screen.getByRole("button", { name: "Copiar pedido de pagamento" }),
   );
@@ -77,6 +80,18 @@ it("copies an address separately from the exact TEST payment request", async () 
     expect(writeText).toHaveBeenLastCalledWith(
       `liquidtestnet:tlq-address?assetid=${id}&amount=0.00000001`,
     ),
+  );
+  fireEvent.click(screen.getByRole("combobox", { name: "Conteúdo do QR" }));
+  fireEvent.pointerDown(
+    screen.getByRole("option", { name: "Somente endereço" }),
+  );
+  fireEvent.click(screen.getByRole("option", { name: "Somente endereço" }));
+  expect(screen.getByRole("button", { name: "Copiar endereço" })).toHaveClass(
+    "primary",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Copiar endereço" }));
+  await waitFor(() =>
+    expect(writeText).toHaveBeenLastCalledWith("tlq-address"),
   );
 });
 it("keeps the current asset when an older request resolves last and hides invalid requests", async () => {

@@ -1,4 +1,5 @@
-import { useNetwork } from "../../core/network";
+import { PageHeader } from "../../ui/page-header";
+import { useNetworkLabel } from "../../core/network";
 import { SelectField } from "../../ui/select-field";
 import { RequestPanel } from "./request-panel";
 import { useT } from "../../i18n/messages";
@@ -13,7 +14,7 @@ import { Field, ErrorNotice } from "../../ui";
 import { errorText } from "../../core/client";
 export function ReceivePage() {
   const t = useT();
-  const network = useNetwork();
+  const network = useNetworkLabel();
   const client = useWalletClient();
   const { session } = useWalletSession();
   const [params] = useSearchParams();
@@ -47,7 +48,7 @@ export function ReceivePage() {
   });
   return (
     <section className="receive-card flow-page">
-      <h1>{t("Receba na sua carteira")}</h1>
+      <PageHeader title={t("Receba na sua carteira")} />
       <div className="receive-columns">
         <div>
           <SelectField
@@ -67,22 +68,25 @@ export function ReceivePage() {
               })) ?? []),
             ]}
           />
-          <Field
-            label={t("Quantidade solicitada (opcional)")}
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => {
-              setAmount(e.target.value);
-            }}
-          />
-          <Field
-            label={t("Descrição (opcional)")}
-            value={description}
-            maxLength={512}
-            onChange={(e) => {
-              setDescription(e.target.value);
-            }}
-          />
+          <details className="request-options">
+            <summary>{t("Personalizar pedido")}</summary>
+            <Field
+              label={t("Quantidade solicitada (opcional)")}
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.value);
+              }}
+            />
+            <Field
+              label={t("Descrição (opcional)")}
+              value={description}
+              maxLength={512}
+              onChange={(e) => {
+                setDescription(e.target.value);
+              }}
+            />
+          </details>
           <ErrorNotice>
             {invalid
               ? t("Informe um valor positivo com até 8 casas decimais.")

@@ -95,3 +95,17 @@ For the current desktop testnet implementation, the approved everyday-wallet dir
 Use continuous navy surfaces, Wallet/Activity/Settings navigation, compact exact balances, contextual Send/Receive actions, and technical details on demand. Background #10121A, raised surface #1B1E29, paper text #F0EDE9, secondary text #A1A5B4, accent #FF7AA7. The primary button uses #CF1855 (hover #DB1B5C) with white text for contrast. CSS custom properties in `apps/frontend/src/styles/tokens.css` are authoritative implementation tokens. Retain bundled Geist and JetBrains Mono; body 14px, secondary 12px minimum.
 
 Selectively owned shadcn/Base UI source supplies interaction primitives; Tailwind utilities have no global preflight. Business logic remains outside primitives. Balances and activity trim trailing zeros; reviews, receipts and details retain full approved precision. Dark only; no invented portfolio valuation or testnet price charts. Respect reduced motion, accessible focus and value masking.
+
+## Desktop composition — 2026-10-07
+
+Retain Quiet Navy and the bundled typefaces. Shared `PageHeader` supplies heading rhythm; `FlowStep` transfers keyboard focus when a transaction or setup step changes. `styles/layout.css` owns page widths, responsive composition and density; component internals remain in the existing component styles.
+
+List pages use a 1120px maximum width; focused Send/Swap pages use 600px. The overview places holdings and recent activity side by side above 1200px and stacks them below. Quick actions are compact labeled controls. Asset details emphasize the exact balance and expose identifiers on demand.
+
+Swap explicitly progresses from editing to review in the same area. Pix shows either a new request form or its payment, with history alongside. Receive exposes optional request fields through disclosure and matches the primary copy action to the selected QR content. Setup separates recovery verification from PIN creation.
+
+Use existing 140–200ms interaction/step motion; honor reduced motion. Navigation alone may use subtle CSS backdrop blur, progressively enhanced over an opaque navy surface and disabled for reduced transparency. This is a portable web treatment, not native Apple Liquid Glass. Transaction data, forms and QR surfaces remain opaque. The activity detail drawer uses Motion’s small React animation API for a 280ms slide and 200ms backdrop fade. Reduced-motion preferences and background windows skip the entrance. Keep animation in the shared dialog presentation layer; Base UI retains focus and dismissal behavior. The drawer emphasizes exact amounts and status, groups metadata into labeled rows, and keeps technical identifiers behind disclosure.
+
+## Account and market data — 2026-10-07
+
+Account level is a dedicated page with current tier, progression and a tier comparison. The separate personal Pix limits card has been removed. Asset details may show public reference-market charts: 1D/7D/1M, BRL/USD, timestamped observations, accessible pointer/keyboard exploration and visible source/update time. L-BTC uses a labeled Bitcoin reference. Unsupported assets and test coins receive no fabricated valuation. Network failure must not produce a default tier or simulated price curve.

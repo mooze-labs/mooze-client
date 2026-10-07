@@ -7,7 +7,9 @@
 mod binance;
 mod cache;
 mod coingecko;
+mod history;
 mod hybrid;
+pub use history::coingecko_history;
 mod quotes;
 mod settings;
 

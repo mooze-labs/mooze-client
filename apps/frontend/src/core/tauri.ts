@@ -3,6 +3,9 @@ import { listen } from "@tauri-apps/api/event";
 import type { DesktopClient, DesktopEvent } from "./client";
 export const inDesktop = isTauri;
 export const client: DesktopClient = {
+  accountLevel: () => invoke("account_level"),
+  priceHistory: (market, currency, days) =>
+    invoke("price_history", { market, currency, days }),
   swapMarkets: () => invoke("swap_markets"),
   swapStart: (request) => invoke("swap_start", { request }),
   swapStatus: () => invoke("swap_status"),

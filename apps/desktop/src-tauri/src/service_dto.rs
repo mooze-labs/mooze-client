@@ -99,3 +99,44 @@ mod tests {
         .is_err());
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
+pub struct AccountTierDto {
+    pub order: u32,
+    pub key: String,
+    pub minimum_brl: f64,
+    pub maximum_brl: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
+pub struct AccountLevelDto {
+    pub current_level: String,
+    pub next_level: Option<String>,
+    pub progress: f64,
+    pub per_transaction_brl: f64,
+    pub minimum_brl: f64,
+    pub daily_limit_brl: f64,
+    pub spent_today_brl: f64,
+    pub remaining_today_brl: f64,
+    pub tiers: Vec<AccountTierDto>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
+pub enum PriceMarketDto {
+    Bitcoin,
+    Tether,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
+pub struct PricePointDto {
+    pub timestamp_ms: u64,
+    pub price: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
+pub struct PriceHistoryDto {
+    pub points: Vec<PricePointDto>,
+    pub source: String,
+    pub fetched_at_ms: u64,
+}

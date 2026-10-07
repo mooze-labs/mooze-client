@@ -112,7 +112,7 @@ class UserLevels {
       icon: Icons.diamond,
       color: Color(0xFFB9F2FF),
       minAmount: 20,
-      maxAmount: 30000,
+      maxAmount: 3000,
     ),
   ];
 

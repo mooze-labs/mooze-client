@@ -107,7 +107,9 @@ export function Activity({
                 />
               </div>
             ))}
-            <small className="muted">{t(statusText(row))}</small>
+            <small className="activity-status" data-status={row.status}>
+              {t(statusText(row))}
+            </small>
           </div>
         </NavLink>
       ))}

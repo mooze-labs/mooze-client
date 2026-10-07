@@ -29,6 +29,12 @@ export type DesktopEvent =
   | { type: "core"; generation: number; data: AppEvent }
   | { type: "submission"; generation: number };
 export interface DesktopClient {
+  accountLevel(): Promise<import("./desktop.generated").AccountLevelDto>;
+  priceHistory(
+    market: import("./desktop.generated").PriceMarketDto,
+    currency: "brl" | "usd",
+    days: 1 | 7 | 30,
+  ): Promise<import("./desktop.generated").PriceHistoryDto>;
   swapMarkets(): Promise<
     import("../../../../crates/mooze-app/generated/types").SideswapMarketDto[]
   >;

@@ -278,3 +278,17 @@ pub async fn swap_confirm(state: State<'_>, review_id: String) -> Result<SwapSta
 pub async fn swap_acknowledge(state: State<'_>) -> Result<()> {
     state.swap_acknowledge().await
 }
+
+#[tauri::command]
+pub async fn account_level(state: State<'_>) -> Result<AccountLevelDto> {
+    state.account_level().await
+}
+#[tauri::command]
+pub async fn price_history(
+    state: State<'_>,
+    market: PriceMarketDto,
+    currency: String,
+    days: u32,
+) -> Result<PriceHistoryDto> {
+    state.price_history(market, currency, days).await
+}

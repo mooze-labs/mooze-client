@@ -1,4 +1,4 @@
-import { useNetwork } from "../../core/network";
+import { useNetworkLabel } from "../../core/network";
 import { useSendAmount } from "./send-amount";
 import { Check, Clock, Search } from "lucide-react";
 import type { SubmissionView } from "./submission-view";
@@ -32,7 +32,7 @@ export function SendResult({
   busy: boolean;
 }) {
   const t = useT();
-  const network = useNetwork();
+  const network = useNetworkLabel();
   const format = useSendAmount(assets);
   const Icon =
     view.phase === "confirmed"

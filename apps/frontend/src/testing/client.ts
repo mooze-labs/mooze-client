@@ -2,6 +2,8 @@ import { vi } from "vitest";
 import type { DesktopClient } from "../core/client";
 export function fakeClient(): DesktopClient {
   return {
+    accountLevel: vi.fn(),
+    priceHistory: vi.fn(),
     swapMarkets: vi.fn(async () => []),
     swapStart: vi.fn(),
     swapStatus: vi.fn(async () => ({

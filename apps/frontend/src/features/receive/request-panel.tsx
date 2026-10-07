@@ -45,13 +45,21 @@ export function RequestPanel({
           <p className="mono address wrap">{request.address}</p>
           <div className="actions receive-copy-actions">
             <CopyButton
-              value={request.address}
-              label={t("Copiar endereço")}
+              value={qrMode === "request" ? request.uri : request.address}
+              label={t(
+                qrMode === "request"
+                  ? "Copiar pedido de pagamento"
+                  : "Copiar endereço",
+              )}
               className="primary"
             />
             <CopyButton
-              value={request.uri}
-              label={t("Copiar pedido de pagamento")}
+              value={qrMode === "request" ? request.address : request.uri}
+              label={t(
+                qrMode === "request"
+                  ? "Copiar endereço"
+                  : "Copiar pedido de pagamento",
+              )}
             />
           </div>
         </>

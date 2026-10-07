@@ -1,3 +1,4 @@
+import { PageHeader } from "../../ui/page-header";
 import { SendResult } from "./send-result";
 import { selectSubmissionView } from "./submission-view";
 import { SendDraftContext } from "./send-draft";
@@ -253,12 +254,8 @@ function SendSession({
     lastReview.current,
   );
   return (
-    <>
-      <div className="page-heading">
-        <div>
-          <h1>{t("Envie da sua carteira")}</h1>
-        </div>
-      </div>
+    <section className="flow-page transaction-page">
+      <PageHeader title={t("Envie da sua carteira")} />
       <div className="send-layout focused-flow">
         <section className="card">
           <ErrorNotice>
@@ -271,7 +268,7 @@ function SendSession({
             <div className="fee-guidance">
               <p>
                 {t(
-                  "Transferências Liquid pagam taxas em L-BTC, inclusive ao enviar TEST.",
+                  "Transferências Liquid pagam taxas em L-BTC, independentemente do ativo enviado.",
                 )}
               </p>
               <NavLink
@@ -344,6 +341,6 @@ function SendSession({
           )}
         </section>
       </div>
-    </>
+    </section>
   );
 }

@@ -1,4 +1,4 @@
-import { useNetwork } from "../../core/network";
+import { useNetwork, networkLabel } from "../../core/network";
 import { Textarea } from "../../ui/textarea";
 import { PinField } from "../../ui/pin-field";
 import { useT } from "../../i18n/messages";
@@ -73,7 +73,9 @@ export function SessionScreen({
         {t("mooze")}
         <span>●</span>
       </div>
-      <span className="network-badge">{network} · BTC + LIQUID</span>
+      {networkLabel(network) && (
+        <span className="network-badge">{networkLabel(network)}</span>
+      )}
       <section className={`card import-card ${importing ? "" : "unlock-card"}`}>
         <p className="eyebrow">{t("SUAS CHAVES, NESTE COMPUTADOR")}</p>
         <h1>
