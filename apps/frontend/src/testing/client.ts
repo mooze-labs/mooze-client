@@ -2,6 +2,27 @@ import { vi } from "vitest";
 import type { DesktopClient } from "../core/client";
 export function fakeClient(): DesktopClient {
   return {
+    nativeAuthStatus: vi.fn(
+      async () =>
+        ({
+          kind: "unsupported",
+          availability: "unavailable",
+          enabled: false,
+          setup_offer_pending: false,
+        }) as const,
+    ),
+    unlockNative: vi.fn(),
+    cancelNativeAuth: vi.fn(async () => {}),
+    setNativeAuthEnabled: vi.fn(),
+    completeNativeAuthOffer: vi.fn(
+      async () =>
+        ({
+          kind: "unsupported",
+          availability: "unavailable",
+          enabled: false,
+          setup_offer_pending: false,
+        }) as const,
+    ),
     accountLevel: vi.fn(),
     priceHistory: vi.fn(),
     swapMarkets: vi.fn(async () => []),

@@ -111,6 +111,7 @@ struct FaultStore {
     deny_key: Arc<StdMutex<Option<String>>>,
     fail_delete: Arc<StdMutex<Option<String>>>,
     pause_submission: Arc<AtomicBool>,
+    pause_native_value: Arc<StdMutex<Option<Vec<u8>>>>,
     entered: Arc<tokio::sync::Notify>,
     release: Arc<tokio::sync::Notify>,
     deny_reads: Arc<AtomicBool>,
@@ -132,6 +133,19 @@ impl KvStore for FaultStore {
         self.data.get(key).await
     }
     async fn put(&self, key: &str, value: Vec<u8>) -> mooze_core::Result<()> {
+        let pause_native = {
+            let mut pause = self.pause_native_value.lock().unwrap();
+            if key == "desktop/nativeAuth/v1" && pause.as_ref() == Some(&value) {
+                pause.take();
+                true
+            } else {
+                false
+            }
+        };
+        if pause_native {
+            self.entered.notify_one();
+            self.release.notified().await;
+        }
         let n = self.writes.fetch_add(1, Ordering::SeqCst) + 1;
         if self.fail_at.load(Ordering::SeqCst) == n {
             return Err(mooze_core::Error::storage("injected denial"));
@@ -201,7 +215,10 @@ async fn lock_during_authentication_cannot_reopen_the_session() {
     s.lock().await.unwrap();
     let mut inner = s.inner.lock().await;
     assert_eq!(
-        s.open_session(&mut inner, expected).await.unwrap_err().code,
+        s.open_session(&mut inner, expected, None, false)
+            .await
+            .unwrap_err()
+            .code,
         "locked"
     );
     assert!(!s.unlocked.load(Ordering::SeqCst));
@@ -939,3 +956,5 @@ async fn setup_retries_same_phrase_after_storage_failure() {
         candidate.words
     );
 }
+
+mod native_auth;

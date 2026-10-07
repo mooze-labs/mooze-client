@@ -1,3 +1,4 @@
+import { NativeAuthSetting } from "./native-auth-setting";
 import { SelectField } from "../../ui/select-field";
 import { SecurityDialog } from "./security-dialog";
 import { useT } from "../../i18n/messages";
@@ -58,6 +59,7 @@ export function SecurityPage() {
           {t("Bloquear agora")}
         </Button>
       </section>
+      <NativeAuthSetting />
       <section className="settings-row">
         <div>
           <h2>{t("Frase de recuperação")}</h2>

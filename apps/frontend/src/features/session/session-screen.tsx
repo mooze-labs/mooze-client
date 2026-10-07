@@ -1,3 +1,8 @@
+import {
+  nativeAuthController,
+  nativeAuthLabel,
+} from "./native-auth-controller";
+import { useSyncExternalStore } from "react";
 import { useNetwork, networkLabel } from "../../core/network";
 import { Textarea } from "../../ui/textarea";
 import { PinField } from "../../ui/pin-field";
@@ -18,6 +23,36 @@ export function SessionScreen({
   const t = useT();
   const network = useNetwork();
   const importing = session.status === "empty";
+  const controller = nativeAuthController(client);
+  const native = useSyncExternalStore(
+    controller.subscribe,
+    controller.getSnapshot,
+  );
+  useEffect(() => {
+    if (importing) return;
+    const enter = () => {
+      void controller.enter(
+        session.generation,
+        document.hasFocus() && document.visibilityState !== "hidden",
+      );
+    };
+    enter();
+    window.addEventListener("focus", enter);
+    window.addEventListener("blur", enter);
+    document.addEventListener("visibilitychange", enter);
+    return () => {
+      window.removeEventListener("focus", enter);
+      window.removeEventListener("blur", enter);
+      document.removeEventListener("visibilitychange", enter);
+    };
+  }, [controller, importing, session.generation]);
+  useEffect(() => {
+    if (native.generation === session.generation && native.session)
+      onSession(native.session);
+  }, [native, session.generation, onSession]);
+  const showPin =
+    importing ||
+    (native.generation === session.generation && native.mode === "pin");
   const [phrase, setPhrase] = useState("");
   const [pin, setPin] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -36,7 +71,7 @@ export function SessionScreen({
   }, [session.retry_after_ms]);
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (submitting.current || remaining > 0) return;
+    if (submitting.current || remaining > 0 || !showPin) return;
     setError("");
     if (!/^\d{6}$/.test(pin)) {
       setError(t("Use um PIN de 6 dígitos."));
@@ -86,63 +121,118 @@ export function SessionScreen({
         <p className="muted">
           {importing
             ? t("Use sua frase de recuperação para importar a carteira.")
-            : t("Digite seu PIN para acessar a carteira.")}
+            : showPin
+              ? t("Digite seu PIN para acessar a carteira.")
+              : t("Confirme sua identidade para acessar a carteira.")}
         </p>
-        <form onSubmit={submit}>
-          {importing && (
-            <label className="field">
-              <span>{t("Frase de recuperação")}</span>
-              <Textarea
-                aria-label={t("Frase de recuperação")}
-                autoComplete="off"
-                spellCheck={false}
-                value={phrase}
-                onChange={(e) => setPhrase(e.target.value)}
-                required
-                rows={4}
-              />
-              <small>
-                {t("Palavras BIP39 em inglês. Sem senha adicional.")}
-              </small>
-            </label>
-          )}
-          <PinField
-            label={importing ? t("Criar PIN") : "PIN"}
-            value={pin}
-            onValueChange={setPin}
-            required
-            disabled={busy}
-            invalid={!!error}
-          />
-          {importing && (
+        {!importing && !showPin && (
+          <div aria-live="polite">
+            <ErrorNotice>{native.error && t(native.error)}</ErrorNotice>
+            {native.mode === "checking" ? (
+              <p>{t("Verificando autenticação…")}</p>
+            ) : (
+              <>
+                <Button
+                  className="primary wide"
+                  disabled={
+                    native.mode === "prompting" ||
+                    native.mode === "switching" ||
+                    native.mode === "opening"
+                  }
+                  onClick={() => void controller.retry(session.generation)}
+                >
+                  {native.mode === "prompting"
+                    ? t("Aguardando autenticação…")
+                    : t("Desbloquear com {method}", {
+                        method: nativeAuthLabel(native.status),
+                      })}
+                </Button>
+              </>
+            )}
+            <Button
+              className="wide"
+              disabled={
+                native.mode === "switching" || native.mode === "opening"
+              }
+              onClick={() => void controller.usePin(session.generation)}
+            >
+              {t("Usar PIN da carteira")}
+            </Button>
+          </div>
+        )}
+        {showPin && (
+          <form onSubmit={submit}>
+            {importing && (
+              <label className="field">
+                <span>{t("Frase de recuperação")}</span>
+                <Textarea
+                  aria-label={t("Frase de recuperação")}
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={phrase}
+                  onChange={(e) => setPhrase(e.target.value)}
+                  required
+                  rows={4}
+                />
+                <small>
+                  {t("Palavras BIP39 em inglês. Sem senha adicional.")}
+                </small>
+              </label>
+            )}
             <PinField
-              label={t("Confirmar PIN")}
-              value={confirm}
-              onValueChange={setConfirm}
+              label={importing ? t("Criar PIN") : "PIN"}
+              value={pin}
+              onValueChange={setPin}
               required
               disabled={busy}
               invalid={!!error}
             />
-          )}
-          <ErrorNotice>{error}</ErrorNotice>
-          {remaining > 0 && (
-            <p role="status">
-              {t("Tente novamente em")} {Math.ceil(remaining / 1000)}{" "}
-              {t("segundos.")}
-            </p>
-          )}
-          <Button
-            className="primary wide"
-            disabled={busy || remaining > 0}
-            type="submit"
-          >
-            {busy
-              ? t("Abrindo carteira…")
-              : importing
-                ? t("Importar e continuar")
-                : t("Desbloquear")}
-          </Button>
-        </form>
+            {importing && (
+              <PinField
+                label={t("Confirmar PIN")}
+                value={confirm}
+                onValueChange={setConfirm}
+                required
+                disabled={busy}
+                invalid={!!error}
+              />
+            )}
+            <ErrorNotice>{error}</ErrorNotice>
+            {remaining > 0 && (
+              <p role="status">
+                {t("Tente novamente em")} {Math.ceil(remaining / 1000)}{" "}
+                {t("segundos.")}
+              </p>
+            )}
+            <Button
+              className="primary wide"
+              disabled={busy || remaining > 0}
+              type="submit"
+            >
+              {busy
+                ? t("Abrindo carteira…")
+                : importing
+                  ? t("Importar e continuar")
+                  : t("Desbloquear")}
+            </Button>
+            {!importing && (
+              <ErrorNotice>{native.error && t(native.error)}</ErrorNotice>
+            )}
+            {!importing &&
+              native.status?.enabled &&
+              native.status.availability === "available" && (
+                <Button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void controller.retry(session.generation)}
+                >
+                  {t("Desbloquear com {method}", {
+                    method: nativeAuthLabel(native.status),
+                  })}
+                </Button>
+              )}
+          </form>
+        )}
         <p className="small muted">
           {network === "Testnet" &&
             t("Os ativos de teste não têm valor monetário.")}

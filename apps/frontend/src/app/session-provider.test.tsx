@@ -67,3 +67,56 @@ it("lock discards a late snapshot and ignores an older unlocked event", async ()
   expect(screen.queryByText("secret balance")).not.toBeInTheDocument();
   expect(qc.getQueriesData({ queryKey: ["wallet", 1] })).toEqual([]);
 });
+it("holds the setup offer across an immediate unlocked event and dismisses it on lock", async () => {
+  const client = fakeClient();
+  let emit!: (event: DesktopEvent) => void;
+  vi.mocked(client.subscribe).mockImplementation(async (handler) => {
+    emit = handler;
+    return vi.fn();
+  });
+  vi.mocked(client.sessionStatus).mockResolvedValue({
+    status: "empty",
+    generation: 0,
+    retry_after_ms: 0,
+  });
+  vi.mocked(client.nativeAuthStatus).mockResolvedValue({
+    kind: "touch_id",
+    availability: "available",
+    enabled: false,
+    setup_offer_pending: true,
+  });
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <WalletClientProvider client={client}>
+        <SessionProvider>
+          <Probe />
+        </SessionProvider>
+      </WalletClientProvider>
+    </QueryClientProvider>,
+  );
+  await screen.findByText("empty");
+  await act(async () => {
+    emit({
+      type: "session",
+      data: { status: "unlocked", generation: 1, retry_after_ms: 0 },
+    });
+  });
+  expect(
+    await screen.findByRole("button", { name: "Ativar Touch ID" }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText("unlocked")).not.toBeInTheDocument();
+  await act(async () => {
+    emit({
+      type: "session",
+      data: { status: "locked", generation: 2, retry_after_ms: 0 },
+    });
+  });
+  expect(
+    screen.queryByRole("button", { name: "Ativar Touch ID" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText("locked")).toBeInTheDocument();
+});

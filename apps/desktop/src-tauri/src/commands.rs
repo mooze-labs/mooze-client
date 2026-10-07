@@ -1,7 +1,7 @@
 use crate::{dto::*, error::Result, platform::NativePlatform, session::WalletSession};
 use mooze_app::dto::{BroadcastResultDto, ReceiveAddressDto};
 use mooze_core::{domain::ChainId, wallet::backend::default_electrum_urls};
-type State<'a> = tauri::State<'a, WalletSession<NativePlatform>>;
+type State<'a> = tauri::State<'a, std::sync::Arc<WalletSession<NativePlatform>>>;
 #[tauri::command]
 pub fn host_info() -> HostInfoDto {
     HostInfoDto {
@@ -357,4 +357,32 @@ mod recovery_tests {
         words[11] = "about";
         assert!(validate_recovery_phrase(words.join("\n").to_uppercase()).is_ok());
     }
+}
+
+#[tauri::command]
+pub async fn native_auth_status(state: State<'_>) -> Result<crate::dto::NativeAuthStatusDto> {
+    state.native_auth_status().await
+}
+#[tauri::command]
+pub async fn unlock_native(state: State<'_>) -> Result<SessionDto> {
+    state.unlock_native().await
+}
+#[tauri::command]
+pub fn cancel_native_auth(state: State<'_>) -> Result<()> {
+    state.cancel_native_auth()
+}
+#[tauri::command]
+pub async fn set_native_auth_enabled(
+    state: State<'_>,
+    enabled: bool,
+    pin: String,
+) -> Result<crate::dto::NativeAuthStatusDto> {
+    state.set_native_auth_enabled(enabled, pin).await
+}
+#[tauri::command]
+pub async fn complete_native_auth_offer(
+    state: State<'_>,
+    enable: bool,
+) -> Result<crate::dto::NativeAuthStatusDto> {
+    state.complete_native_auth_offer(enable).await
 }
