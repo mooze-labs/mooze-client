@@ -3,6 +3,13 @@ import { listen } from "@tauri-apps/api/event";
 import type { DesktopClient, DesktopEvent } from "./client";
 export const inDesktop = isTauri;
 export const client: DesktopClient = {
+  nativeAuthStatus: () => invoke("native_auth_status"),
+  unlockNative: () => invoke("unlock_native"),
+  cancelNativeAuth: () => invoke("cancel_native_auth"),
+  setNativeAuthEnabled: (enabled, pin) =>
+    invoke("set_native_auth_enabled", { enabled, pin }),
+  completeNativeAuthOffer: (enable) =>
+    invoke("complete_native_auth_offer", { enable }),
   accountLevel: () => invoke("account_level"),
   priceHistory: (market, currency, days) =>
     invoke("price_history", { market, currency, days }),
