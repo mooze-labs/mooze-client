@@ -21,9 +21,8 @@ impl KeyringStore {
         f: impl FnOnce(&mut BTreeMap<String, Vec<u8>>) -> Result<T> + Send + 'static,
         write: bool,
     ) -> Result<T> {
-        let _guard = self.gate.lock().await;
         let service = self.service.clone();
-        tokio::task::spawn_blocking(move || {
+        self.blocking(move || {
             let entry = keyring::Entry::new(&service, "wallet-secrets")
                 .map_err(|_| Error::storage("credential store unavailable"))?;
             let mut data: BTreeMap<String, Vec<u8>> = match entry.get_secret() {
@@ -40,6 +39,19 @@ impl KeyringStore {
                     .map_err(|_| Error::storage("credential write denied"))?;
             }
             Ok(result)
+        })
+        .await
+    }
+    async fn blocking<T: Send + 'static>(
+        &self,
+        operation: impl FnOnce() -> Result<T> + Send + 'static,
+    ) -> Result<T> {
+        let guard = self.gate.clone().lock_owned().await;
+        tokio::task::spawn_blocking(move || {
+            // Cancellation must not release serialization while an OS credential
+            // read/modify/write is still running. Removal waits for this guard too.
+            let _guard = guard;
+            operation()
         })
         .await
         .map_err(Error::storage)?
@@ -87,3 +99,34 @@ impl KvStore for KeyringStore {
     }
 }
 impl SecureStore for KeyringStore {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn cancellation_preserves_serialization_until_blocking_write_finishes() {
+        let store = KeyringStore::new("unused-test-no-keychain-access".into());
+        let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+        let (finish_tx, finish_rx) = std::sync::mpsc::channel();
+        let worker_store = store.clone();
+        let worker = tokio::spawn(async move {
+            worker_store
+                .blocking(move || {
+                    started_tx.send(()).unwrap();
+                    finish_rx.recv().unwrap();
+                    Ok(())
+                })
+                .await
+        });
+        started_rx.await.unwrap();
+        worker.abort();
+        let _ = worker.await;
+        let gate_still_held = store.gate.try_lock().is_err();
+        finish_tx.send(()).unwrap();
+        store.blocking(|| Ok(())).await.unwrap();
+        assert!(
+            gate_still_held,
+            "cancelled caller released an in-flight credential write"
+        );
+    }
+}

@@ -1,8 +1,11 @@
+pub mod backend;
 pub mod idle;
 mod payments;
+mod pix;
 mod security;
 mod settings;
 mod setup;
+mod swaps;
 use crate::{
     dto::*,
     error::{DesktopError, Result},
@@ -16,7 +19,7 @@ use mooze_app::{
 };
 use mooze_core::{
     auth::PinService,
-    domain::{AppNetwork, WalletCredentials},
+    domain::WalletCredentials,
     ports::{Clock, KvStore},
     store::CredentialStore,
     wallet::mnemonic,
@@ -36,12 +39,17 @@ struct Inner<P: Platform> {
     reviews: ReviewBook,
 }
 pub struct WalletSession<P: Platform> {
+    services: backend::ServiceConfig,
+    backend_state: Mutex<Option<(u32, BackendSessionDto)>>,
+    pix_gate: Mutex<()>,
+    swap_gate: Mutex<()>,
+    swaps: Arc<StdMutex<crate::swap_review::SwapBook>>,
     pub platform: P,
     backend: BackendDto,
     setup: StdMutex<Option<setup::SetupCandidate>>,
     inner: Mutex<Inner<P>>,
     idle: StdMutex<Option<(idle::IdleState, crate::platform::idle_clock::IdleClock)>>,
-    transition: StdMutex<()>,
+    transition: Arc<StdMutex<()>>,
     configured: AtomicBool,
     submitting: AtomicBool,
     unlocked: Arc<AtomicBool>,
@@ -51,6 +59,10 @@ pub struct WalletSession<P: Platform> {
     emit: Arc<StdMutex<Option<EventCallback>>>,
 }
 struct Sink {
+    transition: Arc<StdMutex<()>>,
+    swaps: Arc<StdMutex<crate::swap_review::SwapBook>>,
+    clock: Arc<dyn Clock>,
+    expected: u32,
     unlocked: Arc<AtomicBool>,
     generation: Arc<AtomicU32>,
     sync: Arc<StdMutex<Option<SyncStateDto>>>,
@@ -59,6 +71,30 @@ struct Sink {
 }
 impl EventSink for Sink {
     fn send(&self, event: AppEvent) -> bool {
+        let transition = self.transition.lock().unwrap();
+        if self.generation.load(Ordering::SeqCst) != self.expected {
+            return false;
+        }
+        if let AppEvent::SideSwap(ref side) = event {
+            if !self.unlocked.load(Ordering::SeqCst) {
+                return true;
+            }
+            let view = {
+                let mut book = self.swaps.lock().unwrap();
+                if let Some(quote) = &side.quote {
+                    book.quote(quote, self.expected, self.clock.now_ms());
+                }
+                if matches!(side.kind, SideSwapEventKind::Disconnected) {
+                    book.disconnected();
+                }
+                book.view(self.clock.now_ms())
+            };
+            drop(transition);
+            if let Some(callback) = self.emit.lock().unwrap().as_ref() {
+                callback(serde_json::json!({"type":"swap","generation":self.expected,"data":view}));
+            }
+            return true;
+        }
         if let AppEvent::ChainSyncState(ref s) = event {
             let chain = match s.chain {
                 ChainDto::Bitcoin => WalletChain::Bitcoin,
@@ -89,10 +125,12 @@ impl EventSink for Sink {
         if let AppEvent::SyncState(ref s) = event {
             *self.sync.lock().unwrap() = Some(s.clone());
         }
-        if self.unlocked.load(Ordering::SeqCst) {
+        let emit = self.unlocked.load(Ordering::SeqCst);
+        drop(transition);
+        if emit {
             if let Some(callback) = self.emit.lock().unwrap().as_ref() {
                 callback(
-                    serde_json::json!({"type":"core","generation":self.generation.load(Ordering::SeqCst),"data":event}),
+                    serde_json::json!({"type":"core","generation":self.expected,"data":event}),
                 );
             }
         }
@@ -103,13 +141,18 @@ impl<P: Platform + Clone> WalletSession<P> {
     pub fn new(platform: P, backend: BackendDto) -> Self {
         Self {
             platform,
+            services: backend::ServiceConfig::default(),
+            backend_state: Mutex::new(None),
+            pix_gate: Mutex::new(()),
+            swap_gate: Mutex::new(()),
+            swaps: Arc::new(StdMutex::new(crate::swap_review::SwapBook::default())),
             setup: StdMutex::new(None),
             backend,
             inner: Mutex::new(Inner {
                 app: None,
                 reviews: ReviewBook::default(),
             }),
-            transition: StdMutex::new(()),
+            transition: Arc::new(StdMutex::new(())),
             idle: StdMutex::new(None),
             configured: AtomicBool::new(false),
             submitting: AtomicBool::new(false),
@@ -237,11 +280,11 @@ impl<P: Platform + Clone> WalletSession<P> {
     ) -> Result<App<P>> {
         let app = App::open_with_public_fallback(
             AppConfig {
-                network: NetworkDto::Testnet,
+                network: crate::network::network_dto(),
                 backend: self.backend,
                 bitcoin_node_url: settings.bitcoin_node.clone().unwrap_or_default(),
                 liquid_node_url: settings.liquid_node.clone().unwrap_or_default(),
-                api_base_url: None,
+                api_base_url: Some(self.services.api_url()?),
             },
             self.platform_clone(),
             settings.public_fallback,
@@ -249,14 +292,20 @@ impl<P: Platform + Clone> WalletSession<P> {
         .await?;
         app.bitcoin_connect(phrase.clone()).await?;
         app.liquid_connect(phrase).await?;
+        Ok(app)
+    }
+    pub(super) fn subscribe_app(&self, app: &App<P>) {
         app.subscribe(Box::new(Sink {
+            transition: self.transition.clone(),
+            swaps: self.swaps.clone(),
+            clock: Arc::new(self.platform.clock()),
+            expected: self.generation.load(Ordering::SeqCst),
             unlocked: self.unlocked.clone(),
             generation: self.generation.clone(),
             sync: self.sync.clone(),
             chains: self.chains.clone(),
             emit: self.emit.clone(),
         }));
-        Ok(app)
     }
     fn platform_clone(&self) -> P
     where
@@ -297,10 +346,10 @@ impl<P: Platform + Clone> WalletSession<P> {
         self.platform.kv().put(IMPORT, b"pending".to_vec()).await?;
         let result: Result<App<P>> = async {
             let app = self.connect(phrase.clone()).await?;
-            CredentialStore::new(self.platform.secure(), AppNetwork::Testnet)
+            CredentialStore::new(self.platform.secure(), crate::network::app_network())
                 .save(&WalletCredentials {
                     mnemonic: phrase,
-                    network: AppNetwork::Testnet,
+                    network: crate::network::app_network(),
                 })
                 .await?;
             PinService::new(
@@ -355,10 +404,15 @@ impl<P: Platform + Clone> WalletSession<P> {
             ));
         }
         self.verify_pin(&pin).await?;
-        if inner.app.is_none() {
-            let credentials = CredentialStore::new(self.platform.secure(), AppNetwork::Testnet)
-                .load()
-                .await?;
+        if let Some(old) = inner.app.take() {
+            old.stop_and_wait().await?;
+            old.sideswap_disconnect().await?;
+        }
+        {
+            let credentials =
+                CredentialStore::new(self.platform.secure(), crate::network::app_network())
+                    .load()
+                    .await?;
             inner.app = Some(self.connect(credentials.mnemonic).await?);
         }
         self.open_session(&mut inner, expected).await
@@ -383,8 +437,9 @@ impl<P: Platform + Clone> WalletSession<P> {
         }
         if let Some(app) = &inner.app {
             if let Err(e) = async {
+                self.subscribe_app(app);
                 app.session_unlocked().await?;
-                app.start(StartConfigDto {
+                app.start_wallet_sync(StartConfigDto {
                     sync_tick_ms: None,
                     sync_timeout_ms: None,
                     startup_sync: true,
@@ -423,6 +478,11 @@ impl<P: Platform + Clone> WalletSession<P> {
         self.emit_session(&s);
         let mut inner = self.inner.lock().await;
         inner.reviews.clear();
+        self.swaps.lock().unwrap().clear();
+        if let Some(app) = inner.app.take() {
+            app.stop_and_wait().await?;
+            app.sideswap_disconnect().await?;
+        }
         Ok(s)
     }
     pub async fn snapshot(&self) -> Result<DesktopSnapshotDto> {
@@ -473,7 +533,9 @@ impl<P: Platform + Clone> WalletSession<P> {
     }
     pub fn approved_assets(&self) -> Result<Vec<AssetMetadataDto>> {
         self.authorize()?;
-        Ok(mooze_app::assets::approved_testnet_assets())
+        Ok(mooze_app::assets::approved_assets(
+            crate::network::network_dto(),
+        ))
     }
     pub async fn refresh(&self) -> Result<()> {
         self.authorize()?;
@@ -507,7 +569,8 @@ impl<P: Platform + Clone> WalletSession<P> {
     }
     pub async fn review(&self, mut request: ReviewRequestDto) -> Result<SendReviewDto> {
         let generation = self.authorize()?;
-        if !mooze_app::assets::testnet_asset_metadata(&request.asset).approved
+        if !mooze_app::assets::asset_metadata(crate::network::network_dto(), &request.asset)
+            .approved
             || matches!(request.amount, SendAmountDto::Exact(_)) && request.exact_amount().is_none()
             || !rules::valid_rate(request.fee_rate_sat_per_vbyte)
             || request.destination.trim().is_empty()
@@ -518,7 +581,14 @@ impl<P: Platform + Clone> WalletSession<P> {
             ));
         }
         let mut inner = self.inner.lock().await;
-        if self.submission().await?.is_some() {
+        if self.submission().await?.is_some()
+            || self
+                .platform
+                .kv()
+                .get(swaps::SWAP_SUBMISSION)
+                .await?
+                .is_some()
+        {
             return Err(DesktopError::new(
                 "submission_unknown",
                 "Confira o resultado do envio anterior.",
@@ -591,7 +661,14 @@ impl<P: Platform + Clone> WalletSession<P> {
         let (app, review, generation) = {
             let mut inner = self.inner.lock().await;
             let generation = self.authorize()?;
-            if self.submission().await?.is_some() {
+            if self.submission().await?.is_some()
+                || self
+                    .platform
+                    .kv()
+                    .get(swaps::SWAP_SUBMISSION)
+                    .await?
+                    .is_some()
+            {
                 return Err(DesktopError::new(
                     "submission_unknown",
                     "Confira o resultado do envio anterior.",
@@ -679,6 +756,23 @@ impl<P: Platform + Clone> WalletSession<P> {
             ));
         }
         result
+    }
+    pub async fn cleanup_locked(&self) {
+        if self.unlocked.load(Ordering::SeqCst) {
+            return;
+        }
+        let Ok(mut inner) = self.inner.try_lock() else {
+            return;
+        };
+        if self.unlocked.load(Ordering::SeqCst) {
+            return;
+        }
+        if let Some(app) = inner.app.take() {
+            let _ = app.stop_and_wait().await;
+            let _ = app.sideswap_disconnect().await;
+        }
+        inner.reviews.clear();
+        self.swaps.lock().unwrap().clear();
     }
     pub async fn stop(&self) {
         if let Some(app) = self.inner.lock().await.app.as_ref() {

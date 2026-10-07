@@ -1,3 +1,4 @@
+import { useNetwork } from "../../core/network";
 import { SelectField } from "../../ui/select-field";
 import { Input } from "../../ui/input";
 import { Amount } from "../../ui/amount";
@@ -38,6 +39,7 @@ export function HoldingValue({
   mode?: "compact" | "exact";
 }) {
   const t = useT();
+  const buildNetwork = useNetwork();
   return row.balanceText === null ? (
     <span className="muted">{t("Aguardando sincronização")}</span>
   ) : (
@@ -49,6 +51,7 @@ export function HoldingValue({
 }
 export function HoldingsTable({ rows }: { rows: HoldingView[] }) {
   const t = useT();
+  const buildNetwork = useNetwork();
   return (
     <div className="holding-list">
       {rows.map((row) => (
@@ -96,6 +99,7 @@ export function HoldingsTable({ rows }: { rows: HoldingView[] }) {
 }
 export function AssetsPage({ data }: { data?: Snapshot }) {
   const t = useT();
+  const buildNetwork = useNetwork();
   const { query, rows } = useHoldingViews(data);
   const [search, setSearch] = useState("");
   const [network, setNetwork] = useState("all");
@@ -142,6 +146,7 @@ export function AssetsPage({ data }: { data?: Snapshot }) {
 }
 export function AssetPage({ data }: { data?: Snapshot }) {
   const t = useT();
+  const buildNetwork = useNetwork();
   const { chain, assetKey: routeKey } = useParams();
   const { query } = useHoldingViews(data);
   const holding = query.data?.holdings.find(
@@ -175,7 +180,7 @@ export function AssetPage({ data }: { data?: Snapshot }) {
     <>
       <section className="card">
         <p className="eyebrow">
-          {chain} {t("Testnet")}
+          {chain} {buildNetwork}
         </p>
         <h1>{row.metadata.ticker ?? t("Ativo não listado")}</h1>
         <h2>

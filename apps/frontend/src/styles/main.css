@@ -624,6 +624,18 @@ select {
   background: var(--raised);
   border-radius: 4px;
 }
+.setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+.setup-actions > .button {
+  flex: 1 1 180px;
+  min-height: 44px;
+  height: auto;
+  white-space: normal;
+}
 .setup-back {
   position: fixed;
   left: 24px;
@@ -1101,4 +1113,186 @@ input[type="checkbox"] {
   border-left: 0;
   border-radius: 0;
   margin-bottom: 0;
+}
+
+/* Service flows reuse wallet surfaces and exact-amount typography. */
+.service-columns {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin: 24px 0;
+}
+.service-columns .card {
+  padding: 24px;
+}
+.service-columns .field {
+  margin-bottom: 20px;
+}
+.service-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.pix-payment .pix-qr {
+  display: block;
+  margin: 20px auto;
+  border-radius: 8px;
+  background: white;
+}
+.service-history {
+  display: grid;
+  gap: 8px;
+}
+.service-history-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  text-align: left;
+}
+@media (max-width: 1100px) {
+  .service-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.swap-container {
+  max-width: 540px;
+  margin: 28px auto;
+}
+.swap-card {
+  padding: 24px;
+}
+.swap-card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.swap-card-heading h2 {
+  margin: 0;
+}
+.swap-network {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+.swap-token-panel {
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+}
+.swap-panel-label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.swap-token-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.swap-token-row .swap-amount-input,
+.swap-receive-amount {
+  min-width: 0;
+  width: 100%;
+  font-size: clamp(22px, 2.5vw, 32px);
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+.swap-token-row .swap-amount-input {
+  padding: 6px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+}
+.swap-token-row .swap-amount-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+.swap-receive-amount {
+  overflow-wrap: anywhere;
+}
+.swap-asset-select {
+  flex-shrink: 0;
+  margin: 0;
+}
+.swap-asset-select > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.swap-asset-select .select-trigger {
+  width: auto;
+  min-width: 124px;
+  border-radius: 24px;
+  background: var(--background);
+  padding: 8px 12px;
+}
+.swap-asset-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.swap-asset-label .asset-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+.asset-mark.token-image {
+  object-fit: contain;
+  padding: 0;
+  background: transparent;
+}
+.swap-balance {
+  margin-top: 14px;
+  overflow-wrap: anywhere;
+}
+.swap-token-panel > p {
+  margin-bottom: 0;
+}
+.swap-direction-wrap {
+  display: flex;
+  justify-content: center;
+  height: 12px;
+  position: relative;
+  z-index: 1;
+}
+.swap-direction {
+  position: absolute;
+  top: -14px;
+  border: 4px solid var(--surface);
+  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  background: var(--background);
+}
+.swap-primary-action {
+  width: 100%;
+  margin-top: 20px;
+  min-height: 44px;
+}
+.swap-quote-details {
+  margin-top: 16px;
+}
+.swap-quote-details .receipt {
+  padding: 24px;
+}
+.swap-quote-details .receipt > .button {
+  width: 100%;
+  min-height: 44px;
 }

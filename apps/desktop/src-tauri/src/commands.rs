@@ -1,18 +1,20 @@
 use crate::{dto::*, error::Result, platform::NativePlatform, session::WalletSession};
 use mooze_app::dto::{BroadcastResultDto, ReceiveAddressDto};
-use mooze_core::{
-    domain::{AppNetwork, ChainId},
-    wallet::{backend::default_electrum_urls, descriptors::LIQUID_TESTNET_POLICY_ASSET},
-};
+use mooze_core::{domain::ChainId, wallet::backend::default_electrum_urls};
 type State<'a> = tauri::State<'a, WalletSession<NativePlatform>>;
 #[tauri::command]
 pub fn host_info() -> HostInfoDto {
     HostInfoDto {
-        network: "Testnet".into(),
+        pix_enabled: crate::network::production_services_enabled(),
+        swaps_enabled: crate::network::production_services_enabled()
+            && crate::session::backend::ServiceConfig::from_env()
+                .sideswap_api_key
+                .is_some(),
+        network: crate::network::name().into(),
         backend: "Electrum".into(),
-        liquid_policy_asset: LIQUID_TESTNET_POLICY_ASSET.into(),
-        bitcoin_endpoints: default_electrum_urls(ChainId::Bitcoin, AppNetwork::Testnet),
-        liquid_endpoints: default_electrum_urls(ChainId::Liquid, AppNetwork::Testnet),
+        liquid_policy_asset: crate::network::policy_asset().into(),
+        bitcoin_endpoints: default_electrum_urls(ChainId::Bitcoin, crate::network::app_network()),
+        liquid_endpoints: default_electrum_urls(ChainId::Liquid, crate::network::app_network()),
     }
 }
 #[tauri::command]
@@ -169,7 +171,7 @@ pub async fn export_diagnostics(app: tauri::AppHandle, state: State<'_>) -> Resu
     app.dialog()
         .file()
         .add_filter("JSON", &["json"])
-        .set_file_name("mooze-testnet-diagnostics.json")
+        .set_file_name("mooze-diagnostics.json")
         .save_file(move |path| {
             let _ = send.send(path);
         });
@@ -203,4 +205,76 @@ pub async fn export_diagnostics(app: tauri::AppHandle, state: State<'_>) -> Resu
         )
     })?;
     Ok(true)
+}
+
+#[cfg(test)]
+mod network_tests {
+    #[test]
+    fn build_reports_selected_network_and_policy() {
+        let host = super::host_info();
+        if cfg!(feature = "testnet") {
+            assert_eq!(host.network, "Testnet");
+        } else {
+            assert_eq!(host.network, "Mainnet");
+            assert_eq!(host.liquid_policy_asset, mooze_core::domain::LBTC_ASSET_ID);
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn backend_status(state: State<'_>) -> Result<BackendSessionDto> {
+    state.backend_status().await
+}
+
+#[tauri::command]
+pub async fn backend_retry(state: State<'_>) -> Result<BackendSessionDto> {
+    state.backend_retry().await
+}
+
+#[tauri::command]
+pub async fn pix_history(state: State<'_>) -> Result<PixHistoryDto> {
+    state.pix_history().await
+}
+
+#[tauri::command]
+pub async fn pix_create(
+    state: State<'_>,
+    request: PixCreateRequestDto,
+) -> Result<PixDepositViewDto> {
+    state.pix_create(request).await
+}
+
+#[tauri::command]
+pub async fn pix_acknowledge_uncertain(state: State<'_>) -> Result<()> {
+    state.pix_acknowledge_uncertain().await
+}
+
+#[tauri::command]
+pub async fn swap_markets(state: State<'_>) -> Result<Vec<mooze_app::dto::SideswapMarketDto>> {
+    state.swap_markets().await
+}
+
+#[tauri::command]
+pub async fn swap_start(state: State<'_>, request: SwapRequestDto) -> Result<SwapStateDto> {
+    state.swap_start(request).await
+}
+
+#[tauri::command]
+pub async fn swap_status(state: State<'_>) -> Result<SwapStateDto> {
+    state.swap_status().await
+}
+
+#[tauri::command]
+pub async fn swap_stop(state: State<'_>) -> Result<()> {
+    state.swap_stop().await
+}
+
+#[tauri::command]
+pub async fn swap_confirm(state: State<'_>, review_id: String) -> Result<SwapStateDto> {
+    state.swap_confirm(review_id).await
+}
+
+#[tauri::command]
+pub async fn swap_acknowledge(state: State<'_>) -> Result<()> {
+    state.swap_acknowledge().await
 }

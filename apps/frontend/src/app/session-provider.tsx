@@ -51,7 +51,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             current.current?.status === "unlocked" &&
             e.generation === current.current.generation
           ) {
-            void qc.invalidateQueries({ queryKey: ["wallet", e.generation] });
+            if (e.type === "swap")
+              qc.setQueryData(["wallet", e.generation, "swap"], e.data);
+            else
+              void qc.invalidateQueries({ queryKey: ["wallet", e.generation] });
           }
         });
         if (disposed) {

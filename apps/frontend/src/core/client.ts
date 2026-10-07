@@ -20,10 +20,34 @@ import type {
   DesktopSnapshotDto as Snapshot,
 } from "./desktop.generated";
 export type DesktopEvent =
+  | {
+      type: "swap";
+      generation: number;
+      data: import("./desktop.generated").SwapStateDto;
+    }
   | { type: "session"; data: Session }
   | { type: "core"; generation: number; data: AppEvent }
   | { type: "submission"; generation: number };
 export interface DesktopClient {
+  swapMarkets(): Promise<
+    import("../../../../crates/mooze-app/generated/types").SideswapMarketDto[]
+  >;
+  swapStart(
+    request: import("./desktop.generated").SwapRequestDto,
+  ): Promise<import("./desktop.generated").SwapStateDto>;
+  swapStatus(): Promise<import("./desktop.generated").SwapStateDto>;
+  swapStop(): Promise<void>;
+  swapConfirm(
+    reviewId: string,
+  ): Promise<import("./desktop.generated").SwapStateDto>;
+  swapAcknowledge(): Promise<void>;
+  backendStatus(): Promise<import("./desktop.generated").BackendSessionDto>;
+  backendRetry(): Promise<import("./desktop.generated").BackendSessionDto>;
+  pixHistory(): Promise<import("./desktop.generated").PixHistoryDto>;
+  pixCreate(
+    request: import("./desktop.generated").PixCreateRequestDto,
+  ): Promise<import("./desktop.generated").PixDepositViewDto>;
+  pixAcknowledgeUncertain(): Promise<void>;
   removeWallet(pin: string): Promise<void>;
   diagnostics(): Promise<unknown>;
   exportDiagnostics(): Promise<boolean>;

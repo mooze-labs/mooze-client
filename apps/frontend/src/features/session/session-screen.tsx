@@ -1,3 +1,4 @@
+import { useNetwork } from "../../core/network";
 import { Textarea } from "../../ui/textarea";
 import { PinField } from "../../ui/pin-field";
 import { useT } from "../../i18n/messages";
@@ -15,6 +16,7 @@ export function SessionScreen({
   onSession: (s: Session) => void;
 }) {
   const t = useT();
+  const network = useNetwork();
   const importing = session.status === "empty";
   const [phrase, setPhrase] = useState("");
   const [pin, setPin] = useState("");
@@ -71,17 +73,17 @@ export function SessionScreen({
         {t("mooze")}
         <span>●</span>
       </div>
-      <span className="network-badge">{t("TESTNET · BTC + LIQUID")}</span>
+      <span className="network-badge">{network} · BTC + LIQUID</span>
       <section className={`card import-card ${importing ? "" : "unlock-card"}`}>
         <p className="eyebrow">{t("SUAS CHAVES, NESTE COMPUTADOR")}</p>
         <h1>
           {importing
-            ? t("Importar carteira de teste")
+            ? t("Importar carteira")
             : t("Sua carteira está bloqueada")}
         </h1>
         <p className="muted">
           {importing
-            ? t("Use uma frase de recuperação dedicada à rede de testes.")
+            ? t("Use sua frase de recuperação para importar a carteira.")
             : t("Digite seu PIN para acessar a carteira.")}
         </p>
         <form onSubmit={submit}>
@@ -140,7 +142,8 @@ export function SessionScreen({
           </Button>
         </form>
         <p className="small muted">
-          {t("Os ativos de teste não têm valor monetário.")}
+          {network === "Testnet" &&
+            t("Os ativos de teste não têm valor monetário.")}
         </p>
       </section>
     </main>

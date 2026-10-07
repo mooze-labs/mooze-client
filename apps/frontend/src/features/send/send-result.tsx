@@ -1,3 +1,4 @@
+import { useNetwork } from "../../core/network";
 import { useSendAmount } from "./send-amount";
 import { Check, Clock, Search } from "lucide-react";
 import type { SubmissionView } from "./submission-view";
@@ -31,6 +32,7 @@ export function SendResult({
   busy: boolean;
 }) {
   const t = useT();
+  const network = useNetwork();
   const format = useSendAmount(assets);
   const Icon =
     view.phase === "confirmed"
@@ -64,7 +66,9 @@ export function SendResult({
       <section className="receipt" aria-label={t("Detalhes do envio")}>
         <div className="review-row">
           <span>{t("Rede")}</span>
-          <span>{view.chain} Testnet</span>
+          <span>
+            {view.chain} {network}
+          </span>
         </div>
         {view.request ? (
           <>

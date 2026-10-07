@@ -1,3 +1,4 @@
+import { useNetwork } from "../../core/network";
 import { Input } from "../../ui/input";
 import { SelectField } from "../../ui/select-field";
 import { usePreferences } from "../../i18n/preferences";
@@ -16,6 +17,7 @@ import {
 import { assetKey } from "../dashboard/holdings-model";
 export function HistoryPage({ data }: { data?: Snapshot }) {
   const t = useT();
+  const network = useNetwork();
   const { preferences } = usePreferences();
   const [filter, setFilter] = useState<ActivityFilter>({});
   const [params, setParams] = useSearchParams();
@@ -135,7 +137,7 @@ export function HistoryPage({ data }: { data?: Snapshot }) {
         {selected && (
           <>
             <p>
-              {selected.chain} {t("Testnet ·")} {t(statusText(selected))}
+              {selected.chain} {network + " ·"} {t(statusText(selected))}
             </p>
             <p>
               {t("Confirmações:")}

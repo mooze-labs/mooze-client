@@ -78,6 +78,16 @@ impl<P: Platform> App<P> {
     /// holds the state until its request returns or times out. Call
     /// `stop()` first when the state must go away now.
     pub async fn start(&self, config: StartConfigDto) -> Result<()> {
+        self.start_runtime(config, true).await
+    }
+
+    /// Chain synchronization for hosts that own authenticated Pix polling and its
+    /// session cancellation. Existing mobile `start` behavior stays unchanged.
+    pub async fn start_wallet_sync(&self, config: StartConfigDto) -> Result<()> {
+        self.start_runtime(config, false).await
+    }
+
+    async fn start_runtime(&self, config: StartConfigDto, poll_pix: bool) -> Result<()> {
         let inner = self.inner.clone();
         let cancel = {
             let mut slot = inner.runtime.cancel.lock().unwrap_or_else(|e| e.into_inner());
@@ -134,30 +144,32 @@ impl<P: Platform> App<P> {
         *inner.runtime.refresh.lock().unwrap_or_else(|e| e.into_inner()) = Some(sync_loop.refresh_handle());
         inner.runtime.spawn(spawner.as_ref(), Box::pin(sync_loop.run()));
 
-        // PIX poll loop.
-        let (pix_weak, pix_cancel, pix_timer) = (weak.clone(), cancel.clone(), timer.clone());
-        inner.runtime.spawn(
-            spawner.as_ref(),
-            Box::pin(async move {
-                loop {
-                    if pix_cancel.sleep_or_cancel(pix_timer.as_ref(), DEPOSIT_POLL_INTERVAL_MS).await {
-                        break;
-                    }
-                    let Some(inner) = pix_weak.upgrade() else {
-                        break;
-                    };
-                    let app = App { inner };
-                    if app.pix_active_polls().await.unwrap_or(0) == 0 {
-                        continue;
-                    }
-                    if let Ok(events) = app.pix_poll_tick().await {
-                        if !events.is_empty() {
-                            app.inner.subscribers.emit(AppEvent::PixStatus(events));
+        if poll_pix {
+            // PIX poll loop.
+            let (pix_weak, pix_cancel, pix_timer) = (weak.clone(), cancel.clone(), timer.clone());
+            inner.runtime.spawn(
+                spawner.as_ref(),
+                Box::pin(async move {
+                    loop {
+                        if pix_cancel.sleep_or_cancel(pix_timer.as_ref(), DEPOSIT_POLL_INTERVAL_MS).await {
+                            break;
+                        }
+                        let Some(inner) = pix_weak.upgrade() else {
+                            break;
+                        };
+                        let app = App { inner };
+                        if app.pix_active_polls().await.unwrap_or(0) == 0 {
+                            continue;
+                        }
+                        if let Ok(events) = app.pix_poll_tick().await {
+                            if !events.is_empty() {
+                                app.inner.subscribers.emit(AppEvent::PixStatus(events));
+                            }
                         }
                     }
-                }
-            }),
-        );
+                }),
+            );
+        }
 
         // Peg loop.
         if let Some(wallet_id) = config.peg_wallet_id {
@@ -277,6 +289,17 @@ mod tests {
 
     fn config() -> StartConfigDto {
         StartConfigDto { sync_tick_ms: None, sync_timeout_ms: None, startup_sync: false, peg_wallet_id: None }
+    }
+
+    #[test]
+    fn host_owned_pix_polling_does_not_spawn_an_unguarded_poll_loop() {
+        let (app, _plat, mut exec) = open_test_app_with_executor();
+        block_on(app.start_wallet_sync(config())).unwrap();
+        assert_eq!(app.inner.runtime.finishes.lock().unwrap().len(), 1);
+        exec.run_until_stalled();
+        block_on(app.stop()).unwrap();
+        exec.run_until_stalled();
+        assert!(!block_on(app.is_running()).unwrap());
     }
 
     #[test]

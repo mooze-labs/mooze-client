@@ -22,6 +22,18 @@ pub trait SwapSigner: MaybeSend + MaybeSync {
     /// Signs the SideSwap PSET (base64) and returns the signed PSET (base64).
     /// The implementation holds the Liquid spend lock while signing.
     fn sign_swap_pset(&self, pset_b64: &str) -> impl Future<Output = Result<String>> + MaybeSend;
+
+    /// Native hosts recheck session authority inside the wallet signing lock.
+    fn sign_swap_pset_authorized(
+        &self,
+        pset_b64: &str,
+        authorize: &(dyn Fn() -> Result<()> + Send + Sync),
+    ) -> impl Future<Output = Result<String>> + MaybeSend {
+        async move {
+            authorize()?;
+            self.sign_swap_pset(pset_b64).await
+        }
+    }
 }
 
 /// A swap mapped onto a SideSwap market.
@@ -348,6 +360,24 @@ impl<C: WsConnector, S: SwapSigner> SwapService<C, S> {
         self.sign_and_broadcast(quote_id, &pset).await
     }
 
+    /// Native confirmation: revocation is checked after preparation and before submission.
+    /// Submission errors are ambiguous once signed material has been sent.
+    pub async fn execute_swap_authorized(
+        &mut self,
+        quote_id: u64,
+        authorize: &(dyn Fn() -> Result<()> + Send + Sync),
+    ) -> Result<String> {
+        authorize()?;
+        self.stop_quote().await;
+        let pset = self.get_quote_pset(quote_id).await?;
+        let signed = self.signer.sign_swap_pset_authorized(&pset, authorize).await?;
+        authorize()?;
+        self.client
+            .taker_sign(quote_id, &signed)
+            .await
+            .map_err(|e| Error::SubmissionUnknown { chain: crate::domain::ChainId::Liquid, message: e.to_string() })
+    }
+
     /// Forces a reconnect and resets the quote lock.
     pub async fn force_reconnect(&mut self) -> Result<()> {
         self.gate.reset();
@@ -476,6 +506,16 @@ mod tests {
             return vec![reply(json!({"taker_sign": {"txid": "swaptxid"}}))];
         }
         vec![]
+    }
+
+    #[test]
+    fn revoked_authority_never_signs_a_swap() {
+        let ws = MockWs::new(server);
+        let signed = Arc::new(Mutex::new(Vec::new()));
+        let mut svc = SwapService::new(SideSwapClient::new(ws, "k"), FakeSigner { signed: signed.clone() });
+        block_on(svc.start_quote(LBTC, USDT, 20_000, 1000)).unwrap();
+        assert!(block_on(svc.execute_swap_authorized(123, &|| Err(Error::Session("locked".into())))).is_err());
+        assert!(signed.lock().unwrap().is_empty());
     }
 
     #[test]

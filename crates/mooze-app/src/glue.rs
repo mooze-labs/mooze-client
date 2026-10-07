@@ -99,6 +99,21 @@ impl<P: Platform> SwapSigner for LiquidPort<P> {
         async move { self.receive_address().await }
     }
 
+    fn sign_swap_pset_authorized(
+        &self,
+        pset_b64: &str,
+        authorize: &(dyn Fn() -> Result<()> + Send + Sync),
+    ) -> impl Future<Output = Result<String>> + MaybeSend {
+        let pset = pset_b64.to_owned();
+        async move {
+            let inner = self.inner()?;
+            let mnemonic = mnemonic(&inner).await?;
+            let guard = inner.liquid.lock().await;
+            authorize()?;
+            guard.as_ref().ok_or_else(|| not_connected(ChainId::Liquid))?.sign_swap_pset(&pset, &mnemonic)
+        }
+    }
+
     fn sign_swap_pset(&self, pset_b64: &str) -> impl Future<Output = Result<String>> + MaybeSend {
         let pset = pset_b64.to_owned();
         async move {

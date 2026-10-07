@@ -1,3 +1,4 @@
+import { NetworkContext } from "../../core/network";
 import { afterEach, expect, it, vi } from "vitest";
 import {
   cleanup,
@@ -45,7 +46,9 @@ it("copies an address separately from the exact TEST payment request", async () 
     >
       <WalletClientProvider client={client}>
         <MemoryRouter initialEntries={[`/receive?chain=Liquid&asset=${id}`]}>
-          <ReceivePage />
+          <NetworkContext.Provider value="Testnet">
+            <ReceivePage />
+          </NetworkContext.Provider>
         </MemoryRouter>
       </WalletClientProvider>
     </QueryClientProvider>,
@@ -109,7 +112,9 @@ it("keeps the current asset when an older request resolves last and hides invali
     >
       <WalletClientProvider client={client}>
         <MemoryRouter initialEntries={[`/receive?chain=Liquid&asset=${id}`]}>
-          <ReceivePage />
+          <NetworkContext.Provider value="Testnet">
+            <ReceivePage />
+          </NetworkContext.Provider>
         </MemoryRouter>
       </WalletClientProvider>
     </QueryClientProvider>,

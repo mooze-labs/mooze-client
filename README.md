@@ -5,10 +5,10 @@ The app logic lives in a Rust core. A Flutter app calls the core through flutter
 
 ![Mooze Logo](apps/mobile/assets/logos/logo_primary.svg)
 
-## Desktop testnet MVP
+## Desktop wallet
 
-A React + Tauri desktop client is available in `apps/frontend` and `apps/desktop`.
-Run `npm ci` and `npm run desktop:dev` from the repository root.
+A React + Tauri desktop client is available in `apps/frontend` and `apps/desktop`, with mainnet wallets, Pix deposits, and Liquid swaps.
+Run `npm ci` and `npm run desktop:dev` from the repository root. Testnet is a separate build: `npm run desktop:dev:testnet`.
 See [desktop setup, architecture, and verification](docs/desktop-mvp.md).
 
 ## Features

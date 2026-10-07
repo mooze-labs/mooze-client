@@ -10,7 +10,9 @@
     "desktop:build": "npm run build -w @mooze/desktop",
     "frontend:test": "npm run test -w @mooze/frontend",
     "frontend:typecheck": "npm run typecheck -w @mooze/frontend",
-    "frontend:build": "npm run build -w @mooze/frontend"
+    "frontend:build": "npm run build -w @mooze/frontend",
+    "desktop:dev:testnet": "npm run dev:testnet -w @mooze/desktop",
+    "desktop:build:testnet": "npm run build:testnet -w @mooze/desktop"
   },
   "devDependencies": {
     "prettier": "3.9.9"

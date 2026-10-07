@@ -3,7 +3,7 @@ use mooze_core::payment_request::{self, ExactPaymentRequest};
 impl<P: Platform + Clone> WalletSession<P> {
     pub fn parse_payment(&self, input: String) -> Result<ParsedPaymentDto> {
         self.authorize()?;
-        let parsed = payment_request::parse(&input, AppNetwork::Testnet)?;
+        let parsed = payment_request::parse(&input, crate::network::app_network())?;
         let chain = if parsed.chain == mooze_core::domain::ChainId::Bitcoin {
             WalletChain::Bitcoin
         } else {
@@ -17,10 +17,9 @@ impl<P: Platform + Clone> WalletSession<P> {
         } else {
             None
         };
-        if asset
-            .as_ref()
-            .is_some_and(|a| !mooze_app::assets::testnet_asset_metadata(a).approved)
-        {
+        if asset.as_ref().is_some_and(|a| {
+            !mooze_app::assets::asset_metadata(crate::network::network_dto(), a).approved
+        }) {
             return Err(DesktopError::new(
                 "unsupported_asset",
                 "Este ativo não está aprovado para envio.",
@@ -41,7 +40,7 @@ impl<P: Platform + Clone> WalletSession<P> {
         description: Option<String>,
     ) -> Result<ReceiveRequestDto> {
         let generation = self.authorize()?;
-        if !mooze_app::assets::testnet_asset_metadata(&asset).approved {
+        if !mooze_app::assets::asset_metadata(crate::network::network_dto(), &asset).approved {
             return Err(DesktopError::new(
                 "unsupported_asset",
                 "Ativo não aprovado.",
@@ -83,7 +82,7 @@ impl<P: Platform + Clone> WalletSession<P> {
     }
     pub async fn fee_options(&self, asset: AssetKeyDto) -> Result<FeeOptionsDto> {
         let generation = self.authorize()?;
-        if !mooze_app::assets::testnet_asset_metadata(&asset).approved {
+        if !mooze_app::assets::asset_metadata(crate::network::network_dto(), &asset).approved {
             return Err(DesktopError::new(
                 "unsupported_asset",
                 "Ativo não aprovado.",
@@ -97,11 +96,11 @@ impl<P: Platform + Clone> WalletSession<P> {
             .clone()
             .ok_or_else(|| DesktopError::new("locked", "Desbloqueie a carteira."))?;
         let (kind, source, rates) = if asset.chain == ChainDto::Liquid {
-            ("configured", "Liquid testnet", vec![0.1])
+            ("configured", "Liquid", vec![0.1])
         } else {
             match app.desktop_fee_rates().await {
-                Ok(rates) if !rates.is_empty() => ("live", "Nó Bitcoin testnet", rates),
-                _ => ("unavailable", "Nó Bitcoin testnet", vec![]),
+                Ok(rates) if !rates.is_empty() => ("live", "Nó Bitcoin", rates),
+                _ => ("unavailable", "Nó Bitcoin", vec![]),
             }
         };
         if generation != self.authorize()? {

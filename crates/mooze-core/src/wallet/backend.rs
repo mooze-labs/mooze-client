@@ -350,15 +350,28 @@ mod desktop_node_tests {
 
 /// Compare server-provided chain identity with the exact networks this desktop supports.
 pub fn validate_testnet_genesis(chain: ChainId, genesis: &str) -> crate::Result<()> {
+    validate_genesis(chain, AppNetwork::Testnet, genesis)
+}
+pub fn validate_genesis(chain: ChainId, network: AppNetwork, genesis: &str) -> crate::Result<()> {
     let expected = match chain {
-        ChainId::Bitcoin => bdk_wallet::bitcoin::constants::genesis_block(bdk_wallet::bitcoin::Network::Testnet)
-            .block_hash()
-            .to_string(),
-        ChainId::Liquid => lwk_common::Network::TestnetLiquid.genesis_hash().to_string(),
+        ChainId::Bitcoin => bdk_wallet::bitcoin::constants::genesis_block(match network {
+            AppNetwork::Mainnet => bdk_wallet::bitcoin::Network::Bitcoin,
+            AppNetwork::Testnet => bdk_wallet::bitcoin::Network::Testnet,
+            AppNetwork::Regtest => bdk_wallet::bitcoin::Network::Regtest,
+        })
+        .block_hash()
+        .to_string(),
+        ChainId::Liquid => (match network {
+            AppNetwork::Mainnet => lwk_common::Network::Liquid,
+            AppNetwork::Testnet => lwk_common::Network::TestnetLiquid,
+            AppNetwork::Regtest => lwk_common::Network::default_regtest(),
+        })
+        .genesis_hash()
+        .to_string(),
         _ => return Err(crate::Error::InvalidInput("unsupported chain".into())),
     };
     if !genesis.eq_ignore_ascii_case(&expected) {
-        return Err(crate::Error::InvalidInput("node is not on the requested testnet".into()));
+        return Err(crate::Error::InvalidInput("node is not on the requested network".into()));
     }
     Ok(())
 }
@@ -366,6 +379,15 @@ pub fn validate_testnet_genesis(chain: ChainId, genesis: &str) -> crate::Result<
 /// Read public server metadata without sending any wallet address or descriptor.
 #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
 pub async fn probe_testnet_node(chain: ChainId, url: &str, config: &ElectrumConfig) -> crate::Result<String> {
+    probe_node(chain, AppNetwork::Testnet, url, config).await
+}
+#[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
+pub async fn probe_node(
+    chain: ChainId,
+    network: AppNetwork,
+    url: &str,
+    config: &ElectrumConfig,
+) -> crate::Result<String> {
     use bdk_electrum::electrum_client::{Client, ConfigBuilder, ElectrumApi};
     let target = normalize_electrum_url(url);
     let options =
@@ -381,6 +403,6 @@ pub async fn probe_testnet_node(chain: ChainId, url: &str, config: &ElectrumConf
             .ok_or_else(|| crate::Error::protocol("node did not provide a genesis hash"))
     })
     .await??;
-    validate_testnet_genesis(chain, &genesis)?;
+    validate_genesis(chain, network, &genesis)?;
     Ok(genesis)
 }

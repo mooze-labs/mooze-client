@@ -1,3 +1,4 @@
+import { useNetwork } from "../../core/network";
 import { useSendAmount } from "./send-amount";
 import type { Review } from "../../core/client";
 import type {
@@ -28,15 +29,16 @@ export function SendReviewView({
   name: (asset: AssetKeyDto) => string;
 }) {
   const t = useT();
+  const network = useNetwork();
   const format = useSendAmount(assets);
   return (
-    <>
+    <div className="flow-step">
       <p className="eyebrow">{t("REVISÃO DO ENVIO")}</p>
       <h2>{t("Confirme os detalhes")}</h2>
       <div className="review-row">
         <span>{t("Rede")}</span>
         <span>
-          {review.request.asset.chain} {t("Testnet")}
+          {review.request.asset.chain} {network}
         </span>
       </div>
       <div className="review-row">
@@ -83,6 +85,6 @@ export function SendReviewView({
           {busy ? t("Enviando…") : t("Confirmar envio")}
         </Button>
       </div>
-    </>
+    </div>
   );
 }

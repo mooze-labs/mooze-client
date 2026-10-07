@@ -1,0 +1,16 @@
+{
+  "productName": "Mooze Testnet",
+  "identifier": "app.mooze.desktop.testnet",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Mooze \u00b7 Testnet",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700
+      }
+    ]
+  }
+}

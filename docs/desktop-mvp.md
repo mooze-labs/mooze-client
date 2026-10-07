@@ -1,53 +1,58 @@
-# Mooze desktop testnet MVP
+# Desktop wallet
 
-The desktop client uses Tauri 2, React 19, and the existing `mooze_app` facade. It imports one English BIP39 wallet and supports Bitcoin testnet3 and Liquid testnet. There is no mainnet switch.
+The desktop client uses Tauri 2, React, and the host-neutral `mooze-app` facade over `mooze-core`. Mainnet is the default build. Cargo feature `testnet` selects a separate testnet-only application; there is no runtime network switch.
 
-## Run on macOS
+## Run and build
 
-Install the Rust toolchain, Node 22+, npm, and Xcode command-line tools, then run from the repository root:
+Install the Rust toolchain, Node 22+, npm, and Xcode command-line tools on macOS, then run from the repository root:
 
 ```sh
 npm ci
 npm run desktop:dev
+npm run desktop:build
 ```
 
-For an application bundle:
+Testnet keeps the previous bundle identity and wallet storage:
 
 ```sh
-npm run desktop:build
-# Faster, unoptimized local validation:
-npm exec -w @mooze/desktop -- tauri build --debug --bundles app
+npm run desktop:dev:testnet
+npm run desktop:build:testnet
 ```
 
-The bundle appears under `apps/desktop/src-tauri/target/{release,debug}/bundle/macos/`. Distribution signing, notarization, and an updater are outside this MVP. Windows and Linux are not yet verified.
+The testnet scripts pair Cargo's `testnet` feature with `apps/desktop/src-tauri/tauri.testnet.conf.json`. Direct Cargo test/codegen builds automatically select that overlay when no `TAURI_CONFIG` is supplied. An explicitly mismatched identifier is rejected by the build script. Do not use `--all-features` to build a production application: it selects testnet too.
 
-Use a dedicated testnet recovery phrase. Import requires a six-digit PIN. Each process starts locked; losing window focus or pressing **Bloquear carteira** locks it immediately. After five incorrect PIN attempts, a persisted 30-second delay applies. The application never erases the wallet for failed authentication.
+Bundles appear under `apps/desktop/src-tauri/target/{release,debug}/bundle/macos/`. For faster local bundle checks, use `npm exec -w @mooze/desktop -- tauri build --debug --bundles app` (add the testnet feature and overlay for testnet). Distribution signing, notarization, updater delivery, Windows, and Linux remain separate verification work.
 
-## Architecture and data
+## Network and storage isolation
 
-- `apps/frontend`: Mooze CSS, unstyled Base UI buttons/dialogs and native semantic controls. Fonts are bundled from pinned Fontsource packages. The frontend's `DesktopClient` interface separates presentation from Tauri.
-- `apps/desktop/src-tauri`: a narrow allowlist of commands, authorization, OS storage, sync events and send reviews. No generic facade dispatcher, filesystem command, or secret-store command is exposed to the webview.
-- `crates/mooze-app`: shared application facade and runtime. Per-chain sync events are additive; the Flutter bridge remains compatible.
-- `crates/mooze-core`: network-aware Liquid policy classification, bounded transaction fees, and a pre-sign authorization callback.
+| Build | Tauri identifier / OS credential service | Data suffix |
+| --- | --- | --- |
+| Mainnet (default) | `app.mooze.desktop` | `mainnet/wallet.json` |
+| Testnet | `app.mooze.desktop.testnet` | `testnet/wallet.json` |
 
-Non-secret wallet state lives in the Tauri app-data directory for `app.mooze.desktop.testnet`, under `testnet/wallet.json`. Writes serialize an atomic map replacement; Unix directory/file permissions are 0700/0600. Secrets live in the OS credential service `app.mooze.desktop.testnet`, item `wallet-secrets`, as one atomically updated map. There is no plaintext fallback. The PIN gates application operations; OS credential access controls protect the stored secret. Import/unlock form values are kept out of query caches.
+Data paths are relative to each identifier's Tauri app-data directory. Testnet paths and the existing `wallet-secrets` credential item are preserved. Mainnet does not import or copy existing testnet credentials. Each build imports or creates its own wallet and uses a six-digit PIN. Mnemonics, PIN hashes, backend tokens, nodes, and activity stay in their own namespaces. `MOOZE_TESTNET_PROFILE` is restricted to debug testnet builds.
 
-The imported mnemonic has an empty BIP39 passphrase, matching mobile. Existing Bitcoin derivation intentionally keeps coin type `0h` on testnet for compatibility; Liquid uses the core's testnet descriptors. Testnet balances are not priced in BRL. Unknown Liquid assets retain their IDs and show raw units, with no guessed decimal precision.
+The core supplies chain endpoints, address validation, Liquid policy identity, and asset precision. Mainnet supports BTC, L-BTC, DEPIX, and USDT; testnet retains BTC, L-BTC, and the existing TEST asset. Unknown assets stay visible with their identity and raw units. Custom Electrum nodes must report the selected chain's genesis hash.
 
-The default endpoints are inherited from the core:
+## Backend, Pix, and swaps
 
-| Chain | Endpoint |
-| --- | --- |
-| Bitcoin testnet3 | `ssl://electrum.blockstream.info:60002` |
-| Liquid testnet | `ssl://blockstream.info:465` |
+React calls only typed Tauri commands. Authentication and financial operations go through Rust. Backend sign-in uses the wallet's challenge signature via `auth_ensure_session`; JWT/refresh tokens stay in OS credential storage. A backend outage does not prevent on-chain wallet use. The backend status offers a retry.
 
-The runtime refreshes every 60 seconds, with per-chain timeouts. Sync continues while locked, but wallet events are suppressed and UI caches are cleared. A failed chain is displayed independently; an unsynchronized balance is not shown as a confirmed zero.
+- `MOOZE_BACKEND_API_URL`: optional HTTPS backend override, read by the native process. Omission uses the core default. Changing the configured backend invalidates stored backend tokens before authentication.
+- SideSwap defaults to the same public application API key embedded in mobile. `SIDESWAP_API_KEY` optionally overrides it at native runtime or build time (runtime takes precedence). An explicitly empty override disables swaps. The key stays in native configuration and is not returned to React.
+- Pix and SideSwap production operations are disabled in testnet builds. No test payment-service endpoint is invented.
 
-## Sending
+Pix accepts exact BRL cents and a **required, valid payer CPF/CNPJ**. Rust validates the taxpayer ID before creating a deposit to the connected Liquid wallet. The UI displays the returned QR/copy code, expiry from the core's polling rule, payment/settlement status, and local deposit history. While the Pix screen is open, history refreshes nonterminal deposits through session-guarded core calls; returning to the screen refreshes stored deposits again. Desktop starts chain synchronization without the facade's independent Pix loop, so backend authentication stays within native session cancellation. A payment received status does not imply asset settlement.
 
-Enter a testnet address, amount using a decimal comma, and an explicit fee rate. The initial fee rates are editable defaults, not live estimates. Review expires after 60 seconds and is bound to the session. Confirmation accepts only an opaque review ID, consumed once.
+A failed creation response is retained as uncertain, since the backend may have accepted the request. Automatic retry cannot create another deposit. The user can explicitly acknowledge having checked the previous request before creating another. The existing facade has no backend-wide deposit discovery/idempotency API: a lost creation response without a stored deposit ID cannot be recovered from local history alone.
 
-The core checks the fee of the transaction it will sign against the reviewed maximum. A lock during preparation revokes signing authorization. Once signing starts, a later lock cannot revoke an already submitted transaction. A lost broadcast response is shown as an uncertain result; the application never automatically repeats a send. Refresh history before deciding whether to submit another transaction.
+Swaps use the core's supported Liquid markets, quote stream, and PSET signing. Rust normalizes direction and fee denomination, stores a single-use review ID, and checks session authority and quote lifetime again before signing and submission. Review authority expires at the provider TTL or 60 seconds, whichever is sooner. Changing inputs invalidates UI confirmation immediately. Sends and swaps share spending exclusion and check each other's durable submission records.
+
+An interrupted or lost swap submission response stays uncertain across restart. The application does not automatically repeat it or allow an unresolved swap journal to be dismissed as success. Check wallet activity before resolving an uncertain financial operation; no automated reconciliation is claimed for a swap whose txid was never returned.
+
+## Session lifecycle
+
+PIN retry delays remain persisted. Locking revokes authorization immediately and clears wallet UI caches, then stops the application runtime and SideSwap connection. Idle expiry performs the same cleanup from the native tick. Unlock reconnects with a fresh event subscription bound to the new generation. Obsolete events cannot update new session state. Wallet removal serializes against Pix, swaps, and backend authentication before clearing that wallet's namespace.
 
 ## Verification
 
@@ -55,25 +60,22 @@ The core checks the fee of the transaction it will sign against the reviewed max
 npm run frontend:test
 npm run frontend:typecheck
 npm run frontend:build
-cargo test --locked --manifest-path crates/mooze-core/Cargo.toml --features electrum,http-reqwest
-cargo test --locked --manifest-path crates/mooze-app/Cargo.toml --features codegen,electrum,http-reqwest
+cargo test --locked --manifest-path crates/mooze-core/Cargo.toml
+cargo test --locked --manifest-path crates/mooze-app/Cargo.toml
 cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --features codegen
+cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --features codegen,testnet
 cargo check --locked --manifest-path packages/mooze_core_bridge/rust/Cargo.toml
 ```
 
-Regenerate facade types with its `codegen` binary; regenerate host DTOs using `npm run codegen -w @mooze/desktop`. Both have freshness tests. The desktop CI job runs on macOS.
+Regenerate desktop DTOs with `npm run codegen -w @mooze/desktop`. Facade types remain compatible with the Flutter bridge. The desktop CI matrix tests both network builds on macOS. WebSocket unit tests require permission to bind localhost test sockets.
 
-The explicitly ignored `native_smoke` integration test uses a random test wallet, a temporary directory, and an isolated OS credential item. It checks actual import, Keychain persistence, restart lock, receive, and public testnet synchronization. It never submits a transaction:
+Public testnet smoke tests are feature-gated and explicitly opt-in; they do not submit transactions:
 
 ```sh
-cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --test native_smoke -- --ignored --nocapture
+cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --features testnet --test native_smoke -- --ignored --nocapture
 ```
 
-Validation results and native screenshots are recorded below after verification. Automated tests do not prove a funded broadcast or confirmation.
-
-## Scope
-
-Included screens: import/unlock, Home, assets, history/details, receive, send/review/result, and minimal security/settings. This slice excludes wallet creation, custom nodes, PIX, swaps, pegs, wallet levels, merchant tools, fiat pricing, browser-wallet support, and release distribution. These remain later desktop work, not removed product requirements.
+See [mainnet integration validation](desktop-mainnet-validation.md) for this change's checks and limitations. Earlier validation records below describe previous testnet increments, not evidence of current mainnet transactions.
 
 ## Validation record — 2026-10-06
 
