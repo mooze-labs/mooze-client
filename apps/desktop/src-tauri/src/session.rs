@@ -1,7 +1,9 @@
+mod account;
 pub mod backend;
 pub mod idle;
 mod payments;
 mod pix;
+mod prices;
 mod security;
 mod settings;
 mod setup;

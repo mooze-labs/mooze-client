@@ -98,6 +98,11 @@ pub fn generated_types() -> String {
     let config = Config::new().with_large_int("number");
     macro_rules! export {($($t:ty),*)=>{$(out.push_str("export ");out.push_str(&<$t>::decl(&config));out.push('\n');)*};}
     export!(
+        AccountTierDto,
+        AccountLevelDto,
+        PriceMarketDto,
+        PricePointDto,
+        PriceHistoryDto,
         SwapRequestDto,
         SwapReviewDto,
         SwapStateDto,

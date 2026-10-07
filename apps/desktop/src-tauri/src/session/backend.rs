@@ -52,7 +52,7 @@ impl<P: Platform + Clone> WalletSession<P> {
         if !crate::network::production_services_enabled() {
             return Err(DesktopError::new(
                 "unavailable",
-                "Este serviço está disponível apenas na mainnet.",
+                "Este serviço está indisponível nesta rede.",
             ));
         }
         let app = self

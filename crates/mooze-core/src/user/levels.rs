@@ -288,7 +288,7 @@ pub const DEFAULT_USER_LEVELS: [DefaultUserLevel; 4] = [
     DefaultUserLevel { order: 0, name: "Bronze", min_amount: 20.0, max_amount: 250.0 },
     DefaultUserLevel { order: 1, name: "Silver", min_amount: 20.0, max_amount: 500.0 },
     DefaultUserLevel { order: 2, name: "Gold", min_amount: 20.0, max_amount: 1000.0 },
-    DefaultUserLevel { order: 3, name: "Diamond", min_amount: 20.0, max_amount: 30000.0 },
+    DefaultUserLevel { order: 3, name: "Diamond", min_amount: 20.0, max_amount: 3000.0 },
 ];
 
 /// Default level by order. `None` out of range.
@@ -349,7 +349,7 @@ mod tests {
         "bronze":  {"max_limit": 25000,   "min_limit": 2000},
         "silver":  {"max_limit": 50000,   "min_limit": 2000},
         "gold":    {"max_limit": 100000,  "min_limit": 2000},
-        "diamond": {"max_limit": 3000000, "min_limit": 2000},
+        "diamond": {"max_limit": 300000, "min_limit": 2000},
         "platinum": {"max_limit": 1, "min_limit": 1}
       }
     }"#;
@@ -362,7 +362,7 @@ mod tests {
         let levels = r.to_levels();
         assert_eq!(levels.len(), 4);
         assert_eq!(levels[3].level_type, WalletLevelType::Diamond);
-        assert_eq!(levels[3].limits.max_limit_in_reais(), 30000.0);
+        assert_eq!(levels[3].limits.max_limit_in_reais(), 3000.0);
         assert_eq!(r.level_by_type(WalletLevelType::Gold).unwrap().limits.max_limit, 100000);
         // Round trip keeps the order.
         let again = WalletLevelsResponse::from_json_str(&serde_json::to_string(&r).unwrap()).unwrap();
@@ -396,7 +396,7 @@ mod tests {
         assert_eq!(d.current_level_min_limit, 20.0);
         assert_eq!(d.current_level_max_limit, 500.0);
         assert_eq!(d.absolute_min_limit, 20.0);
-        assert_eq!(d.absolute_max_limit, 30000.0);
+        assert_eq!(d.absolute_max_limit, 3000.0);
         assert!((d.remaining_limit - 4876.55).abs() < 1e-9);
         assert!((d.daily_limit_progress() - 0.02469).abs() < 1e-9);
         assert_eq!(d.current_level(), WalletLevelType::Silver);
