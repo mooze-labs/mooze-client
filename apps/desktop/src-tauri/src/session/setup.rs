@@ -25,11 +25,22 @@ impl<P: Platform + Clone> WalletSession<P> {
             .map(str::to_owned)
             .collect();
         let id = uuid::Uuid::new_v4().to_string();
-        let indices = vec![0, words.len() as u32 / 2, words.len() as u32 - 1];
+        // Random ordering samples distinct positions without excluding repeated words.
+        let mut positions: Vec<_> = (0..words.len() as u32)
+            .map(|index| (uuid::Uuid::new_v4(), index))
+            .collect();
+        positions.sort_unstable();
+        let mut indices: Vec<_> = positions
+            .into_iter()
+            .take(3)
+            .map(|(_, index)| index)
+            .collect();
+        indices.sort_unstable();
         let result = SetupDto {
             setup_id: id.clone(),
             words: words.clone(),
             challenge_indices: indices.clone(),
+            expires_at_ms: self.platform.clock().now_ms().saturating_add(600_000),
         };
         *self.setup.lock().unwrap() = Some(SetupCandidate {
             id,
@@ -63,9 +74,10 @@ impl<P: Platform + Clone> WalletSession<P> {
             let candidate = guard
                 .as_ref()
                 .ok_or_else(|| DesktopError::new("setup_expired", "Crie uma nova frase."))?;
-            if candidate.id != id
-                || candidate.created.elapsed() >= std::time::Duration::from_secs(600)
-            {
+            if candidate.id != id {
+                return Err(DesktopError::new("setup_expired", "Crie uma nova frase."));
+            }
+            if candidate.created.elapsed() >= std::time::Duration::from_secs(600) {
                 *guard = None;
                 return Err(DesktopError::new("setup_expired", "Crie uma nova frase."));
             }
@@ -81,10 +93,20 @@ impl<P: Platform + Clone> WalletSession<P> {
                     "Confira as palavras da recuperação.",
                 ));
             }
-            let phrase = candidate.words.join(" ");
-            *guard = None;
-            phrase
+            candidate.words.join(" ")
         };
-        self.import_wallet(phrase, pin).await
+        let result = self.import_wallet(phrase, pin).await;
+        // Keep the same backup usable after a pre-commit failure. A saved wallet
+        // must instead be unlocked; never overwrite it on a setup retry.
+        let committed = self
+            .platform
+            .kv()
+            .get(IMPORT)
+            .await
+            .is_ok_and(|value| value == Some(b"complete".to_vec()));
+        if result.is_ok() || committed {
+            self.cancel_setup(id)?;
+        }
+        result
     }
 }

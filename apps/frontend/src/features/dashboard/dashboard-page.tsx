@@ -1,3 +1,6 @@
+import { FiatSummary } from "../prices/fiat-value";
+import { FirstSyncNotice } from "../setup/first-sync-notice";
+import { useWalletClient } from "../../app/client-context";
 import { PageHeader } from "../../ui/page-header";
 import { LoadingRows } from "../../ui/loading-rows";
 import { useT } from "../../i18n/messages";
@@ -20,13 +23,19 @@ export function DashboardPage({
   host: HostInfo;
 }) {
   const t = useT();
-  const { query, rows } = useHoldingViews(data);
+  const client = useWalletClient();
+  const { query, rows, fiat } = useHoldingViews(data);
   return (
     <div className="wallet-overview">
       <PageHeader
         title={t("Sua carteira")}
         description={t("Seus ativos e suas movimentações, em um só lugar.")}
       />
+      <FirstSyncNotice
+        chains={query.data?.chains ?? []}
+        retry={() => client.refresh()}
+      />
+      {!query.isPending && rows.length > 0 && <FiatSummary fiat={fiat} />}
       <nav className="wallet-quick-actions" aria-label={t("Ações da carteira")}>
         <NavLink className="quick-action" to="/receive">
           <span>
@@ -67,7 +76,7 @@ export function DashboardPage({
           {query.isPending ? (
             <LoadingRows label={t("Carregando ativos…")} />
           ) : (
-            <HoldingsTable rows={rows} />
+            <HoldingsTable rows={rows} fiat={fiat.values} />
           )}
         </section>
         <section className="recent-activity">

@@ -29,6 +29,9 @@ export const client: DesktopClient = {
   receiveRequest: (asset, amountUnits, description) =>
     invoke("receive_request", { asset, amountUnits, description }),
   feeOptions: (asset) => invoke("fee_options", { asset }),
+  recoveryWords: () => invoke("recovery_words"),
+  validateRecoveryPhrase: (phrase) =>
+    invoke("validate_recovery_phrase", { phrase }),
   beginSetup: (extended) => invoke("begin_setup", { extended }),
   cancelSetup: (setupId) => invoke("cancel_setup", { setupId }),
   completeSetup: (setupId, answers, pin) =>

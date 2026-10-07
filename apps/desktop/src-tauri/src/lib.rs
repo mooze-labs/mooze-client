@@ -83,6 +83,8 @@ pub fn run() {
             commands::save_display,
             commands::set_lock_minutes,
             commands::begin_setup,
+            commands::recovery_words,
+            commands::validate_recovery_phrase,
             commands::cancel_setup,
             commands::complete_setup,
             commands::reveal_recovery_phrase,

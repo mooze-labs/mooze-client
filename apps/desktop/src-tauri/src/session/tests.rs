@@ -910,3 +910,32 @@ async fn market_history_returns_timestamps_without_wallet_data_or_auth() {
         .keys()
         .any(|k| k.eq_ignore_ascii_case("authorization")));
 }
+
+#[tokio::test]
+async fn setup_retries_same_phrase_after_storage_failure() {
+    let p = platform();
+    let s = WalletSession::new(p.clone(), BackendDto::Esplora);
+    let candidate = s.begin_setup(false).await.unwrap();
+    let answers: Vec<String> = candidate
+        .challenge_indices
+        .iter()
+        .map(|i| candidate.words[*i as usize].clone())
+        .collect();
+    p.secure.fail_at.store(1, Ordering::SeqCst);
+    assert!(s
+        .complete_setup(candidate.setup_id.clone(), answers.clone(), "123456".into())
+        .await
+        .is_err());
+    assert_eq!(s.status().await.unwrap().status, "empty");
+    assert_eq!(
+        s.complete_setup(candidate.setup_id, answers, "123456".into())
+            .await
+            .unwrap()
+            .status,
+        "unlocked"
+    );
+    assert_eq!(
+        s.reveal_recovery_phrase("123456".into()).await.unwrap(),
+        candidate.words
+    );
+}

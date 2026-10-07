@@ -4,7 +4,7 @@
 //! (256 bits) with the "extended phrase" option. Only English is supported.
 
 use bdk_wallet::bitcoin::secp256k1::rand::{thread_rng, RngCore};
-use bdk_wallet::keys::bip39::Mnemonic;
+use bdk_wallet::keys::bip39::{Language, Mnemonic};
 
 use crate::{Error, Result};
 
@@ -34,6 +34,11 @@ pub fn normalize(phrase: &str) -> String {
 /// Parses and checks a phrase (word list and checksum).
 pub fn parse(phrase: &str) -> Result<Mnemonic> {
     Mnemonic::parse_normalized(&normalize(phrase)).map_err(|e| Error::invalid(format!("mnemonic: {e}")))
+}
+
+/// Standard English recovery words for local input assistance.
+pub fn english_words() -> &'static [&'static str; 2048] {
+    Language::English.word_list()
 }
 
 /// True if the phrase is a valid English BIP39 mnemonic.

@@ -200,6 +200,7 @@ pub struct SetupDto {
     pub setup_id: String,
     pub words: Vec<String>,
     pub challenge_indices: Vec<u32>,
+    pub expires_at_ms: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

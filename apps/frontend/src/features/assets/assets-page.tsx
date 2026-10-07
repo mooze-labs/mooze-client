@@ -1,3 +1,6 @@
+import { useHoldingFiat } from "../prices/use-holding-fiat";
+import { HoldingFiatValue } from "../prices/fiat-value";
+import type { FiatValue } from "../prices/holding-fiat";
 import { AssetPriceChart } from "../prices/asset-price-chart";
 import { PageHeader } from "../../ui/page-header";
 import { useNetworkLabel } from "../../core/network";
@@ -24,14 +27,21 @@ export function useHoldingViews(data?: Snapshot) {
   const keys =
     data?.activity.flatMap((t) => t.movements.map((m) => assetKey(m.asset))) ??
     [];
-  return {
-    query,
-    rows: selectHoldings(
-      query.data?.holdings ?? [],
-      query.data?.chains ?? [],
-      keys,
+  const rows = selectHoldings(
+    query.data?.holdings ?? [],
+    query.data?.chains ?? [],
+    keys,
+  );
+  // Detail pages can display zero-balance assets omitted from the overview.
+  const valuationRows = selectHoldings(
+    query.data?.holdings ?? [],
+    query.data?.chains ?? [],
+    (query.data?.holdings ?? []).map((holding) =>
+      assetKey(holding.metadata.key),
     ),
-  };
+  );
+  const fiat = useHoldingFiat(valuationRows);
+  return { query, rows, fiat };
 }
 export function HoldingValue({
   row,
@@ -51,7 +61,13 @@ export function HoldingValue({
     </>
   );
 }
-export function HoldingsTable({ rows }: { rows: HoldingView[] }) {
+export function HoldingsTable({
+  rows,
+  fiat,
+}: {
+  rows: HoldingView[];
+  fiat?: Record<string, FiatValue>;
+}) {
   const t = useT();
   const buildNetwork = useNetworkLabel();
   return (
@@ -78,6 +94,7 @@ export function HoldingsTable({ rows }: { rows: HoldingView[] }) {
           </div>
           <div className="holding-balance">
             <HoldingValue row={row} />
+            {fiat?.[row.key] && <HoldingFiatValue value={fiat[row.key]} />}
             {row.balanceText !== null &&
               row.pending_units !== null &&
               BigInt(row.pending_units) !== 0n && (
@@ -102,7 +119,7 @@ export function HoldingsTable({ rows }: { rows: HoldingView[] }) {
 export function AssetsPage({ data }: { data?: Snapshot }) {
   const t = useT();
   const buildNetwork = useNetworkLabel();
-  const { query, rows } = useHoldingViews(data);
+  const { query, rows, fiat } = useHoldingViews(data);
   const [search, setSearch] = useState("");
   const [network, setNetwork] = useState("all");
   const filtered = rows.filter(
@@ -139,7 +156,7 @@ export function AssetsPage({ data }: { data?: Snapshot }) {
       {query.isPending ? (
         <p>{t("Carregando ativos…")}</p>
       ) : filtered.length ? (
-        <HoldingsTable rows={filtered} />
+        <HoldingsTable rows={filtered} fiat={fiat.values} />
       ) : (
         <p>{t("Nenhum ativo corresponde aos filtros.")}</p>
       )}
@@ -150,7 +167,7 @@ export function AssetPage({ data }: { data?: Snapshot }) {
   const t = useT();
   const buildNetwork = useNetworkLabel();
   const { chain, assetKey: routeKey } = useParams();
-  const { query } = useHoldingViews(data);
+  const { query, fiat } = useHoldingViews(data);
   const holding = query.data?.holdings.find(
     (h) =>
       h.metadata.key.chain === chain &&
@@ -190,6 +207,9 @@ export function AssetPage({ data }: { data?: Snapshot }) {
         <h1>{row.metadata.ticker ?? t("Ativo não listado")}</h1>
         <p className="asset-total">
           <HoldingValue row={row} mode="exact" />
+          {fiat.values[row.key] && (
+            <HoldingFiatValue value={fiat.values[row.key]} />
+          )}
         </p>
         {row.available_units !== null && (
           <p className="muted">

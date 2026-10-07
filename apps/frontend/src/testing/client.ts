@@ -37,6 +37,8 @@ export function fakeClient(): DesktopClient {
       observed_at_ms: 0,
       rates: [],
     })),
+    recoveryWords: vi.fn(async () => []),
+    validateRecoveryPhrase: vi.fn(),
     beginSetup: vi.fn(),
     cancelSetup: vi.fn(async () => {}),
     completeSetup: vi.fn(),
