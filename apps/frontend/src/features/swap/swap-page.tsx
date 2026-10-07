@@ -1,5 +1,5 @@
 import { ArrowDownUp, Layers2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWalletClient } from "../../app/client-context";
 import { useWalletSession } from "../../app/session-provider";
@@ -58,12 +58,10 @@ export function SwapPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const now = useNow();
-  useEffect(
-    () => () => {
-      void client.swapStop().catch(() => {});
-    },
-    [client, session?.generation],
-  );
+  const quoteQueue = useRef<Promise<void>>(Promise.resolve());
+  const immediateQuote = useRef(false);
+  const [quoteRequest, setQuoteRequest] = useState(0);
+  const [quoting, setQuoting] = useState(false);
   const source = send || markets.data?.[0]?.base_asset_id || "";
   const destinations =
     markets.data?.flatMap((m) =>
@@ -103,6 +101,68 @@ export function SwapPage() {
   const submitted = ["Submitting", "Succeeded", "Uncertain"].includes(
     state.data?.phase || "",
   );
+  // Serialize subscription changes: a slow start must finish before its stop
+  // and replacement. Cleanup also prevents obsolete responses updating the UI.
+  useEffect(() => {
+    setReviewAllowed(false);
+    setQuoting(false);
+    if (!enabled || submitted) return;
+    let active = true;
+    const queryKey = ["wallet", session?.generation, "swap"];
+    const delay = immediateQuote.current ? 0 : 800;
+    immediateQuote.current = false;
+    const validAmount = parseAssetAmount(amount);
+    const timer =
+      validAmount.ok && !exceeds && source && target
+        ? setTimeout(() => {
+            setQuoting(true);
+            setError("");
+            quoteQueue.current = quoteQueue.current.then(async () => {
+              if (!active) return;
+              try {
+                await qc.cancelQueries({ queryKey });
+                if (!active) return;
+                const next = await client.swapStart({
+                  send_asset_id: source,
+                  receive_asset_id: target,
+                  amount_units: validAmount.value.toString(),
+                });
+                if (!active) return;
+                await qc.cancelQueries({ queryKey });
+                if (!active) return;
+                qc.setQueryData(queryKey, next);
+                setReviewAllowed(true);
+              } catch (e) {
+                if (active) setError(errorText(e));
+              } finally {
+                if (active) setQuoting(false);
+              }
+            });
+          }, delay)
+        : undefined;
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      quoteQueue.current = quoteQueue.current.then(async () => {
+        try {
+          await client.swapStop();
+        } catch {
+          // Best effort on navigation; the next start replaces the subscription.
+        }
+      });
+    };
+  }, [
+    amount,
+    source,
+    target,
+    enabled,
+    exceeds,
+    submitted,
+    client,
+    qc,
+    session?.generation,
+    quoteRequest,
+  ]);
   const currentReview =
     reviewAllowed &&
     state.data?.phase === "Review" &&
@@ -114,33 +174,16 @@ export function SwapPage() {
     setSend(target);
     setReceive(source);
     setAmount("");
-    void stopEditing().catch((e) => setError(errorText(e)));
+    stopEditing();
   }
-  async function stopEditing() {
+  function stopEditing() {
     setReviewAllowed(false);
-    await client.swapStop();
-    await qc.invalidateQueries({ queryKey: key });
-  }
-  async function quote() {
-    if (!parsed.ok || busy) return;
-    setBusy(true);
     setError("");
-    try {
-      await qc.cancelQueries({ queryKey: key });
-      qc.setQueryData(
-        key,
-        await client.swapStart({
-          send_asset_id: source,
-          receive_asset_id: target,
-          amount_units: parsed.value.toString(),
-        }),
-      );
-      setReviewAllowed(true);
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy(false);
-    }
+  }
+  function quote() {
+    if (!parsed.ok || busy || quoting || exceeds || !source || !target) return;
+    immediateQuote.current = true;
+    setQuoteRequest((value) => value + 1);
   }
   async function confirm() {
     const review = state.data?.review;
@@ -232,7 +275,7 @@ export function SwapPage() {
                   disabled={busy}
                   onChange={(e) => {
                     setAmount(e.target.value);
-                    void stopEditing().catch((e) => setError(errorText(e)));
+                    stopEditing();
                   }}
                 />
                 <SelectField
@@ -246,7 +289,7 @@ export function SwapPage() {
                   disabled={busy}
                   onValueChange={(id) => {
                     setSend(id);
-                    void stopEditing().catch((e) => setError(errorText(e)));
+                    stopEditing();
                   }}
                 />
               </div>
@@ -298,7 +341,7 @@ export function SwapPage() {
                   disabled={busy}
                   onValueChange={(id) => {
                     setReceive(id);
-                    void stopEditing().catch((e) => setError(errorText(e)));
+                    stopEditing();
                   }}
                 />
               </div>
@@ -327,9 +370,11 @@ export function SwapPage() {
               type="submit"
               variant="default"
               className="swap-primary-action primary"
-              disabled={busy || !parsed.ok || !source || !target || exceeds}
+              disabled={
+                busy || quoting || !parsed.ok || !source || !target || exceeds
+              }
             >
-              {t(busy ? "Aguarde…" : "Obter cotação")}
+              {t(busy || quoting ? "Aguarde…" : "Obter cotação")}
             </Button>
             {markets.isPending && <p>{t("Carregando mercados…")}</p>}
             {markets.data?.length === 0 && (
