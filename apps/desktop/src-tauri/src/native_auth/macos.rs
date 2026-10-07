@@ -30,6 +30,7 @@ use std::{
     cell::RefCell,
     sync::atomic::{AtomicU64, Ordering},
 };
+use tauri::Manager;
 use tokio::sync::oneshot;
 
 // Only accessed through AppHandle::run_on_main_thread; no ObjC object crosses threads.
@@ -91,6 +92,15 @@ impl NativeAuthenticator for MacAuthenticator {
             let cancelled = self.cancelled_through.clone();
             let _ = self.app.run_on_main_thread(move || {
                 if cancelled.load(Ordering::SeqCst) >= id {
+                    let _ = tx.send(NativeOutcome::Cancelled);
+                    return;
+                }
+                // Recheck at the OS boundary: the window may have lost focus
+                // while Rust was probing capabilities or reading settings.
+                if !app
+                    .get_webview_window("main")
+                    .is_some_and(|window| window.is_focused().unwrap_or(false))
+                {
                     let _ = tx.send(NativeOutcome::Cancelled);
                     return;
                 }

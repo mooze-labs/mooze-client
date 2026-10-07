@@ -18,6 +18,7 @@ Enrollment first writes a disabled `pending-v1` marker. A transition-locked chec
 - `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --features codegen`: 86 tests passed, including binding freshness and native-auth regression tests. Existing `proc-macro-error2` future-incompatibility warning remains.
 - `cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --check`: passed.
 - `git diff --check`: passed.
+- `npm run desktop:build:testnet`: macOS release `.app` bundle built successfully (37.37 MiB). The bundle is a build artifact only; successful physical Touch ID authentication is still untested.
 - An independent read-only reviewer found and then rechecked the persistence and background-prompt fixes; no remaining concrete issue in that focused recheck.
 
 The tests cover successful enrollment/unlock, cancellation, unsupported/unavailable authentication, settings PIN verification, PIN throttling, duplicate attempts, capability checks in progress, auto-lock, wallet removal/recreation, detached callbacks, deferred storage writes, and post-commit serialization. Frontend tests cover one automatic prompt per generation, manual retry, PIN fallback, background transitions, onboarding event ordering, and settings persistence failures.

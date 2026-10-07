@@ -65,6 +65,9 @@ impl NativeAuthenticator for WindowsAuthenticator {
                 let Ok(_apartment) = Apartment::enter() else {
                     return NativeAvailability::Unavailable;
                 };
+                if factory::<UserConsentVerifier, IUserConsentVerifierInterop>().is_err() {
+                    return NativeAvailability::Unavailable;
+                }
                 match UserConsentVerifier::CheckAvailabilityAsync().and_then(|op| op.join()) {
                     Ok(Availability::Available) => NativeAvailability::Available,
                     Ok(Availability::NotConfiguredForUser) => NativeAvailability::NotEnrolled,
@@ -95,6 +98,9 @@ impl NativeAuthenticator for WindowsAuthenticator {
                     let Some(window) = app.get_webview_window("main") else {
                         return Ok(NativeOutcome::Unavailable);
                     };
+                    if !window.is_focused().unwrap_or(false) {
+                        return Ok(NativeOutcome::Cancelled);
+                    }
                     let Ok(hwnd) = window.hwnd() else {
                         return Ok(NativeOutcome::Unavailable);
                     };
