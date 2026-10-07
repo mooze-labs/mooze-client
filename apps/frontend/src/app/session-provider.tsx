@@ -1,3 +1,5 @@
+import { NativeAuthOffer } from "../features/setup/native-auth-offer";
+import { useT } from "../i18n/messages";
 import { activityEvents, isWalletActivity } from "./activity";
 import {
   createContext,
@@ -22,6 +24,7 @@ type SessionContext = {
 const Context = createContext<SessionContext | null>(null);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const client = useWalletClient();
+  const t = useT();
   const qc = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [startupError, setStartupError] = useState("");
@@ -85,11 +88,61 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         window.removeEventListener(type, record);
     };
   }, [client, session?.status, session?.generation]);
+  const nativeKey = ["wallet", session?.generation, "native-auth"];
+  const native = useQuery({
+    queryKey: nativeKey,
+    queryFn: () => client.nativeAuthStatus(),
+    enabled: session?.status === "unlocked",
+    retry: false,
+    staleTime: Infinity,
+  });
+  useEffect(() => {
+    if (
+      session?.status !== "unlocked" ||
+      !native.data?.setup_offer_pending ||
+      native.data.availability === "available"
+    )
+      return;
+    const generation = session.generation;
+    void client
+      .completeNativeAuthOffer(false)
+      .then((status) => {
+        if (
+          current.current?.generation === generation &&
+          current.current.status === "unlocked"
+        )
+          qc.setQueryData(["wallet", generation, "native-auth"], status);
+      })
+      .catch(() => {});
+  }, [client, qc, session?.generation, session?.status, native.data]);
+  const content =
+    session?.status === "unlocked" && native.isPending ? (
+      <main className="onboarding">
+        <p role="status">{t("Verificando autenticação…")}</p>
+      </main>
+    ) : session?.status === "unlocked" &&
+      native.data?.setup_offer_pending &&
+      native.data.availability === "available" ? (
+      <NativeAuthOffer
+        key={session.generation}
+        client={client}
+        status={native.data}
+        onDone={(status) => {
+          if (
+            current.current?.generation === session.generation &&
+            current.current.status === "unlocked"
+          )
+            qc.setQueryData(nativeKey, status);
+        }}
+      />
+    ) : (
+      children
+    );
   return (
     <Context.Provider
       value={{ session, current, startupError, update, setStartupError }}
     >
-      {children}
+      {content}
     </Context.Provider>
   );
 }

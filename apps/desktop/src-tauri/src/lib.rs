@@ -2,6 +2,7 @@ mod commands;
 mod diagnostics;
 pub mod dto;
 pub mod error;
+pub mod native_auth;
 pub mod network;
 pub mod platform;
 #[path = "session/rules.rs"]
@@ -41,18 +42,20 @@ pub fn run() {
             #[cfg(not(debug_assertions))]
             let platform = NativePlatform::open(root.join(network::data_directory()))?;
             let state = WalletSession::new(platform, BackendDto::Electrum)
-                .with_services(session::backend::ServiceConfig::from_env());
+                .with_services(session::backend::ServiceConfig::from_env())
+                .with_native_authenticator(native_auth::for_app(app.handle().clone()));
             let handle = app.handle().clone();
             state.set_emitter(std::sync::Arc::new(move |event| {
                 let _ = handle.emit_to("main", "mooze://event", event);
             }));
-            app.manage(state);
+            app.manage(std::sync::Arc::new(state));
             let tick = app.handle().clone();
             runtime::runtime().spawn(async move {
                 loop {
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                    tick.state::<WalletSession<NativePlatform>>().check_expiry();
-                    tick.state::<WalletSession<NativePlatform>>()
+                    tick.state::<std::sync::Arc<WalletSession<NativePlatform>>>()
+                        .check_expiry();
+                    tick.state::<std::sync::Arc<WalletSession<NativePlatform>>>()
                         .cleanup_locked()
                         .await;
                 }
@@ -60,6 +63,11 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::native_auth_status,
+            commands::unlock_native,
+            commands::cancel_native_auth,
+            commands::set_native_auth_enabled,
+            commands::complete_native_auth_offer,
             commands::account_level,
             commands::price_history,
             commands::backend_status,
@@ -110,21 +118,22 @@ pub fn run() {
             if let tauri::WindowEvent::Focused(focused) = event {
                 window
                     .app_handle()
-                    .state::<WalletSession<NativePlatform>>()
+                    .state::<std::sync::Arc<WalletSession<NativePlatform>>>()
                     .set_foreground(*focused);
             }
         })
         .build(tauri::generate_context!())
         .expect("desktop startup failed")
         .run(|app, event| match event {
-            tauri::RunEvent::Exit => {
-                runtime::runtime().block_on(app.state::<WalletSession<NativePlatform>>().stop())
-            }
+            tauri::RunEvent::Exit => runtime::runtime().block_on(
+                app.state::<std::sync::Arc<WalletSession<NativePlatform>>>()
+                    .stop(),
+            ),
             tauri::RunEvent::Resumed => {
                 let handle = app.clone();
                 runtime::runtime().spawn(async move {
                     handle
-                        .state::<WalletSession<NativePlatform>>()
+                        .state::<std::sync::Arc<WalletSession<NativePlatform>>>()
                         .check_expiry();
                 });
             }

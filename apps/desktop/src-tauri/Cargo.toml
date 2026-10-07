@@ -34,3 +34,13 @@ ts-rs = { version = "=12.0.1", optional = true, features = ["serde-compat"] }
 [dev-dependencies]
 tempfile = "=3.27.0"
 [workspace]
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "=0.6.5"
+objc2-foundation = "=0.3.2"
+objc2-local-authentication = "=0.3.2"
+block2 = "=0.6.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "=0.62.2", features = ["Foundation", "Security_Credentials_UI", "Win32_System_WinRT", "Win32_Foundation"] }
+windows-future = "=0.3.2"

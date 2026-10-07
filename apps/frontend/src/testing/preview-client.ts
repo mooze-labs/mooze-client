@@ -77,6 +77,21 @@ export function createPreviewClient(mode = "unlocked"): DesktopClient {
   };
   const unlock = async () => (session = { ...session, status: "unlocked" });
   return {
+    nativeAuthStatus: async () => ({
+      kind: "unsupported",
+      availability: "unavailable",
+      enabled: false,
+      setup_offer_pending: false,
+    }),
+    unlockNative: unsupported,
+    cancelNativeAuth: noop,
+    setNativeAuthEnabled: unsupported,
+    completeNativeAuthOffer: async () => ({
+      kind: "unsupported",
+      availability: "unavailable",
+      enabled: false,
+      setup_offer_pending: false,
+    }),
     accountLevel: async () => ({
       current_level: "silver",
       next_level: "gold",

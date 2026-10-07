@@ -29,6 +29,18 @@ export type DesktopEvent =
   | { type: "core"; generation: number; data: AppEvent }
   | { type: "submission"; generation: number };
 export interface DesktopClient {
+  nativeAuthStatus(): Promise<
+    import("./desktop.generated").NativeAuthStatusDto
+  >;
+  unlockNative(): Promise<Session>;
+  cancelNativeAuth(): Promise<void>;
+  setNativeAuthEnabled(
+    enabled: boolean,
+    pin: string,
+  ): Promise<import("./desktop.generated").NativeAuthStatusDto>;
+  completeNativeAuthOffer(
+    enable: boolean,
+  ): Promise<import("./desktop.generated").NativeAuthStatusDto>;
   accountLevel(): Promise<import("./desktop.generated").AccountLevelDto>;
   priceHistory(
     market: import("./desktop.generated").PriceMarketDto,

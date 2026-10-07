@@ -59,3 +59,19 @@ it("clears secrets after a successful import", async () => {
   expect(screen.getByLabelText("Frase de recuperação")).toHaveValue("");
   expect(screen.getByLabelText("Criar PIN")).toHaveValue("");
 });
+it("keeps wallet PIN available while native capability discovery is pending", async () => {
+  const client = fakeClient();
+  vi.mocked(client.nativeAuthStatus).mockImplementation(
+    () => new Promise(() => {}),
+  );
+  render(
+    <SessionScreen
+      client={client}
+      session={{ status: "locked", generation: 1, retry_after_ms: 0 }}
+      onSession={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Usar PIN da carteira" }));
+  expect(await screen.findByLabelText("PIN")).toBeInTheDocument();
+  expect(client.cancelNativeAuth).toHaveBeenCalledOnce();
+});

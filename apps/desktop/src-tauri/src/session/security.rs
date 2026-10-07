@@ -85,6 +85,8 @@ impl<P: Platform + Clone> WalletSession<P> {
 
 impl<P: Platform + Clone> WalletSession<P> {
     pub async fn remove_wallet(&self, pin: String) -> Result<()> {
+        self.cancel_native_auth()?;
+        *self.native_setup_generation.lock().unwrap() = None;
         let _pix = self.pix_gate.lock().await;
         let _swap = self.swap_gate.lock().await;
         let _auth = self.backend_state.lock().await;

@@ -1,3 +1,4 @@
+pub use crate::native_auth::{NativeAvailability, NativeKind};
 pub use crate::service_dto::*;
 use mooze_app::dto::{AssetAmountDto, AssetKeyDto, HoldingDto, SyncStateDto, WalletActivityDto};
 use serde::{Deserialize, Serialize};
@@ -98,6 +99,9 @@ pub fn generated_types() -> String {
     let config = Config::new().with_large_int("number");
     macro_rules! export {($($t:ty),*)=>{$(out.push_str("export ");out.push_str(&<$t>::decl(&config));out.push('\n');)*};}
     export!(
+        NativeKind,
+        NativeAvailability,
+        NativeAuthStatusDto,
         AccountTierDto,
         AccountLevelDto,
         PriceMarketDto,
@@ -237,4 +241,13 @@ mod submission_tests {
         assert!(state.request.is_none());
         assert!(state.debits.is_none());
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
+pub struct NativeAuthStatusDto {
+    pub kind: NativeKind,
+    pub availability: NativeAvailability,
+    pub enabled: bool,
+    pub setup_offer_pending: bool,
 }
