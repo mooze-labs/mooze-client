@@ -111,6 +111,7 @@ pub struct AccountTierDto {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "codegen", derive(ts_rs::TS))]
 pub struct AccountLevelDto {
+    pub user_id: String,
     pub current_level: String,
     pub next_level: Option<String>,
     pub progress: f64,

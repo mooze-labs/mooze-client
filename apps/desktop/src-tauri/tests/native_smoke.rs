@@ -3,7 +3,7 @@
 use mooze_app::dto::BackendDto;
 use mooze_desktop::{
     dto::WalletChain,
-    platform::{file_kv::FileKv, runtime, secure_store::KeyringStore, NativePlatform},
+    platform::{runtime, secure_store::KeyringStore, sled_kv::SledKv, NativePlatform},
     session::WalletSession,
 };
 
@@ -14,7 +14,7 @@ async fn native_persistence_and_testnet_sync() {
     let directory = tempfile::tempdir().unwrap();
     let service = format!("app.mooze.desktop.smoke.{}", uuid::Uuid::new_v4());
     let p = NativePlatform {
-        kv: FileKv::open(directory.path().join("testnet")).unwrap(),
+        kv: SledKv::open(directory.path().join("testnet")).unwrap(),
         secure: KeyringStore::new(service.clone()),
     };
     let s = WalletSession::new(p.clone(), BackendDto::Electrum);
