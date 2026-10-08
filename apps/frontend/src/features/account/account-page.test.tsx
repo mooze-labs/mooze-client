@@ -10,6 +10,7 @@ vi.mock("../../app/session-provider", () => ({
 }));
 afterEach(cleanup);
 const data = {
+  user_id: "8f14e45f-ceea-467f-a0e6-8b4f0e3c1a2b",
   current_level: "silver",
   next_level: "gold",
   progress: 0.4,
@@ -40,6 +41,8 @@ it("shows the backend level and progress without the Pix limits card", async () 
   vi.mocked(client.accountLevel).mockResolvedValue(data);
   setup(client);
   expect(await screen.findByText("Prata")).toBeVisible();
+  expect(screen.getByText("ID da conta")).toBeVisible();
+  expect(screen.getByText(data.user_id)).toBeVisible();
   expect(screen.queryByText("Limites Pix")).not.toBeInTheDocument();
   expect(screen.getByRole("progressbar")).toHaveAttribute("value", "0.4");
 });
@@ -66,4 +69,5 @@ it("does not invent a default level when the service fails", async () => {
     ),
   ).toBeVisible();
   expect(screen.queryByText("Bronze")).not.toBeInTheDocument();
+  expect(screen.queryByText("ID da conta")).not.toBeInTheDocument();
 });

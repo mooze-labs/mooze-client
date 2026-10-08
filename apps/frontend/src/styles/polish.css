@@ -55,6 +55,9 @@
 .unlock-card {
   text-align: center;
 }
+.unlock-card .button.wide + .button.wide {
+  margin-top: 12px;
+}
 .unlock-card .pin-field > label {
   text-align: center;
 }

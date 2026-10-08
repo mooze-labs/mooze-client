@@ -33,6 +33,7 @@ fn account_view(user: &User, levels: &WalletLevelsResponse) -> Result<AccountLev
         .collect();
     tiers.sort_by_key(|tier| tier.order);
     Ok(AccountLevelDto {
+        user_id: user.id.clone(),
         current_level: data.current_level().key().into(),
         next_level: data.next_level().map(|level| level.key().into()),
         progress: data.level_progress,

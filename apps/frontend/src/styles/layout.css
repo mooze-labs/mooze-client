@@ -591,6 +591,17 @@ a:focus-visible {
 }
 
 /* Account levels and public market reference charts. */
+.account-id {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 0 24px;
+}
+.account-id code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
 .account-level-summary {
   display: flex;
   align-items: center;
