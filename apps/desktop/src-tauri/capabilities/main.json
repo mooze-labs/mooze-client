@@ -1,1 +1,11 @@
-{"identifier":"main","windows":["main"],"permissions":["core:event:allow-listen","core:event:allow-unlisten"]}
+{
+  "identifier": "main",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:window:allow-set-theme"
+  ]
+}

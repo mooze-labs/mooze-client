@@ -78,20 +78,28 @@ code {
   padding: 8px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--raised);
+  --button-background: var(--raised);
+  background: var(--button-background);
   color: inherit;
   font-weight: 500;
   font-size: 13px;
   cursor: pointer;
   transition: background 0.1s;
 }
+/* Explicit role wins over the legacy unlayered button background. */
+.button[data-variant="secondary"] {
+  --button-background: var(--app-action-background);
+}
 .button:hover {
-  background: #262b3d;
+  background: color-mix(in srgb, var(--button-background), var(--foreground) 4%);
+}
+.button:active {
+  background: color-mix(in srgb, var(--button-background), var(--foreground) 8%);
 }
 .button.primary {
   background: var(--pink);
   border-color: var(--pink);
-  color: #fff;
+  color: var(--primary-foreground);
 }
 .button.primary:hover {
   background: var(--pink-hover);
@@ -135,7 +143,7 @@ code {
   min-height: 100vh;
 }
 .shell > aside {
-  background: var(--surface);
+  background: var(--navigation);
   border-right: 1px solid var(--line);
   padding: 26px 16px;
   display: flex;
@@ -163,7 +171,7 @@ nav a:hover {
 nav a.active {
   background: var(--raised);
   border-left-color: var(--pink);
-  color: #ece8e1;
+  color: var(--foreground);
 }
 .nav-label {
   margin: 28px 14px 12px;
@@ -188,8 +196,8 @@ aside footer p {
 .network-badge {
   font-size: 10px;
   letter-spacing: 0.08em;
-  color: #e8a33d;
-  border: 1px solid #e8a33d55;
+  color: var(--gold);
+  border: 1px solid var(--warning-border);
   border-radius: 4px;
   padding: 5px 8px;
   white-space: nowrap;
@@ -236,7 +244,7 @@ header h2 {
   margin-bottom: 6px;
 }
 .card {
-  background: var(--surface);
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 24px;
@@ -291,10 +299,10 @@ header h2 {
   margin-right: 8px;
 }
 .asset-dot.Bitcoin {
-  background: var(--gold);
+  background: var(--asset-bitcoin);
 }
 .asset-dot.Liquid {
-  background: var(--blue);
+  background: var(--asset-liquid);
 }
 .chart-empty {
   min-height: 180px;
@@ -310,7 +318,7 @@ header h2 {
 .chart-empty h3 {
   margin: 14px 0 6px;
   font-weight: 400;
-  color: #ece8e1;
+  color: var(--foreground);
 }
 .chart-empty p {
   font-size: 12px;
@@ -442,9 +450,9 @@ select {
   line-height: 1.6;
 }
 .alert.error {
-  border: 1px solid #e5484d77;
-  background: #e5484d0b;
-  color: #f4a8aa;
+  border: 1px solid var(--error-border);
+  background: var(--error-tint);
+  color: var(--destructive);
 }
 .onboarding {
   min-height: 100vh;
@@ -548,14 +556,14 @@ select {
 .backdrop {
   position: fixed;
   inset: 0;
-  background: #0009;
+  background: var(--overlay);
 }
 .modal {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--surface);
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 28px;
@@ -735,7 +743,7 @@ input[type="checkbox"] {
 }
 .balance-panel {
   border-radius: 16px;
-  background: var(--surface);
+  background: var(--card);
   padding: 8px 24px;
 }
 .holding-row {
@@ -749,7 +757,7 @@ input[type="checkbox"] {
   border-bottom: 0;
 }
 .holding-row:hover {
-  background: #ffffff03;
+  background: var(--hover-overlay);
 }
 .holding-name,
 .holding-balance {
@@ -789,16 +797,16 @@ input[type="checkbox"] {
   color: var(--muted);
 }
 .asset-mark.bitcoin {
-  background: #edb56418;
-  color: var(--gold);
+  background: color-mix(in srgb, var(--asset-bitcoin) 10%, transparent);
+  color: var(--asset-bitcoin);
 }
 .asset-mark.liquid {
-  background: #81afca18;
-  color: var(--blue);
+  background: color-mix(in srgb, var(--asset-liquid) 10%, transparent);
+  color: var(--asset-liquid);
 }
 .asset-mark.test {
-  background: #ff7aa712;
-  color: var(--accent);
+  background: color-mix(in srgb, var(--asset-test) 10%, transparent);
+  color: var(--asset-test);
   font-size: 18px;
 }
 .recent-activity {
@@ -840,7 +848,7 @@ input[type="checkbox"] {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
-  box-shadow: 0 12px 48px #0006;
+  box-shadow: 0 12px 48px var(--shadow-strong);
   z-index: 60;
 }
 .network-popover h2 {
@@ -913,7 +921,7 @@ input[type="checkbox"] {
 }
 .focused-flow > .card {
   padding: 32px;
-  background: var(--surface);
+  background: var(--card);
   border: 0;
   border-radius: 16px;
 }
@@ -960,15 +968,15 @@ input[type="checkbox"] {
   margin: 0 auto 24px;
   border-radius: 50%;
   color: var(--blue);
-  background: #81afca14;
+  background: var(--info-tint);
 }
 .result-mark.confirmed {
   color: var(--green);
-  background: #8bd0b714;
+  background: var(--success-tint);
 }
 .result-mark.uncertain {
   color: var(--gold);
-  background: #edb56414;
+  background: var(--warning-tint);
 }
 .receipt {
   text-align: left;
@@ -1064,7 +1072,7 @@ input[type="checkbox"] {
   border-bottom: 1px solid var(--separator);
 }
 .activity:hover {
-  background: #ffffff03;
+  background: var(--hover-overlay);
 }
 .activity-mark {
   width: 38px;
@@ -1097,7 +1105,7 @@ input[type="checkbox"] {
   border: 0;
   border-radius: 18px;
   padding: 36px;
-  background: var(--surface);
+  background: var(--card);
 }
 .onboarding .eyebrow {
   display: none;
@@ -1275,7 +1283,7 @@ input[type="checkbox"] {
 .swap-direction {
   position: absolute;
   top: -14px;
-  border: 4px solid var(--surface);
+  border: 4px solid var(--card);
   border-radius: 12px;
   width: 40px;
   height: 40px;

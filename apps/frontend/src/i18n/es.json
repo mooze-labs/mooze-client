@@ -515,5 +515,10 @@
   "Conclua a autenticação em andamento ou use o PIN da carteira.": "Completa la autenticación en curso o usa el PIN de la cartera.",
   "Autenticação do dispositivo bloqueada. Use o PIN da carteira.": "La autenticación del dispositivo está bloqueada. Usa el PIN de la cartera.",
   "Autenticação do dispositivo indisponível. Use o PIN da carteira.": "La autenticación del dispositivo no está disponible. Usa el PIN de la cartera.",
-  "Não foi possível autenticar. Tente novamente ou use o PIN da carteira.": "No se pudo autenticar. Inténtalo de nuevo o usa el PIN de la cartera."
+  "Não foi possível autenticar. Tente novamente ou use o PIN da carteira.": "No se pudo autenticar. Inténtalo de nuevo o usa el PIN de la cartera.",
+  "Aparência": "Apariencia",
+  "Sistema": "Sistema",
+  "Claro": "Claro",
+  "Escuro": "Oscuro",
+  "Não foi possível salvar a aparência. A alteração vale apenas para esta sessão.": "No se pudo guardar la apariencia. El cambio solo se aplica a esta sesión."
 }

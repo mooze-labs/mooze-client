@@ -1,3 +1,7 @@
+import { ThemeProvider } from "../theme/theme-provider";
+import { createMemoryThemeStorage } from "../theme/storage";
+import { parseThemePreference, resolveTheme } from "../theme/model";
+import { applyTheme, systemTheme } from "../theme/dom";
 import React, { useState } from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -18,6 +22,14 @@ import "../styles/layout.css";
 
 if (!import.meta.env.DEV)
   throw new Error("Synthetic preview is development-only.");
+const themePreference = parseThemePreference(
+  new URLSearchParams(location.search).get("theme"),
+);
+const themeStorage = createMemoryThemeStorage(themePreference);
+applyTheme(
+  document.documentElement,
+  resolveTheme(themePreference, systemTheme()),
+);
 const mode = new URLSearchParams(location.search).get("session") ?? "unlocked";
 const client = createPreviewClient(mode);
 const queryClient = new QueryClient({
@@ -39,8 +51,8 @@ function Preview() {
             <div
               style={{
                 padding: "6px 16px",
-                background: "#242836",
-                color: "#edb564",
+                background: "var(--app-surface-low)",
+                color: "var(--app-text-secondary)",
                 fontSize: 12,
               }}
             >
@@ -56,8 +68,10 @@ function Preview() {
 const router = createHashRouter([{ path: "*", element: <Preview /> }]);
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ThemeProvider storage={themeStorage} initialPreference={themePreference}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 );

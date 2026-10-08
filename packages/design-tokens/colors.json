@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "light": {
+    "primary": "#EA1E63",
+    "onPrimary": "#FFFFFF",
+    "primaryContainer": "#FFD9E4",
+    "onPrimaryContainer": "#3E0020",
+    "secondary": "#4B5563",
+    "onSecondary": "#FFFFFF",
+    "secondaryContainer": "#E2E4EA",
+    "onSecondaryContainer": "#1A1A2E",
+    "success": "#16A34A",
+    "onTertiary": "#FFFFFF",
+    "tertiaryContainer": "#B7F0C8",
+    "onTertiaryContainer": "#002110",
+    "error": "#DC2626",
+    "onError": "#FFFFFF",
+    "errorContainer": "#FFDAD6",
+    "onErrorContainer": "#410002",
+    "surface": "#F5F6FA",
+    "textPrimary": "#1A1A2E",
+    "surfaceTint": "#EA1E63",
+    "background": "#E2E4EA",
+    "surfaceBright": "#FFFFFF",
+    "card": "#FFFFFF",
+    "surfaceLow": "#F5F6FA",
+    "surfaceContainer": "#E2E4EA",
+    "surfaceRaised": "#E2E4EA",
+    "surfaceHighest": "#E2E4EA",
+    "border": "#B8BCC6",
+    "outlineVariant": "#E2E4EA",
+    "inverseSurface": "#1A1A2E",
+    "onInverseSurface": "#F5F6FA",
+    "inversePrimary": "#FFB0C8",
+    "scrim": "#000000",
+    "shadow": "#000000",
+    "warning": "#E65100",
+    "warningForeground": "#F57C00",
+    "textSecondary": "#5C5F72",
+    "textTertiary": "#6B6B6B",
+    "textQuartiary": "#8A8A8A",
+    "textQuintary": "#7B7595",
+    "shimmerBase": "#BDBDBD",
+    "shimmerHighlight": "#E8E8E8",
+    "navBarFabBackground": "#AD1457",
+    "pinBackground": "#F5F5F5",
+    "recoveryPhraseBackground": "#F0EEF5",
+    "icon": "#5B7A9A",
+    "menuIconColor": "#475569",
+    "editColor": "#FF9800",
+    "actionBackground": "#D1D5DB",
+    "surfaceDim": {
+      "ref": "background"
+    },
+    "surfaceContainerLowest": {
+      "ref": "card"
+    },
+    "surfaceContainerLow": {
+      "ref": "surfaceLow"
+    },
+    "surfaceContainerHigh": {
+      "ref": "surfaceRaised"
+    },
+    "surfaceContainerHighest": {
+      "ref": "surfaceHighest"
+    },
+    "onSurface": {
+      "ref": "textPrimary"
+    },
+    "outline": {
+      "ref": "border"
+    },
+    "tertiary": {
+      "ref": "success"
+    },
+    "primaryIconColor": {
+      "ref": "icon"
+    },
+    "actionButtonBackground": {
+      "ref": "actionBackground"
+    },
+    "onWarning": {
+      "ref": "warningForeground"
+    }
+  },
+  "dark": {
+    "primary": "#EA1E63",
+    "onPrimary": "#FFFFFF",
+    "primaryContainer": "#4A0E2A",
+    "onPrimaryContainer": "#FFD9E4",
+    "secondary": "#212121",
+    "onSecondary": "#FFFFFF99",
+    "secondaryContainer": "#383838",
+    "onSecondaryContainer": "#E6E1E5",
+    "success": "#32B153",
+    "onTertiary": "#FFFFFF",
+    "tertiaryContainer": "#0F3A1C",
+    "onTertiaryContainer": "#B7F397",
+    "error": "#D73131",
+    "onError": "#FFFFFF",
+    "errorContainer": "#410E0B",
+    "onErrorContainer": "#F2B8B5",
+    "surface": "#141722",
+    "textPrimary": "#FFFFFF",
+    "surfaceTint": "#EA1E63",
+    "background": "#000000",
+    "surfaceBright": "#1F1F1F",
+    "card": "#0A0A0A",
+    "surfaceLow": "#111111",
+    "surfaceContainer": "#141722",
+    "surfaceRaised": "#1C1C1C",
+    "surfaceHighest": "#26252A",
+    "border": "#2D2E2A",
+    "outlineVariant": "#7C7C7C",
+    "inverseSurface": "#E6E1E5",
+    "onInverseSurface": "#313033",
+    "inversePrimary": "#9F4052",
+    "scrim": "#000000",
+    "shadow": "#000000",
+    "warning": "#FB8C00",
+    "warningForeground": "#FFB74D",
+    "textSecondary": "#9194A6",
+    "textTertiary": "#7C7C7C",
+    "textQuartiary": "#C2C2C2",
+    "textQuintary": "#A6A0BB",
+    "shimmerBase": "#757575",
+    "shimmerHighlight": "#BDBDBD",
+    "navBarFabBackground": "#AD1457",
+    "pinBackground": "#191818",
+    "recoveryPhraseBackground": "#1C1924",
+    "icon": "#9DB2CE",
+    "menuIconColor": "#B0BAD0",
+    "editColor": "#FFAB40",
+    "actionBackground": "#2B2D33",
+    "surfaceDim": {
+      "ref": "background"
+    },
+    "surfaceContainerLowest": {
+      "ref": "card"
+    },
+    "surfaceContainerLow": {
+      "ref": "surfaceLow"
+    },
+    "surfaceContainerHigh": {
+      "ref": "surfaceRaised"
+    },
+    "surfaceContainerHighest": {
+      "ref": "surfaceHighest"
+    },
+    "onSurface": {
+      "ref": "textPrimary"
+    },
+    "outline": {
+      "ref": "border"
+    },
+    "tertiary": {
+      "ref": "success"
+    },
+    "primaryIconColor": {
+      "ref": "icon"
+    },
+    "actionButtonBackground": {
+      "ref": "actionBackground"
+    },
+    "onWarning": {
+      "ref": "warningForeground"
+    }
+  }
+}
