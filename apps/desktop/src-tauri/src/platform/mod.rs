@@ -1,12 +1,12 @@
-pub mod file_kv;
 pub mod idle_clock;
 pub mod runtime;
 pub mod secure_store;
+pub mod sled_kv;
 pub mod ws;
-use file_kv::FileKv;
 use mooze_app::Platform;
 use mooze_core::{ports::*, Result};
 use secure_store::KeyringStore;
+use sled_kv::SledKv;
 use std::{
     path::PathBuf,
     sync::Arc,
@@ -24,19 +24,19 @@ impl Clock for SystemClock {
 }
 #[derive(Clone)]
 pub struct NativePlatform {
-    pub kv: FileKv,
+    pub kv: SledKv,
     pub secure: KeyringStore,
 }
 impl NativePlatform {
     pub fn open(dir: PathBuf) -> Result<Self> {
         Ok(Self {
-            kv: FileKv::open(dir)?,
+            kv: SledKv::open(dir)?,
             secure: KeyringStore::new(crate::network::credential_service().into()),
         })
     }
 }
 impl Platform for NativePlatform {
-    type Kv = FileKv;
+    type Kv = SledKv;
     type Secure = KeyringStore;
     type Http = ReqwestHttpClient;
     type Ws = ws::TungsteniteConnector;
@@ -83,7 +83,7 @@ impl NativePlatform {
             ));
         }
         Ok(Self {
-            kv: FileKv::open(root.join("testnet-validation").join(profile))?,
+            kv: SledKv::open(root.join("testnet-validation").join(profile))?,
             secure: KeyringStore::new(format!("app.mooze.desktop.testnet.validation.{profile}")),
         })
     }

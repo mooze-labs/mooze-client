@@ -29,8 +29,10 @@ Bundles appear under `apps/desktop/src-tauri/target/{release,debug}/bundle/macos
 
 | Build | Tauri identifier / OS credential service | Data suffix |
 | --- | --- | --- |
-| Mainnet (default) | `app.mooze.desktop` | `mainnet/wallet.json` |
-| Testnet | `app.mooze.desktop.testnet` | `testnet/wallet.json` |
+| Mainnet (default) | `app.mooze.desktop` | `mainnet/wallet.sled/` |
+| Testnet | `app.mooze.desktop.testnet` | `testnet/wallet.sled/` |
+
+Application data uses an embedded sled key-value database behind the core `KvStore` interface. Writes and deletions are flushed before returning success. Legacy `wallet.json` files are ignored; there is no migration. Secrets remain in the OS credential store.
 
 Data paths are relative to each identifier's Tauri app-data directory. Testnet paths and the existing `wallet-secrets` credential item are preserved. Mainnet does not import or copy existing testnet credentials. Each build imports or creates its own wallet and uses a six-digit PIN. Mnemonics, PIN hashes, backend tokens, nodes, and activity stay in their own namespaces. `MOOZE_TESTNET_PROFILE` is restricted to debug testnet builds.
 
