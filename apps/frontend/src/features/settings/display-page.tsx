@@ -1,3 +1,4 @@
+import { AppearanceSetting } from "./appearance-setting";
 import { SelectField } from "../../ui/select-field";
 import { SwitchField } from "../../ui/switch-field";
 import { useT } from "../../i18n/messages";
@@ -25,6 +26,7 @@ export function DisplayPage() {
     <section className="card section-gap display-settings">
       <h2>{t("Exibição")}</h2>
       <ErrorNotice>{error}</ErrorNotice>
+      <AppearanceSetting />
       <SelectField
         label={t("Idioma")}
         disabled={busy}

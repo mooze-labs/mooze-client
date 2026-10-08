@@ -515,5 +515,10 @@
   "Conclua a autenticação em andamento ou use o PIN da carteira.": "Conclua a autenticação em andamento ou use o PIN da carteira.",
   "Autenticação do dispositivo bloqueada. Use o PIN da carteira.": "Autenticação do dispositivo bloqueada. Use o PIN da carteira.",
   "Autenticação do dispositivo indisponível. Use o PIN da carteira.": "Autenticação do dispositivo indisponível. Use o PIN da carteira.",
-  "Não foi possível autenticar. Tente novamente ou use o PIN da carteira.": "Não foi possível autenticar. Tente novamente ou use o PIN da carteira."
+  "Não foi possível autenticar. Tente novamente ou use o PIN da carteira.": "Não foi possível autenticar. Tente novamente ou use o PIN da carteira.",
+  "Aparência": "Aparência",
+  "Sistema": "Sistema",
+  "Claro": "Claro",
+  "Escuro": "Escuro",
+  "Não foi possível salvar a aparência. A alteração vale apenas para esta sessão.": "Não foi possível salvar a aparência. A alteração vale apenas para esta sessão."
 }
