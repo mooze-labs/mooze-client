@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'generated/app_palette.dart';
 
 /// Owns the app's Material 3 [ColorScheme] definitions.
 ///
@@ -19,46 +20,46 @@ class AppColors {
   static const ColorScheme darkColorScheme = ColorScheme.dark(
     brightness: Brightness.dark,
     // Primary
-    primary: Color(0xFFEA1E63),
-    onPrimary: Colors.white,
-    primaryContainer: Color(0xFF4A0E2A),
-    onPrimaryContainer: Color(0xFFFFD9E4),
+    primary: AppPaletteDark.primary,
+    onPrimary: AppPaletteDark.onPrimary,
+    primaryContainer: AppPaletteDark.primaryContainer,
+    onPrimaryContainer: AppPaletteDark.onPrimaryContainer,
     // Secondary
-    secondary: Color(0xFF212121),
-    onSecondary: Colors.white60,
-    secondaryContainer: Color(0xFF383838),
-    onSecondaryContainer: Color(0xFFE6E1E5),
+    secondary: AppPaletteDark.secondary,
+    onSecondary: AppPaletteDark.onSecondary,
+    secondaryContainer: AppPaletteDark.secondaryContainer,
+    onSecondaryContainer: AppPaletteDark.onSecondaryContainer,
     // Tertiary (positive/success)
-    tertiary: Color(0xFF32B153),
-    onTertiary: Colors.white,
-    tertiaryContainer: Color(0xFF0F3A1C),
-    onTertiaryContainer: Color(0xFFB7F397),
+    tertiary: AppPaletteDark.tertiary,
+    onTertiary: AppPaletteDark.onTertiary,
+    tertiaryContainer: AppPaletteDark.tertiaryContainer,
+    onTertiaryContainer: AppPaletteDark.onTertiaryContainer,
     // Error (negative)
-    error: Color(0xFFD73131),
-    onError: Colors.white,
-    errorContainer: Color(0xFF410E0B),
-    onErrorContainer: Color(0xFFF2B8B5),
+    error: AppPaletteDark.error,
+    onError: AppPaletteDark.onError,
+    errorContainer: AppPaletteDark.errorContainer,
+    onErrorContainer: AppPaletteDark.onErrorContainer,
     // Surface
-    surface: Color(0xFF141722),
-    onSurface: Colors.white,
-    surfaceTint: Color(0xFFEA1E63),
-    surfaceDim: Color(0xFF000000),
-    surfaceBright: Color(0xFF1F1F1F),
-    surfaceContainerLowest: Color(0xFF0A0A0A),
-    surfaceContainerLow: Color(0xFF111111),
-    surfaceContainer: Color(0xFF141722),
-    surfaceContainerHigh: Color(0xFF1C1C1C),
-    surfaceContainerHighest: Color(0xFF26252A),
+    surface: AppPaletteDark.surface,
+    onSurface: AppPaletteDark.onSurface,
+    surfaceTint: AppPaletteDark.surfaceTint,
+    surfaceDim: AppPaletteDark.surfaceDim,
+    surfaceBright: AppPaletteDark.surfaceBright,
+    surfaceContainerLowest: AppPaletteDark.surfaceContainerLowest,
+    surfaceContainerLow: AppPaletteDark.surfaceContainerLow,
+    surfaceContainer: AppPaletteDark.surfaceContainer,
+    surfaceContainerHigh: AppPaletteDark.surfaceContainerHigh,
+    surfaceContainerHighest: AppPaletteDark.surfaceContainerHighest,
     // Outline
-    outline: Color(0xFF2D2E2A),
-    outlineVariant: Color(0xFF7C7C7C),
+    outline: AppPaletteDark.outline,
+    outlineVariant: AppPaletteDark.outlineVariant,
     // Inverse
-    inverseSurface: Color(0xFFE6E1E5),
-    onInverseSurface: Color(0xFF313033),
-    inversePrimary: Color(0xFF9F4052),
+    inverseSurface: AppPaletteDark.inverseSurface,
+    onInverseSurface: AppPaletteDark.onInverseSurface,
+    inversePrimary: AppPaletteDark.inversePrimary,
     // Overlay
-    scrim: Color(0xFF000000),
-    shadow: Color(0xFF000000),
+    scrim: AppPaletteDark.scrim,
+    shadow: AppPaletteDark.shadow,
   );
 
   /// Material 3 [ColorScheme] for the light theme — used by [AppTheme.lightTheme].
@@ -66,111 +67,54 @@ class AppColors {
     brightness: Brightness.light,
 
     // Primary (Accent)
-    primary: Color(0xFFEA1E63),
-    onPrimary: Colors.white,
-    primaryContainer: Color(0xFFFFD9E4),
-    onPrimaryContainer: Color(0xFF3E0020),
+    primary: AppPaletteLight.primary,
+    onPrimary: AppPaletteLight.onPrimary,
+    primaryContainer: AppPaletteLight.primaryContainer,
+    onPrimaryContainer: AppPaletteLight.onPrimaryContainer,
 
     // Secondary
-    secondary: Color(0xFF4B5563),
-    onSecondary: Colors.white,
-    secondaryContainer: Color(0xFFE2E4EA),
-    onSecondaryContainer: Color(0xFF1A1A2E),
+    secondary: AppPaletteLight.secondary,
+    onSecondary: AppPaletteLight.onSecondary,
+    secondaryContainer: AppPaletteLight.secondaryContainer,
+    onSecondaryContainer: AppPaletteLight.onSecondaryContainer,
 
     // Tertiary (Success)
-    tertiary: Color(0xFF16A34A),
-    onTertiary: Colors.white,
-    tertiaryContainer: Color(0xFFB7F0C8),
-    onTertiaryContainer: Color(0xFF002110),
+    tertiary: AppPaletteLight.tertiary,
+    onTertiary: AppPaletteLight.onTertiary,
+    tertiaryContainer: AppPaletteLight.tertiaryContainer,
+    onTertiaryContainer: AppPaletteLight.onTertiaryContainer,
 
     // Error
-    error: Color(0xFFDC2626),
-    onError: Colors.white,
-    errorContainer: Color(0xFFFFDAD6),
-    onErrorContainer: Color(0xFF410002),
+    error: AppPaletteLight.error,
+    onError: AppPaletteLight.onError,
+    errorContainer: AppPaletteLight.errorContainer,
+    onErrorContainer: AppPaletteLight.onErrorContainer,
 
     // Surface / Background
-    surface: Color(0xFFF5F6FA),
-    onSurface: Color(0xFF1A1A2E),
-    surfaceTint: Color(0xFFEA1E63),
+    surface: AppPaletteLight.surface,
+    onSurface: AppPaletteLight.onSurface,
+    surfaceTint: AppPaletteLight.surfaceTint,
 
-    surfaceDim: Color(0xFFE2E4EA),
-    surfaceBright: Colors.white,
+    surfaceDim: AppPaletteLight.surfaceDim,
+    surfaceBright: AppPaletteLight.surfaceBright,
 
-    surfaceContainerLowest: Colors.white,
-    surfaceContainerLow: Color(0xFFF5F6FA),
-    surfaceContainer: Color(0xFFE2E4EA),
-    surfaceContainerHigh: Color(0xFFE2E4EA),
-    surfaceContainerHighest: Color(0xFFE2E4EA),
+    surfaceContainerLowest: AppPaletteLight.surfaceContainerLowest,
+    surfaceContainerLow: AppPaletteLight.surfaceContainerLow,
+    surfaceContainer: AppPaletteLight.surfaceContainer,
+    surfaceContainerHigh: AppPaletteLight.surfaceContainerHigh,
+    surfaceContainerHighest: AppPaletteLight.surfaceContainerHighest,
 
     // Outline / Borders
-    outline: Color(0xFFB8BCC6),
-    outlineVariant: Color(0xFFE2E4EA),
+    outline: AppPaletteLight.outline,
+    outlineVariant: AppPaletteLight.outlineVariant,
 
     // Inverse
-    inverseSurface: Color(0xFF1A1A2E),
-    onInverseSurface: Color(0xFFF5F6FA),
-    inversePrimary: Color(0xFFFFB0C8),
+    inverseSurface: AppPaletteLight.inverseSurface,
+    onInverseSurface: AppPaletteLight.onInverseSurface,
+    inversePrimary: AppPaletteLight.inversePrimary,
 
     // Overlay
-    scrim: Colors.black,
-    shadow: Colors.black,
-  );
-
-  /// ia
-  static const ColorScheme lightColorScheme2 = ColorScheme.light(
-    brightness: Brightness.light,
-
-    // Primary
-    primary: Color(0xFFEA1E63),
-    onPrimary: Colors.white,
-    primaryContainer: Color(0xFFFFD9E4),
-    onPrimaryContainer: Color(0xFF3E0020),
-
-    // Secondary
-    secondary: Color(0xFF6B5E5E),
-    onSecondary: Colors.white,
-    secondaryContainer: Color(0xFFF1EDEE),
-    onSecondaryContainer: Color(0xFF2A1F1F),
-
-    // Tertiary
-    tertiary: Color(0xFF1F8A4D),
-    onTertiary: Colors.white,
-    tertiaryContainer: Color(0xFFD6F5E3),
-    onTertiaryContainer: Color(0xFF002114),
-
-    // Error
-    error: Color(0xFFD63C3C),
-    onError: Colors.white,
-    errorContainer: Color(0xFFFDE2E2),
-    onErrorContainer: Color(0xFF410000),
-
-    // Surface
-    surface: Color(0xFFFAF8F7),
-    onSurface: Color(0xFF1C1B1B),
-    surfaceTint: Color(0xFFEA1E63),
-
-    surfaceDim: Color(0xFFEDE7E6),
-    surfaceBright: Colors.white,
-
-    // Depth system
-    surfaceContainerLowest: Color(0xFFFFFFFF),
-    surfaceContainerLow: Color(0xFFFAF8F7),
-    surfaceContainer: Color(0xFFF3EEEC),
-    surfaceContainerHigh: Color(0xFFEDE7E6),
-    surfaceContainerHighest: Color(0xFFE6DFDD),
-
-    // Outline
-    outline: Color(0xFFD8D1CF),
-    outlineVariant: Color(0xFFEDE7E6),
-
-    // Inverse
-    inverseSurface: Color(0xFF2A2929),
-    onInverseSurface: Color(0xFFFAF8F7),
-    inversePrimary: Color(0xFFFFB0C8),
-
-    // Overlay
-    scrim: Colors.black,
-    shadow: Colors.black,
+    scrim: AppPaletteLight.scrim,
+    shadow: AppPaletteLight.shadow,
   );
 }
