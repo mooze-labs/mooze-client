@@ -14,7 +14,7 @@ npm run desktop:build
 
 For browser-only visual work, use the [synthetic desktop preview](../apps/frontend/src/testing/PREVIEW.md). It runs the real screen components with in-memory fixtures and no native wallet access. See the [composition report](superpowers/plans/2026-10-07-desktop-wallet-redesign.md) and [account/chart implementation notes](superpowers/plans/2026-10-07-desktop-account-and-charts.md) for the current UI changes and validation boundaries.
 
-Testnet keeps the previous bundle identity and wallet storage:
+Testnet keeps the previous bundle identity and OS credential namespace:
 
 ```sh
 npm run desktop:dev:testnet
@@ -34,7 +34,7 @@ Bundles appear under `apps/desktop/src-tauri/target/{release,debug}/bundle/macos
 
 Application data uses an embedded sled key-value database behind the core `KvStore` interface. Writes and deletions are flushed before returning success. Legacy `wallet.json` files are ignored; there is no migration. Secrets remain in the OS credential store.
 
-Data paths are relative to each identifier's Tauri app-data directory. Testnet paths and the existing `wallet-secrets` credential item are preserved. Mainnet does not import or copy existing testnet credentials. Each build imports or creates its own wallet and uses a six-digit PIN. Mnemonics, PIN hashes, backend tokens, nodes, and activity stay in their own namespaces. `MOOZE_TESTNET_PROFILE` is restricted to debug testnet builds.
+Data paths are relative to each identifier's Tauri app-data directory. The testnet app-data directory and existing `wallet-secrets` credential item are preserved; application data now uses `wallet.sled/`. Mainnet does not import or copy existing testnet credentials. Each build imports or creates its own wallet and uses a six-digit PIN. Mnemonics, PIN hashes, backend tokens, nodes, and activity stay in their own namespaces. `MOOZE_TESTNET_PROFILE` is restricted to debug testnet builds.
 
 The core supplies chain endpoints, address validation, Liquid policy identity, and asset precision. Mainnet supports BTC, L-BTC, DEPIX, and USDT; testnet retains BTC, L-BTC, and the existing TEST asset. Unknown assets stay visible with their identity and raw units. Custom Electrum nodes must report the selected chain's genesis hash.
 
