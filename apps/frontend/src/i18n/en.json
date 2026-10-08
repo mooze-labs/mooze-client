@@ -404,6 +404,7 @@
   "A unidade selecionada se aplica a BTC e L-BTC. Ativos não listados usam unidades brutas.": "The selected unit applies to BTC and L-BTC. Unlisted assets use raw units.",
   "Conta": "Account",
   "Nível da conta": "Account level",
+  "ID da conta": "Account ID",
   "Seu nível e seus limites para receber com Pix.": "Your level and limits for receiving with Pix.",
   "Carregando nível da conta…": "Loading account level…",
   "Não foi possível atualizar. Os limites abaixo podem estar desatualizados.": "Unable to refresh. The limits below may be outdated.",

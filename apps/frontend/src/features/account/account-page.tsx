@@ -45,6 +45,12 @@ export function AccountPage() {
           </Button>
         }
       />
+      {data && (
+        <p className="account-id">
+          <span className="muted">{t("ID da conta")}</span>
+          <code>{data.user_id}</code>
+        </p>
+      )}
       {query.isPending && (
         <p role="status">{t("Carregando nível da conta…")}</p>
       )}

@@ -93,6 +93,7 @@ export function createPreviewClient(mode = "unlocked"): DesktopClient {
       setup_offer_pending: false,
     }),
     accountLevel: async () => ({
+      user_id: "8f14e45f-ceea-467f-a0e6-8b4f0e3c1a2b",
       current_level: "silver",
       next_level: "gold",
       progress: 0.62,
