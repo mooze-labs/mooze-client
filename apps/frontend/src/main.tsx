@@ -23,12 +23,16 @@ const queryClient = new QueryClient({
 const router = createBrowserRouter([{ path: "*", element: <App /> }]);
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeProvider storage={themeStorage} initialPreference={initialPreference} applyNative={setNativeTheme}>
-    <IntlProvider locale="pt-BR">
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </IntlProvider>
+    <ThemeProvider
+      storage={themeStorage}
+      initialPreference={initialPreference}
+      applyNative={setNativeTheme}
+    >
+      <IntlProvider locale="pt-BR">
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </IntlProvider>
     </ThemeProvider>
   </React.StrictMode>,
 );
