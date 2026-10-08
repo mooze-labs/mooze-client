@@ -78,18 +78,23 @@ code {
   padding: 8px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--raised);
+  --button-background: var(--raised);
+  background: var(--button-background);
   color: inherit;
   font-weight: 500;
   font-size: 13px;
   cursor: pointer;
   transition: background 0.1s;
 }
-.button:active {
-  background: var(--pressed);
+/* Explicit role wins over the legacy unlayered button background. */
+.button[data-variant="secondary"] {
+  --button-background: var(--app-action-background);
 }
 .button:hover {
-  background: var(--hover);
+  background: color-mix(in srgb, var(--button-background), var(--foreground) 4%);
+}
+.button:active {
+  background: color-mix(in srgb, var(--button-background), var(--foreground) 8%);
 }
 .button.primary {
   background: var(--pink);

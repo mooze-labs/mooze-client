@@ -13,7 +13,7 @@ import {
   type ThemePreference,
   type ResolvedTheme,
 } from "./model";
-import { readThemePreference, type ThemeStorage } from "./storage";
+import { type ThemeStorage } from "./storage";
 import { applyTheme, systemTheme, SYSTEM_THEME_QUERY } from "./dom";
 type ThemeState = {
   preference: ThemePreference;
@@ -38,9 +38,13 @@ export function ThemeProvider({
   applyNative?: (preference: ThemePreference) => Promise<void>;
   children: ReactNode;
 }) {
-  const [preference, updatePreference] = useState(
-    () => initialPreference ?? readThemePreference(storage),
-  );
+  const [preference, updatePreference] = useState(() => {
+    try {
+      return parseThemePreference(storage.read());
+    } catch {
+      return initialPreference ?? "system";
+    }
+  });
   const [system, updateSystem] = useState(systemTheme);
   const [persistenceError, setPersistenceError] = useState(false);
   const nativeQueue = useRef(Promise.resolve());
@@ -55,14 +59,20 @@ export function ThemeProvider({
     media?.addEventListener("change", update);
     return () => media?.removeEventListener("change", update);
   }, []);
-  useEffect(
-    () =>
-      storage.subscribe((value) => {
-        updatePreference(parseThemePreference(value));
-        setPersistenceError(false);
-      }),
-    [storage],
-  );
+  useLayoutEffect(() => {
+    const unsubscribe = storage.subscribe((value) => {
+      updatePreference(parseThemePreference(value));
+      setPersistenceError(false);
+    });
+    // Close the gap between bootstrap, render, and listener registration.
+    // A denied read must not erase an existing in-memory choice.
+    try {
+      updatePreference(parseThemePreference(storage.read()));
+    } catch {
+      /* Keep current selection. */
+    }
+    return unsubscribe;
+  }, [storage]);
   useEffect(() => {
     if (!applyNative) return;
     let active = true;

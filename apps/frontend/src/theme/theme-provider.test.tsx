@@ -173,3 +173,37 @@ it("serializes native changes and recovers after rejection without blocking the 
   await act(async () => release());
   await waitFor(() => expect(calls.at(-1)).toBe("system"));
 });
+
+it("reconciles a preference changed after bootstrap but before provider subscription", () => {
+  const storage = createMemoryThemeStorage("light");
+  const initialPreference = "light" as const;
+  storage.write("dark");
+  render(
+    <ThemeProvider storage={storage} initialPreference={initialPreference}>
+      <Controls />
+    </ThemeProvider>,
+  );
+  expect(screen.getByRole("status")).toHaveTextContent("dark/dark/false");
+});
+
+it("recovers after an active native request rejects", async () => {
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const calls: string[] = [];
+  const applyNative = async (mode: string) => {
+    calls.push(mode);
+    if (mode === "dark") throw new Error("native denied");
+  };
+  render(
+    <ThemeProvider
+      storage={createMemoryThemeStorage("dark")}
+      applyNative={applyNative}
+    >
+      <Controls />
+    </ThemeProvider>,
+  );
+  await waitFor(() => expect(warning).toHaveBeenCalledOnce());
+  expect(document.documentElement.dataset.theme).toBe("dark");
+  fireEvent.click(screen.getByText("light"));
+  await waitFor(() => expect(calls).toEqual(["dark", "light"]));
+  expect(document.documentElement.dataset.theme).toBe("light");
+});
