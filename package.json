@@ -12,7 +12,10 @@
     "frontend:typecheck": "npm run typecheck -w @mooze/frontend",
     "frontend:build": "npm run build -w @mooze/frontend",
     "desktop:dev:testnet": "npm run dev:testnet -w @mooze/desktop",
-    "desktop:build:testnet": "npm run build:testnet -w @mooze/desktop"
+    "desktop:build:testnet": "npm run build:testnet -w @mooze/desktop",
+    "tokens:generate": "node tools/design-tokens/generate.mjs",
+    "tokens:check": "node tools/design-tokens/generate.mjs --check",
+    "tokens:test": "node --test tools/design-tokens/palette.test.mjs"
   },
   "devDependencies": {
     "prettier": "3.9.9"
