@@ -515,5 +515,10 @@
   "Conclua a autenticação em andamento ou use o PIN da carteira.": "Complete the current authentication or use your wallet PIN.",
   "Autenticação do dispositivo bloqueada. Use o PIN da carteira.": "Device authentication is locked out. Use your wallet PIN.",
   "Autenticação do dispositivo indisponível. Use o PIN da carteira.": "Device authentication is unavailable. Use your wallet PIN.",
-  "Não foi possível autenticar. Tente novamente ou use o PIN da carteira.": "Authentication failed. Try again or use your wallet PIN."
+  "Não foi possível autenticar. Tente novamente ou use o PIN da carteira.": "Authentication failed. Try again or use your wallet PIN.",
+  "Aparência": "Appearance",
+  "Sistema": "System",
+  "Claro": "Light",
+  "Escuro": "Dark",
+  "Não foi possível salvar a aparência. A alteração vale apenas para esta sessão.": "Could not save appearance. This change applies only to this session."
 }

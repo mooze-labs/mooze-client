@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 
 // jsdom 26 lacks PointerEvent, used by Base UI to forward checkbox/switch clicks.
-if (!window.PointerEvent) {
+if (typeof window !== "undefined" && !window.PointerEvent) {
   class TestPointerEvent extends MouseEvent {
     readonly pointerType: string;
     readonly pointerId: number;

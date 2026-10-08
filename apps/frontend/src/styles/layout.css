@@ -65,17 +65,17 @@
   font-size: 12px;
 }
 .shell > aside {
-  background: var(--surface);
+  background: var(--navigation);
 }
 @supports (backdrop-filter: blur(16px)) {
   .shell > aside {
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    background: color-mix(in srgb, var(--navigation) 92%, transparent);
     backdrop-filter: blur(16px);
   }
 }
 @media (prefers-reduced-transparency: reduce) {
   .shell > aside {
-    background: var(--surface);
+    background: var(--navigation);
     backdrop-filter: none;
   }
 }
@@ -95,6 +95,7 @@
   margin: 0 0 24px;
 }
 .wallet-quick-actions .quick-action {
+  background: var(--app-action-background);
   display: inline-flex;
   gap: 8px;
   padding: 10px 16px;
@@ -130,7 +131,7 @@
   border: 1px solid var(--separator);
   border-radius: var(--panel-radius);
   padding: 0 20px;
-  background: var(--surface);
+  background: var(--card);
 }
 .recent-activity {
   margin: 0;
@@ -409,7 +410,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 20px 24px;
-  background: var(--surface);
+  background: var(--card);
   border-bottom: 1px solid var(--separator);
 }
 .history-panel .dialog-heading h2 {
@@ -423,7 +424,7 @@
   padding: 20px;
   border: 1px solid var(--separator);
   border-radius: 16px;
-  background: var(--surface-raised, #ffffff05);
+  background: var(--raised);
 }
 .transaction-summary-heading {
   display: flex;
@@ -446,7 +447,7 @@
   padding: 5px 9px;
   border-radius: 6px;
   font-size: 12px;
-  background: #ffffff08;
+  background: var(--separator);
 }
 .transaction-status[data-status="Confirmed"] {
   color: var(--green);
@@ -563,6 +564,7 @@ a:focus-visible {
     padding: 16px;
   }
   .wallet-quick-actions .quick-action {
+  background: var(--app-action-background);
     flex: 1 1 40%;
     justify-content: center;
   }
@@ -608,7 +610,7 @@ a:focus-visible {
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background: #ffffff08;
+  background: var(--separator);
   color: var(--gold);
 }
 .account-progress {
@@ -670,7 +672,7 @@ a:focus-visible {
 .chart-controls [aria-pressed="true"] {
   color: var(--foreground);
   border-color: var(--accent);
-  background: #ffffff0a;
+  background: var(--hover-overlay);
 }
 .price-chart-summary {
   display: flex;
@@ -1065,7 +1067,7 @@ a:focus-visible {
   background: var(--raised);
   color: var(--foreground);
   font-size: 12px;
-  box-shadow: 0 4px 16px #0003;
+  box-shadow: 0 4px 16px var(--shadow-strong);
 }
 .shell[data-sidebar="compact"] .sidebar-heading {
   flex-direction: column;

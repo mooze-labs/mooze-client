@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'generated/app_palette.dart';
 
 /// [ThemeExtension] for semantic color tokens not covered by Material's
 /// [ColorScheme].
@@ -112,40 +113,40 @@ class AppExtraColors extends ThemeExtension<AppExtraColors> {
 
   /// Token values for the dark theme.
   static const dark = AppExtraColors(
-    warning: Color(0xFFFB8C00),
-    onWarning: Color(0xFFFFB74D),
-    textSecondary: Color(0xFF9194A6),
-    textTertiary: Color(0xFF7C7C7C),
-    textQuartiary: Color(0xFFC2C2C2),
-    textQuintary: Color(0xFFA6A0BB),
-    shimmerBase: Color(0xFF757575),
-    shimmerHighlight: Color(0xFFBDBDBD),
-    navBarFabBackground: Color(0xFFAD1457),
-    pinBackground: Color(0xFF191818),
-    recoveryPhraseBackground: Color(0xFF1C1924),
-    primaryIconColor: Color(0xFF9DB2CE),
-    menuIconColor: Color(0xFFB0BAD0),
-    editColor: Colors.orangeAccent,
-    actionButtonBackground: Color(0xFF2B2D33),
+    warning: AppPaletteDark.warning,
+    onWarning: AppPaletteDark.onWarning,
+    textSecondary: AppPaletteDark.textSecondary,
+    textTertiary: AppPaletteDark.textTertiary,
+    textQuartiary: AppPaletteDark.textQuartiary,
+    textQuintary: AppPaletteDark.textQuintary,
+    shimmerBase: AppPaletteDark.shimmerBase,
+    shimmerHighlight: AppPaletteDark.shimmerHighlight,
+    navBarFabBackground: AppPaletteDark.navBarFabBackground,
+    pinBackground: AppPaletteDark.pinBackground,
+    recoveryPhraseBackground: AppPaletteDark.recoveryPhraseBackground,
+    primaryIconColor: AppPaletteDark.primaryIconColor,
+    menuIconColor: AppPaletteDark.menuIconColor,
+    editColor: AppPaletteDark.editColor,
+    actionButtonBackground: AppPaletteDark.actionButtonBackground,
   );
 
   /// Token values for the light theme.
   static const light = AppExtraColors(
-    warning: Color(0xFFE65100),
-    onWarning: Color(0xFFF57C00),
-    textSecondary: Color(0xFF5C5F72),
-    textTertiary: Color(0xFF6B6B6B),
-    textQuartiary: Color(0xFF8A8A8A),
-    textQuintary: Color(0xFF7B7595),
-    shimmerBase: Color(0xFFBDBDBD),
-    shimmerHighlight: Color(0xFFE8E8E8),
-    navBarFabBackground: Color(0xFFAD1457),
-    pinBackground: Color(0xFFF5F5F5),
-    recoveryPhraseBackground: Color(0xFFF0EEF5),
-    primaryIconColor: Color(0xFF5B7A9A),
-    menuIconColor: Color(0xFF475569),
-    editColor: Colors.orange,
-    actionButtonBackground: Color(0xFFD1D5DB),
+    warning: AppPaletteLight.warning,
+    onWarning: AppPaletteLight.onWarning,
+    textSecondary: AppPaletteLight.textSecondary,
+    textTertiary: AppPaletteLight.textTertiary,
+    textQuartiary: AppPaletteLight.textQuartiary,
+    textQuintary: AppPaletteLight.textQuintary,
+    shimmerBase: AppPaletteLight.shimmerBase,
+    shimmerHighlight: AppPaletteLight.shimmerHighlight,
+    navBarFabBackground: AppPaletteLight.navBarFabBackground,
+    pinBackground: AppPaletteLight.pinBackground,
+    recoveryPhraseBackground: AppPaletteLight.recoveryPhraseBackground,
+    primaryIconColor: AppPaletteLight.primaryIconColor,
+    menuIconColor: AppPaletteLight.menuIconColor,
+    editColor: AppPaletteLight.editColor,
+    actionButtonBackground: AppPaletteLight.actionButtonBackground,
   );
 
   // ── ThemeExtension API ────────────────────────────────────────────────────

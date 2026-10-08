@@ -7,10 +7,10 @@ import "@fontsource/geist/latin-400.css";
 import "@fontsource/geist/latin-500.css";
 import "@fontsource/geist/latin-600.css";
 import "@fontsource/jetbrains-mono/latin-400.css";
-import "./styles/main.css";
-import "./styles/polish.css";
-import "./styles/layout.css";
 import { App } from "./app";
+import { ThemeProvider } from "./theme/theme-provider";
+import { themeStorage, initialPreference } from "./theme/startup";
+import { setNativeTheme } from "./theme/native";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 1, refetchOnWindowFocus: false },
@@ -20,10 +20,16 @@ const queryClient = new QueryClient({
 const router = createBrowserRouter([{ path: "*", element: <App /> }]);
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <IntlProvider locale="pt-BR">
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </IntlProvider>
+    <ThemeProvider
+      storage={themeStorage}
+      initialPreference={initialPreference}
+      applyNative={setNativeTheme}
+    >
+      <IntlProvider locale="pt-BR">
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </IntlProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 );
