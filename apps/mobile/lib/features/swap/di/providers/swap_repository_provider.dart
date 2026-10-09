@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/swap/data/repositories/core_swap_repository.dart';
@@ -19,6 +20,7 @@ final swapRepositoryProvider = FutureProvider.autoDispose<SwapRepository>((
 ) async {
   final repository = CoreSwapRepository(
     session: ref.watch(coreSideswapSessionProvider),
+    track: ref.read(analyticsProvider).track,
   );
   ref.onDispose(repository.dispose);
   return repository;

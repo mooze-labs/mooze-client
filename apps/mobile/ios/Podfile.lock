@@ -97,6 +97,11 @@ PODS:
     - FlutterMacOS
   - permission_handler_apple (9.3.0):
     - Flutter
+  - PostHog (3.91.1)
+  - posthog_flutter (0.0.1):
+    - Flutter
+    - FlutterMacOS
+    - PostHog (< 4.0.0, >= 3.84.0)
   - PromisesObjC (2.4.1)
   - restart_app (0.0.1):
     - Flutter
@@ -159,6 +164,7 @@ DEPENDENCIES:
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
+  - posthog_flutter (from `.symlinks/plugins/posthog_flutter/darwin`)
   - restart_app (from `.symlinks/plugins/restart_app/ios`)
   - safe_device (from `.symlinks/plugins/safe_device/ios`)
   - screen_brightness_ios (from `.symlinks/plugins/screen_brightness_ios/ios`)
@@ -180,6 +186,7 @@ SPEC REPOS:
     - GoogleDataTransport
     - GoogleUtilities
     - nanopb
+    - PostHog
     - PromisesObjC
     - ScreenProtectorKit
     - sqlite3
@@ -219,6 +226,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
+  posthog_flutter:
+    :path: ".symlinks/plugins/posthog_flutter/darwin"
   restart_app:
     :path: ".symlinks/plugins/restart_app/ios"
   safe_device:
@@ -265,6 +274,8 @@ SPEC CHECKSUMS:
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
+  PostHog: a996308626174f165e3bc469556176474b4820d7
+  posthog_flutter: c5462b0e35302b20ff880fc8036b842221408729
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
   restart_app: 9cda5378aacc5000e3f66ee76a9201534e7d3ecf
   safe_device: 205ad04de30f4512ca889418d4783e1b6fdf8cfe

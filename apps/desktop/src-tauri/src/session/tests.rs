@@ -875,7 +875,10 @@ async fn account_level_reads_authenticated_profile_and_shared_tiers() {
         .await
         .unwrap();
     let result = session.account_level().await.unwrap();
-    assert_eq!(serde_json::to_value(&result).unwrap()["user_id"], "test-user");
+    assert_eq!(
+        serde_json::to_value(&result).unwrap()["user_id"],
+        "test-user"
+    );
     assert_eq!(result.current_level, "bronze");
     assert_eq!(result.per_transaction_brl, 250.0);
     assert_eq!(result.spent_today_brl, 100.0);

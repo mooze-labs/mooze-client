@@ -3,7 +3,9 @@ import { PageHeader } from "../../ui/page-header";
 import { RefreshCw } from "lucide-react";
 import { LoadingRows } from "../../ui/loading-rows";
 import { formatTaxId, taxIdDigits, formatBrlInput } from "./pix-input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { analytics, pixAnalytics } from "../../analytics/runtime";
+import { trackOperation } from "../../analytics/product-flows";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWalletClient } from "../../app/client-context";
 import { useWalletSession } from "../../app/session-provider";
@@ -63,6 +65,11 @@ export function PixPage() {
   const current =
     history.data?.deposits.find((d) => d.deposit_id === deposit?.deposit_id) ??
     deposit;
+  useEffect(() => {
+    for (const item of history.data?.deposits ?? []) {
+      pixAnalytics.observe(item.deposit_id, item.status);
+    }
+  }, [history.data]);
   const cents = parseBrlCents(amount);
   const [touched, setTouched] = useState({ amount: false, tax: false });
   const taxValid = /^\d{11}$|^\d{14}$/.test(taxIdDigits(tax));
@@ -85,13 +92,19 @@ export function PixPage() {
     setBusy(true);
     setError("");
     try {
-      setDeposit(
-        await client.pixCreate({
-          amount_in_cents: cents,
-          asset_id: selected,
-          tax_id_number: taxIdDigits(tax),
-        }),
-      );
+      const created = await trackOperation(analytics.track, {
+        started: { name: "pix_request_started", properties: {} },
+        failed: { name: "pix_request_failed", properties: {} },
+        outcome: () => ({ name: "pix_request_created", properties: {} }),
+        run: () =>
+          client.pixCreate({
+            amount_in_cents: cents,
+            asset_id: selected,
+            tax_id_number: taxIdDigits(tax),
+          }),
+      });
+      pixAnalytics.observe(created.deposit_id, created.status);
+      setDeposit(created);
       await qc.invalidateQueries({ queryKey: [...prefix, "pix"] });
     } catch (e) {
       setError(errorText(e));

@@ -1,3 +1,4 @@
+import { AnalyticsSetting } from "../../analytics/analytics-setting";
 import { AppearanceSetting } from "./appearance-setting";
 import { SelectField } from "../../ui/select-field";
 import { SwitchField } from "../../ui/switch-field";
@@ -27,6 +28,7 @@ export function DisplayPage() {
       <h2>{t("Exibição")}</h2>
       <ErrorNotice>{error}</ErrorNotice>
       <AppearanceSetting />
+      <AnalyticsSetting />
       <SelectField
         label={t("Idioma")}
         disabled={busy}

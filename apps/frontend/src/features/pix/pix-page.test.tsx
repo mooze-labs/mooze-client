@@ -10,11 +10,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WalletClientProvider } from "../../app/client-context";
 import { fakeClient } from "../../testing/client";
 import { PixPage } from "./pix-page";
+import { analytics } from "../../analytics/runtime";
 vi.mock("../../app/session-provider", () => ({
   useWalletSession: () => ({ session: { generation: 1, status: "unlocked" } }),
 }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 it("creates exactly one BRL request and shows its payment code without claiming settlement", async () => {
+  const events = vi.spyOn(analytics, "track");
   const client = fakeClient();
   vi.mocked(client.hostInfo).mockResolvedValue({
     network: "Mainnet",
@@ -85,6 +90,10 @@ it("creates exactly one BRL request and shows its payment code without claiming 
   );
   fireEvent.click(screen.getByRole("button", { name: "Criar Pix" }));
   await screen.findByText("000201payment");
+  expect(events.mock.calls.map(([event]) => event)).toEqual([
+    { name: "pix_request_started", properties: {} },
+    { name: "pix_request_created", properties: {} },
+  ]);
   expect(client.pixCreate).toHaveBeenCalledExactlyOnceWith({
     amount_in_cents: "1234",
     asset_id: "depix",

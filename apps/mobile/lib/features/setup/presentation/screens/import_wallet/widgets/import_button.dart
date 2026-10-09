@@ -1,3 +1,4 @@
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -76,6 +77,7 @@ class ImportButton extends ConsumerWidget {
             notifier.setLoading(false);
           },
           (_) async {
+            ref.read(analyticsSetupMethodProvider.notifier).state = 'import';
             loadingNotifier.state = false;
             notifier.setLoading(false);
 

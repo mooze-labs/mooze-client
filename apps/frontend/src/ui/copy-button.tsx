@@ -6,10 +6,12 @@ export function CopyButton({
   value,
   label,
   className,
+  onCopied,
 }: {
   value: string;
   label: string;
   className?: string;
+  onCopied?: () => void;
 }) {
   const t = useT();
   const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
@@ -35,6 +37,7 @@ export function CopyButton({
     setStatus("idle");
     try {
       await navigator.clipboard.writeText(value);
+      onCopied?.();
       if (current === generation.current) setStatus("copied");
     } catch {
       if (current === generation.current) setStatus("error");

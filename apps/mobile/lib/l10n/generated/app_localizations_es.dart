@@ -1051,7 +1051,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get privacy_section_5_body =>
-      '5.1. Mooze comparte datos exclusivamente:\n(a) Con Socias Reguladas y Eulen.app LLC: direcciones de cartera, valores y APP ID cuando sea necesario para antifraude.\n(b) Mediante orden judicial válida.\n(c) Para cumplimiento de obligación legal en la jurisdicción de las Islas Marshall.\n\n5.2. Mooze NO vende, alquila ni comparte datos con terceros para fines de marketing o publicidad.\n\n5.3. Mooze NO utiliza rastreadores de terceros, píxeles de seguimiento ni SDKs de análisis que recopilen datos personales.';
+      '5.1. Mooze comparte datos exclusivamente:\n(a) Con Socias Reguladas y Eulen.app LLC: direcciones de cartera, valores y APP ID cuando sea necesario para antifraude.\n(b) Mediante orden judicial válida.\n(c) Para cumplimiento de obligación legal en la jurisdicción de las Islas Marshall.\n(d) Con PostHog, para analytics opcional según la sección 5.3.\n\n5.2. Mooze NO vende, alquila ni comparte datos con terceros para fines de marketing o publicidad.\n\n5.3. Con tu autorización opcional, Mooze utiliza PostHog para analizar pantallas visitadas y resultados de acciones. Enviamos un identificador aleatorio de la instalación, versión de la aplicación, información básica del dispositivo y categorías de uso. No enviamos frases de recuperación, PIN, direcciones, saldos, importes de transacciones ni datos PIX a analytics. No grabamos pantallas ni sesiones. La recopilación comienza solo al activarla y puede desactivarse en Ajustes. La desactivación detiene nuevas recopilaciones; no elimina los datos ya recibidos. Los datos de analytics se procesan en PostHog Cloud en Estados Unidos. Los eventos capturados y encolados antes de desactivar aún pueden enviarse.';
 
   @override
   String get privacy_section_6_body =>
@@ -5252,4 +5252,15 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get asset_activity_history_title => 'Transacciones';
+
+  @override
+  String get analytics_opt_in => 'Compartir datos de uso (opcional)';
+
+  @override
+  String get analytics_description =>
+      'Ayuda a mejorar Mooze enviando a PostHog pantallas visitadas y resultados de acciones, con un identificador aleatorio e información básica de la aplicación y el dispositivo. No enviamos tu frase, PIN, direcciones, saldos ni importes. Sin grabación de pantalla. Puedes desactivarlo en Ajustes en cualquier momento.';
+
+  @override
+  String get analytics_save_error =>
+      'No se pudo actualizar la preferencia de datos de uso. Inténtalo de nuevo.';
 }

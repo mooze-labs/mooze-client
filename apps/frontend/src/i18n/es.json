@@ -521,5 +521,8 @@
   "Sistema": "Sistema",
   "Claro": "Claro",
   "Escuro": "Oscuro",
-  "Não foi possível salvar a aparência. A alteração vale apenas para esta sessão.": "No se pudo guardar la apariencia. El cambio solo se aplica a esta sesión."
+  "Não foi possível salvar a aparência. A alteração vale apenas para esta sessão.": "No se pudo guardar la apariencia. El cambio solo se aplica a esta sesión.",
+  "Compartilhar dados de uso (opcional)": "Compartir datos de uso (opcional)",
+  "Ajude a melhorar o Mooze enviando ao PostHog telas visitadas e resultados de ações, com um identificador aleatório. Não enviamos sua frase, PIN, endereços, saldos ou valores. Sem gravação de tela. Você pode desativar a qualquer momento nos Ajustes.": "Ayuda a mejorar Mooze enviando a PostHog pantallas visitadas y resultados de acciones, con un identificador aleatorio. No enviamos tu frase, PIN, direcciones, saldos ni importes. Sin grabación de pantalla. Puedes desactivarlo en Ajustes en cualquier momento.",
+  "Não foi possível atualizar a preferência de dados de uso. Tente novamente.": "No se pudo actualizar la preferencia de datos de uso. Inténtalo de nuevo."
 }

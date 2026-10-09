@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/data/models/pix_status_event.dart';
@@ -39,6 +40,8 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
 
   void _subscribeToRepository(PixRepository repository) {
     _subscription = repository.statusUpdates.listen((statusEvent) {
+      // Observe every backend status, independently of UI notification deduplication.
+      ref.read(pixAnalyticsProvider).observe(statusEvent.depositId, statusEvent.status.name);
       if (_processedDeposits.contains(statusEvent.depositId)) {
         return;
       }

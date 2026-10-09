@@ -11,6 +11,12 @@ A React + Tauri desktop client is available in `apps/frontend` and `apps/desktop
 Run `npm ci` and `npm run desktop:dev` from the repository root. Testnet is a separate build: `npm run desktop:dev:testnet`.
 See [desktop setup, architecture, and verification](docs/desktop-mvp.md).
 
+## Product analytics
+
+Desktop and mobile include optional PostHog analytics, disabled until the user opts in.
+See [configuration, event contract, and verification](docs/analytics.md). Mobile release
+builds must include `--dart-define-from-file=config/posthog.production.json`.
+
 ## Features
 
 - **Bitcoin and Liquid**: on-chain Bitcoin and Liquid wallets in one app.

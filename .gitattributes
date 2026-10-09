@@ -1,0 +1,3 @@
+# Code generators emit LF; preserve exact comparisons on every platform.
+apps/frontend/src/core/desktop.generated.ts text eol=lf
+crates/mooze-app/generated/*.ts text eol=lf

@@ -1,7 +1,10 @@
-use super::*;
+use super::{
+    NativeAuthenticator, NativeAvailability, NativeCapabilities, NativeKind, NativeOutcome,
+};
+use futures::future::BoxFuture;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
-    Mutex,
+    Arc, Mutex,
 };
 use tauri::Manager;
 use windows::{

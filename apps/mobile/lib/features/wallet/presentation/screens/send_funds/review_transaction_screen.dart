@@ -1,3 +1,5 @@
+import 'package:mooze_mobile/shared/analytics/events.dart';
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -305,6 +307,11 @@ class _ReviewTransactionScreenState
     );
 
     setState(() => _isConfirming = true);
+    final analytics = ref.read(analyticsProvider);
+    final analyticsChain =
+        psbt.blockchain == Blockchain.bitcoin ? 'bitcoin' : 'liquid';
+    analytics.track(AnalyticsEvent.send('send_started', analyticsChain));
+    var outcomeReported = false;
 
     try {
       _log.debug(_tag, 'Fetching wallet controller to broadcast transaction');
@@ -328,12 +335,19 @@ class _ReviewTransactionScreenState
             await controller.confirmTransaction(psbt: psbt).run(),
       );
 
+      outcomeReported = true;
       result.fold(
         (error) {
+          analytics.track(
+            AnalyticsEvent.send('send_failed', analyticsChain, errorCode: 'unknown'),
+          );
           _log.error(_tag, 'Transaction broadcast failed: $error');
           _showErrorDialog(context, error);
         },
         (transaction) {
+          analytics.track(
+            AnalyticsEvent.send('send_submission_succeeded', analyticsChain),
+          );
           _log.info(
             _tag,
             'Transaction broadcast successful — asset: ${psbt.asset.ticker}, '
@@ -356,6 +370,11 @@ class _ReviewTransactionScreenState
         },
       );
     } catch (e, stackTrace) {
+      if (!outcomeReported) {
+        analytics.track(
+          AnalyticsEvent.send('send_failed', analyticsChain, errorCode: 'unknown'),
+        );
+      }
       _log.critical(
         _tag,
         'Unexpected error during transaction confirmation',

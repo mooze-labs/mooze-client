@@ -1,3 +1,5 @@
+import 'package:mooze_mobile/shared/analytics/events.dart';
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -66,6 +68,15 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
     result.match(
       (failure) => AppSnackBar.error(context, failure.toString()),
       (_) async {
+        if (!widget.isChangingPin) {
+          final method = ref.read(analyticsSetupMethodProvider);
+          if (method != null) {
+            ref.read(analyticsProvider).track(
+              AnalyticsEvent('onboarding_completed', {'method': method}),
+            );
+            ref.read(analyticsSetupMethodProvider.notifier).state = null;
+          }
+        }
         // Invalidate hasPinProvider after PIN creation
         BootTracer.mark('pin_confirm.invalidate.has_pin');
         ref.invalidate(hasPinProvider);

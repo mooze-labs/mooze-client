@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/analytics/events.dart';
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/swap/presentation/utils/post_swap_refresh.dart';
@@ -67,6 +69,7 @@ class _ConfirmSwapBottomSheetState
   @override
   void initState() {
     super.initState();
+    ref.read(analyticsProvider).track(const AnalyticsEvent('swap_review_opened', {'swap_type': 'liquid'}));
     // If the cached quote is about to die (< 5s remaining) when the user
     // opens the sheet, preempt immediately so we don't show "00:02 →
     // expired" right after the modal lands.
