@@ -1,10 +1,10 @@
 name: Desktop wallet
 on:
   pull_request:
-    paths: ["apps/desktop/**", "apps/frontend/**", "crates/mooze-core/**", "crates/mooze-app/**", "package*.json", "packages/design-tokens/**", "tools/design-tokens/**", "apps/mobile/lib/themes/**", ".github/workflows/desktop.yml"]
+    paths: ["apps/desktop/**", "apps/frontend/**", "crates/mooze-core/**", "crates/mooze-app/**", "package*.json", "packages/design-tokens/**", "tools/design-tokens/**", "apps/mobile/lib/themes/**", ".gitattributes", ".github/workflows/desktop.yml"]
   push:
     branches: [main, develop]
-    paths: ["apps/desktop/**", "apps/frontend/**", "crates/mooze-core/**", "crates/mooze-app/**", "package*.json", "packages/design-tokens/**", "tools/design-tokens/**", "apps/mobile/lib/themes/**", ".github/workflows/desktop.yml"]
+    paths: ["apps/desktop/**", "apps/frontend/**", "crates/mooze-core/**", "crates/mooze-app/**", "package*.json", "packages/design-tokens/**", "tools/design-tokens/**", "apps/mobile/lib/themes/**", ".gitattributes", ".github/workflows/desktop.yml"]
 permissions:
   contents: read
 jobs:
