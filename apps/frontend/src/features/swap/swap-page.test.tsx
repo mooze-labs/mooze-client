@@ -11,12 +11,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WalletClientProvider } from "../../app/client-context";
 import { fakeClient } from "../../testing/client";
 import { SwapPage } from "./swap-page";
+import { analytics } from "../../analytics/runtime";
+import { MemoryRouter } from "react-router-dom";
 vi.mock("../../app/session-provider", () => ({
   useWalletSession: () => ({ session: { generation: 1, status: "unlocked" } }),
 }));
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 async function setup() {
   const client = fakeClient();
@@ -63,7 +66,9 @@ async function setup() {
       }
     >
       <WalletClientProvider client={client}>
-        <SwapPage />
+        <MemoryRouter>
+          <SwapPage />
+        </MemoryRouter>
       </WalletClientProvider>
     </QueryClientProvider>,
   );
@@ -75,6 +80,61 @@ async function setup() {
   );
   return { client, input, ...view };
 }
+it.each(["Succeeded", "Failed", "Uncertain"])(
+  "records swap review and the real %s outcome without financial data",
+  async (phase) => {
+    const capture = vi.spyOn(analytics, "track");
+    const { client, input } = await setup();
+    const review = {
+      id: "private-quote",
+      generation: 1,
+      send_asset_id: "lbtc",
+      receive_asset_id: "usdt",
+      send_units: "1000000",
+      receive_units: "2000000",
+      fees: [],
+      expires_at_ms: Date.now() + 60000,
+    };
+    vi.mocked(client.swapStart).mockResolvedValue({
+      phase: "Review",
+      review,
+      txid: null,
+      message: null,
+    });
+    vi.mocked(client.swapStatus).mockResolvedValue({
+      phase: "Review",
+      review,
+      txid: null,
+      message: null,
+    });
+    vi.mocked(client.swapConfirm).mockResolvedValue({
+      phase,
+      review: null,
+      txid: phase === "Succeeded" ? "private-txid" : null,
+      message: null,
+    });
+    fireEvent.change(input, { target: { value: "0,01" } });
+    const reviewButton = await screen.findByRole("button", {
+      name: "Revisar troca",
+    });
+    fireEvent.click(reviewButton);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirmar troca" }),
+    );
+    await waitFor(() =>
+      expect(capture.mock.calls.map(([e]) => e.name)).toEqual([
+        "swap_review_opened",
+        "swap_started",
+        phase === "Succeeded" ? "swap_submission_succeeded" : "swap_failed",
+      ]),
+    );
+    expect(capture.mock.calls.map(([e]) => e.properties)).toEqual([
+      { swap_type: "liquid" },
+      { swap_type: "liquid" },
+      { swap_type: "liquid" },
+    ]);
+  },
+);
 it("reverses the assets and discards the previous amount and quote", async () => {
   const { client, input } = await setup();
   fireEvent.change(input, { target: { value: "0,01" } });

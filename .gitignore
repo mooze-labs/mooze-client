@@ -12,6 +12,7 @@
 .swiftpm/
 migrate_working_dir/
 .env
+.env.*
 ._*
 
 # Firebase files

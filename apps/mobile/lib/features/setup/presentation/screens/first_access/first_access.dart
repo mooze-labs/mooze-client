@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/analytics/analytics_setting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/first_access/widgets/mock_app_image.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/first_access/widgets/title_and_subtitle.dart';
@@ -17,6 +18,7 @@ class FirstAccessScreen extends ConsumerWidget {
             Expanded(child: MockAppImage()),
             TitleAndSubtitle(),
             TermsDefinitionWidget(),
+            AnalyticsSetting(compact: true),
             SizedBox(height: 20),
             BeginWidget(),
             ImportWalletWidget(),

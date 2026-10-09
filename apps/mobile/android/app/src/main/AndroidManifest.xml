@@ -12,6 +12,9 @@
         android:dataExtractionRules="@null"
         tools:replace="allowBackup,fullBackupContent,restoreAnyVersion,dataExtractionRules"
     >
+        <meta-data android:name="com.posthog.posthog.AUTO_INIT" android:value="false" />
+        <meta-data android:name="com.posthog.posthog.CAPTURE_PUSH_NOTIFICATION_OPENED" android:value="false" />
+        <meta-data android:name="com.posthog.posthog.CAPTURE_PUSH_NOTIFICATION_SUBSCRIPTIONS" android:value="false" />
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

@@ -1,4 +1,6 @@
 import { FlowStep } from "../../ui/flow-step";
+import { analytics } from "../../analytics/runtime";
+import { trackOperation } from "../../analytics/product-flows";
 import { PageHeader } from "../../ui/page-header";
 import { ArrowDownUp, Layers2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -197,7 +199,19 @@ export function SwapPage() {
     setError("");
     try {
       await qc.cancelQueries({ queryKey: key });
-      qc.setQueryData(key, await client.swapConfirm(review.id));
+      const result = await trackOperation(analytics.track, {
+        started: { name: "swap_started", properties: { swap_type: "liquid" } },
+        failed: { name: "swap_failed", properties: { swap_type: "liquid" } },
+        outcome: (value) => ({
+          name:
+            value.phase === "Succeeded"
+              ? "swap_submission_succeeded"
+              : "swap_failed",
+          properties: { swap_type: "liquid" },
+        }),
+        run: () => client.swapConfirm(review.id),
+      });
+      qc.setQueryData(key, result);
       await qc.invalidateQueries({ queryKey: [...prefix, "holdings"] });
     } catch (e) {
       setError(errorText(e));
@@ -284,6 +298,10 @@ export function SwapPage() {
                 e.preventDefault();
                 if (currentReview && canConfirm(state.data, Date.now(), busy)) {
                   setReviewing(true);
+                  analytics.track({
+                    name: "swap_review_opened",
+                    properties: { swap_type: "liquid" },
+                  });
                 } else quote();
               }}
             >

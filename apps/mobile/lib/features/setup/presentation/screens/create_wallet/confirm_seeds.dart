@@ -1,3 +1,4 @@
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -201,6 +202,7 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
       ref.invalidate(allBalancesProvider);
 
       if (mounted) {
+        ref.read(analyticsSetupMethodProvider.notifier).state = 'create';
         selectedWords.clear();
         context.push("/setup/pin/new");
       }

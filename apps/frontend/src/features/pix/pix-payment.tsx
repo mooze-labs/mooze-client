@@ -1,4 +1,5 @@
 import { Check, Clock3, QrCode, CircleHelp } from "lucide-react";
+import { analytics } from "../../analytics/runtime";
 import { QRCodeSVG } from "qrcode.react";
 import type { PixDepositViewDto } from "../../core/desktop.generated";
 import { useT } from "../../i18n/messages";
@@ -94,6 +95,9 @@ export function PixPayment({ deposit }: { deposit: PixDepositViewDto }) {
           <CopyButton
             value={deposit.pix_key}
             label={t("Copiar código Pix")}
+            onCopied={() =>
+              analytics.track({ name: "pix_code_copied", properties: {} })
+            }
             className="primary"
           />
           <details className="receipt-details">

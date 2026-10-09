@@ -1,3 +1,4 @@
+import { analytics } from "./analytics/runtime";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import { App } from "./app";
 import { ThemeProvider } from "./theme/theme-provider";
 import { themeStorage, initialPreference } from "./theme/startup";
 import { setNativeTheme } from "./theme/native";
+void analytics.start();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 1, refetchOnWindowFocus: false },

@@ -1,3 +1,5 @@
+import { AnalyticsNavigation } from "../analytics/react";
+import { setAnalyticsNetwork } from "../analytics/runtime";
 import { SidebarLayout, SidebarHint } from "./sidebar";
 import { AccountPage } from "../features/account/account-page";
 import { ScreenTransition } from "../ui/screen-transition";
@@ -5,7 +7,7 @@ import { SwapPage } from "../features/swap/swap-page";
 import { PixPage } from "../features/pix/pix-page";
 import { BackendStatus } from "../features/dashboard/backend-status";
 import { NetworkContext, networkLabel } from "../core/network";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Routes, Route } from "react-router-dom";
 import { Eye, EyeOff, Lock } from "lucide-react";
@@ -33,6 +35,9 @@ export function WalletShell() {
     queryKey: ["host"],
     queryFn: () => client.hostInfo(),
   });
+  useEffect(() => {
+    setAnalyticsNetwork(host.data?.network ?? "");
+  }, [host.data?.network]);
   return (
     <NetworkContext.Provider value={host.data?.network ?? ""}>
       <WalletShellContent />
@@ -82,6 +87,7 @@ function WalletShellContent() {
   return (
     <NetworkContext.Provider value={host.data?.network ?? ""}>
       <PrivacyContext.Provider value={privateMode}>
+        <AnalyticsNavigation />
         <SidebarLayout
           footer={(compact) => (
             <>

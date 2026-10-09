@@ -521,5 +521,8 @@
   "Sistema": "System",
   "Claro": "Light",
   "Escuro": "Dark",
-  "Não foi possível salvar a aparência. A alteração vale apenas para esta sessão.": "Could not save appearance. This change applies only to this session."
+  "Não foi possível salvar a aparência. A alteração vale apenas para esta sessão.": "Could not save appearance. This change applies only to this session.",
+  "Compartilhar dados de uso (opcional)": "Share usage data (optional)",
+  "Ajude a melhorar o Mooze enviando ao PostHog telas visitadas e resultados de ações, com um identificador aleatório. Não enviamos sua frase, PIN, endereços, saldos ou valores. Sem gravação de tela. Você pode desativar a qualquer momento nos Ajustes.": "Help improve Mooze by sending PostHog screens visited and action outcomes, with a random identifier. We do not send your recovery phrase, PIN, addresses, balances or amounts. No screen recording. You can turn this off at any time in Settings.",
+  "Não foi possível atualizar a preferência de dados de uso. Tente novamente.": "Could not update your usage data preference. Try again."
 }

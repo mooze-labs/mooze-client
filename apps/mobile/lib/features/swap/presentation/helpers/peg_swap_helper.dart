@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/analytics/events.dart';
+import 'package:mooze_mobile/shared/analytics/providers.dart';
+import 'package:mooze_mobile/shared/analytics/product_flows.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
@@ -33,6 +36,9 @@ class PegSwapHelper {
         fromAsset == core.Asset.btc ? PegDirection.pegIn : PegDirection.pegOut;
 
     final orchestrator = ref.read(pegOrchestratorProvider);
+    final analytics = ref.read(analyticsProvider);
+    final properties = <String, Object>{'swap_type': direction.isPegIn ? 'peg_in' : 'peg_out'};
+    analytics.track(AnalyticsEvent('swap_review_opened', properties));
 
     BtcLbtcConfirmBottomSheet.show(
       context,
@@ -55,8 +61,12 @@ class PegSwapHelper {
         );
         pendingSwaps.markBroadcasting(localId);
 
-        final result =
-            await orchestrator
+        final result = await trackOperation(
+          track: analytics.track,
+          started: AnalyticsEvent('swap_started', properties),
+          failed: AnalyticsEvent('swap_failed', properties),
+          outcome: (value) => AnalyticsEvent(value.isRight() ? 'swap_submission_succeeded' : 'swap_failed', properties),
+          run: () => orchestrator
                 .execute(
                   direction: direction,
                   amountSat: sendAmount,
@@ -64,7 +74,8 @@ class PegSwapHelper {
                   drain: drain,
                   externalPayoutAddress: externalBitcoinAddress,
                 )
-                .run();
+                .run(),
+        );
 
         if (!context.mounted) return;
         Navigator.of(context).pop();

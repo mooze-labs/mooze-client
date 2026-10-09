@@ -1,3 +1,6 @@
+import { AnalyticsSetting } from "../../analytics/analytics-setting";
+import { analytics } from "../../analytics/runtime";
+import { AnalyticsScreen } from "../../analytics/react";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { FlowStep } from "../../ui/flow-step";
 import { useNow } from "../../ui/use-now";
@@ -152,6 +155,10 @@ export function SetupPage({
                 pin,
               )
             : await client.importWallet(draft.words.join(" "), pin);
+        analytics.track({
+          name: "onboarding_completed",
+          properties: { method: draft.kind },
+        });
         if (!active.current) return;
         dispatch({ type: "cancel" });
         onSession(session);
@@ -181,6 +188,9 @@ export function SetupPage({
               : 4;
   return (
     <main className="onboarding setup-onboarding">
+      <AnalyticsScreen
+        screen={state.step === "welcome" ? "onboarding" : null}
+      />
       <div className="wordmark">
         {t("mooze")}
         <span>●</span>
@@ -225,6 +235,7 @@ export function SetupPage({
                   accepted={termsAccepted}
                   onAcceptedChange={setTermsAccepted}
                 />
+                <AnalyticsSetting />
                 <div className="setup-actions">
                   <Button
                     className="primary"

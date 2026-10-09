@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/analytics/events.dart';
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
@@ -17,7 +19,10 @@ class _CopyableAddressState extends ConsumerState<CopyableAddress> {
   bool _isCopied = false;
 
   Future<void> _copyToClipboard(String text) async {
+    final analytics = ref.read(analyticsProvider);
     await Clipboard.setData(ClipboardData(text: text));
+    analytics.track(const AnalyticsEvent('pix_code_copied', {}));
+    if (!mounted) return;
     setState(() {
       _isCopied = true;
     });

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:mooze_mobile/shared/analytics/events.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -42,8 +43,10 @@ void main() {
   late _MockCore core;
   late StreamController<SideSwapEventDto> events;
   late CoreSwapRepository repo;
+  late List<AnalyticsEvent> captured;
 
   setUp(() {
+    captured = [];
     core = _MockCore();
     events = StreamController<SideSwapEventDto>.broadcast();
     when(() => core.sideswapConnect(
@@ -70,6 +73,7 @@ void main() {
     );
     repo = CoreSwapRepository(
       session: CoreSideswapSession(core: Future.value(core), apiKey: 'key'),
+      track: captured.add,
     );
   });
 
@@ -283,6 +287,8 @@ void main() {
       final result = await repo.executeSwap(11).run();
 
       expect(result.getRight().toNullable(), 'txid-1');
+      expect(captured.map((e) => e.name), ['swap_started', 'swap_submission_succeeded']);
+      expect(captured.map((e) => e.properties), [{'swap_type': 'liquid'}, {'swap_type': 'liquid'}]);
     });
 
     test('returns the core error text', () async {
@@ -297,6 +303,8 @@ void main() {
       final result = await repo.executeSwap(11).run();
 
       expect(result.getLeft().toNullable(), 'Quote pset não encontrado');
+      expect(captured.map((e) => e.name), ['swap_started', 'swap_failed']);
+      expect(captured.last.properties, {'swap_type': 'liquid'});
     });
   });
 

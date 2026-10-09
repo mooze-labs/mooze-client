@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:mooze_mobile/shared/analytics/events.dart';
+import 'package:mooze_mobile/shared/analytics/product_flows.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
@@ -20,8 +22,10 @@ import '../services/core_sideswap_session.dart';
 /// `SideswapService` did. [dispose] stops the quote and the event stream,
 /// but keeps the connection open, because the peg tracker shares it.
 class CoreSwapRepository implements SwapRepository {
-  CoreSwapRepository({required CoreSideswapSession session})
-      : _session = session;
+  CoreSwapRepository({required CoreSideswapSession session, void Function(AnalyticsEvent)? track})
+      : _session = session, _track = track ?? ((_) {});
+
+  final void Function(AnalyticsEvent) _track;
 
   final CoreSideswapSession _session;
   final _quotes = StreamController<QuoteResponse>.broadcast();
@@ -118,6 +122,16 @@ class CoreSwapRepository implements SwapRepository {
 
   @override
   TaskEither<String, String> executeSwap(int quoteId) {
+    return TaskEither(() => trackOperation(
+      track: _track,
+      started: const AnalyticsEvent('swap_started', {'swap_type': 'liquid'}),
+      failed: const AnalyticsEvent('swap_failed', {'swap_type': 'liquid'}),
+      outcome: (value) => AnalyticsEvent(value.isRight() ? 'swap_submission_succeeded' : 'swap_failed', const {'swap_type': 'liquid'}),
+      run: () => _executeSwap(quoteId).run(),
+    ));
+  }
+
+  TaskEither<String, String> _executeSwap(int quoteId) {
     return TaskEither(() async {
       try {
         return await LiquidSpendCoordinator.instance.protect(

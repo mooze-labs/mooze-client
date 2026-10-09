@@ -1,3 +1,4 @@
+import 'package:mooze_mobile/shared/analytics/navigation_tracking.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:safe_device/safe_device.dart';
@@ -59,7 +60,7 @@ void main() async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sharedPreferences),
       ],
-      child: const MyApp(),
+      child: const AnalyticsNavigation(child: MyApp()),
     ),
   );
   BootTracer.mark('main.runApp_returned');

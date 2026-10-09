@@ -1,3 +1,4 @@
+import { analytics } from "../../analytics/runtime";
 import { PageHeader } from "../../ui/page-header";
 import { SendResult } from "./send-result";
 import { selectSubmissionView } from "./submission-view";
@@ -194,8 +195,15 @@ function SendSession({
     if (!review || inFlight.current || now >= review.expires_at_ms) return;
     inFlight.current = true;
     dispatch({ type: "confirm" });
+    const chain =
+      review.request.asset.chain === "Bitcoin" ? "bitcoin" : "liquid";
+    analytics.track({ name: "send_started", properties: { chain } });
     try {
       const result = await client.confirmSend(review.id);
+      analytics.track({
+        name: "send_submission_succeeded",
+        properties: { chain },
+      });
       if (active.current) dispatch({ type: "submitted", txid: result.tx_id });
     } catch (e) {
       const uncertain =
@@ -203,6 +211,10 @@ function SendSession({
         ["submission_unknown", "transport"].includes(
           String((e as { code?: string }).code),
         );
+      analytics.track({
+        name: "send_failed",
+        properties: { chain, error_code: uncertain ? "unknown" : "rejected" },
+      });
       if (active.current)
         dispatch({
           type: uncertain ? "uncertain" : "failed",
