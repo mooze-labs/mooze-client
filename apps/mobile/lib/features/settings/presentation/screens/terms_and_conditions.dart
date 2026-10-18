@@ -27,7 +27,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    _expandedSections = List<bool>.filled(32, false);
+    _expandedSections = List<bool>.filled(33, false);
   }
 
   @override
@@ -128,6 +128,9 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                 onExpansionChanged: (expanded) {
                   setState(() => _expandedSections[index] = expanded);
                 },
+                // The unnumbered preamble keeps section badges aligned with
+                // their clause numbers.
+                showInfoIconForFirst: true,
               );
             }, childCount: sections.length),
           ),
@@ -234,6 +237,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
 
 List<LegalDocumentSection> _buildTermsSections(AppLocalizations t) {
   return [
+    LegalDocumentSection(t.terms_preamble, t.terms_preamble_body),
     LegalDocumentSection(t.terms_section_1, t.terms_section_1_body),
     LegalDocumentSection(t.terms_section_2, t.terms_section_2_body),
     LegalDocumentSection(t.terms_section_3, t.terms_section_3_body),
