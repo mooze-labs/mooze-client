@@ -2,6 +2,7 @@
 //!
 //! Request flow:
 //! - attach device metrics to JSON bodies,
+//! - attach [`BACKEND_USER_AGENT`] to every native request,
 //! - attach `Authorization: Bearer <jwt>` except on auth endpoints,
 //! - on 401/403: force a session refresh once, then retry once.
 
@@ -23,6 +24,18 @@ pub const DEFAULT_BASE_URL: &str = "https://api.mooze.app";
 
 /// Name of the auth header.
 pub const AUTHORIZATION_HEADER: &str = "Authorization";
+
+/// Name of the user agent header.
+pub const USER_AGENT_HEADER: &str = "User-Agent";
+
+pub const BACKEND_USER_AGENT: &str = concat!("Dart/3.11 (dart:io) mooze-core/", env!("CARGO_PKG_VERSION"));
+
+pub fn with_backend_user_agent(mut request: HttpRequest) -> HttpRequest {
+    if cfg!(not(target_arch = "wasm32")) {
+        request.headers.insert(USER_AGENT_HEADER.to_owned(), BACKEND_USER_AGENT.to_owned());
+    }
+    request
+}
 
 /// Paths that never carry a token. Matched with `contains`.
 pub const UNAUTHENTICATED_PATHS: [&str; 5] =
@@ -148,7 +161,13 @@ impl<H: HttpClient, S: SessionProvider> MoozeApi<H, S> {
             }
             None => None,
         };
-        Ok(HttpRequest { method, url: self.url(path), headers, body, timeout_ms: self.config.timeout_ms })
+        Ok(with_backend_user_agent(HttpRequest {
+            method,
+            url: self.url(path),
+            headers,
+            body,
+            timeout_ms: self.config.timeout_ms,
+        }))
     }
 
     /// Sends one request with the auth flow. Non-2xx responses are returned,
@@ -246,7 +265,15 @@ mod tests {
         assert_eq!(v, json!({"ok": true}));
         let req = http.last_request().unwrap();
         assert_eq!(req.headers.get(AUTHORIZATION_HEADER).unwrap(), "Bearer old");
+        assert_eq!(req.headers.get(USER_AGENT_HEADER).unwrap(), BACKEND_USER_AGENT);
         assert!(req.body.is_none());
+    }
+
+    #[test]
+    fn backend_user_agent_keeps_the_dart_prefix() {
+        assert!(BACKEND_USER_AGENT.starts_with("Dart/"), "{BACKEND_USER_AGENT}");
+        let request = with_backend_user_agent(HttpRequest::get("https://api.mooze.app/users/me"));
+        assert_eq!(request.headers[USER_AGENT_HEADER], BACKEND_USER_AGENT);
     }
 
     #[test]
@@ -296,7 +323,9 @@ mod tests {
         let api = MoozeApi::new(http.clone(), session.clone(), ApiConfig::default());
         let resp = block_on(api.send(HttpMethod::Post, "/auth/refresh", Some(json!({})))).unwrap();
         assert_eq!(resp.status, 401);
-        assert!(!http.last_request().unwrap().headers.contains_key(AUTHORIZATION_HEADER));
+        let req = http.last_request().unwrap();
+        assert!(!req.headers.contains_key(AUTHORIZATION_HEADER));
+        assert_eq!(req.headers[USER_AGENT_HEADER], BACKEND_USER_AGENT);
         assert_eq!(session.refreshes.load(Ordering::SeqCst), 0);
     }
 

@@ -6,6 +6,7 @@ use std::future::Future;
 
 use serde::Deserialize;
 
+use crate::api::with_backend_user_agent;
 use crate::ports::{HttpClient, HttpMethod, HttpRequest, MaybeSend, MaybeSync};
 use crate::{Error, Result};
 
@@ -53,8 +54,10 @@ impl<H: HttpClient, T: TokenProvider> PixClient<H, T> {
 
     /// Builds the `POST /v2/transactions` request.
     pub fn create_deposit_request(&self, req: &NewDepositRequest, token: &str) -> Result<HttpRequest> {
-        Ok(HttpRequest::json(HttpMethod::Post, format!("{}/v2/transactions", self.base_url), req)?
-            .header("Authorization", format!("Bearer {token}")))
+        Ok(with_backend_user_agent(
+            HttpRequest::json(HttpMethod::Post, format!("{}/v2/transactions", self.base_url), req)?
+                .header("Authorization", format!("Bearer {token}")),
+        ))
     }
 
     /// Builds the `GET /transactions/status?ids=..` request.
@@ -67,7 +70,7 @@ impl<H: HttpClient, T: TokenProvider> PixClient<H, T> {
             url.push_str("ids=");
             url.push_str(&percent_encode(id));
         }
-        HttpRequest::get(url).header("Authorization", format!("Bearer {token}"))
+        with_backend_user_agent(HttpRequest::get(url).header("Authorization", format!("Bearer {token}")))
     }
 
     /// Creates a PIX deposit. Only status 200 counts as success.
@@ -177,6 +180,7 @@ pub(crate) mod tests {
         assert_eq!(resp.qr_copy_paste, "qr-copy");
         let sent = http.last_request().unwrap();
         assert_eq!(sent.headers["Authorization"], "Bearer jwt-1");
+        assert_eq!(sent.headers[crate::api::USER_AGENT_HEADER], crate::api::BACKEND_USER_AGENT);
         let body: serde_json::Value = serde_json::from_slice(sent.body.as_ref().unwrap()).unwrap();
         assert_eq!(
             body,
@@ -206,6 +210,7 @@ pub(crate) mod tests {
         let c = client(&http);
         let r = c.deposits_status_request(&["a b".into(), "c".into()], "t");
         assert_eq!(r.url, "https://test/transactions/status?ids=a%20b&ids=c");
+        assert_eq!(r.headers[crate::api::USER_AGENT_HEADER], crate::api::BACKEND_USER_AGENT);
         assert_eq!(c.deposits_status_request(&[], "t").url, "https://test/transactions/status");
     }
 

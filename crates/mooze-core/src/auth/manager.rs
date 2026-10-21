@@ -15,7 +15,9 @@ use serde_json::{json, Value};
 
 use super::session::{AuthChallenge, Session};
 use super::signature::{AuthKeyPair, ChallengeSigner};
-use crate::api::{data_object_or_self, detect_server_error, join_url, SessionProvider, DEFAULT_BASE_URL};
+use crate::api::{
+    data_object_or_self, detect_server_error, join_url, with_backend_user_agent, SessionProvider, DEFAULT_BASE_URL,
+};
 use crate::domain::WalletCredentials;
 use crate::ports::{Clock, HttpClient, HttpMethod, HttpRequest, MaybeSend, SecureStore};
 use crate::{Error, Result};
@@ -59,34 +61,40 @@ pub enum EnsureOutcome {
 
 /// Builds the `POST /auth/challenge` request.
 pub fn challenge_request(base_url: &str, public_key_b64: &str) -> Result<HttpRequest> {
-    Ok(HttpRequest::json(
-        HttpMethod::Post,
-        join_url(base_url, "/auth/challenge"),
-        &json!({"public_key": public_key_b64}),
-    )?
-    .header("Accept", "application/json")
-    .timeout_ms(AUTH_TIMEOUT_MS))
+    Ok(with_backend_user_agent(
+        HttpRequest::json(
+            HttpMethod::Post,
+            join_url(base_url, "/auth/challenge"),
+            &json!({"public_key": public_key_b64}),
+        )?
+        .header("Accept", "application/json")
+        .timeout_ms(AUTH_TIMEOUT_MS),
+    ))
 }
 
 /// Builds the `POST /auth/sign` request.
 pub fn sign_request(base_url: &str, challenge_id: &str, signature_b64: &str) -> Result<HttpRequest> {
-    Ok(HttpRequest::json(
-        HttpMethod::Post,
-        join_url(base_url, "/auth/sign"),
-        &json!({"challenge_id": challenge_id, "signature": signature_b64}),
-    )?
-    .header("Accept", "application/json")
-    .timeout_ms(AUTH_TIMEOUT_MS))
+    Ok(with_backend_user_agent(
+        HttpRequest::json(
+            HttpMethod::Post,
+            join_url(base_url, "/auth/sign"),
+            &json!({"challenge_id": challenge_id, "signature": signature_b64}),
+        )?
+        .header("Accept", "application/json")
+        .timeout_ms(AUTH_TIMEOUT_MS),
+    ))
 }
 
 /// Builds the `POST /auth/refresh` request.
 pub fn refresh_request(base_url: &str, refresh_token: &str) -> Result<HttpRequest> {
-    Ok(HttpRequest::json(
-        HttpMethod::Post,
-        join_url(base_url, "/auth/refresh"),
-        &json!({"refresh_token": refresh_token}),
-    )?
-    .timeout_ms(AUTH_TIMEOUT_MS))
+    Ok(with_backend_user_agent(
+        HttpRequest::json(
+            HttpMethod::Post,
+            join_url(base_url, "/auth/refresh"),
+            &json!({"refresh_token": refresh_token}),
+        )?
+        .timeout_ms(AUTH_TIMEOUT_MS),
+    ))
 }
 
 /// Owns the API session: read, refresh, create, persist.
@@ -354,7 +362,7 @@ impl<H: HttpClient, S: SecureStore, C: Clock, G: ChallengeSigner> SessionProvide
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
-    use crate::api::{ApiConfig, MoozeApi};
+    use crate::api::{ApiConfig, MoozeApi, BACKEND_USER_AGENT, USER_AGENT_HEADER};
     use crate::auth::session::test_jwt;
     use crate::auth::signature::verify_challenge_signature;
     use crate::domain::AppNetwork;
@@ -413,6 +421,7 @@ mod tests {
         assert_eq!(block_on(stored(&kv)), (Some(fresh), Some("rt-1".into())));
 
         let reqs = http.requests();
+        assert!(reqs.iter().all(|r| r.headers.get(USER_AGENT_HEADER).map(String::as_str) == Some(BACKEND_USER_AGENT)));
         let challenge: Value = serde_json::from_slice(reqs[0].body.as_ref().unwrap()).unwrap();
         let pk = challenge["public_key"].as_str().unwrap().to_owned();
         let sign: Value = serde_json::from_slice(reqs[1].body.as_ref().unwrap()).unwrap();
@@ -570,6 +579,7 @@ mod tests {
         assert_eq!(v["ok"], 1);
         let reqs = http.requests();
         assert_eq!(reqs.len(), 3);
+        assert!(reqs.iter().all(|r| r.headers.get(USER_AGENT_HEADER).map(String::as_str) == Some(BACKEND_USER_AGENT)));
         assert_eq!(reqs[0].headers["Authorization"], format!("Bearer {old}"));
         assert_eq!(reqs[1].url, "https://api.mooze.app/auth/refresh");
         assert_eq!(reqs[2].headers["Authorization"], format!("Bearer {new}"));

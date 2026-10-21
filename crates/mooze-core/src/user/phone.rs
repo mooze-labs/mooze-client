@@ -7,7 +7,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::api::join_url;
+use crate::api::{join_url, with_backend_user_agent};
 use crate::ports::{HttpClient, HttpMethod, HttpRequest, HttpResponse};
 use crate::{Error, Result};
 
@@ -197,8 +197,9 @@ impl<H: HttpClient> PhoneVerificationClient<H> {
     }
 
     async fn post(&self, path: &str, body: &Value) -> Result<HttpResponse> {
-        let request =
-            HttpRequest::json(HttpMethod::Post, join_url(&self.base_url, path), body)?.timeout_ms(PHONE_TIMEOUT_MS);
+        let request = with_backend_user_agent(
+            HttpRequest::json(HttpMethod::Post, join_url(&self.base_url, path), body)?.timeout_ms(PHONE_TIMEOUT_MS),
+        );
         let response = self.http.send(request).await?;
         if response.status == 200 || response.status == 201 {
             Ok(response)
@@ -247,6 +248,9 @@ mod tests {
         let req = http.last_request().unwrap();
         assert_eq!(req.timeout_ms, Some(PHONE_TIMEOUT_MS));
         assert!(!req.headers.contains_key("Authorization"));
+        assert_eq!(req.headers[crate::api::USER_AGENT_HEADER], crate::api::BACKEND_USER_AGENT);
+        // Third-party hosts do not get the backend user agent.
+        assert!(!http.requests()[0].headers.contains_key(crate::api::USER_AGENT_HEADER));
         let body: Value = serde_json::from_slice(req.body.as_ref().unwrap()).unwrap();
         assert_eq!(
             body,

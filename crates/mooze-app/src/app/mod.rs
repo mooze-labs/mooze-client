@@ -453,6 +453,8 @@ pub(crate) mod tests {
         let reqs = plat.http.requests();
         let paths: Vec<String> = reqs.iter().map(|r| r.url.trim_start_matches(base).to_owned()).collect();
         assert_eq!(paths, vec!["/auth/challenge", "/auth/sign", "/users/me", "/auth/refresh", "/users/me"]);
+        let agent = mooze_core::api::BACKEND_USER_AGENT;
+        assert!(reqs.iter().all(|r| r.headers.get("User-Agent").map(String::as_str) == Some(agent)));
         assert!(!reqs[0].headers.contains_key("Authorization"));
         assert_eq!(reqs[2].headers.get("Authorization").map(String::as_str), Some(format!("Bearer {JWT_1}").as_str()));
 
