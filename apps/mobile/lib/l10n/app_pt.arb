@@ -23,6 +23,7 @@
   "common_redo": "Refazer",
   "nav_home": "Início",
   "nav_menu": "Menu",
+  "nav_pix": "Pix",
   "onboarding_get_started": "Começar",
   "pix_send_confirm_title": "Confirmar pagamento",
   "pix_send_error_title": "Erro no pagamento",
@@ -1481,6 +1482,41 @@
   "merchant_limit_min": "Valor mínimo",
   "merchant_limits_load_error": "Erro ao carregar limites",
   "merchant_generate_qr": "Gerar QR Code",
+  "merchant_payment_method_title": "Como o cliente vai pagar?",
+  "merchant_payment_method_subtitle": "Escolha uma opção para continuar.",
+  "merchant_payment_method_qr_title": "QR Code Pix",
+  "merchant_payment_method_qr_description": "Mostre o QR Code. O cliente paga no app do banco.",
+  "merchant_payment_method_link_title": "Link de pagamento",
+  "merchant_payment_method_link_description": "Gere um link para o cliente pagar de onde estiver.",
+  "merchant_payment_method_tag_instant": "Na hora",
+  "merchant_payment_method_tag_cpf": "Pede CPF",
+  "merchant_payment_method_tag_remote": "À distância",
+  "merchant_payment_method_tag_browser": "No navegador",
+  "merchant_payment_receive_in": "Você recebe em {asset}",
+  "@merchant_payment_receive_in": {
+    "placeholders": {
+      "asset": {
+        "type": "String"
+      }
+    }
+  },
+  "merchant_payment_link_scan_hint": "O cliente escaneia o QR Code com a câmera do celular e paga pelo navegador.",
+  "merchant_payment_link_share": "Compartilhar link",
+  "merchant_payment_link_creating": "Gerando link de pagamento...",
+  "merchant_payment_link_open": "Abrir no navegador",
+  "merchant_payment_link_open_failed": "Não foi possível abrir o navegador.",
+  "merchant_payment_link_share_message": "Pague {amount} com Pix: {url}",
+  "@merchant_payment_link_share_message": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "merchant_payment_link_done": "Concluir venda",
   "merchant_validation_min_amount": "Valor mínimo: R$ {amount}",
   "@merchant_validation_min_amount": {
     "placeholders": {
@@ -1509,6 +1545,13 @@
       }
     }
   },
+  "merchant_tutorial_skip": "Pular",
+  "merchant_total_label": "Total da venda",
+  "merchant_edit_action": "Editar",
+  "merchant_clear_cart_confirm_title": "Limpar carrinho?",
+  "merchant_clear_cart_confirm_body": "Os itens desta venda serão removidos.",
+  "merchant_product_name_required": "Informe o nome do produto.",
+  "merchant_product_price_required": "Informe um preço maior que zero.",
   "common_error": "Erro",
   "error_open_browser_link_copied": "Não foi possível abrir o navegador. Link copiado para área de transferência.",
   "pix_you_will_receive": "Você receberá",
@@ -1596,6 +1639,7 @@
     }
   },
   "pix_fees_screen_footer_title": "Informações Importantes",
+  "pix_fees_back_to_top": "Voltar ao topo",
   "pix_fees_screen_footer_info_1": "A taxa fixa de R$ 2,00 se aplica apenas a depósitos até R$ 55,00",
   "pix_fees_screen_footer_info_2": "Para valores acima de R$ 55,00, as taxas percentuais são aplicadas",
   "pix_fees_screen_footer_info_3": "O desconto de 15% com indicação se aplica apenas às taxas percentuais",
@@ -2032,6 +2076,17 @@
   "wallet_assets_section_title": "Ativos",
   "wallet_transactions_section_title": "Transações",
   "wallet_section_see_more": "Ver mais",
+  "wallet_holding_allocation_title": "Distribuição",
+  "wallet_tx_date_today": "Hoje",
+  "wallet_tx_date_yesterday": "Ontem",
+  "wallet_action_more": "Mais",
+  "wallet_more_sheet_title": "Mais ações",
+  "wallet_more_buy_pix": "Comprar com PIX",
+  "wallet_balance_show": "Mostrar saldo",
+  "wallet_balance_hide": "Ocultar saldo",
+  "wallet_balance_hidden": "Saldo oculto",
+  "wallet_balance_change_unit_hint": "Alterar unidade",
+  "wallet_amount_hidden": "Valor oculto",
   "wallet_tx_sent": "Enviou {ticker}",
   "@wallet_tx_sent": {
     "placeholders": {
@@ -2245,8 +2300,12 @@
   "address_explorer_search_match_at_index": "{chain} · índice {index}",
   "@address_explorer_search_match_at_index": {
     "placeholders": {
-      "chain": { "type": "String" },
-      "index": { "type": "int" }
+      "chain": {
+        "type": "String"
+      },
+      "index": {
+        "type": "int"
+      }
     }
   },
   "address_explorer_search_no_match": "Endereço não pertence à sua carteira.",
@@ -2255,7 +2314,9 @@
   "address_explorer_load_more": "Carregar mais {count} endereços",
   "@address_explorer_load_more": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "address_explorer_loading_more": "Carregando…",
@@ -2264,7 +2325,9 @@
   "address_explorer_load_error": "Falha ao carregar endereços: {error}",
   "@address_explorer_load_error": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "address_explorer_address_copied": "Endereço copiado",
@@ -2273,7 +2336,9 @@
   "address_explorer_utxo_count": "{count, plural, =0{sem UTXOs} =1{1 UTXO} other{{count} UTXOs}}",
   "@address_explorer_utxo_count": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "address_explorer_utxos_section": "UTXOs",
@@ -2282,34 +2347,50 @@
   "address_explorer_summary": "{total} endereços · {used} usados · {utxos} UTXOs",
   "@address_explorer_summary": {
     "placeholders": {
-      "total": { "type": "int" },
-      "used": { "type": "int" },
-      "utxos": { "type": "int" }
+      "total": {
+        "type": "int"
+      },
+      "used": {
+        "type": "int"
+      },
+      "utxos": {
+        "type": "int"
+      }
     }
   },
   "address_explorer_summary_addresses": "{count, plural, =1{1 endereço} other{{count} endereços}}",
   "@address_explorer_summary_addresses": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "address_explorer_summary_status": "{used} usados • {unused} não utilizados",
   "@address_explorer_summary_status": {
     "placeholders": {
-      "used": { "type": "int" },
-      "unused": { "type": "int" }
+      "used": {
+        "type": "int"
+      },
+      "unused": {
+        "type": "int"
+      }
     }
   },
   "address_explorer_summary_utxos_total": "{count, plural, =0{sem UTXOs} =1{1 UTXO} other{{count} UTXOs}}",
   "@address_explorer_summary_utxos_total": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "address_explorer_total_received": "Recebido: {amount}",
   "@address_explorer_total_received": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "address_explorer_filter_all": "Todos",
@@ -2334,7 +2415,9 @@
   "address_ownership_detected": "Detectado: {chain}",
   "@address_ownership_detected": {
     "placeholders": {
-      "chain": { "type": "String" }
+      "chain": {
+        "type": "String"
+      }
     }
   },
   "address_ownership_invalid_format": "Formato de endereço inválido",
@@ -2351,7 +2434,9 @@
   "address_ownership_index_label": "índice {index}",
   "@address_ownership_index_label": {
     "placeholders": {
-      "index": { "type": "int" }
+      "index": {
+        "type": "int"
+      }
     }
   },
   "address_ownership_status_used": "usado",
@@ -2369,8 +2454,12 @@
   "converting_details_converting_label": "Convertendo {from} → {to}",
   "@converting_details_converting_label": {
     "placeholders": {
-      "from": { "type": "String" },
-      "to": { "type": "String" }
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
     }
   },
   "converting_details_peg_in": "Peg-in",
@@ -2410,7 +2499,9 @@
   "pending_swap_refundable_amount": "Reembolsável: {amount}",
   "@pending_swap_refundable_amount": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "pix_first_time_title": "Atenção sobre pagamentos PIX",
@@ -2466,5 +2557,441 @@
   "asset_activity_history_title": "Transações",
   "analytics_opt_in": "Compartilhar dados de uso (opcional)",
   "analytics_description": "Ajude a melhorar o Mooze enviando ao PostHog telas visitadas e resultados de ações, com um identificador aleatório e informações básicas do aplicativo e dispositivo. Não enviamos sua frase, PIN, endereços, saldos ou valores. Sem gravação de tela. Você pode desativar a qualquer momento nos Ajustes.",
-  "analytics_save_error": "Não foi possível atualizar a preferência de dados de uso. Tente novamente."
+  "analytics_save_error": "Não foi possível atualizar a preferência de dados de uso. Tente novamente.",
+  "pix_hub_title": "Área Pix",
+  "pix_hub_demo_badge": "Demonstração",
+  "pix_hub_demo_badge_semantics": "Conteúdo de demonstração",
+  "pix_hub_demo_notice_title": "Modo demonstração",
+  "pix_hub_demo_notice_body": "Enviar, receber, chaves, links e histórico usam dados fictícios. Nenhum valor sai da sua conta. Apenas o depósito na carteira usa o serviço real da Mooze.",
+  "pix_hub_shortcut_send": "Enviar",
+  "pix_hub_shortcut_receive": "Receber",
+  "pix_hub_shortcut_deposit": "Depositar",
+  "pix_hub_more_operations": "Mais operações",
+  "pix_hub_action_pay_key": "Pagar com chave Pix",
+  "pix_hub_action_pay_key_subtitle": "Informe CPF, CNPJ, celular, e-mail ou chave aleatória.",
+  "pix_hub_action_pay_qr": "Pagar com QR Code",
+  "pix_hub_action_pay_qr_subtitle": "Use a câmera para ler o código.",
+  "pix_hub_action_copy_paste": "Pix Copia e Cola",
+  "pix_hub_action_copy_paste_subtitle": "Cole o código da cobrança.",
+  "pix_hub_action_links": "Links de pagamento",
+  "pix_hub_action_links_subtitle": "Crie e compartilhe cobranças.",
+  "pix_hub_action_keys": "Minhas chaves Pix",
+  "pix_hub_action_keys_subtitle": "Veja, copie e compartilhe suas chaves.",
+  "pix_hub_action_history": "Histórico Pix",
+  "pix_hub_action_history_subtitle": "Veja apenas movimentações Pix.",
+  "pix_hub_recent_recipients": "Contatos recentes",
+  "pix_hub_view_all": "Ver todos",
+  "pix_hub_pending_links": "Cobranças pendentes",
+  "pix_hub_recent_activity": "Últimas movimentações",
+  "pix_hub_manage": "Gerenciar",
+  "pix_hub_empty_recipients_title": "Nenhum contato recente",
+  "pix_hub_empty_recipients_body": "Os contatos aparecem aqui depois do primeiro pagamento.",
+  "pix_hub_empty_links_title": "Nenhuma cobrança pendente",
+  "pix_hub_empty_links_body": "Crie um link de pagamento para receber de outra pessoa.",
+  "pix_hub_empty_transactions_title": "Nenhuma movimentação Pix",
+  "pix_hub_empty_transactions_body": "As movimentações aparecem aqui depois da primeira operação.",
+  "pix_hub_empty_keys_title": "Nenhuma chave cadastrada",
+  "pix_hub_empty_keys_body": "O cadastro de chaves depende de um serviço Pix que a Mooze ainda não possui.",
+  "pix_hub_error_title": "Não foi possível carregar",
+  "pix_hub_error_body": "Verifique a conexão e tente novamente.",
+  "pix_hub_menu_fees": "Ver taxas",
+  "pix_hub_menu_empty_preview_on": "Ver estados vazios",
+  "pix_hub_menu_empty_preview_off": "Mostrar dados de demonstração",
+  "pix_hub_send_title": "Enviar Pix",
+  "pix_hub_key_input_title": "Qual é a chave Pix?",
+  "pix_hub_key_input_hint": "A Mooze aceita CPF, CNPJ, celular, e-mail e chave aleatória. O aplicativo confere apenas o formato.",
+  "pix_hub_key_input_label": "Chave Pix",
+  "pix_hub_key_input_placeholder": "exemplo@email.com",
+  "pix_hub_key_detected": "Formato reconhecido: {type}.",
+  "@pix_hub_key_detected": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_key_error_empty": "Informe a chave Pix.",
+  "pix_hub_key_error_unrecognized": "A chave não corresponde a nenhum formato Pix.",
+  "pix_hub_key_error_document": "Os dígitos verificadores do CPF ou do CNPJ não conferem.",
+  "pix_hub_key_error_phone": "Informe o celular com DDI e DDD. Exemplo: +5511999990000.",
+  "pix_hub_key_error_email": "O e-mail é inválido.",
+  "pix_hub_key_error_random": "A chave aleatória tem 32 caracteres e quatro hífens.",
+  "pix_hub_key_type_cpf": "CPF",
+  "pix_hub_key_type_cnpj": "CNPJ",
+  "pix_hub_key_type_phone": "Celular",
+  "pix_hub_key_type_email": "E-mail",
+  "pix_hub_key_type_random": "Chave aleatória",
+  "pix_hub_code_input_title": "Cole o código Pix",
+  "pix_hub_code_input_hint": "A Mooze confere a estrutura e o dígito de verificação do código. Essa checagem não confirma que a cobrança existe.",
+  "pix_hub_code_input_placeholder": "00020126...",
+  "pix_hub_code_paste": "Colar",
+  "pix_hub_code_sample": "Usar código de demonstração",
+  "pix_hub_code_read_title": "Dados lidos do código",
+  "pix_hub_code_local_check_warning": "Os dados vêm do próprio código. A Mooze não consultou nenhuma instituição.",
+  "pix_hub_code_clipboard_empty": "A área de transferência está vazia.",
+  "pix_hub_code_copied": "Código copiado.",
+  "pix_hub_code_error_empty": "Informe o código Pix.",
+  "pix_hub_code_error_short": "O código é curto demais.",
+  "pix_hub_code_error_malformed": "O código não segue o padrão Pix.",
+  "pix_hub_code_error_not_pix": "O código não é uma cobrança Pix.",
+  "pix_hub_code_error_checksum": "O dígito de verificação do código não confere.",
+  "pix_hub_scan_permission_title": "Câmera bloqueada",
+  "pix_hub_scan_permission_body": "Libere o acesso à câmera para ler o QR Code.",
+  "pix_hub_scan_open_settings": "Abrir ajustes",
+  "pix_hub_scan_unavailable_title": "Câmera indisponível",
+  "pix_hub_scan_unavailable_body": "Use o Pix Copia e Cola.",
+  "pix_hub_scan_demo_hint": "Sem câmera disponível? Use o código de demonstração para testar o fluxo.",
+  "pix_hub_amount_title": "Valor",
+  "pix_hub_amount_label": "Valor do Pix",
+  "pix_hub_amount_error_empty": "Informe um valor maior que zero.",
+  "pix_hub_amount_error_max": "O valor máximo é {amount}.",
+  "@pix_hub_amount_error_max": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_amount_fixed_hint": "O código já define o valor da cobrança.",
+  "pix_hub_description_label": "Descrição (opcional)",
+  "pix_hub_description_hint": "Mensagem para quem recebe",
+  "pix_hub_review_title": "Revisar pagamento",
+  "pix_hub_review_amount_label": "Você vai enviar",
+  "pix_hub_review_confirm": "Confirmar e pagar",
+  "pix_hub_review_disclaimer": "Ao confirmar, sua carteira envia o valor em DePix ao provedor Pix. Não é possível desfazer esta transferência.",
+  "pix_hub_result_title": "Resultado",
+  "pix_hub_result_success_title": "Pagamento enviado!",
+  "pix_hub_result_success_body": "O registro entrou no histórico de demonstração. Nenhum valor foi transferido.",
+  "pix_hub_result_failure_title": "Pagamento simulado recusado",
+  "pix_hub_result_disclaimer": "Esta tela é uma demonstração. Ela não comprova uma transação financeira.",
+  "pix_hub_result_try_again": "Tentar outro valor",
+  "pix_hub_flow_expired": "O fluxo foi reiniciado. Comece outra vez.",
+  "pix_hub_back_to_hub": "Voltar ao Pix",
+  "pix_hub_summary_recipient": "Para",
+  "pix_hub_summary_payer": "De",
+  "pix_hub_summary_institution": "Instituição",
+  "pix_hub_summary_document": "Documento",
+  "pix_hub_summary_method": "Forma de envio",
+  "pix_hub_summary_description": "Descrição",
+  "pix_hub_summary_amount": "Valor",
+  "pix_hub_summary_date": "Data",
+  "pix_hub_summary_reference": "Identificador",
+  "pix_hub_summary_status": "Status",
+  "pix_hub_summary_type": "Tipo",
+  "pix_hub_summary_city": "Cidade",
+  "pix_hub_summary_created_at": "Criada em",
+  "pix_hub_summary_expires_at": "Expira em",
+  "pix_hub_method_key": "Chave Pix",
+  "pix_hub_method_qr": "QR Code",
+  "pix_hub_method_copy_paste": "Copia e Cola",
+  "pix_hub_method_recent": "Contato recente",
+  "pix_hub_receive_title": "Receber Pix",
+  "pix_hub_receive_from_others": "Receber de outra pessoa",
+  "pix_hub_receive_create_charge": "Criar cobrança",
+  "pix_hub_receive_create_charge_subtitle": "Gere um QR Code e um código Copia e Cola.",
+  "pix_hub_receive_own_wallet": "Adicionar saldo na sua carteira",
+  "pix_hub_receive_deposit_subtitle": "Pague um Pix e receba o valor na carteira Mooze.",
+  "pix_hub_receive_deposit_note": "O depósito usa o serviço real da Mooze e converte reais no ativo escolhido. Ele não é uma cobrança para outra pessoa.",
+  "pix_hub_my_keys": "Minhas chaves Pix",
+  "pix_hub_keys_unavailable_title": "Cadastro e exclusão indisponíveis",
+  "pix_hub_keys_unavailable_body": "A Mooze ainda não possui serviço para cadastrar ou excluir chaves Pix. As chaves acima são fictícias e servem para demonstrar a tela.",
+  "pix_hub_key_copied": "Chave copiada.",
+  "pix_hub_key_share_message": "Minha chave Pix de demonstração: {key}",
+  "@pix_hub_key_share_message": {
+    "placeholders": {
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_copy": "Copiar",
+  "pix_hub_share": "Compartilhar",
+  "pix_hub_value_unavailable": "Não informado",
+  "pix_hub_charge_key_label": "Chave que recebe",
+  "pix_hub_charge_open_amount": "Quem paga escolhe o valor",
+  "pix_hub_charge_open_amount_hint": "A cobrança fica sem valor definido.",
+  "pix_hub_charge_create": "Gerar cobrança",
+  "pix_hub_charge_error_min": "O valor mínimo é {amount}.",
+  "@pix_hub_charge_error_min": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_charge_detail_title": "Cobrança",
+  "pix_hub_charge_code_label": "Código Copia e Cola",
+  "pix_hub_charge_share_message": "Cobrança Pix de demonstração: {code}",
+  "@pix_hub_charge_share_message": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_charge_disclaimer": "O QR Code e o código são de demonstração. Nenhuma cobrança foi registrada em uma instituição Pix.",
+  "pix_hub_charge_create_another": "Criar outra cobrança",
+  "pix_hub_link_create": "Criar link",
+  "pix_hub_link_reference_label": "Identificação",
+  "pix_hub_link_reference_hint": "Mensalidade de março",
+  "pix_hub_link_reference_error": "Informe uma identificação.",
+  "pix_hub_link_amount_error": "O valor deve ficar entre {min} e {max}.",
+  "@pix_hub_link_amount_error": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_link_single_use": "Uso único",
+  "pix_hub_link_single_use_hint": "O link aceita um pagamento e encerra.",
+  "pix_hub_link_reusable": "Reutilizável",
+  "pix_hub_link_usage_label": "Uso",
+  "pix_hub_link_review": "Revisar link",
+  "pix_hub_link_confirm": "Gerar link",
+  "pix_hub_link_detail_title": "Link de pagamento",
+  "pix_hub_link_url_label": "Endereço do link",
+  "pix_hub_link_copied": "Link copiado.",
+  "pix_hub_link_share_message": "Link de pagamento de demonstração: {url}",
+  "@pix_hub_link_share_message": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_link_paid_at": "Pago em",
+  "pix_hub_link_open_amount": "Valor livre",
+  "pix_hub_link_status_pending": "Pendente",
+  "pix_hub_link_status_paid": "Pago",
+  "pix_hub_link_status_expired": "Expirado",
+  "pix_hub_link_disclaimer": "O endereço é fictício e não abre uma página de pagamento real.",
+  "pix_hub_history_filter_all": "Tudo",
+  "pix_hub_history_filter_sent": "Enviados",
+  "pix_hub_history_filter_received": "Recebidos",
+  "pix_hub_history_note": "A lista mostra apenas movimentações Pix fictícias. As transações da carteira ficam no histórico da carteira.",
+  "pix_hub_tx_kind_sent": "Pix enviado",
+  "pix_hub_tx_kind_received": "Pix recebido",
+  "pix_hub_tx_kind_deposit": "Depósito na carteira",
+  "pix_hub_tx_kind_payment_link": "Link de pagamento",
+  "pix_hub_tx_status_completed": "Concluído",
+  "pix_hub_tx_status_pending": "Em processamento",
+  "pix_hub_tx_status_failed": "Falhou",
+  "pix_hub_tx_detail_title": "Detalhes da movimentação",
+  "pix_hub_tx_detail_disclaimer": "Este registro é fictício. Ele não é um comprovante de pagamento.",
+  "pix_hub_failure_load": "Não foi possível carregar os dados.",
+  "pix_hub_failure_declined": "A simulação recusou o pagamento. O saldo de demonstração é de R$ 2.500,00.",
+  "pix_hub_failure_recipient": "Nenhum recebedor corresponde a esses dados.",
+  "pix_hub_failure_amount": "O valor está fora do limite aceito.",
+  "pix_hub_failure_unknown": "Algo deu errado. Tente novamente.",
+  "pix_hub_failure_network": "Sem conexão com o servidor. Verifique a internet e tente novamente.",
+  "pix_hub_failure_session": "Não foi possível validar sua sessão. Tente novamente.",
+  "pix_hub_failure_not_eligible": "Sua conta ainda não pode criar links de pagamento. Suba de nível para liberar o recurso.",
+  "pix_hub_failure_rate_limited": "Muitas tentativas seguidas. Aguarde um pouco e tente novamente.",
+  "pix_hub_failure_unavailable": "O serviço está indisponível agora. Tente novamente mais tarde.",
+  "pix_hub_failure_invalid_response": "O servidor respondeu sem o link de pagamento. Tente novamente.",
+  "pix_hub_failure_wallet": "Não foi possível obter um endereço da sua carteira. Tente novamente.",
+  "pix_hub_subtitle": "Envie, receba e gerencie seus pagamentos pelo Pix.",
+  "pix_hub_other_operations": "Outras operações",
+  "pix_hub_action_pending": "Cobranças pendentes",
+  "pix_hub_action_pending_subtitle": "Veja e remova cobranças em aberto.",
+  "pix_hub_action_other_transactions": "Outras transações",
+  "pix_hub_action_other_transactions_subtitle": "Históricos, links e taxas do Pix.",
+  "pix_hub_info_title": "Como o Pix funciona",
+  "pix_hub_info_send_title": "Envio e recebimento",
+  "pix_hub_info_send_body": "O envio de Pix usa seu saldo de DePix. O provedor Pix paga o destinatário, e a taxa da rede Liquid é paga em L-BTC. Cobranças, chaves e links ainda usam dados fictícios.",
+  "pix_hub_info_deposit_title": "Depósito na carteira",
+  "pix_hub_info_deposit_body": "O depósito usa o serviço real da Mooze. O valor em reais vira o ativo que você escolher na carteira.",
+  "pix_hub_send_method_question": "Como você quer enviar?",
+  "pix_hub_send_method_qr_description": "Escaneie o código do recebedor.",
+  "pix_hub_send_method_code_description": "Cole o código Pix.",
+  "pix_hub_send_method_recent_description": "Pessoas para quem você já enviou.",
+  "pix_hub_key_type_label": "Tipo de chave",
+  "pix_hub_key_hint_cpf": "000.000.000-00",
+  "pix_hub_key_hint_cnpj": "00.000.000/0000-00",
+  "pix_hub_key_hint_phone": "ex: 11 98765-4321",
+  "pix_hub_key_hint_email": "nome@email.com",
+  "pix_hub_key_hint_random": "00000000-0000-0000-0000-000000000000",
+  "pix_hub_summary_payment_method": "Forma de pagamento",
+  "pix_hub_review_edit": "Alterar dados",
+  "pix_hub_review_key_chip": "Chave Pix ({type})",
+  "@pix_hub_review_key_chip": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_result_to": "Para {name}",
+  "@pix_hub_result_to": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_result_datetime": "Data e hora",
+  "pix_hub_result_details": "Ver detalhes",
+  "pix_hub_deposit_gate_title": "Antes de depositar",
+  "pix_hub_deposit_gate_subtitle": "Informe o CPF da conta bancária que vai pagar e confirme o aviso abaixo.",
+  "pix_hub_deposit_cpf_hint": "A Mooze confere o formato e os dígitos verificadores. O aplicativo não confirma quem é o titular da conta bancária.",
+  "pix_hub_deposit_notice_title": "Importante",
+  "pix_hub_deposit_notice_body": "Para fazer depósitos via Pix, você precisa usar uma conta bancária em seu próprio nome, registrada sob o mesmo CPF cadastrado na Mooze. Não use contas bancárias de terceiros.",
+  "pix_hub_deposit_notice_ack": "Li e entendi o aviso.",
+  "pix_hub_deposit_notice_screen_title": "Aviso sobre depósitos",
+  "pix_hub_deposit_cpf_stored_label": "CPF informado",
+  "pix_hub_deposit_cpf_missing": "Nenhum CPF informado.",
+  "pix_hub_deposit_change_cpf": "Alterar CPF",
+  "pix_hub_pending_deposits": "Depósitos em andamento",
+  "pix_hub_pending_deposits_empty_title": "Nenhum depósito em andamento",
+  "pix_hub_pending_deposits_empty_body": "Os depósitos que aguardam pagamento aparecem aqui.",
+  "pix_hub_pending_deposits_note": "A Mooze não cancela um depósito em andamento. A cobrança deixa de valer quando expira.",
+  "pix_hub_pending_links_section": "Links de pagamento",
+  "pix_hub_pending_remove_title": "Remover link?",
+  "pix_hub_pending_remove_body": "O link \"{reference}\" sai da lista de demonstração.",
+  "@pix_hub_pending_remove_body": {
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_pending_remove_confirm": "Remover",
+  "pix_hub_pending_removed": "Link removido.",
+  "pix_hub_other_section_history": "Históricos",
+  "pix_hub_other_deposit_history": "Histórico de depósitos",
+  "pix_hub_other_deposit_history_subtitle": "Seus depósitos reais pelo Pix.",
+  "pix_hub_other_section_tools": "Ferramentas",
+  "pix_hub_other_recipients_subtitle": "Pessoas para quem você já enviou.",
+  "pix_hub_other_fees_subtitle": "Veja as taxas aplicadas.",
+  "pix_hub_preferences": "Preferências",
+  "pix_hub_preferences_limits": "Meus limites",
+  "pix_hub_preferences_limits_subtitle": "Veja os limites do Pix na sua conta.",
+  "pix_hub_preferences_level": "Meu nível",
+  "pix_hub_preferences_level_subtitle": "Veja o nível atual e como subir de nível.",
+  "pix_hub_limits_subtitle": "Os valores abaixo vêm da sua conta Mooze.",
+  "pix_hub_limits_how_it_works": "Como os limites funcionam",
+  "pix_hub_shortcut_receive_description": "Compartilhe sua chave ou gere um QR Code",
+  "pix_hub_failure_invalid_request": "O servidor recusou os dados. Confira a chave, o CPF/CNPJ e o valor.",
+  "pix_hub_failure_limit_exceeded": "O valor passa do seu limite atual, ou sua conta ainda não pode enviar Pix.",
+  "pix_hub_failure_provider_refused": "O provedor Pix recusou o envio. Confira se a chave pertence ao CPF/CNPJ informado.",
+  "pix_hub_failure_outcome_unknown": "O serviço não confirmou o pedido. Nenhum valor saiu da sua carteira. Tente de novo em alguns minutos.",
+  "pix_hub_failure_quote_mismatch": "A cotação recebida não confere com o pedido. Nenhum valor foi enviado. Tente de novo.",
+  "pix_hub_failure_quote_expired": "O prazo da cotação acabou. Peça uma nova cotação para continuar.",
+  "pix_hub_failure_insufficient_funds": "Seu saldo de DePix não cobre este envio e a taxa.",
+  "pix_hub_failure_insufficient_fee_asset": "Você precisa de L-BTC para pagar a taxa da rede Liquid.",
+  "pix_hub_failure_funding_failed": "A carteira não conseguiu montar a transferência de DePix. Nenhum valor saiu da sua carteira.",
+  "pix_hub_failure_unsupported_code": "Este código não tem chave Pix. O Mooze paga apenas códigos com chave.",
+  "pix_hub_tax_id_label": "CPF ou CNPJ do dono da chave",
+  "pix_hub_tax_id_hint": "000.000.000-00",
+  "pix_hub_tax_id_help": "O provedor Pix confere se a chave pertence a este documento. O Mooze não guarda o número.",
+  "pix_hub_tax_id_error_empty": "Informe o CPF ou CNPJ.",
+  "pix_hub_tax_id_error_invalid": "CPF ou CNPJ inválido.",
+  "pix_hub_amount_error_min": "O valor mínimo é {amount}.",
+  "@pix_hub_amount_error_min": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_amount_error_balance": "Seu saldo de DePix não cobre este valor.",
+  "pix_hub_amount_balance": "Saldo disponível: {amount}",
+  "@pix_hub_amount_balance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_amount_fee_hint": "A taxa do provedor Pix aparece na revisão e é somada ao valor em DePix.",
+  "pix_hub_summary_code_name": "Nome no código",
+  "pix_hub_code_no_key": "Sem chave Pix (código dinâmico)",
+  "pix_hub_review_receives": "O destinatário recebe",
+  "pix_hub_review_provider_fee": "Taxa do provedor Pix",
+  "pix_hub_review_depix_debit": "Sai da sua carteira",
+  "pix_hub_review_network_fee": "Taxa da rede Liquid",
+  "pix_hub_review_network_fee_value": "{amount} sats (L-BTC)",
+  "@pix_hub_review_network_fee_value": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_review_owner_document": "Documento do dono da chave",
+  "pix_hub_review_deadline": "Pague até {time}",
+  "@pix_hub_review_deadline": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_review_time_left": "Faltam {time}",
+  "@pix_hub_review_time_left": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_review_expired": "O prazo desta cotação acabou.",
+  "pix_hub_review_new_quote": "Pedir nova cotação",
+  "pix_hub_result_processing_title": "Pix em processamento",
+  "pix_hub_result_processing_body": "Seu DePix foi enviado. O provedor Pix está processando a transferência. Isso pode levar alguns minutos.",
+  "pix_hub_result_completed_title": "Pix entregue",
+  "pix_hub_result_completed_body": "O provedor Pix confirmou o pagamento ao destinatário.",
+  "pix_hub_result_failed_title": "Pix não concluído",
+  "pix_hub_result_refunded_body": "O provedor devolveu o depósito ao seu endereço de reembolso.",
+  "pix_hub_result_failed_body": "O provedor encerrou o pedido sem pagar o Pix. Se o DePix não voltar à sua carteira, fale com o suporte e informe o ID do pedido.",
+  "pix_hub_result_unknown_title": "Resultado não confirmado",
+  "pix_hub_result_unknown_body": "Não conseguimos confirmar se a transferência de DePix chegou à rede. Não pague de novo. Acompanhe o status abaixo.",
+  "pix_hub_result_polling_stopped": "O status ainda não mudou. Atualize mais tarde.",
+  "pix_hub_result_status_error": "Não foi possível atualizar o status.",
+  "pix_hub_result_refresh": "Atualizar status",
+  "pix_hub_result_receipt": "Abrir comprovante",
+  "pix_hub_result_copy_id": "Copiar ID do pedido",
+  "pix_hub_result_id_copied": "ID copiado.",
+  "pix_hub_summary_withdrawal_id": "ID do pedido",
+  "pix_hub_summary_funding_txid": "Transação Liquid",
+  "pix_hub_summary_end_to_end": "ID fim a fim",
+  "pix_hub_summary_refund": "Valor devolvido",
+  "pix_hub_withdrawal_status_checking": "Consultando…",
+  "pix_hub_withdrawal_status_creating": "Criando",
+  "pix_hub_withdrawal_status_rejected": "Recusado",
+  "pix_hub_withdrawal_status_uncertain": "Em verificação",
+  "pix_hub_withdrawal_status_unsent": "Aguardando o depósito",
+  "pix_hub_withdrawal_status_sending": "Enviando o Pix",
+  "pix_hub_withdrawal_status_sent": "Pix entregue",
+  "pix_hub_withdrawal_status_error": "Erro no provedor",
+  "pix_hub_withdrawal_status_canceled": "Cancelado",
+  "pix_hub_withdrawal_status_refunded": "Devolvido",
+  "pix_hub_withdrawal_status_replaced": "Substituído",
+  "pix_hub_withdrawal_status_unknown": "Desconhecido",
+  "pix_hub_pending_withdrawals_title": "Pix em andamento",
+  "pix_hub_pending_withdrawal_item": "{amount} para {key}",
+  "@pix_hub_pending_withdrawal_item": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_pending_withdrawal_hint": "Toque para ver o status.",
+  "pix_hub_send_key_title": "Para quem você quer transferir?",
+  "pix_hub_send_key_label": "Insira o dado de quem vai receber",
+  "pix_hub_send_key_hint": "CPF/CNPJ, celular, e-mail ou chave Pix",
+  "pix_hub_send_key_scan": "Ler QR Code",
+  "pix_hub_send_key_clear": "Limpar",
+  "pix_hub_send_key_code_detected": "Código Pix Copia e Cola reconhecido.",
+  "pix_hub_send_key_ambiguous": "Este número é um CPF ou um celular?",
+  "pix_hub_amount_question": "Quanto você quer transferir?",
+  "pix_hub_tax_id_valid": "Documento válido"
 }
