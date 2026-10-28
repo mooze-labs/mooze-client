@@ -4,6 +4,8 @@ import 'package:mooze_core_bridge/mooze_core_bridge.dart' show PixFlagDto;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
+import '../../features/pix/hub/data/datasources/pix_withdrawal_record_store.dart';
+import '../../features/pix/shared/data/services/pix_deposit_profile_service.dart';
 import '../../features/wallet/data/services/wallet_id_service.dart';
 import '../../features/wallet/data/storage/balance_snapshot_storage.dart';
 import '../../features/wallet/data/storage/pending_transaction_storage.dart';
@@ -14,8 +16,6 @@ import '../../shared/key_management/store/pin_store_impl.dart';
 import '../../shared/user/providers/user_service_provider.dart';
 import '../../shared/user/services/user_level_storage_service.dart';
 import 'v2_providers.dart' show moozeCoreProvider;
-
-
 
 /// Deletes the API session and makes the core forget the signing
 /// identity of the current mnemonic.
@@ -56,6 +56,12 @@ Future<void> Function() buildPixCleanupHook(Ref ref) {
     for (final key in _legacyPixPreferenceKeys) {
       await prefs.remove(key);
     }
+
+    // The deposit CPF and the ownership-notice acknowledgement of the Pix hub.
+    await PixDepositProfileService(prefs).clear();
+
+    // The withdrawals that the deleted wallet tried to fund.
+    await PixWithdrawalRecordStore(prefs).clear();
   };
 }
 
@@ -93,7 +99,6 @@ List<Future<void> Function()> buildLegacyCleanupHooks() {
       await SharedPreferencesBalanceSnapshotStore().clearAll();
     },
     () async {
-
       final prefs = await SharedPreferences.getInstance();
       await UserLevelStorageService(prefs).clearVerificationLevel();
     },
