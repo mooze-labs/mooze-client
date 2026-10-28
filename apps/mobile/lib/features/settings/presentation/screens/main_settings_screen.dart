@@ -6,6 +6,7 @@ import 'package:mooze_mobile/features/settings/presentation/widgets/settings/sec
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class MainSettingsScreen extends StatefulWidget {
@@ -34,15 +35,22 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    // The app bar and the body share the backdrop of the main screens.
     return Scaffold(
-      appBar: AppBar(
+      extendBodyBehindAppBar: true,
+      appBar: BackdropAppBar(
         title: Text(t.main_settings_title),
         actions: [
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
           const SizedBox(width: 16),
         ],
       ),
-      body: SingleChildScrollView(
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackdrop()),
+          SafeArea(
+            bottom: false,
+            child: SingleChildScrollView(
         child: Stack(
           children: [
             Column(
@@ -170,6 +178,9 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
             ),
           ],
         ),
+            ),
+          ),
+        ],
       ),
     );
   }
