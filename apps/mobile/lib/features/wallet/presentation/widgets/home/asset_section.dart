@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/all_assets/all_assets_screen.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'asset_graph_card.dart';
+import 'asset_row.dart';
 import 'section_header.dart';
 
 class AssetSection extends StatelessWidget {
@@ -11,7 +11,7 @@ class AssetSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Column(
-    children: [
+      children: [
         SectionHeader(
           onAction: () {
             Navigator.push(
@@ -22,9 +22,8 @@ class AssetSection extends StatelessWidget {
           title: t.wallet_assets_section_title,
           actionDescription: t.wallet_section_see_more,
         ),
-        const SizedBox(height: 16),
-        const AssetCardList(),
-        const SizedBox(height: 32),
+        const AssetRowList(),
+        const SizedBox(height: 24),
       ],
     );
   }

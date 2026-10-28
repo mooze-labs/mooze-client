@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet_levels_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
-import 'package:mooze_mobile/shared/widgets/wallet_header_widget.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/all_assets/all_assets_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_section.dart';
-import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/action_button.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/home/balance_hero.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/home/home_action_row.dart';
 import 'package:mooze_mobile/shared/widgets/update_notification_widget.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/motion/staggered_entrance.dart';
 import 'package:mooze_mobile/shared/providers/update_provider.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
@@ -24,7 +27,11 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/deep_links/pending_payment_link.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/payment_request_applier.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import '../../widgets/widgets.dart';
+
+/// Side margin of the home content.
+const double _homeMargin = 20;
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -182,52 +189,106 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   )
                   : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.startTop,
-          body: PlatformSafeArea(
-            iosTop: true,
-            androidTop: true,
-            androidBottom: false,
-            child: RefreshIndicator(
-              onRefresh: () => _refreshData(),
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      LogoHeader(),
-                      StatusIndicators(
-                        onRetrySync: () {
-                          ref.invalidate(ensureAuthSessionProvider);
-                          ref.invalidate(walletLevelsProvider);
-                          ref.invalidate(userDataProvider);
-                          _refreshData();
-                        },
+          body: Stack(
+            children: [
+              // The shared backdrop of the main screens. The status bar area
+              // shows its top.
+              const Positioned.fill(child: AppBackdrop()),
+              PlatformSafeArea(
+                iosTop: true,
+                androidTop: true,
+                androidBottom: false,
+                child: RefreshIndicator(
+                  onRefresh: () => _refreshData(),
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _homeMargin,
                       ),
-                      WalletLoadingBanner(
-                        isVisible: isLoadingData,
-                        label:
-                            AppLocalizations.of(
+                      child: StaggeredEntrance(
+                        sessionKey: HomeScreen,
+                        sections: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              LogoHeader(),
+                              StatusIndicators(
+                                onRetrySync: () {
+                                  ref.invalidate(ensureAuthSessionProvider);
+                                  ref.invalidate(walletLevelsProvider);
+                                  ref.invalidate(userDataProvider);
+                                  _refreshData();
+                                },
+                              ),
+                              WalletLoadingBanner(
+                                isVisible: isLoadingData,
+                                label:
+                                    AppLocalizations.of(
+                                      context,
+                                    ).wallet_import_msg_loading_transactions,
+                              ),
+                              UpdateNotificationWidget(),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 24),
+                            child: BalanceHero(),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 32),
+                            child: _buildActionButtons(
                               context,
-                            ).wallet_import_msg_loading_transactions,
+                              onMore: _openMoreSheet,
+                            ),
+                          ),
+                          const AssetSection(),
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 120),
+                            child: TransactionSection(),
+                          ),
+                        ],
                       ),
-                      WalletHeaderWidget(),
-                      UpdateNotificationWidget(),
-                      const SizedBox(height: 15),
-                      _buildActionButtons(context, onPix: _openPix),
-                      const SizedBox(height: 32),
-                      AssetSection(),
-                      TransactionSection(),
-                      SizedBox(height: 120),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  /// Opens the More sheet. PIX keeps its tutorial start through [_openPix].
+  void _openMoreSheet() {
+    final t = AppLocalizations.of(context);
+    showHomeMoreSheet(
+      context,
+      actions: [
+        HomeMoreAction(
+          label: t.wallet_more_buy_pix,
+          svgAsset: 'assets/icons/menu/navigation/pix.svg',
+          onSelected: _openPix,
+        ),
+        HomeMoreAction(
+          label: t.wallet_transactions_section_title,
+          icon: Icons.receipt_long_outlined,
+          onSelected: () => context.push('/transactions-history'),
+        ),
+        HomeMoreAction(
+          label: t.wallet_assets_section_title,
+          svgAsset: 'assets/icons/menu/navigation/asset.svg',
+          onSelected: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AllAssetsScreen()),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -249,12 +310,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.read(priceQuotesProvider.notifier).refresh(),
       ]);
 
-      if (_scrollController.hasClients) {
-        await _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-        );
+      if (_scrollController.hasClients && mounted) {
+        // Reduced motion jumps to the top without a scroll animation.
+        if (Motion.isReduced(context)) {
+          _scrollController.jumpTo(0);
+        } else {
+          await _scrollController.animateTo(
+            0,
+            duration: Motion.durationEmphasis,
+            curve: Motion.curveMove,
+          );
+        }
       }
     } catch (_) {}
   }
@@ -262,39 +328,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 Widget _buildActionButtons(
   BuildContext context, {
-  required VoidCallback onPix,
+  required VoidCallback onMore,
 }) {
-  final t = AppLocalizations.of(context);
-  return Row(
-    children: [
-      Expanded(
-        child: ActionButton(
-          svgAsset: 'assets/icons/menu/send.svg',
-          label: t.wallet_holding_action_send,
-          onPressed: () {
-            context.push('/send-asset');
-          },
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: ActionButton(
-          svgAsset: 'assets/icons/menu/receive.svg',
-          label: t.wallet_holding_action_receive,
-          onPressed: () {
-            context.push('/receive-asset');
-          },
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: ActionButton(
-          svgAsset: 'assets/icons/menu/navigation/pix.svg',
-          label: t.wallet_action_buy,
-          isPrimary: true,
-          onPressed: onPix,
-        ),
-      ),
-    ],
+  return HomeActionRow(
+    onSend: () {
+      context.push('/send-asset');
+    },
+    onReceive: () {
+      context.push('/receive-asset');
+    },
+    onSwap: () {
+      context.go('/swap');
+    },
+    onMore: onMore,
   );
 }

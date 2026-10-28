@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/asset_detail_screen.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -11,39 +10,9 @@ import 'package:mooze_mobile/shared/prices/providers/currency_controller_provide
 import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/data_refresh_trigger.dart';
 
-class AssetCardList extends ConsumerWidget {
-  const AssetCardList({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Watch the refresh trigger to re-render without loading state
-    ref.watch(dataRefreshTriggerProvider);
-
-    final favoriteAssets = ref.watch(favoriteAssetsProvider);
-
-    return Row(
-      children:
-          favoriteAssets
-              .asMap()
-              .entries
-              .map((entry) {
-                final index = entry.key;
-                final asset = entry.value;
-
-                return [
-                  Expanded(child: AssetGraphCard(asset: asset)),
-                  if (index < favoriteAssets.length - 1)
-                    const SizedBox(width: 12),
-                ];
-              })
-              .expand((widgets) => widgets)
-              .toList(),
-    );
-  }
-}
-
+/// Asset card with a price chart. The All assets screen uses it. The home
+/// screen uses `AssetRowList` from `asset_row.dart`.
 class AssetGraphCard extends ConsumerWidget {
   final Asset asset;
 
