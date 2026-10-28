@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
@@ -31,7 +32,10 @@ class MerchantValidation {
   /// Resolves a user-facing message at the call site, where AppLocalizations
   /// is available. Returns null when the validation is valid.
   String? localizedMessage(AppLocalizations t) {
-    final value = amount?.toStringAsFixed(2) ?? '';
+    // Reais always use the Brazilian format, as the amounts on screen.
+    final value = amount == null
+        ? ''
+        : NumberFormat('#,##0.00', 'pt_BR').format(amount);
     return switch (error) {
       MerchantValidationError.belowMinimum =>
         t.merchant_validation_min_amount(value),

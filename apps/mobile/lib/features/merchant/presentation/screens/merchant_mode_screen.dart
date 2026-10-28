@@ -9,11 +9,17 @@ import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_cha
 import 'package:mooze_mobile/features/merchant/presentation/widgets/add_edit_item_modal.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/items_list_widget.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/keypad_widget.dart';
+import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_confirm_dialog.dart';
+import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_glass_button.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_header_widget.dart';
+import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_segmented_tabs.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/finalizar_venda_button.dart';
 import 'package:mooze_mobile/features/merchant/presentation/services/merchant_tutorial_service.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
@@ -22,7 +28,9 @@ import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 /// The main screen for merchant mode - allows businesses to create charges
 /// and accept payments from customers.
 ///
-
+/// The screen is a small point of sale on the app backdrop: a glass header
+/// with the sale total as the hero, a glass switch between the keypad and
+/// the product list, and the "Finish sale" button pinned at the bottom.
 class MerchantModeScreen extends ConsumerStatefulWidget {
   final String? origin;
 
@@ -88,12 +96,20 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       valorDigitado = '20.00';
     });
 
+    final t = AppLocalizations.of(context);
+    final focusDuration = Motion.of(context, Motion.durationSlow);
     _tutorialCoachMark = TutorialCoachMark(
       targets: _createTutorialTargets(),
-      colorShadow: Colors.green,
+      // A neutral scrim, so the glass cards and the brand button read as
+      // on the rest of the app.
+      colorShadow: context.colorScheme.scrim,
+      opacityShadow: 0.8,
       paddingFocus: 10,
-      opacityShadow: 0.95,
+      focusAnimationDuration: focusDuration,
+      unFocusAnimationDuration: focusDuration,
+      pulseEnable: !Motion.isReduced(context),
       alignSkip: Alignment.topRight,
+      skipWidget: _TutorialSkip(label: t.merchant_tutorial_skip),
       onClickOverlay: (target) {},
       onClickTarget: (target) async {
         if (target.identify == "add_button") {
@@ -129,394 +145,173 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     _tutorialCoachMark?.show(context: context);
   }
 
+  /// A step that points at the widget of [key], with a glass card that
+  /// explains it.
+  TargetFocus _stepTarget({
+    required String identify,
+    required GlobalKey key,
+    required ShapeLightFocus shape,
+    required ContentAlign align,
+    required String title,
+    required String body,
+    double? radius,
+  }) {
+    return TargetFocus(
+      identify: identify,
+      keyTarget: key,
+      shape: shape,
+      radius: radius,
+      contents: [
+        TargetContent(
+          align: align,
+          child: _TutorialCard(title: title, body: body),
+        ),
+      ],
+    );
+  }
+
+  /// A step without a target, with a card in the middle of the screen.
+  TargetFocus _centeredTarget({
+    required String identify,
+    required Widget Function(BuildContext, TutorialCoachMarkController) builder,
+  }) {
+    return TargetFocus(
+      identify: identify,
+      targetPosition: TargetPosition(
+        Size(MediaQuery.of(context).size.width * 0.9, 0),
+        Offset(MediaQuery.of(context).size.width * 1.5, 0),
+      ),
+      shape: ShapeLightFocus.RRect,
+      radius: 20,
+      contents: [
+        TargetContent(
+          align: ContentAlign.custom,
+          customPosition: CustomTargetContentPosition(
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+          ),
+          builder: builder,
+        ),
+      ],
+    );
+  }
+
   List<TargetFocus> _createTutorialTargets() {
     final t = AppLocalizations.of(context);
-    List<TargetFocus> targets = [];
-    targets.add(
-      TargetFocus(
+    return [
+      _centeredTarget(
         identify: "welcome",
-        targetPosition: TargetPosition(
-          Size(MediaQuery.of(context).size.width * 0.9, 0),
-          Offset(MediaQuery.of(context).size.width * 1.5, 0),
-        ),
-        shape: ShapeLightFocus.RRect,
-        radius: 20,
-        contents: [
-          TargetContent(
-            align: ContentAlign.custom,
-            customPosition: CustomTargetContentPosition(
-              top: 0,
-              bottom: 0,
-              left: 0,
-              right: 0,
-            ),
-            builder: (context, controller) {
-              return _TutorialCard(
-                center: true,
-                children: [
-                  Text(
-                    t.merchant_welcome_title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 24,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    t.merchant_welcome_body,
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        controller.next();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFE91E63),
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        t.common_continue,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
+        builder: (context, controller) => _TutorialCard(
+          center: true,
+          title: t.merchant_welcome_title,
+          body: t.merchant_welcome_body,
+          actions: PrimaryButton(
+            text: t.common_continue,
+            onPressed: () => controller.next(),
           ),
-        ],
+        ),
       ),
-    );
-
-    targets.add(
-      TargetFocus(
+      _stepTarget(
         identify: "valor_input",
-        keyTarget: _valorInputKey,
+        key: _valorInputKey,
         shape: ShapeLightFocus.RRect,
         radius: 10,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: _TutorialCard(
-              children: [
-                Text(
-                  t.merchant_step_enter_value_title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: 20,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  t.merchant_step_enter_value_body,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
+        align: ContentAlign.bottom,
+        title: t.merchant_step_enter_value_title,
+        body: t.merchant_step_enter_value_body,
       ),
-    );
-
-    targets.add(
-      TargetFocus(
+      _stepTarget(
         identify: "add_button",
-        keyTarget: _addButtonKey,
+        key: _addButtonKey,
         shape: ShapeLightFocus.Circle,
-        contents: [
-          TargetContent(
-            align: ContentAlign.top,
-            child: _TutorialCard(
-              padding: EdgeInsets.all(10),
-              children: [
-                Text(
-                  t.merchant_step_add_value_title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: 20,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  t.merchant_step_add_value_body,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
+        align: ContentAlign.top,
+        title: t.merchant_step_add_value_title,
+        body: t.merchant_step_add_value_body,
       ),
-    );
-
-    targets.add(
-      TargetFocus(
+      _stepTarget(
         identify: "items_tab",
-        keyTarget: _itemsTabKey,
+        key: _itemsTabKey,
         shape: ShapeLightFocus.RRect,
-        radius: 10,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: _TutorialCard(
-              children: [
-                Text(
-                  t.merchant_step_items_tab_title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: 20,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  t.merchant_step_items_tab_body,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
+        radius: 24,
+        align: ContentAlign.bottom,
+        title: t.merchant_step_items_tab_title,
+        body: t.merchant_step_items_tab_body,
       ),
-    );
-
-    targets.add(
-      TargetFocus(
+      _stepTarget(
         identify: "add_product",
-        keyTarget: _addProductButtonKey,
-        shape: ShapeLightFocus.Circle,
-        contents: [
-          TargetContent(
-            align: ContentAlign.top,
-            child: _TutorialCard(
-              children: [
-                Text(
-                  t.merchant_step_create_product_title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: 20,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  t.merchant_step_create_product_body,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
+        key: _addProductButtonKey,
+        // The add button is a capsule.
+        shape: ShapeLightFocus.RRect,
+        radius: 28,
+        align: ContentAlign.top,
+        title: t.merchant_step_create_product_title,
+        body: t.merchant_step_create_product_body,
       ),
-    );
-
-    targets.add(
-      TargetFocus(
+      _stepTarget(
         identify: "manage_products",
-        keyTarget: _firstProductKey,
+        key: _firstProductKey,
         shape: ShapeLightFocus.RRect,
         radius: 10,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: _TutorialCard(
-              children: [
-                Text(
-                  t.merchant_step_edit_delete_title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: 20,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  t.merchant_step_edit_delete_body,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
+        align: ContentAlign.bottom,
+        title: t.merchant_step_edit_delete_title,
+        body: t.merchant_step_edit_delete_body,
       ),
-    );
-
-    targets.add(
-      TargetFocus(
+      _stepTarget(
         identify: "finalizar_venda",
-        keyTarget: _finalizarVendaKey,
+        key: _finalizarVendaKey,
         shape: ShapeLightFocus.RRect,
         radius: 10,
-        contents: [
-          TargetContent(
-            align: ContentAlign.top,
-            child: _TutorialCard(
-              children: [
-                Text(
-                  t.merchant_step_finalize_title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: 20,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  t.merchant_step_finalize_body,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
+        align: ContentAlign.top,
+        title: t.merchant_step_finalize_title,
+        body: t.merchant_step_finalize_body,
       ),
-    );
-
-    targets.add(
-      TargetFocus(
+      _stepTarget(
         identify: "limpar",
-        keyTarget: _limparKey,
+        key: _limparKey,
         shape: ShapeLightFocus.RRect,
-        radius: 10,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            builder: (context, controller) {
-              return _TutorialCard(
-                children: [
-                  Text(
-                    t.merchant_step_clear_cart_title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 20,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    t.merchant_step_clear_cart_body,
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
+        radius: 24,
+        align: ContentAlign.bottom,
+        title: t.merchant_step_clear_cart_title,
+        body: t.merchant_step_clear_cart_body,
       ),
-    );
-
-    targets.add(
-      TargetFocus(
+      _centeredTarget(
         identify: "conclusion",
-        targetPosition: TargetPosition(
-          Size(MediaQuery.of(context).size.width * 0.9, 0),
-          Offset(MediaQuery.of(context).size.width * 1.5, 0),
-        ),
-        shape: ShapeLightFocus.RRect,
-        radius: 20,
-        contents: [
-          TargetContent(
-            align: ContentAlign.custom,
-            customPosition: CustomTargetContentPosition(
-              top: 0,
-              bottom: 0,
-              left: 0,
-              right: 0,
-            ),
-            builder: (context, controller) {
-              return _TutorialCard(
-                center: true,
-                children: [
-                  Text(
-                    t.merchant_tutorial_done_title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 24,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    t.merchant_tutorial_done_body,
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            controller.skip();
-                            await _limparDadosTutorial();
-                            await _tutorialService.resetTutorial();
-                            if (mounted) {
-                              _showTutorial();
-                            }
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(color: Colors.white, width: 2),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            t.common_redo,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            await _limparDadosTutorial();
-                            controller.next();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFFE91E63),
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            t.common_finish,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            },
+        builder: (context, controller) => _TutorialCard(
+          center: true,
+          title: t.merchant_tutorial_done_title,
+          body: t.merchant_tutorial_done_body,
+          actions: Row(
+            children: [
+              Expanded(
+                child: MerchantGlassButton(
+                  label: t.common_redo,
+                  onPressed: () async {
+                    controller.skip();
+                    await _limparDadosTutorial();
+                    await _tutorialService.resetTutorial();
+                    if (mounted) {
+                      _showTutorial();
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: PrimaryButton(
+                  text: t.common_finish,
+                  onPressed: () async {
+                    await _limparDadosTutorial();
+                    controller.next();
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    );
-
-    return targets;
+    ];
   }
 
   void _adicionarNumero(String numero) {
@@ -562,8 +357,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         orElse: () => <ProductEntity>[],
       );
 
-      final tutorialName =
-          AppLocalizations.of(context).merchant_default_product_name;
+      final tutorialName = AppLocalizations.of(
+        context,
+      ).merchant_default_product_name;
       for (var product in products) {
         if (product.name == tutorialName && product.price == 21.00) {
           if (product.id != null) {
@@ -608,7 +404,9 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       if (mounted) {
         AppSnackBar.error(
           context,
-          AppLocalizations.of(context).merchant_add_product_error(humanizeError(context, e)),
+          AppLocalizations.of(
+            context,
+          ).merchant_add_product_error(humanizeError(context, e)),
         );
       }
     }
@@ -739,11 +537,8 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     Navigator.of(context)
         .push(
           MaterialPageRoute(
-            builder:
-                (context) => MerchantChargeScreen(
-                  totalAmount: totalAmount,
-                  items: items,
-                ),
+            builder: (context) =>
+                MerchantChargeScreen(totalAmount: totalAmount, items: items),
           ),
         )
         .then((_) {
@@ -760,8 +555,22 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
     context.push('/merchant/exit');
   }
 
+  /// Asks before the cart is cleared. The cart holds the whole sale, so a
+  /// stray tap must not lose it.
+  Future<void> _confirmClearCart() async {
+    final t = AppLocalizations.of(context);
+    final confirmed = await showMerchantConfirmDialog(
+      context,
+      title: t.merchant_clear_cart_confirm_title,
+      message: t.merchant_clear_cart_confirm_body,
+      confirmLabel: t.merchant_clear_cart,
+    );
+    if (confirmed && mounted) _limparValor();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -770,221 +579,139 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
         }
       },
       child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFEA1E63), Color(0xFF841138)],
-            ),
-          ),
-          child: PlatformSafeArea(
-            iosTop: true,
-            androidTop: true,
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                  ).copyWith(top: 10),
-                  child: Consumer(
-                    builder: (context, ref, child) {
-                      final valorReais = ref.watch(cartTotalProvider);
-                      return Container(
-                        key: _headerKey,
-                        child: MerchantHeaderWidget(
-                          totalAmountInBRL: valorReais,
-                          onClearCart: _limparValor,
-                          onBack: _handleWillPop,
-                          clearButtonKey: _limparKey,
-                          totalAmountKey: _valorTotalKey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: 16),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: context.colors.backgroundColor,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(40),
-                        topRight: Radius.circular(40),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        SizedBox(height: 16),
-                        TabBar(
-                          controller: _tabController,
-                          indicatorColor: Colors.pink,
-                          dividerColor: Colors.transparent,
-                          // labelColor: Colors.white,
-                          unselectedLabelColor: Colors.grey[400],
-                          tabs: [
-                            Tab(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.grid_3x3),
-                                  Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    ).merchant_tab_keypad,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Tab(
-                              key: _itemsTabKey,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.grid_3x3),
-                                  Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    ).merchant_tab_items,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        Expanded(
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              KeypadWidget(
-                                typedValue: valorDigitado,
-                                onAddDigit: _adicionarNumero,
-                                onDeleteDigit: _apagarNumero,
-                                onAddToTotal: _adicionarAoTotal,
-                                valueInputKey: _valorInputKey,
-                                addButtonKey: _addButtonKey,
-                              ),
-                              Consumer(
-                                builder: (context, ref, child) {
-                                  final productsAsync = ref.watch(
-                                    productControllerProvider,
-                                  );
-
-                                  return productsAsync.when(
-                                    data: (products) {
-                                      return Consumer(
-                                        builder: (context, ref, child) {
-                                          final cart = ref.watch(
-                                            cartControllerProvider,
-                                          );
-
-                                          return ItemsListWidget(
-                                            products: products,
-                                            cart: cart,
-                                            onEditItem: _editarItem,
-                                            onRemoveItem: _removerItem,
-                                            onUpdateQuantity:
-                                                _atualizarQuantidade,
-                                            onAddItem:
-                                                _mostrarBottomSheetAdicionar,
-                                            addButtonKey: _addProductButtonKey,
-                                            firstItemKey: _firstProductKey,
-                                          );
-                                        },
-                                      );
-                                    },
-                                    loading:
-                                        () => Center(
-                                          child: CircularProgressIndicator(),
-                                        ),
-                                    error:
-                                        (error, stackTrace) => Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              const Icon(
-                                                Icons.error,
-                                                color: Colors.red,
-                                                size: 48,
-                                              ),
-                                              const SizedBox(height: 16),
-                                              Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                ).merchant_load_products_error,
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                humanizeError(context, error),
-                                                style: TextStyle(
-                                                  color: Colors.grey[400],
-                                                  fontSize: 12,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              const SizedBox(height: 16),
-                                              ElevatedButton(
-                                                onPressed: () {
-                                                  ref.invalidate(
-                                                    productControllerProvider,
-                                                  );
-                                                },
-                                                child: Text(
-                                                  AppLocalizations.of(
-                                                    context,
-                                                  ).common_retry,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                  );
-                                },
-                              ),
-                            ],
+        body: Stack(
+          children: [
+            const Positioned.fill(child: AppBackdrop()),
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final valorReais = ref.watch(cartTotalProvider);
+                        return Container(
+                          key: _headerKey,
+                          child: MerchantHeaderWidget(
+                            totalAmountInBRL: valorReais,
+                            onClearCart: _confirmClearCart,
+                            onBack: _handleWillPop,
+                            clearButtonKey: _limparKey,
+                            totalAmountKey: _valorTotalKey,
                           ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: MerchantSegmentedTabs(
+                      controller: _tabController,
+                      segments: [
+                        MerchantSegment(
+                          icon: Icons.dialpad_rounded,
+                          label: t.merchant_tab_keypad,
+                        ),
+                        MerchantSegment(
+                          key: _itemsTabKey,
+                          icon: Icons.inventory_2_outlined,
+                          label: t.merchant_tab_items,
                         ),
                       ],
                     ),
                   ),
-                ),
-                Consumer(
-                  builder: (context, ref, child) {
-                    final cartTotal = ref.watch(cartTotalProvider);
-                    final keypadValue = double.tryParse(valorDigitado) ?? 0.0;
-                    final effectiveAmount = cartTotal + keypadValue;
-                    return FinalizarVendaButton(
-                      onPressed: _finalizarVenda,
-                      totalOrderAmount: effectiveAmount,
-                      buttonKey: _finalizarVendaKey,
-                    );
-                  },
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        KeypadWidget(
+                          typedValue: valorDigitado,
+                          onAddDigit: _adicionarNumero,
+                          onDeleteDigit: _apagarNumero,
+                          onAddToTotal: _adicionarAoTotal,
+                          valueInputKey: _valorInputKey,
+                          addButtonKey: _addButtonKey,
+                        ),
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final productsAsync = ref.watch(
+                              productControllerProvider,
+                            );
+
+                            return productsAsync.when(
+                              data: (products) {
+                                return Consumer(
+                                  builder: (context, ref, child) {
+                                    final cart = ref.watch(
+                                      cartControllerProvider,
+                                    );
+
+                                    return ItemsListWidget(
+                                      products: products,
+                                      cart: cart,
+                                      onEditItem: _editarItem,
+                                      onRemoveItem: _removerItem,
+                                      onUpdateQuantity: _atualizarQuantidade,
+                                      onAddItem: _mostrarBottomSheetAdicionar,
+                                      addButtonKey: _addProductButtonKey,
+                                      firstItemKey: _firstProductKey,
+                                    );
+                                  },
+                                );
+                              },
+                              loading: () => const ItemsListSkeleton(),
+                              error: (error, stackTrace) => ItemsListError(
+                                details: humanizeError(context, error),
+                                onRetry: () {
+                                  ref.invalidate(productControllerProvider);
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final cartTotal = ref.watch(cartTotalProvider);
+                      final keypadValue = double.tryParse(valorDigitado) ?? 0.0;
+                      final effectiveAmount = cartTotal + keypadValue;
+                      return FinalizarVendaButton(
+                        onPressed: _finalizarVenda,
+                        totalOrderAmount: effectiveAmount,
+                        buttonKey: _finalizarVendaKey,
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
+/// A tutorial card: an opaque glass panel with a title, a text, and
+/// optional actions.
+///
+/// The card never grows past the screen. On a short screen, or with very
+/// large text, it scales down to fit.
 class _TutorialCard extends StatelessWidget {
-  final List<Widget> children;
-  final EdgeInsetsGeometry padding;
+  final String title;
+  final String body;
+  final Widget? actions;
   final bool center;
 
   const _TutorialCard({
-    required this.children,
-    this.padding = const EdgeInsets.all(20),
+    required this.title,
+    required this.body,
+    this.actions,
     this.center = false,
   });
 
@@ -1000,12 +727,40 @@ class _TutorialCard extends StatelessWidget {
         alignment: Alignment.topCenter,
         child: SizedBox(
           width: media.size.width - 16,
-          child: Padding(
-            padding: padding,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
+          child: LiquidGlass(
+            borderRadius: const BorderRadius.all(Radius.circular(24)),
+            blurBackdrop: false,
+            opaque: true,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      title,
+                      style: context.textTheme.titleLarge?.copyWith(
+                        color: context.colors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    body,
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: context.colors.textSecondary,
+                      height: 1.45,
+                    ),
+                  ),
+                  if (actions != null) ...[
+                    const SizedBox(height: 20),
+                    actions!,
+                  ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1014,6 +769,34 @@ class _TutorialCard extends StatelessWidget {
     return SafeArea(
       minimum: const EdgeInsets.symmetric(horizontal: 8),
       child: center ? Center(child: card) : card,
+    );
+  }
+}
+
+/// The skip control of the tutorial: a glass pill with a translated label.
+class _TutorialSkip extends StatelessWidget {
+  const _TutorialSkip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: LiquidGlass(
+        blurBackdrop: false,
+        opaque: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Text(
+            label,
+            style: context.textTheme.labelLarge?.copyWith(
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
