@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_status_view.dart';
 import 'package:mooze_mobile/shared/utils/error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-import 'consts.dart';
 import 'providers/pix_deposit_provider.dart';
 import 'widgets/copyable_address.dart';
 import 'widgets/payment_details_display.dart';
@@ -26,22 +30,31 @@ class PixPaymentScreen extends ConsumerWidget {
     final deposit = ref.watch(depositDataProvider(depositId));
 
     return deposit.when(
-      data:
-          (data) => data.fold(
-            (err) => ErrorPixPaymentScreen(
-              errorMessage: t.pix_payment_qr_error(humanizeError(context, err)),
-            ),
-            (deposit) => ValidPixPaymentScreen(deposit: deposit),
-          ),
-      error:
-          (err, stackTrace) => ErrorPixPaymentScreen(
-            errorMessage: t.pix_payment_qr_error(humanizeError(context, err)),
-          ),
+      data: (data) => data.fold(
+        (err) => ErrorPixPaymentScreen(
+          errorMessage: t.pix_payment_qr_error(humanizeError(context, err)),
+        ),
+        (deposit) => ValidPixPaymentScreen(deposit: deposit),
+      ),
+      error: (err, stackTrace) => ErrorPixPaymentScreen(
+        errorMessage: t.pix_payment_qr_error(humanizeError(context, err)),
+      ),
       loading: () => LoadingPixPaymentScreen(),
     );
   }
 }
 
+/// Leaves the payment screen. Without a screen below, it opens the Pix hub.
+void _leavePayment(BuildContext context) {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    context.go('/pix');
+  }
+}
+
+/// The Pix charge: amount, time left, QR code, copy and paste code, and
+/// what the deposit delivers.
 class ValidPixPaymentScreen extends StatefulWidget {
   final PixDeposit deposit;
   const ValidPixPaymentScreen({super.key, required this.deposit});
@@ -52,6 +65,9 @@ class ValidPixPaymentScreen extends StatefulWidget {
 
 class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
     with TickerProviderStateMixin {
+  // The screen opens under the full pink circle of the loading overlay of
+  // the previous screen. This overlay shrinks and fades that circle, so the
+  // two screens join without a cut.
   late AnimationController _reverseCircleController;
   late Animation<double> _reverseCircleAnimation;
   OverlayEntry? _overlayEntry;
@@ -64,17 +80,19 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
 
   void _initializeReverseAnimation() {
     _reverseCircleController = AnimationController(
-      duration: Duration(milliseconds: 2000),
+      duration: Motion.durationCelebrate,
       vsync: this,
     );
     _reverseCircleAnimation = Tween<double>(begin: 3.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _reverseCircleController,
-        curve: Curves.easeInOutCubic,
+        curve: Motion.curveExit,
       ),
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // With reduced motion, the screen shows at once, without the circle.
+      if (!mounted || Motion.isReduced(context)) return;
       _showReverseOverlay();
       _reverseCircleController.forward().then((_) {
         _hideReverseOverlay();
@@ -86,50 +104,44 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
     if (_overlayEntry != null) return;
 
     _overlayEntry = OverlayEntry(
-      builder:
-          (context) => AnimatedBuilder(
-            animation: _reverseCircleController,
-            builder: (context, child) {
-              final size = MediaQuery.of(context).size;
-              final progress = _reverseCircleAnimation.value / 3.0;
+      builder: (context) => AnimatedBuilder(
+        animation: _reverseCircleController,
+        builder: (context, child) {
+          final size = MediaQuery.of(context).size;
+          final progress = _reverseCircleAnimation.value / 3.0;
 
-              return IgnorePointer(
-                ignoring: true,
-                child: Material(
-                  color: Colors.transparent,
-                  child: SizedBox.expand(
-                    child: Stack(
-                      children: [
-                        // Círculo que diminui
-                        Positioned(
-                          left: -size.width * 1.2,
-                          bottom: -size.height * 0.3,
-                          child: Container(
-                            width:
-                                size.width *
-                                _reverseCircleAnimation.value *
-                                1.2,
-                            height:
-                                size.width *
-                                _reverseCircleAnimation.value *
-                                1.2,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: context.colors.primaryColor,
-                            ),
-                          ),
+          return IgnorePointer(
+            ignoring: true,
+            child: Material(
+              color: Colors.transparent,
+              child: SizedBox.expand(
+                child: Stack(
+                  children: [
+                    // The circle that shrinks.
+                    Positioned(
+                      left: -size.width * 1.2,
+                      bottom: -size.height * 0.3,
+                      child: Container(
+                        width: size.width * _reverseCircleAnimation.value * 1.2,
+                        height:
+                            size.width * _reverseCircleAnimation.value * 1.2,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: context.colors.primaryColor,
                         ),
-                        Opacity(
-                          opacity: progress,
-                          child: Container(color: context.colors.primaryColor),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    Opacity(
+                      opacity: progress,
+                      child: Container(color: context.colors.primaryColor),
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
+              ),
+            ),
+          );
+        },
+      ),
     );
 
     Overlay.of(context).insert(_overlayEntry!);
@@ -148,140 +160,243 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
     super.dispose();
   }
 
+  void _showExpiredDialog() {
+    final t = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => GlassAlertDialog(
+        title: Text(t.human_verif_time_expired_title),
+        content: Text(t.pix_payment_time_expired_body),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _leavePayment(context);
+            },
+            child: Text(t.common_ok),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return PlatformSafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(t.pix_payment_appbar_title),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded),
-            onPressed: () {
-              context.pop();
-            },
+    final deposit = widget.deposit;
+    return PixScreenScaffold(
+      title: t.pix_payment_appbar_title,
+      children: [
+        _AmountHero(
+          label: t.pix_deposit_value,
+          amountInCents: deposit.amountInCents,
+        ),
+        const SizedBox(height: 12),
+        TimerCountdown(
+          expireAt: deposit.createdAt.add(const Duration(minutes: 20)),
+          onExpired: _showExpiredDialog,
+        ),
+        const SizedBox(height: 28),
+        PixQrCodeDisplay(
+          pixQrData: deposit.pixKey,
+          boxConstraints: const BoxConstraints(),
+        ),
+        const SizedBox(height: 28),
+        CopyableAddress(
+          pixKey: deposit.pixKey,
+          label: t.pix_hub_charge_code_label,
+        ),
+        const SizedBox(height: 16),
+        PaymentDetailsDisplay(deposit: deposit),
+        const SizedBox(height: 20),
+        Center(
+          child: Text(
+            "Powered by depix.info",
+            textAlign: TextAlign.center,
+            style: context.textTheme.bodySmall?.copyWith(
+              color: context.colors.textTertiary,
+            ),
           ),
         ),
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Padding(
-                  padding: const EdgeInsets.all(contentPadding),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TimerCountdown(
-                        expireAt: widget.deposit.createdAt.add(
-                          Duration(minutes: 20),
-                        ),
-                        onExpired: () {
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder:
-                                (dialogContext) => AlertDialog(
-                                  title: Text(t.human_verif_time_expired_title),
-                                  content: Text(
-                                    t.pix_payment_time_expired_body,
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(dialogContext).pop();
-                                        if (context.canPop()) {
-                                          context.pop();
-                                        } else {
-                                          context.go('/pix');
-                                        }
-                                      },
-                                      child: Text(t.common_ok),
-                                    ),
-                                  ],
-                                ),
-                          );
-                        },
-                      ),
-                      SizedBox(height: 20),
-                      PixQrCodeDisplay(
-                        pixQrData: widget.deposit.pixKey,
-                        boxConstraints: constraints,
-                      ),
-                      SizedBox(height: 20),
-                      Text(
-                        "Powered by depix.info",
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      SizedBox(height: 20),
-                      CopyableAddress(pixKey: widget.deposit.pixKey),
-                      SizedBox(height: 20),
-                      PaymentDetailsDisplay(deposit: widget.deposit),
-                      SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
+      ],
+    );
+  }
+}
+
+/// The amount to pay: a muted currency symbol and large tabular digits.
+class _AmountHero extends StatelessWidget {
+  const _AmountHero({required this.label, required this.amountInCents});
+
+  final String label;
+  final int amountInCents;
+
+  @override
+  Widget build(BuildContext context) {
+    const tabular = [FontFeature.tabularFigures()];
+    // Reais always use the Brazilian format, whatever the app language.
+    final digits = NumberFormat(
+      '#,##0.00',
+      'pt_BR',
+    ).format(amountInCents / 100);
+    final digitsStyle = context.textTheme.displaySmall?.copyWith(
+      color: context.colors.textPrimary,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.8,
+      height: 1.1,
+      fontFeatures: tabular,
+    );
+    final symbolStyle = context.textTheme.titleLarge?.copyWith(
+      color: context.colors.textSecondary,
+      fontWeight: FontWeight.w500,
+      fontFeatures: tabular,
+    );
+
+    return MergeSemantics(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: context.colors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // A long amount or large text shrinks the line instead of
+          // overflowing it.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(r'R$', style: symbolStyle),
+                const SizedBox(width: 6),
+                Text(digits, style: digitsStyle),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+/// Shows the error that stopped the charge from loading.
 class ErrorPixPaymentScreen extends StatelessWidget {
   final String errorMessage;
   const ErrorPixPaymentScreen({super.key, required this.errorMessage});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: CustomAppBar(
-        title: TextSpan(text: ""),
-        onBack: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/pix');
-          }
-        },
+    final t = AppLocalizations.of(context);
+    return _PaymentStateScaffold(
+      bottomAction: PrimaryButton(
+        text: t.common_back,
+        onPressed: () => _leavePayment(context),
       ),
-      body: Center(
-        child: Text(
-          errorMessage,
-          style: Theme.of(context).textTheme.bodyLarge,
-          textAlign: TextAlign.center,
+      child: PixStatusView(
+        kind: PixStatusKind.failure,
+        title: t.common_error,
+        message: errorMessage,
+      ),
+    );
+  }
+}
+
+/// Shows a spinner while the charge loads.
+class LoadingPixPaymentScreen extends StatelessWidget {
+  const LoadingPixPaymentScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _PaymentStateScaffold(
+      child: SizedBox.square(
+        dimension: 32,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          color: context.colors.textSecondary,
+          // A still arc when animations are off.
+          value: Motion.isReduced(context) ? 0.7 : null,
         ),
       ),
     );
   }
 }
 
-class LoadingPixPaymentScreen extends StatelessWidget {
-  const LoadingPixPaymentScreen({super.key});
+/// Page of the loading and error states: the backdrop, a clear app bar with
+/// a back button, the content in the center, and an optional action.
+class _PaymentStateScaffold extends StatelessWidget {
+  const _PaymentStateScaffold({required this.child, this.bottomAction});
+
+  final Widget child;
+  final Widget? bottomAction;
 
   @override
   Widget build(BuildContext context) {
+    const gutter = PixScreenScaffold.gutter;
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: CustomAppBar(
-        title: TextSpan(text: ""),
-        onBack: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/pix');
-          }
-        },
+      extendBodyBehindAppBar: true,
+      appBar: _PaymentAppBar(onBack: () => _leavePayment(context)),
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackdrop()),
+          SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: gutter,
+                        vertical: 24,
+                      ),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight - 48,
+                        ),
+                        child: Center(child: child),
+                      ),
+                    ),
+                  ),
+                ),
+                if (bottomAction != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(gutter, 8, gutter, 12),
+                    child: bottomAction!,
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
-      body: Center(
-        child: LoadingAnimationWidget.threeRotatingDots(
-          color: Theme.of(context).colorScheme.primary,
-          size: loadingAnimationWidgetSize,
-        ),
-      ),
+    );
+  }
+}
+
+/// A clear app bar with a back button that always leaves the screen.
+///
+/// It looks like `BackdropAppBar`. The back button opens the Pix hub when
+/// no screen is below, so the loading and error states never trap the user.
+class _PaymentAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _PaymentAppBar({required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      leading: BackButton(onPressed: onBack),
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: context.colors.textPrimary,
+      flexibleSpace: const AppBackdrop(),
     );
   }
 }

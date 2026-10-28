@@ -41,7 +41,9 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
   void _subscribeToRepository(PixRepository repository) {
     _subscription = repository.statusUpdates.listen((statusEvent) {
       // Observe every backend status, independently of UI notification deduplication.
-      ref.read(pixAnalyticsProvider).observe(statusEvent.depositId, statusEvent.status.name);
+      ref
+          .read(pixAnalyticsProvider)
+          .observe(statusEvent.depositId, statusEvent.status.name);
       if (_processedDeposits.contains(statusEvent.depositId)) {
         return;
       }
@@ -79,10 +81,9 @@ class _PixStatusListenerState extends ConsumerState<PixStatusListener> {
                           navigatorContext,
                           asset: deposit.asset,
                           amountInCents: deposit.amountInCents,
-                          assetAmount:
-                              deposit.assetAmount != null
-                                  ? deposit.assetAmount!.toDouble() / 100000000
-                                  : 0.0,
+                          assetAmount: deposit.assetAmount != null
+                              ? deposit.assetAmount!.toDouble() / 100000000
+                              : 0.0,
                           depositId: deposit.depositId,
                           blockchainTxid: deposit.blockchainTxid,
                           onClosed: () {

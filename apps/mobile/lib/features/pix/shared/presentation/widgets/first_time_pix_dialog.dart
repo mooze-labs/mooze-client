@@ -1,8 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+/// Notice about the security review of Pix payments, shown on the first
+/// access to Pix.
+///
+/// The accept button unlocks after a short countdown, so the user reads the
+/// notice. The dialog returns true when the user accepts.
 class FirstTimePixDialog extends StatefulWidget {
   const FirstTimePixDialog({super.key});
 
@@ -46,138 +57,145 @@ class _FirstTimePixDialogState extends State<FirstTimePixDialog> {
     super.dispose();
   }
 
+  /// Returns the title style. With large text, the title drops one step,
+  /// so long words fit the dialog width without a break.
+  static TextStyle? _titleStyle(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(1) > 1.5
+      ? context.textTheme.titleMedium
+      : context.textTheme.titleLarge;
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final t = AppLocalizations.of(context);
+    final isButtonEnabled = _secondsRemaining == 0;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children: [
-          Icon(Icons.info_outline, color: colorScheme.primary, size: 28),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              t.pix_first_time_title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+    return GlassAlertDialog(
+      title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            t.pix_first_time_description,
-            style: TextStyle(
-              fontSize: 14,
-              color: colorScheme.onSurface,
-              height: 1.5,
-            ),
+          // An attention notice: the warning tone, an alert shape, and the
+          // title together carry the meaning.
+          const PixIconWell(
+            icon: PixIcons.shieldAlert,
+            tone: PixTone.warning,
+            size: 48,
           ),
           const SizedBox(height: 16),
-          _buildInfoItem(
-            colorScheme,
-            'a)',
-            t.pix_first_time_item_completed,
-            Icons.schedule,
-          ),
-          const SizedBox(height: 12),
-          _buildInfoItem(
-            colorScheme,
-            'b)',
-            t.pix_first_time_item_refunded,
-            Icons.refresh,
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.security, color: colorScheme.primary, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    t.pix_first_time_security_note,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurface.withValues(alpha: 0.8),
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
+          Text(
+            t.pix_first_time_title,
+            style: _titleStyle(context)?.copyWith(
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
+              height: 1.25,
             ),
           ),
         ],
       ),
-      actions: [
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed:
-                _secondsRemaining == 0
-                    ? () => Navigator.of(context).pop(true)
-                    : null,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t.pix_first_time_description,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
+                height: 1.45,
               ),
             ),
-            child: Text(
-              _secondsRemaining == 0
-                  ? t.pix_first_time_accept_button
-                  : t.pix_first_time_accept_button_counting(_secondsRemaining),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            const SizedBox(height: 16),
+            _OutcomeRow(
+              icon: PixIcons.clock,
+              text: 'a) ${t.pix_first_time_item_completed}',
+            ),
+            const SizedBox(height: 12),
+            _OutcomeRow(
+              icon: PixIcons.restart,
+              text: 'b) ${t.pix_first_time_item_refunded}',
+            ),
+            const SizedBox(height: 20),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: AppSurfaces.hairline(context),
+            ),
+            const SizedBox(height: 16),
+            _NoteRow(
+              icon: PixIcons.shieldCheck,
+              text: t.pix_first_time_security_note,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        PrimaryButton(
+          text: isButtonEnabled
+              ? t.pix_first_time_accept_button
+              : t.pix_first_time_accept_button_counting(_secondsRemaining),
+          isEnabled: isButtonEnabled,
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+      ],
+    );
+  }
+}
+
+/// One possible outcome of the review: an icon well and a short text.
+class _OutcomeRow extends StatelessWidget {
+  const _OutcomeRow({required this.icon, required this.text});
+
+  final PixIconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        PixIconWell(icon: icon, size: 36),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
             ),
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildInfoItem(
-    ColorScheme colorScheme,
-    String prefix,
-    String text,
-    IconData icon,
-  ) {
+/// A secondary note with a small leading icon.
+class _NoteRow extends StatelessWidget {
+  const _NoteRow({required this.icon, required this.text});
+
+  final PixIconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.colors.textSecondary;
+
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: colorScheme.primary.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Icon(icon, size: 16, color: colorScheme.primary),
-          ),
+        Padding(
+          // Aligns the icon with the first line of text.
+          padding: const EdgeInsets.only(top: 1),
+          child: PixIcon(icon, size: 16, color: color),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$prefix $text',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
-                  height: 1.5,
-                ),
-              ),
-            ],
+          child: Text(
+            text,
+            style: context.textTheme.bodySmall?.copyWith(
+              color: color,
+              height: 1.4,
+            ),
           ),
         ),
       ],

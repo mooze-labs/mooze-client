@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/extensions.dart';
+import 'package:mooze_mobile/shared/models/user_levels.dart';
 
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
+import 'package:mooze_mobile/shared/widgets/motion/skeleton.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 
@@ -14,6 +18,10 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/dep
 
 import 'account_limits_display_widget.dart';
 
+/// Amount step of the deposit: the amount as the hero, then the limits.
+///
+/// The amount sits on the page with no card. The limits and the level of the
+/// user follow in one glass summary.
 class PixValueInputWidget extends ConsumerWidget {
   final VoidCallback onContinue;
 
@@ -30,56 +38,25 @@ class PixValueInputWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLocalizations.of(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surfaceLow,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: KeyedSubtree(
-              key: amountKey,
-              child: const PixDepositAmountInput(),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: KeyedSubtree(
-              key: limitsKey,
-              child: const AccountLimitsDisplay(),
-            ),
-          ),
-          Divider(
-            height: 1,
-            thickness: 0.5,
-            color: context.colorScheme.outlineVariant.withValues(alpha: 0.5),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text(
-              t.pix_receive_my_level,
-              style: context.textTheme.labelLarge?.copyWith(
-                color: context.colorScheme.onSurface,
-                fontSize: context.responsiveFont(14),
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-          ),
-          // UserLevelDisplay manages its own internal padding —
-          // no outer padding here to avoid double-spacing.
-          const UserLevelDisplay(),
-          const SizedBox(height: 12),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        KeyedSubtree(key: amountKey, child: const PixDepositAmountInput()),
+        const SizedBox(height: 32),
+        KeyedSubtree(
+          key: limitsKey,
+          child: const AccountLimitsDisplay(footer: _LevelRow()),
+        ),
+      ],
     );
   }
 }
 
+/// The deposit amount, drawn like the amount of the Pix hub.
+///
+/// Large digits with tabular figures and a muted currency symbol. A line
+/// below the digits follows the focus and turns to the error color, with an
+/// alert icon and a message, when the amount is out of the limits.
 class PixDepositAmountInput extends ConsumerStatefulWidget {
   const PixDepositAmountInput({super.key});
 
@@ -93,6 +70,18 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
 
+  /// Glyphs in the longest amount, "9.999,99".
+  static const _maxGlyphs = 8;
+
+  /// Average width of a bold tabular digit, as a fraction of the font size.
+  static const _glyphWidthRatio = 0.62;
+
+  /// Width of the currency symbol and its gap at 100% text size.
+  static const _symbolWidth = 44.0;
+
+  /// Smallest font size of the amount, for readability.
+  static const _minFontSize = 18.0;
+
   @override
   void initState() {
     super.initState();
@@ -101,8 +90,9 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listenManual(depositAmountProvider, (previous, next) {
         if (_focusNode.hasFocus) return;
-        final formatted =
-            next <= 0 ? '0,00' : FiatInputFormatter.formatValue(next);
+        final formatted = next <= 0
+            ? '0,00'
+            : FiatInputFormatter.formatValue(next);
         if (_controller.text != formatted) {
           _controller.value = TextEditingValue(
             text: formatted,
@@ -127,111 +117,87 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final depositAmountNotifier = ref.read(depositAmountProvider.notifier);
     final validation = ref.watch(depositValidationProvider);
     final levelsAsync = ref.watch(levelsProvider);
     final depositAmount = ref.watch(depositAmountProvider);
 
-    final colorScheme = context.colorScheme;
     final isLoadingLimits = levelsAsync.isLoading;
     final hasValue = depositAmount > 0;
     final isError = !isLoadingLimits && !validation.isValid && hasValue;
+    final message = isError ? validation.localize(context) : null;
 
     final Color valueColor;
     if (isLoadingLimits) {
-      valueColor = colorScheme.onSurface.withValues(alpha: 0.38);
+      valueColor = context.colors.textPrimary.withValues(alpha: 0.38);
     } else if (isError) {
-      valueColor = colorScheme.error;
+      valueColor = context.colors.negativeColor;
     } else {
-      valueColor = colorScheme.onSurface;
+      valueColor = context.colors.textPrimary;
     }
 
+    final amountStyle = context.textTheme.headlineLarge;
+    const tabular = [FontFeature.tabularFigures()];
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // LayoutBuilder measures the real available width so we can derive a
-        // font size that, when visually scaled by 1.4×, never overflows on
-        // small screens. The left column (flag + BRL) always occupies ~110 px.
+        Text(
+          t.pix_receive_you_add,
+          style: context.textTheme.bodyMedium?.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        // The font size shrinks on narrow screens and with large text, so
+        // the longest amount always fits on one line.
         LayoutBuilder(
           builder: (context, constraints) {
-            const leftReserved = 110.0;
-            const maxScale = 1.4;
-            // "3.000,00" → 8 chars; 0.62 is an empirical char-width/fontSize
-            // ratio for w600 numbers in a typical sans-serif font.
-            const maxChars = 8;
-            const charRatio = 0.62;
+            final baseSize = amountStyle?.fontSize ?? 32;
+            final textScale =
+                MediaQuery.textScalerOf(context).scale(baseSize) / baseSize;
+            final available = constraints.maxWidth - _symbolWidth * textScale;
+            final fittedSize =
+                available / (_maxGlyphs * _glyphWidthRatio * textScale);
+            final fontSize = fittedSize.clamp(_minFontSize, baseSize);
 
-            final availableRight = constraints.maxWidth - leftReserved;
-            final rawFontSize =
-                availableRight / (maxScale * maxChars * charRatio);
-            // Cap at 45 (user's design intent) and floor at 18 (readability).
-            final fontSize = rawFontSize.clamp(18.0, 45.0);
-
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Left: "Você adiciona" label + flag + currency code
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context).pix_receive_you_add,
-                      style: context.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: 0.2,
-                      ),
+            return GestureDetector(
+              // A tap on the currency symbol also opens the keyboard.
+              behavior: HitTestBehavior.opaque,
+              onTap: isLoadingLimits ? null : _focusNode.requestFocus,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  // A muted symbol keeps the eye on the digits.
+                  Text(
+                    r'R$',
+                    style: context.textTheme.titleLarge?.copyWith(
+                      color: context.colors.textSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(3),
-                          child: SvgPicture.asset(
-                            'assets/flags/br.svg',
-                            width: 26,
-                            height: 18,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'BRL',
-                          style: context.textTheme.labelLarge?.copyWith(
-                            color: colorScheme.onSurface,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                // Right: amount input — scales up on focus.
-                // fontSize is pre-shrunk so that at 1.4× it still fits.
-                Flexible(
-                  child: AnimatedScale(
-                    scale: _isFocused ? maxScale : 1.0,
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOut,
-                    alignment: Alignment.centerRight,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
                       enabled: !isLoadingLimits,
                       maxLines: 1,
-                      // Disable horizontal scroll — font shrinks instead.
+                      // Disable horizontal scroll — the font shrinks instead.
                       scrollPhysics: const NeverScrollableScrollPhysics(),
-                      style: TextStyle(
+                      style: amountStyle?.copyWith(
                         color: valueColor,
                         fontSize: fontSize,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        fontFeatures: tabular,
                       ),
-                      textAlign: TextAlign.right,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
+                        // The app theme fills its fields. The amount sits on
+                        // the page, with the line below as its only frame.
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -240,70 +206,229 @@ class _PixDepositAmountInputState extends ConsumerState<PixDepositAmountInput> {
                         focusedErrorBorder: InputBorder.none,
                         filled: false,
                         hintText: '0,00',
-                        hintStyle: TextStyle(
-                          color: colorScheme.onSurface.withValues(alpha: 0.22),
+                        hintStyle: amountStyle?.copyWith(
+                          color: context.colors.textTertiary,
                           fontSize: fontSize,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: tabular,
                         ),
                         contentPadding: EdgeInsets.zero,
                         isDense: true,
                       ),
                       inputFormatters: [_PixFiatInputFormatter()],
                       onChanged: (val) {
-                        depositAmountNotifier
-                            .state = FiatInputFormatter.parseValue(val);
+                        depositAmountNotifier.state =
+                            FiatInputFormatter.parseValue(val);
                       },
                       onTapOutside: (_) {},
                       onSubmitted: (_) => _focusNode.unfocus(),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         ),
-        // Validation error — slides in below when amount is out of range
-        Builder(
-          builder: (context) {
-            final localizedMessage = validation.localize(context);
-            return AnimatedSize(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              child:
-                  isError && localizedMessage != null
-                      ? Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.error_outline_rounded,
-                              size: 14,
-                              color: colorScheme.error,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              localizedMessage,
-                              style: context.textTheme.labelMedium?.copyWith(
-                                color: colorScheme.error,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+        const SizedBox(height: 10),
+        AnimatedContainer(
+          duration: Motion.of(context, Motion.durationFast),
+          curve: Motion.curveMove,
+          height: _isFocused || isError ? 2 : 1,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(1),
+            color: isError
+                ? context.colors.negativeColor
+                : _isFocused
+                ? context.colors.primaryColor
+                // The field sits on the page, where the light outline
+                // variant has the page color. The outline shows in both
+                // themes.
+                : context.colorScheme.outline,
+          ),
+        ),
+        // Validation error — slides in below when amount is out of range.
+        SizeFadeSwitcher(
+          child: message == null
+              ? const SizedBox(
+                  key: ValueKey('amount-valid'),
+                  width: double.infinity,
+                )
+              : Padding(
+                  key: ValueKey(message),
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: PixIcon(
+                          PixIcons.error,
+                          size: 15,
+                          color: context.colors.negativeColor,
                         ),
-                      )
-                      : const SizedBox.shrink(),
-            );
-          },
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          message,
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: context.colors.negativeColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );
   }
 }
 
-// Caps input at 6 raw digits (R$ 3.000,00) to prevent the value text from
-// overflowing the card layout on any screen size.
+/// Level of the user, as the last row of the limits summary.
+///
+/// The level sets the limits, so it sits with them. A tap opens the level
+/// track in a glass sheet.
+class _LevelRow extends ConsumerWidget {
+  const _LevelRow();
+
+  void _showLevels(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _LevelSheet(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final levels = ref.watch(levelsProvider);
+
+    final Widget value = levels.when(
+      data: (data) => Text(
+        UserLevels.getLevelByOrder(data.spendingLevel)?.name ??
+            data.currentLevelName,
+        style: context.textTheme.bodyMedium?.copyWith(
+          color: context.colors.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      loading: () =>
+          const SkeletonShimmer(child: SkeletonBox(width: 56, height: 12)),
+      error: (_, _) => PixIcon(
+        PixIcons.error,
+        size: 16,
+        color: context.colors.negativeColor,
+        semanticLabel: t.level_load_error,
+      ),
+    );
+
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        child: InkWell(
+          onTap: () => _showLevels(context),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      t.pix_receive_my_level,
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  value,
+                  const SizedBox(width: 6),
+                  PixIcon(
+                    PixIcons.chevronRight,
+                    size: 18,
+                    color: context.colors.textTertiary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Glass sheet with the level track of the user.
+class _LevelSheet extends StatelessWidget {
+  const _LevelSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return GlassSheet(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 12),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: context.colorScheme.onSurface.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      t.pix_receive_my_level,
+                      style: context.textTheme.titleMedium?.copyWith(
+                        color: context.colors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: t.common_close,
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: PixIcon(
+                    PixIcons.close,
+                    size: 20,
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: UserLevelDisplay(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Caps input at 6 raw digits (R$ 9.999,99) to prevent the value text from
+// overflowing the layout on any screen size.
 class _PixFiatInputFormatter extends FiatInputFormatter {
   static const int _maxRawDigits = 6;
 

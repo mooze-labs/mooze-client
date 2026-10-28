@@ -1,111 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_field.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/analytics/events.dart';
 import 'package:mooze_mobile/shared/analytics/providers.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-class CopyableAddress extends ConsumerStatefulWidget {
+/// A Pix code or link the user can copy, with the copy analytics event.
+///
+/// The surface and the copy feedback come from [PixCopyField].
+class CopyableAddress extends ConsumerWidget {
   final String pixKey;
 
-  const CopyableAddress({super.key, required this.pixKey});
+  /// Label above the value. Defaults to the Pix key label.
+  final String? label;
+
+  /// Icon at the start of the field.
+  final PixIconData icon;
+
+  /// Sends the `pix_code_copied` event. Turn it off for values that are not
+  /// Pix codes, because the analytics schema accepts known events only.
+  final bool trackCopy;
+
+  const CopyableAddress({
+    super.key,
+    required this.pixKey,
+    this.label,
+    this.icon = PixIcons.qrCode,
+    this.trackCopy = true,
+  });
 
   @override
-  ConsumerState<CopyableAddress> createState() => _CopyableAddressState();
-}
-
-class _CopyableAddressState extends ConsumerState<CopyableAddress> {
-  bool _isCopied = false;
-
-  Future<void> _copyToClipboard(String text) async {
-    final analytics = ref.read(analyticsProvider);
-    await Clipboard.setData(ClipboardData(text: text));
-    analytics.track(const AnalyticsEvent('pix_code_copied', {}));
-    if (!mounted) return;
-    setState(() {
-      _isCopied = true;
-    });
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() {
-        _isCopied = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _copyToClipboard(widget.pixKey),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color:
-              _isCopied
-                  ? context.colors.primaryColor.withValues(alpha: 0.08)
-                  : context.colors.pinBackground,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color:
-                _isCopied
-                    ? context.colors.primaryColor.withValues(alpha: 0.5)
-                    : context.colors.primaryColor.withValues(alpha: 0.2),
-            width: 1.2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.qr_code_rounded,
-              color:
-                  _isCopied
-                      ? context.colors.primaryColor
-                      : context.colors.primaryColor.withValues(alpha: 0.7),
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.of(context).human_verif_pix_key,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    widget.pixKey,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: _isCopied
-                          ? context.colors.primaryColor
-                          : Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 12),
-            Icon(
-              _isCopied ? Icons.check_rounded : Icons.copy_rounded,
-              color:
-                  _isCopied
-                      ? context.colors.primaryColor
-                      : context.colors.primaryColor.withValues(alpha: 0.7),
-              size: 20,
-            ),
-          ],
-        ),
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Read now: ref is not usable after the widget is disposed, and the copy
+    // ends after an await.
+    final analytics = trackCopy ? ref.read(analyticsProvider) : null;
+    return PixCopyField(
+      label: label ?? AppLocalizations.of(context).human_verif_pix_key,
+      value: pixKey,
+      icon: icon,
+      onCopied: analytics == null
+          ? null
+          : () => analytics.track(const AnalyticsEvent('pix_code_copied', {})),
     );
   }
 }

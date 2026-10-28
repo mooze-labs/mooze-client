@@ -83,14 +83,13 @@ class _PixMainScreenState extends ConsumerState<PixMainScreen>
           description: t.pix_info_fees_body,
         ),
       ],
-      footerBuilder:
-          (closeOverlay) => SecondaryButton(
-            text: t.pix_info_fees_button,
-            onPressed: () {
-              closeOverlay();
-              context.push('/pix/fees');
-            },
-          ),
+      footerBuilder: (closeOverlay) => SecondaryButton(
+        text: t.pix_info_fees_button,
+        onPressed: () {
+          closeOverlay();
+          context.push('/pix/fees');
+        },
+      ),
     );
   }
 
@@ -137,10 +136,7 @@ class _PixMainScreenState extends ConsumerState<PixMainScreen>
               dividerColor: Colors.transparent,
               labelColor: Colors.white,
               unselectedLabelColor: context.colors.textSecondary,
-              labelStyle: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
+              labelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               unselectedLabelStyle: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,

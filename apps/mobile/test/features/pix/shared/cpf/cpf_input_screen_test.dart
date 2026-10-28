@@ -48,8 +48,8 @@ List<FavoritePayer> manyPayers(int n) => List.generate(
 
 /// Pumps frames for a bounded time instead of `pumpAndSettle`.
 ///
-/// The SlideToConfirmButton in the bottom bar repeats a floating animation
-/// forever, so `pumpAndSettle` never returns.
+/// A bounded pump cannot hang when a widget on the screen repeats an
+/// animation forever.
 Future<void> _settle(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(seconds: 1));

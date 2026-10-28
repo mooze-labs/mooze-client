@@ -33,8 +33,9 @@ class PixHistoryNotifier extends AsyncNotifier<PixDepositsPageState> {
     });
     ref.onDispose(subscription.cancel);
 
-    final Either<String, List<PixDeposit>> deposits =
-        await controller.getPixHistory(limit: pageSize, offset: offset).run();
+    final Either<String, List<PixDeposit>> deposits = await controller
+        .getPixHistory(limit: pageSize, offset: offset)
+        .run();
 
     return deposits.fold(
       (error) => throw Exception(error),
@@ -58,8 +59,9 @@ class PixHistoryNotifier extends AsyncNotifier<PixDepositsPageState> {
     final controller = ref.watch(pixHistoryControllerProvider);
     state = const AsyncValue.loading();
 
-    final deposits =
-        await controller.getPixHistory(limit: pageSize, offset: offset).run();
+    final deposits = await controller
+        .getPixHistory(limit: pageSize, offset: offset)
+        .run();
 
     deposits.fold((error) => throw Exception(error), (deposits) {
       state = AsyncValue.data(PixDepositsPageState(items: deposits));
@@ -76,8 +78,9 @@ class PixHistoryNotifier extends AsyncNotifier<PixDepositsPageState> {
     final controller = ref.watch(pixHistoryControllerProvider);
     state = const AsyncValue.loading();
 
-    final deposits =
-        await controller.getPixHistory(limit: pageSize, offset: 0).run();
+    final deposits = await controller
+        .getPixHistory(limit: pageSize, offset: 0)
+        .run();
 
     deposits.fold((error) => throw Exception(error), (deposits) {
       state = AsyncValue.data(PixDepositsPageState(items: deposits));

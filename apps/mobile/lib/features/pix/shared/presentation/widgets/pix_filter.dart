@@ -133,8 +133,8 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                   selectedStatus = status;
                                 });
                               },
-                              labelBuilder:
-                                  (status) => _getStatusLabel(t, status),
+                              labelBuilder: (status) =>
+                                  _getStatusLabel(t, status),
                             ),
                             context: context,
                           ),
@@ -144,77 +144,69 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                             child: Wrap(
                               spacing: 10,
                               runSpacing: 10,
-                              children:
-                                  assets.map((asset) {
-                                    final isSelected = selectedAssetIds
-                                        .contains(asset.id);
-                                    return LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        final double totalWidth =
-                                            constraints.maxWidth;
-                                        const double totalSpacing = 2 * 10;
-                                        final double itemWidth =
-                                            (totalWidth - totalSpacing) / 3;
+                              children: assets.map((asset) {
+                                final isSelected = selectedAssetIds.contains(
+                                  asset.id,
+                                );
+                                return LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final double totalWidth =
+                                        constraints.maxWidth;
+                                    const double totalSpacing = 2 * 10;
+                                    final double itemWidth =
+                                        (totalWidth - totalSpacing) / 3;
 
-                                        return GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              if (isSelected) {
-                                                selectedAssetIds.remove(
-                                                  asset.id,
-                                                );
-                                              } else {
-                                                selectedAssetIds.add(asset.id);
-                                              }
-                                            });
-                                          },
-                                          child: Container(
-                                            width: itemWidth,
-                                            height: 47,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(15),
-                                              color:
-                                                  isSelected
-                                                      ? context.colors.primaryColor
-                                                          .withValues(
-                                                            alpha: 0.3,
-                                                          )
-                                                      : Colors.grey,
-                                              border:
-                                                  isSelected
-                                                      ? Border.all(
-                                                        color:
-                                                            context.colors
-                                                                .primaryColor,
-                                                        width: 2,
-                                                      )
-                                                      : null,
-                                            ),
-                                            child: Center(
-                                              child: Padding(
-                                                padding: EdgeInsets.all(
-                                                  8.0,
-                                                ),
-                                                child: Text(
-                                                  asset.name,
-                                                  maxLines: 2,
-                                                  textAlign: TextAlign.center,
-                                                  style: const TextStyle(
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          if (isSelected) {
+                                            selectedAssetIds.remove(asset.id);
+                                          } else {
+                                            selectedAssetIds.add(asset.id);
+                                          }
+                                        });
+                                      },
+                                      child: Container(
+                                        width: itemWidth,
+                                        height: 47,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            15,
+                                          ),
+                                          color: isSelected
+                                              ? context.colors.primaryColor
+                                                    .withValues(alpha: 0.3)
+                                              : Colors.grey,
+                                          border: isSelected
+                                              ? Border.all(
+                                                  color: context
+                                                      .colors
+                                                      .primaryColor,
+                                                  width: 2,
+                                                )
+                                              : null,
+                                        ),
+                                        child: Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(8.0),
+                                            child: Text(
+                                              asset.name,
+                                              maxLines: 2,
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                overflow: TextOverflow.ellipsis,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
                                               ),
                                             ),
                                           ),
-                                        );
-                                      },
+                                        ),
+                                      ),
                                     );
-                                  }).toList(),
+                                  },
+                                );
+                              }).toList(),
                             ),
                             context: context,
                           ),
@@ -222,97 +214,84 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                           _buildFilterSection(
                             title: t.tx_filter_period,
                             child: StatefulBuilder(
-                              builder: (
-                                BuildContext context,
-                                StateSetter setDateState,
-                              ) {
+                              builder: (BuildContext context, StateSetter setDateState) {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      children:
-                                          dateRanges.map((days) {
-                                            final index = dateRanges.indexOf(
-                                              days,
-                                            );
-                                            final isSelected =
-                                                selectedDateRangeIndex == index;
+                                      children: dateRanges.map((days) {
+                                        final index = dateRanges.indexOf(days);
+                                        final isSelected =
+                                            selectedDateRangeIndex == index;
 
-                                            return Expanded(
-                                              child: Padding(
-                                                padding: EdgeInsets.only(
-                                                  right:
-                                                      index <
-                                                              dateRanges
-                                                                      .length -
-                                                                  1
-                                                          ? 8
-                                                          : 0,
+                                        return Expanded(
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                              right:
+                                                  index < dateRanges.length - 1
+                                                  ? 8
+                                                  : 0,
+                                            ),
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setDateState(() {
+                                                  if (selectedDateRangeIndex ==
+                                                      index) {
+                                                    selectedDateRangeIndex =
+                                                        null;
+                                                    startDate = null;
+                                                    endDate = null;
+                                                  } else {
+                                                    selectedDateRangeIndex =
+                                                        index;
+                                                    final dateRange =
+                                                        calculateDateRange(
+                                                          days: days,
+                                                        );
+                                                    startDate = dateRange.start;
+                                                    endDate = dateRange.end;
+                                                  }
+                                                });
+                                                setState(() {});
+                                              },
+                                              child: Container(
+                                                height: 47,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(15),
+                                                  color: isSelected
+                                                      ? context
+                                                            .colors
+                                                            .primaryColor
+                                                            .withValues(
+                                                              alpha: 0.3,
+                                                            )
+                                                      : Colors.grey,
+                                                  border: isSelected
+                                                      ? Border.all(
+                                                          color: context
+                                                              .colors
+                                                              .primaryColor,
+                                                          width: 2,
+                                                        )
+                                                      : null,
                                                 ),
-                                                child: GestureDetector(
-                                                  onTap: () {
-                                                    setDateState(() {
-                                                      if (selectedDateRangeIndex ==
-                                                          index) {
-                                                        selectedDateRangeIndex =
-                                                            null;
-                                                        startDate = null;
-                                                        endDate = null;
-                                                      } else {
-                                                        selectedDateRangeIndex =
-                                                            index;
-                                                        final dateRange =
-                                                            calculateDateRange(
-                                                              days: days,
-                                                            );
-                                                        startDate =
-                                                            dateRange.start;
-                                                        endDate = dateRange.end;
-                                                      }
-                                                    });
-                                                    setState(() {});
-                                                  },
-                                                  child: Container(
-                                                    height: 47,
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            15,
-                                                          ),
-                                                      color:
-                                                          isSelected
-                                                              ? context.colors
-                                                                  .primaryColor
-                                                                  .withValues(
-                                                                    alpha: 0.3,
-                                                                  )
-                                                              : Colors.grey,
-                                                      border:
-                                                          isSelected
-                                                              ? Border.all(
-                                                                color:
-                                                                    context.colors
-                                                                        .primaryColor,
-                                                                width: 2,
-                                                              )
-                                                              : null,
-                                                    ),
-                                                    child: Center(
-                                                      child: Text(
-                                                        '${days}D',
-                                                        style: const TextStyle(
-                                                          fontSize: 11,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
+                                                child: Center(
+                                                  child: Text(
+                                                    '${days}D',
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.white,
                                                     ),
                                                   ),
                                                 ),
                                               ),
-                                            );
-                                          }).toList(),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
                                     ),
                                     const SizedBox(height: 16),
                                     GestureDetector(
@@ -340,23 +319,22 @@ Future<PixFiltersEntity?> showPixFilterDraggableSheet({
                                           ),
                                           color:
                                               startDate != null &&
-                                                      endDate != null &&
-                                                      selectedDateRangeIndex ==
-                                                          null
-                                                  ? context.colors.primaryColor
-                                                      .withValues(alpha: 0.3)
-                                                  : Colors.grey,
+                                                  endDate != null &&
+                                                  selectedDateRangeIndex == null
+                                              ? context.colors.primaryColor
+                                                    .withValues(alpha: 0.3)
+                                              : Colors.grey,
                                           border:
                                               startDate != null &&
-                                                      endDate != null &&
-                                                      selectedDateRangeIndex ==
-                                                          null
-                                                  ? Border.all(
-                                                    color:
-                                                        context.colors.primaryColor,
-                                                    width: 2,
-                                                  )
-                                                  : null,
+                                                  endDate != null &&
+                                                  selectedDateRangeIndex == null
+                                              ? Border.all(
+                                                  color: context
+                                                      .colors
+                                                      .primaryColor,
+                                                  width: 2,
+                                                )
+                                              : null,
                                         ),
                                         child: Row(
                                           mainAxisAlignment:
@@ -527,65 +505,59 @@ Widget _buildOptimizedGrid<T>(
   final distributedRows = distributeItems(items);
 
   return Column(
-    children:
-        distributedRows.asMap().entries.map((rowEntry) {
-          final rowIndex = rowEntry.key;
-          final rowItems = rowEntry.value;
+    children: distributedRows.asMap().entries.map((rowEntry) {
+      final rowIndex = rowEntry.key;
+      final rowItems = rowEntry.value;
 
-          return Column(
-            children: [
-              if (rowIndex > 0) const SizedBox(height: 8),
-              Row(
-                children:
-                    rowItems.asMap().entries.map((itemEntry) {
-                      final itemIndex = itemEntry.key;
-                      final item = itemEntry.value;
-                      final isSelected = selectedItem == item;
+      return Column(
+        children: [
+          if (rowIndex > 0) const SizedBox(height: 8),
+          Row(
+            children: rowItems.asMap().entries.map((itemEntry) {
+              final itemIndex = itemEntry.key;
+              final item = itemEntry.value;
+              final isSelected = selectedItem == item;
 
-                      return Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            right: itemIndex < rowItems.length - 1 ? 8 : 0,
-                          ),
-                          child: GestureDetector(
-                            onTap: () => onItemSelected(item),
-                            child: Container(
-                              height: 47,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(15),
-                                color:
-                                    isSelected
-                                        ? context.colors.primaryColor.withValues(
-                                          alpha: 0.3,
-                                        )
-                                        : Colors.grey,
-                                border:
-                                    isSelected
-                                        ? Border.all(
-                                          color: context.colors.primaryColor,
-                                          width: 2,
-                                        )
-                                        : null,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  labelBuilder(item),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: itemIndex < rowItems.length - 1 ? 8 : 0,
+                  ),
+                  child: GestureDetector(
+                    onTap: () => onItemSelected(item),
+                    child: Container(
+                      height: 47,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        color: isSelected
+                            ? context.colors.primaryColor.withValues(alpha: 0.3)
+                            : Colors.grey,
+                        border: isSelected
+                            ? Border.all(
+                                color: context.colors.primaryColor,
+                                width: 2,
+                              )
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          labelBuilder(item),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                      );
-                    }).toList(),
-              ),
-            ],
-          );
-        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      );
+    }).toList(),
   );
 }
 
