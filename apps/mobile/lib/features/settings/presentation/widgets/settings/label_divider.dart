@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_settings.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 
+/// Hairline between two settings rows. It starts at the row text.
 class LabelDivider extends StatelessWidget {
   const LabelDivider({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 50),
-      child: Divider(height: 0.1, thickness: 1),
-    );
+    return const PanelDivider(indent: LabelSettings.textInset);
   }
 }
