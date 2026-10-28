@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../../providers/send_funds/detected_amount_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
+import 'send_flow_parts.dart';
 
+/// The amount fixed by a payment request, drawn as the hero of the form.
+///
+/// The user cannot edit it. A lock icon next to the label and a note below
+/// the amount say so.
 class PreDefinedAmountWidget extends ConsumerWidget {
   const PreDefinedAmountWidget({super.key});
 
@@ -20,109 +25,97 @@ class PreDefinedAmountWidget extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: EdgeInsets.symmetric(vertical: 7),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-          width: 1,
+    final asset = detectedAmount.asset ?? selectedAsset;
+    final primary = _formatPrimaryAmount(detectedAmount.amountInSats!, asset);
+    // The unit is the last word of the formatted amount.
+    final split = primary.lastIndexOf(' ');
+    final digits = split < 0 ? primary : primary.substring(0, split);
+    final unit = split < 0 ? '' : primary.substring(split + 1);
+    final quiet = context.textTheme.bodySmall?.copyWith(
+      color: context.colors.textSecondary,
+      height: 1.4,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            PixIcon(
+              PixIcons.lock,
+              size: 15,
+              color: context.colors.textSecondary,
+            ),
+            const SizedBox(width: 6),
+            Expanded(child: SendSectionLabel(t.wallet_send_predefined_label)),
+          ],
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              SizedBox(width: 8),
-              Text(
-                t.wallet_send_predefined_label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              SvgPicture.asset(
-                (detectedAmount.asset ?? selectedAsset).iconPath,
-                width: 24,
-                height: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _formatPrimaryAmount(
-                        detectedAmount.amountInSats!,
-                        detectedAmount.asset ?? selectedAsset,
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            SendAssetLogo(asset: asset, size: 40),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: digits),
+                          if (unit.isNotEmpty)
+                            TextSpan(
+                              text: ' $unit',
+                              style: context.textTheme.titleLarge?.copyWith(
+                                color: context.colors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                        ],
                       ),
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      style: context.textTheme.headlineMedium?.copyWith(
+                        color: context.colors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        fontFeatures: sendTabularFigures,
                       ),
                     ),
-                    if (detectedAmount.asset == Asset.btc ||
-                        detectedAmount.asset == Asset.lbtc)
-                      Text(
-                        _formatSecondaryAmount(
-                          detectedAmount.amountInSats!,
-                          detectedAmount.asset ?? selectedAsset,
-                        ),
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                  ),
+                  if (detectedAmount.asset == Asset.btc ||
+                      detectedAmount.asset == Asset.lbtc)
+                    SendQuietText(
+                      _formatSecondaryAmount(
+                        detectedAmount.amountInSats!,
+                        asset,
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-          Text(
-            t.wallet_send_predefined_body,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.grey[400]),
-          ),
-
-          if (detectedAmount.label != null ||
-              detectedAmount.message != null) ...[
-            const SizedBox(height: 12),
-            if (detectedAmount.label != null) ...[
-              Text(
-                t.wallet_send_predefined_label_value(detectedAmount.label!),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey[300]),
-              ),
-            ],
-            if (detectedAmount.message != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                t.wallet_send_predefined_message_value(detectedAmount.message!),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey[300]),
-              ),
-            ],
+            ),
           ],
+        ),
+        const SizedBox(height: 12),
+        Divider(height: 1, thickness: 1, color: context.colorScheme.outline),
+        const SizedBox(height: 10),
+        Text(t.wallet_send_predefined_body, style: quiet),
+        if (detectedAmount.label != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            t.wallet_send_predefined_label_value(detectedAmount.label!),
+            style: quiet?.copyWith(color: context.colors.textPrimary),
+          ),
         ],
-      ),
+        if (detectedAmount.message != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            t.wallet_send_predefined_message_value(detectedAmount.message!),
+            style: quiet?.copyWith(color: context.colors.textPrimary),
+          ),
+        ],
+      ],
     );
   }
 

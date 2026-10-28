@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/amount_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/bitcoin_price_provider.dart';
@@ -17,7 +17,11 @@ import 'package:mooze_mobile/shared/formatters/btc_input_formatter.dart';
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+
+import 'send_flow_parts.dart';
 
 enum SendConversionType { asset, sats, fiat }
 
@@ -50,6 +54,12 @@ final sendConversionTypeProvider = StateProvider<SendConversionType>((ref) {
   return SendConversionType.fiat;
 });
 
+/// The amount step of the send form, drawn as the hero of the screen.
+///
+/// The digits are large, with tabular figures, and the unit is muted next
+/// to them. A line below the digits follows the focus and turns to the
+/// error color with an amount error. Below it, a quiet line shows the
+/// amount in the other units, and "MAX" sends the whole balance.
 class AmountFieldSend extends ConsumerStatefulWidget {
   const AmountFieldSend({super.key});
 
@@ -202,8 +212,6 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
 
     ref.listen<int>(amountStateProvider, (_, next) {
       if (next != _lastPushedSats) _scheduleResync();
@@ -237,58 +245,58 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
     final unitText = _unitFor(selectedAsset, conversionType);
     final showInfo = amountInSats > 0;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                t.wallet_send_amount_label,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              const _MaxButton(),
-              const SizedBox(width: 8),
-              SendConversionOptionsRow(selectedAsset: selectedAsset),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _AmountRow(
-            asset: selectedAsset,
-            unit: unitText,
-            controller: _textController,
-            focusNode: _focusNode,
-            isFocused: _isFocused,
-            isError: amountError != null,
-            inputFormatters: _inputFormattersFor(conversionType),
-            onChanged: _onUserInput,
-          ),
-          _InlineError(message: amountError?.localize(context)),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child:
-                showInfo
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // The unit choice moves below the label when both do not fit on one
+        // line, for example with large text.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            SendSectionLabel(t.wallet_send_amount_label, active: _isFocused),
+            SendConversionOptionsRow(selectedAsset: selectedAsset),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _AmountRow(
+          unit: unitText,
+          unitFirst: conversionType == SendConversionType.fiat,
+          controller: _textController,
+          focusNode: _focusNode,
+          isError: amountError != null,
+          inputFormatters: _inputFormattersFor(conversionType),
+          onChanged: _onUserInput,
+        ),
+        const SizedBox(height: 10),
+        _FocusLine(focused: _isFocused, isError: amountError != null),
+        _InlineError(message: amountError?.localize(context)),
+        const SizedBox(height: 6),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: SizeFadeSwitcher(
+                alignment: AlignmentDirectional.centerStart,
+                child: showInfo
                     ? _InfoBlock(
-                      network: selectedNetwork,
-                      selectedAsset: selectedAsset,
-                      btcAmount: btcAmount,
-                      amountInSats: amountInSats,
-                    )
-                    : const SizedBox.shrink(),
-          ),
-        ],
-      ),
+                        key: const ValueKey('info'),
+                        network: selectedNetwork,
+                        selectedAsset: selectedAsset,
+                        btcAmount: btcAmount,
+                      )
+                    : const SizedBox(
+                        key: ValueKey('none'),
+                        width: double.infinity,
+                      ),
+              ),
+            ),
+            const _MaxButton(),
+          ],
+        ),
+      ],
     );
   }
 
@@ -307,6 +315,11 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
   }
 }
 
+/// "MAX" as a small text action. It shows only when the asset has a
+/// balance.
+///
+/// While the whole balance is selected, the label turns brand pink and
+/// gets a check, so the state never depends on color alone.
 class _MaxButton extends ConsumerWidget {
   const _MaxButton();
 
@@ -318,29 +331,28 @@ class _MaxButton extends ConsumerWidget {
     final state = context.findAncestorStateOfType<_AmountFieldSendState>();
 
     return selectedAssetBalance.when(
-      data:
-          (data) => data.fold((_) => const SizedBox.shrink(), (amount) {
-            if (amount <= BigInt.zero || state == null) {
-              return const SizedBox.shrink();
-            }
-            return _ChipAction(
-              label: AppLocalizations.of(context).common_max,
-              isActive: isActive,
-              onTap: () => state._setMaxAmount(selectedAsset, amount.toInt()),
-            );
-          }),
+      data: (data) => data.fold((_) => const SizedBox.shrink(), (amount) {
+        if (amount <= BigInt.zero || state == null) {
+          return const SizedBox.shrink();
+        }
+        return _MaxAction(
+          label: AppLocalizations.of(context).common_max,
+          isActive: isActive,
+          onTap: () => state._setMaxAmount(selectedAsset, amount.toInt()),
+        );
+      }),
       error: (_, _) => const SizedBox.shrink(),
       loading: () => const SizedBox.shrink(),
     );
   }
 }
 
-class _ChipAction extends StatelessWidget {
+class _MaxAction extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
 
-  const _ChipAction({
+  const _MaxAction({
     required this.label,
     required this.isActive,
     required this.onTap,
@@ -348,65 +360,56 @@ class _ChipAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final bg = isActive ? cs.primary : cs.primary.withValues(alpha: 0.10);
-    final fg = isActive ? cs.onPrimary : cs.primary;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow:
-            isActive
-                ? [
-                  BoxShadow(
-                    color: cs.primary.withValues(alpha: 0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-                : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: fg,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.6,
-              ),
-            ),
+    final color = isActive
+        ? context.colors.primaryColor
+        : context.colors.textPrimary;
+    return Semantics(
+      selected: isActive,
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          foregroundColor: color,
+          minimumSize: const Size(48, 40),
+          tapTargetSize: MaterialTapTargetSize.padded,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          textStyle: context.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
           ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isActive) ...[
+              PixIcon(PixIcons.check, size: 16, color: color),
+              const SizedBox(width: 4),
+            ],
+            Text(label),
+          ],
         ),
       ),
     );
   }
 }
 
+/// The digits and the muted unit, on one baseline.
+///
+/// The digits shrink as the text grows, so a long amount stays on one line.
+/// A fiat unit comes before the digits, a crypto unit after them.
 class _AmountRow extends StatelessWidget {
-  final Asset? asset;
   final String unit;
+  final bool unitFirst;
   final TextEditingController controller;
   final FocusNode focusNode;
-  final bool isFocused;
   final bool isError;
   final List<TextInputFormatter> inputFormatters;
   final ValueChanged<String> onChanged;
 
   const _AmountRow({
-    required this.asset,
     required this.unit,
+    required this.unitFirst,
     required this.controller,
     required this.focusNode,
-    required this.isFocused,
     required this.isError,
     required this.inputFormatters,
     required this.onChanged,
@@ -414,65 +417,76 @@ class _AmountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    final Color valueColor = isError ? cs.error : cs.onSurface;
+    final valueColor = isError
+        ? context.colors.negativeColor
+        : context.colors.textPrimary;
+    final unitStyle = context.textTheme.titleLarge?.copyWith(
+      color: context.colors.textSecondary,
+      fontWeight: FontWeight.w500,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        const leftReserved = 88.0;
-        const gap = 12.0;
-        const maxScale = 1.2;
-        const charRatio = 0.7;
-        const minFontSize = 12.0;
-        const maxFontSize = 30.0;
+        const unitReserve = 80.0;
+        const charRatio = 0.62;
+        const minFontSize = 18.0;
+        const maxFontSize = 40.0;
 
         final textScaler = MediaQuery.textScalerOf(context);
         final scaleFactor = textScaler.scale(1.0).clamp(1.0, 3.0);
 
         final currentText = controller.text.isEmpty ? '0' : controller.text;
-        final effectiveChars = currentText.length.clamp(1, 20).toDouble();
+        final effectiveChars = currentText.length.clamp(4, 24).toDouble();
 
-        final availableRight = (constraints.maxWidth - leftReserved - gap)
-            .clamp(60.0, double.infinity);
-        final naturalFontSize =
-            availableRight /
-            (maxScale * scaleFactor * effectiveChars * charRatio);
-        final fontSize = naturalFontSize.clamp(minFontSize, maxFontSize);
+        final available = (constraints.maxWidth - unitReserve).clamp(
+          60.0,
+          double.infinity,
+        );
+        final fontSize =
+            (available / (scaleFactor * effectiveChars * charRatio)).clamp(
+              minFontSize,
+              maxFontSize,
+            );
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: leftReserved,
-              child: _UnitColumn(asset: asset, unit: unit),
-            ),
-            const SizedBox(width: gap),
-            Expanded(
-              child: ClipRect(
-                child: AnimatedScale(
-                  scale: isFocused ? maxScale : 1.0,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                  alignment: Alignment.centerRight,
+        final digitsStyle = context.textTheme.headlineLarge?.copyWith(
+          color: valueColor,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
+          fontFeatures: sendTabularFigures,
+        );
+
+        final unitText = Text(
+          unit,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: unitStyle,
+        );
+
+        // A tap on the unit also opens the keyboard.
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: focusNode.requestFocus,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              if (unitFirst) ...[unitText, const SizedBox(width: 8)],
+              Flexible(
+                // The field takes the width of its text, so the unit sits
+                // right after the digits.
+                child: IntrinsicWidth(
                   child: TextField(
                     controller: controller,
                     focusNode: focusNode,
                     maxLines: 1,
                     scrollPhysics: const NeverScrollableScrollPhysics(),
-                    textAlign: TextAlign.right,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     inputFormatters: inputFormatters,
-                    style: TextStyle(
-                      color: valueColor,
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+                    cursorColor: context.colors.primaryColor,
+                    style: digitsStyle,
                     decoration: InputDecoration(
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
@@ -482,10 +496,8 @@ class _AmountRow extends StatelessWidget {
                       focusedErrorBorder: InputBorder.none,
                       filled: false,
                       hintText: '0',
-                      hintStyle: TextStyle(
-                        color: cs.onSurface.withValues(alpha: 0.22),
-                        fontSize: fontSize,
-                        fontWeight: FontWeight.w700,
+                      hintStyle: digitsStyle?.copyWith(
+                        color: context.colors.textTertiary,
                       ),
                       contentPadding: EdgeInsets.zero,
                       isDense: true,
@@ -495,48 +507,41 @@ class _AmountRow extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
+              if (!unitFirst) ...[
+                const SizedBox(width: 8),
+                Flexible(flex: 0, child: unitText),
+              ],
+            ],
+          ),
         );
       },
     );
   }
 }
 
-class _UnitColumn extends StatelessWidget {
-  final Asset? asset;
-  final String unit;
+/// The line below the digits. It follows the focus and the error state.
+class _FocusLine extends StatelessWidget {
+  final bool focused;
+  final bool isError;
 
-  const _UnitColumn({required this.asset, required this.unit});
+  const _FocusLine({required this.focused, required this.isError});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = context.colors.textSecondary;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (asset != null)
-          SvgPicture.asset(
-            asset!.iconPath,
-            width: 22,
-            height: 22,
-            fit: BoxFit.contain,
-          ),
-        const SizedBox(height: 8),
-        Text(
-          unit,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+    return AnimatedContainer(
+      duration: Motion.of(context, Motion.durationFast),
+      curve: Motion.curveMove,
+      height: focused || isError ? 2 : 1,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(1),
+        color: isError
+            ? context.colors.negativeColor
+            : focused
+            ? context.colors.primaryColor
+            // The light outline variant has the page color. The outline
+            // shows in both themes.
+            : context.colorScheme.outline,
+      ),
     );
   }
 }
@@ -547,95 +552,62 @@ class _InlineError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      child:
-          (message == null || message!.isEmpty)
-              ? const SizedBox.shrink()
-              : Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Icon(
-                      Icons.error_outline_rounded,
-                      size: 14,
-                      color: theme.colorScheme.error,
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        message!,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.error,
-                          fontWeight: FontWeight.w500,
-                        ),
+    final show = message != null && message!.isNotEmpty;
+    final color = context.colors.negativeColor;
+    return SizeFadeSwitcher(
+      alignment: AlignmentDirectional.topStart,
+      child: !show
+          ? const SizedBox(key: ValueKey('none'), width: double.infinity)
+          : Padding(
+              key: ValueKey(message),
+              padding: const EdgeInsets.only(top: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: PixIcon(PixIcons.error, size: 15, color: color),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      message!,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
     );
   }
 }
 
+/// The amount in the other units, and a check when the amount is valid.
 class _InfoBlock extends StatelessWidget {
   final Blockchain network;
   final Asset selectedAsset;
   final double btcAmount;
-  final int amountInSats;
 
   const _InfoBlock({
+    super.key,
     required this.network,
     required this.selectedAsset,
     required this.btcAmount,
-    required this.amountInSats,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final dividerColor =
-        isDark
-            ? theme.colorScheme.outlineVariant.withValues(alpha: 0.25)
-            : theme.colorScheme.outline.withValues(alpha: 0.25);
-    final t = AppLocalizations.of(context);
-    final isBtcLike = selectedAsset == Asset.btc || selectedAsset == Asset.lbtc;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        const SizedBox(height: 14),
-        Divider(height: 1, thickness: 1, color: dividerColor),
-        const SizedBox(height: 14),
-        if (isBtcLike) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                t.wallet_send_amount_in_sats,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: context.colors.textSecondary,
-                ),
-              ),
-              Text(
-                '${SatsInputFormatter.formatValue(amountInSats)} sats',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-        ],
         SendConversionPreview(
           selectedAsset: selectedAsset,
           assetAmount: btcAmount,
         ),
-        const SizedBox(height: 12),
         _ValidationChip(network: network),
       ],
     );
@@ -649,7 +621,6 @@ class _ValidationChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final positive = context.colors.positiveColor;
 
     final validationState = ref.watch(sendValidationControllerProvider);
     final hasAmountInvalidatingError = validationState.errors.any((e) {
@@ -661,47 +632,30 @@ class _ValidationChip extends ConsumerWidget {
     if (hasAmountInvalidatingError) return const SizedBox.shrink();
 
     if (network == Blockchain.liquid || network == Blockchain.bitcoin) {
-      return _Chip(
-        icon: Icons.check_circle_outline_rounded,
-        text: t.wallet_send_amount_valid,
-        color: positive,
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            PixIcon(
+              PixIcons.success,
+              size: 14,
+              color: context.colors.positiveColor,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                t.wallet_send_amount_valid,
+                style: context.textTheme.bodySmall?.copyWith(
+                  color: context.colors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     }
     return const SizedBox.shrink();
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final Color color;
-
-  const _Chip({required this.icon, required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 14),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

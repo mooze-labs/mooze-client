@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 final receiveDescriptionProvider = StateProvider<String>((ref) => '');
 
+/// The optional description of the receive request.
+///
+/// At rest it is a quiet "Add description" action. A tap opens a simple
+/// underline field and focuses it. The field closes again when it loses
+/// the focus while empty.
 class DescriptionFieldReceive extends ConsumerStatefulWidget {
   const DescriptionFieldReceive({super.key});
 
@@ -28,9 +35,7 @@ class _DescriptionFieldReceiveState
 
   void _onFocusChange() {
     if (!mounted) return;
-    if (!_focusNode.hasFocus &&
-        _controller.text.isEmpty &&
-        _userExpanded) {
+    if (!_focusNode.hasFocus && _controller.text.isEmpty && _userExpanded) {
       setState(() => _userExpanded = false);
     } else {
       setState(() {});
@@ -63,72 +68,50 @@ class _DescriptionFieldReceiveState
     final shouldExpand =
         description.isNotEmpty || _userExpanded || _focusNode.hasFocus;
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.topCenter,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 180),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: (child, anim) => FadeTransition(
-          opacity: anim,
-          child: child,
-        ),
-        child: shouldExpand
-            ? _ExpandedField(
-                key: const ValueKey('expanded'),
-                controller: _controller,
-                focusNode: _focusNode,
-                onChanged: (value) {
-                  ref.read(receiveDescriptionProvider.notifier).state = value;
-                },
-              )
-            : _CollapsedAction(
-                key: const ValueKey('collapsed'),
-                onTap: _expandAndFocus,
-              ),
-      ),
+    return SizeFadeSwitcher(
+      alignment: AlignmentDirectional.topStart,
+      child: shouldExpand
+          ? _ExpandedField(
+              key: const ValueKey('expanded'),
+              controller: _controller,
+              focusNode: _focusNode,
+              onChanged: (value) {
+                ref.read(receiveDescriptionProvider.notifier).state = value;
+              },
+            )
+          : _CollapsedAction(
+              key: const ValueKey('collapsed'),
+              onTap: _expandAndFocus,
+            ),
     );
   }
 }
 
+/// A quiet text action. The brand pink stays on the main action.
 class _CollapsedAction extends StatelessWidget {
   final VoidCallback onTap;
   const _CollapsedAction({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
-    final accent = theme.colorScheme.primary;
+    final color = context.colors.textPrimary;
 
     return Align(
-      alignment: Alignment.centerLeft,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add_rounded, size: 18, color: accent),
-                const SizedBox(width: 6),
-                Text(
-                  t.receive_description_add,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: accent,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
-            ),
+      alignment: AlignmentDirectional.centerStart,
+      child: TextButton.icon(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          foregroundColor: color,
+          minimumSize: const Size(48, 48),
+          // The icon lines up with the page content on the left.
+          padding: const EdgeInsetsDirectional.only(start: 2, end: 12),
+          textStyle: context.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w600,
           ),
         ),
+        icon: PixIcon(PixIcons.add, size: 18, color: color),
+        label: Text(t.receive_description_add),
       ),
     );
   }
@@ -148,7 +131,6 @@ class _ExpandedField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
 
     return Column(
@@ -156,36 +138,25 @@ class _ExpandedField extends StatelessWidget {
       children: [
         Text(
           t.receive_description_label,
-          style: theme.textTheme.titleMedium?.copyWith(
+          style: context.textTheme.labelLarge?.copyWith(
+            color: context.colors.textSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         TextFormField(
           controller: controller,
           focusNode: focusNode,
           onChanged: onChanged,
           maxLines: 2,
           maxLength: 100,
-          style: theme.textTheme.bodyMedium,
-          decoration: InputDecoration(
+          cursorColor: context.colors.primaryColor,
+          style: context.textTheme.bodyLarge?.copyWith(
+            color: context.colors.textPrimary,
+          ),
+          decoration: receiveUnderlineDecoration(
+            context,
             hintText: t.receive_description_hint,
-            hintStyle: theme.textTheme.bodyMedium?.copyWith(
-              color: context.colors.textTertiary,
-            ),
-            border: _border(context),
-            enabledBorder: _border(context),
-            focusedBorder: _border(context, focused: true),
-            disabledBorder: _border(context),
-            filled: true,
-            fillColor: _fillColor(context),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            counterStyle: theme.textTheme.labelSmall?.copyWith(
-              color: context.colors.textTertiary,
-            ),
           ),
         ),
       ],
@@ -193,17 +164,34 @@ class _ExpandedField extends StatelessWidget {
   }
 }
 
-
-Color _fillColor(BuildContext context) =>
-    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05);
-
-OutlineInputBorder _border(BuildContext context, {bool focused = false}) {
-  final cs = Theme.of(context).colorScheme;
-  final color = focused
-      ? cs.primary
-      : cs.onSurface.withValues(alpha: 0.08);
-  return OutlineInputBorder(
-    borderRadius: BorderRadius.circular(16),
-    borderSide: BorderSide(color: color, width: focused ? 1.5 : 1),
+/// Bare underline decoration for the text fields of the receive step.
+///
+/// The app theme fills its fields with a box. These fields sit on the
+/// page: the text, then one line. The line turns brand pink and thicker
+/// with the focus.
+InputDecoration receiveUnderlineDecoration(
+  BuildContext context, {
+  required String hintText,
+}) {
+  UnderlineInputBorder line(Color color, double width) => UnderlineInputBorder(
+    borderSide: BorderSide(color: color, width: width),
+  );
+  final outline = context.colorScheme.outline;
+  return InputDecoration(
+    hintText: hintText,
+    hintStyle: context.textTheme.bodyLarge?.copyWith(
+      color: context.colors.textTertiary,
+    ),
+    filled: false,
+    isDense: true,
+    contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 10),
+    border: line(outline, 1),
+    enabledBorder: line(outline, 1),
+    disabledBorder: line(outline, 1),
+    focusedBorder: line(context.colors.primaryColor, 2),
+    counterStyle: context.textTheme.labelSmall?.copyWith(
+      color: context.colors.textTertiary,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    ),
   );
 }

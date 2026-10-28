@@ -2,15 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_field.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_card.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/motion/press_scale.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
-import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:share_plus/share_plus.dart';
 
+/// Shows the receive request as a QR code.
+///
+/// The QR code is the hero. The requested amount sits above it, and the
+/// asset and network sit between them as one quiet pill. Below the code,
+/// a copy field holds the address or the payment URI. Share is the
+/// secondary action at the bottom.
 class ReceiveQRScreen extends ConsumerStatefulWidget {
   final String qrData;
   final String displayAddress;
@@ -34,167 +44,60 @@ class ReceiveQRScreen extends ConsumerStatefulWidget {
 }
 
 class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
-  bool _isCopied = false;
-
   @override
   Widget build(BuildContext context) {
-    return PlatformSafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context).receive_qr_title),
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          ),
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _buildPaymentInfo(),
-              const SizedBox(height: 16),
-              _buildQRCode(),
-              const SizedBox(height: 16),
-              _buildAddressSection(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  // Payment info — Pix-inspired compact layout: identity on the left,
-  // amount on the right, both sharing a single row. Optional
-  // description collapses into a toggleable section below.
-  // ─────────────────────────────────────────────────────────────────
-
-  Widget _buildPaymentInfo() {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final hasAmount = widget.amount != null;
+    final t = AppLocalizations.of(context);
     final hasDescription =
         widget.description != null && widget.description!.isNotEmpty;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: cs.onSurface.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(16),
+    return PixScreenScaffold(
+      title: t.receive_qr_title,
+      bottomAction: _ShareButton(
+        label: t.pix_hub_share,
+        onPressed: _shareAddress,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _IdentitySide(
-                  asset: widget.asset,
-                  networkLabel: _networkLabel(),
-                ),
-              ),
-              if (hasAmount) ...[
-                const SizedBox(width: 12),
-                _AmountSide(amount: widget.amount!, asset: widget.asset),
-              ],
-            ],
-          ),
-          if (hasDescription) ...[
-            const SizedBox(height: 12),
-            _SoftHairline(),
-            _DescriptionExpandable(text: widget.description!),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  // Address section — chunked monospace display + primary Copy /
-  // secondary Share. Single soft surface; no nested boxes.
-  // ─────────────────────────────────────────────────────────────────
-
-  Widget _buildAddressSection() {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final t = AppLocalizations.of(context);
-    final title = t.receive_qr_address_title;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      decoration: BoxDecoration(
-        color: cs.onSurface.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const _IconChip(icon: Icons.link_rounded),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
+      children: [
+        if (widget.amount != null) ...[
+          _RequestedAmount(amount: widget.amount!, asset: widget.asset),
           const SizedBox(height: 14),
-          _AddressMono(text: _getCleanAddress()),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _CopyButton(
-                  isCopied: _isCopied,
-                  onTap: _copyAddressToClipboard,
-                  copyLabel: t.receive_qr_copy_address,
-                  copiedLabel: t.receive_qr_copied,
-                ),
+        ],
+        Center(
+          child: _NetworkPill(
+            asset: widget.asset,
+            networkLabel: _networkLabel(),
+          ),
+        ),
+        const SizedBox(height: 20),
+        // The code grows with the screen, up to a size that still leaves
+        // the address in view on a regular phone.
+        LayoutBuilder(
+          builder: (context, constraints) => PixQrPanel(
+            data: widget.qrData,
+            size: (constraints.maxWidth - 32).clamp(160.0, 248.0),
+            semanticLabel: t.pix_hub_method_qr,
+          ),
+        ),
+        const SizedBox(height: 24),
+        // The field copies the same text as before: the full URI when the
+        // request has an amount, else the bare address.
+        PixCopyField(
+          label: t.receive_qr_address_title,
+          value: _getCleanAddress(),
+          maxLines: 10,
+        ),
+        if (hasDescription) ...[
+          const SizedBox(height: 12),
+          PixSummaryCard(
+            entries: [
+              PixSummaryEntry(
+                _stripTrailingColon(t.receive_qr_description_label),
+                widget.description!,
               ),
-              const SizedBox(width: 10),
-              _ShareIconButton(onTap: _shareAddress),
             ],
           ),
         ],
-      ),
+      ],
     );
-  }
-
-  Widget _buildQRCode() {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: PrettyQrView.data(data: widget.qrData),
-    );
-  }
-
-  void _copyAddressToClipboard() async {
-    HapticFeedback.selectionClick();
-    await Clipboard.setData(ClipboardData(text: _getCleanAddress()));
-    if (!mounted) return;
-    setState(() => _isCopied = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _isCopied = false);
-    });
   }
 
   Future<void> _shareAddress() async {
@@ -220,123 +123,67 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
 // Sub-widgets — kept private to this file.
 // ─────────────────────────────────────────────────────────────────────
 
-class _IdentitySide extends StatelessWidget {
-  final Asset asset;
-  final String networkLabel;
-
-  const _IdentitySide({required this.asset, required this.networkLabel});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: cs.onSurface.withValues(alpha: 0.06),
-          ),
-          alignment: Alignment.center,
-          child: SvgPicture.asset(
-            asset.iconPath,
-            width: 24,
-            height: 24,
-            fit: BoxFit.contain,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                asset.name,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                networkLabel,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: context.colors.textSecondary,
-                  letterSpacing: 0.2,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AmountSide extends StatelessWidget {
+/// The requested amount: large tabular digits with the muted ticker, and
+/// the sats value below for bitcoin assets.
+class _RequestedAmount extends StatelessWidget {
   final double amount;
   final Asset asset;
 
-  const _AmountSide({required this.amount, required this.asset});
+  const _RequestedAmount({required this.amount, required this.asset});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isBtcLike = asset == Asset.btc || asset == Asset.lbtc;
     final assetStr = _formatAssetAmount(amount, isBtcLike);
-    final satsStr =
-        isBtcLike ? _formatSats((amount * 100000000).round()) : null;
+    final satsStr = isBtcLike
+        ? _formatSats((amount * 100000000).round())
+        : null;
+    const tabular = [FontFeature.tabularFigures()];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Flexible(
-              child: Text(
-                assetStr,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+    return MergeSemantics(
+      child: Column(
+        children: [
+          // A long amount scales down instead of overflowing.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  assetStr,
+                  style: context.textTheme.displaySmall?.copyWith(
+                    color: context.colors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                    fontFeatures: tabular,
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+                const SizedBox(width: 8),
+                Text(
+                  asset.ticker,
+                  style: context.textTheme.titleLarge?.copyWith(
+                    color: context.colors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
+          ),
+          if (satsStr != null) ...[
+            const SizedBox(height: 2),
             Text(
-              asset.ticker,
-              style: theme.textTheme.labelLarge?.copyWith(
+              '$satsStr sats',
+              textAlign: TextAlign.center,
+              style: context.textTheme.bodyMedium?.copyWith(
                 color: context.colors.textSecondary,
-                fontWeight: FontWeight.w700,
+                fontFeatures: tabular,
               ),
             ),
           ],
-        ),
-        if (satsStr != null) ...[
-          const SizedBox(height: 2),
-          Text(
-            '$satsStr sats',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: context.colors.textSecondary,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
         ],
-      ],
+      ),
     );
   }
 
@@ -358,75 +205,80 @@ class _AmountSide extends StatelessWidget {
   }
 }
 
-class _DescriptionExpandable extends StatefulWidget {
-  final String text;
-  const _DescriptionExpandable({required this.text});
+/// The asset logo, the ticker, and the network as one quiet glass pill.
+class _NetworkPill extends StatelessWidget {
+  final Asset asset;
+  final String networkLabel;
 
-  @override
-  State<_DescriptionExpandable> createState() => _DescriptionExpandableState();
-}
-
-class _DescriptionExpandableState extends State<_DescriptionExpandable> {
-  bool _expanded = false;
+  const _NetworkPill({required this.asset, required this.networkLabel});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final t = AppLocalizations.of(context);
-    final muted = context.colors.textSecondary;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => setState(() => _expanded = !_expanded),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    _stripTrailingColon(t.receive_qr_description_label),
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: muted,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  const Spacer(),
-                  AnimatedRotation(
-                    turns: _expanded ? 0.5 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 20,
-                      color: muted,
-                    ),
-                  ),
-                ],
-              ),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.topCenter,
-                child:
-                    _expanded
-                        ? Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            widget.text,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              height: 1.35,
-                            ),
-                          ),
-                        )
-                        : const SizedBox(width: double.infinity),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: GlassStyle.of(context).lensFill,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppSurfaces.hairline(context)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(
+            asset.iconPath,
+            width: 18,
+            height: 18,
+            fit: BoxFit.contain,
           ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              '${asset.ticker} · $networkLabel',
+              textAlign: TextAlign.center,
+              style: context.textTheme.labelLarge?.copyWith(
+                color: context.colors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Neutral share button with the share icon. The brand pink stays off the
+/// screen, because the copy field and the QR code are the main content.
+class _ShareButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+
+  const _ShareButton({required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.colors.textPrimary;
+    return PressScale(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 55),
+        child: TextButton.icon(
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            foregroundColor: color,
+            backgroundColor: GlassStyle.of(context).lensFill,
+            minimumSize: const Size.fromHeight(55),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(color: AppSurfaces.hairline(context)),
+            ),
+            // The same size and weight as the label of the primary button.
+            textStyle: context.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          icon: PixIcon(PixIcons.share, size: 20, color: color),
+          label: Text(label),
         ),
       ),
     );
@@ -438,184 +290,3 @@ class _DescriptionExpandableState extends State<_DescriptionExpandable> {
 /// punctuation noise.
 String _stripTrailingColon(String s) =>
     s.endsWith(':') ? s.substring(0, s.length - 1) : s;
-
-class _SoftHairline extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
-      height: 1,
-      color:
-          isDark
-              ? theme.colorScheme.outlineVariant.withValues(alpha: 0.25)
-              : theme.colorScheme.outline.withValues(alpha: 0.25),
-    );
-  }
-}
-
-class _IconChip extends StatelessWidget {
-  final IconData icon;
-  const _IconChip({required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: cs.primary.withValues(alpha: 0.14),
-      ),
-      alignment: Alignment.center,
-      child: Icon(icon, size: 18, color: cs.primary),
-    );
-  }
-}
-
-/// Continuous monospace address renderer. The full address is kept
-/// intact (no chunking, no inserted spaces) so the user can verify it
-/// character-by-character and copy a portion via selection without
-/// accidentally including separator whitespace.
-class _AddressMono extends StatelessWidget {
-  final String text;
-  const _AddressMono({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: SelectableText(
-        text,
-        textAlign: TextAlign.center,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          fontFamily: 'monospace',
-          fontSize: 13,
-          height: 1.4,
-          letterSpacing: 0.2,
-        ),
-      ),
-    );
-  }
-}
-
-class _CopyButton extends StatelessWidget {
-  final bool isCopied;
-  final VoidCallback onTap;
-  final String copyLabel;
-  final String copiedLabel;
-
-  const _CopyButton({
-    required this.isCopied,
-    required this.onTap,
-    required this.copyLabel,
-    required this.copiedLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final positive = context.colors.positiveColor;
-    final bg = isCopied ? positive : cs.primary;
-    final fg = isCopied ? cs.surface : cs.onPrimary;
-
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          height: 50,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            boxShadow:
-                isCopied
-                    ? null
-                    : [
-                      BoxShadow(
-                        color: cs.primary.withValues(alpha: 0.25),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-          ),
-          alignment: Alignment.center,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            transitionBuilder:
-                (child, anim) => FadeTransition(
-                  opacity: anim,
-                  child: ScaleTransition(scale: anim, child: child),
-                ),
-            child: Row(
-              key: ValueKey(isCopied),
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isCopied ? Icons.check_rounded : Icons.copy_rounded,
-                  size: 18,
-                  color: fg,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isCopied ? copiedLabel : copyLabel,
-                  style: TextStyle(
-                    color: fg,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ShareIconButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _ShareIconButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cs = theme.colorScheme;
-    return Material(
-      color: cs.onSurface.withValues(alpha: 0.05),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color:
-                  isDark
-                      ? cs.outlineVariant.withValues(alpha: 0.45)
-                      : cs.outline.withValues(alpha: 0.45),
-            ),
-          ),
-          alignment: Alignment.center,
-          child: Icon(Icons.ios_share_rounded, size: 20, color: cs.onSurface),
-        ),
-      ),
-    );
-  }
-}

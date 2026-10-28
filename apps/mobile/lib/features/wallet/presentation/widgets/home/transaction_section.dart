@@ -18,7 +18,6 @@ class TransactionSection extends StatelessWidget {
           title: t.wallet_transactions_section_title,
           actionDescription: t.wallet_section_see_more,
         ),
-        const SizedBox(height: 10),
         TransactionList(),
       ],
     );

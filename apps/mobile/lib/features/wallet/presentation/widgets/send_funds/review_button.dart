@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
 
 import '../../providers/balance_provider.dart';
 import '../../providers/send_funds/drain_provider.dart';
@@ -15,7 +18,12 @@ import '../../providers/send_funds/selected_network_provider.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
 import '../../providers/send_funds/transaction_loading_provider.dart';
 import 'lbtc_insufficient_funds_dialog.dart';
+import 'send_flow_parts.dart';
 
+/// The main action of the send form, pinned at the bottom of the screen.
+///
+/// It prepares the transaction and opens the review step. An error of the
+/// preparation shows above the button.
 class ReviewButton extends ConsumerWidget {
   const ReviewButton({super.key});
 
@@ -31,13 +39,12 @@ class ReviewButton extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
+        SizeFadeSwitcher(
+          alignment: Alignment.bottomCenter,
           child: preparationState.errorMessage != null
               ? Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
+                  key: ValueKey(preparationState.errorMessage),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: _PreparationErrorCard(
                     message: preparationState.errorMessage!,
                     onDismiss: () => ref
@@ -45,14 +52,14 @@ class ReviewButton extends ConsumerWidget {
                         .reset(),
                   ),
                 )
-              : const SizedBox.shrink(),
+              : const SizedBox(key: ValueKey('none'), width: double.infinity),
         ),
         PrimaryButton(
           text: preparationState.isLoading
               ? t.wallet_send_review_preparing
               : (isDrainTransaction
-                  ? t.wallet_send_review_drain
-                  : t.wallet_send_review_transaction),
+                    ? t.wallet_send_review_drain
+                    : t.wallet_send_review_transaction),
           onPressed: (validation.canProceed && !preparationState.isLoading)
               ? () => _prepareTransaction(context, ref)
               : null,
@@ -258,80 +265,23 @@ class ReviewButton extends ConsumerWidget {
   }
 }
 
+/// The error of the last preparation attempt, with a close button.
 class _PreparationErrorCard extends StatelessWidget {
   final String message;
   final VoidCallback onDismiss;
 
-  const _PreparationErrorCard({
-    required this.message,
-    required this.onDismiss,
-  });
+  const _PreparationErrorCard({required this.message, required this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-      decoration: BoxDecoration(
-        color: cs.error.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.error.withValues(alpha: 0.30)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.error_outline_rounded,
-            size: 18,
-            color: cs.error,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 1),
-              child: Text(
-                message,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.error.withValues(alpha: 0.95),
-                  fontWeight: FontWeight.w500,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-          _DismissButton(onTap: onDismiss),
-        ],
-      ),
-    );
-  }
-}
-
-class _DismissButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _DismissButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 30,
-          height: 30,
-          child: Icon(
-            Icons.close_rounded,
-            size: 16,
-            color: cs.error.withValues(alpha: 0.85),
-          ),
-        ),
+    return Semantics(
+      liveRegion: true,
+      child: SendNotice(
+        icon: PixIcons.error,
+        tone: PixTone.negative,
+        message: message,
+        onDismiss: onDismiss,
+        dismissTooltip: AppLocalizations.of(context).common_close,
       ),
     );
   }

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/screens/pix_main_screen.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/receive_pix_screen.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/screens/pix_hub_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/converting_details_screen.dart';
@@ -115,7 +114,6 @@ class _MainNavigationScaffoldState
           _pageController.page?.round() != newIndex) {
         _pageController.jumpToPage(newIndex);
       }
-
     }
   }
 
@@ -134,6 +132,16 @@ class _MainNavigationScaffoldState
     }
   }
 
+  /// Starts the Pix tutorial on the first visit to the Pix tab.
+  ///
+  /// The tab shows the hub, but the deposit screen hosts the tutorial steps.
+  /// The tutorial opens that screen when it starts.
+  Future<void> _startPixTutorialIfUnseen() async {
+    await ref.read(pixTutorialControllerProvider.notifier).startIfUnseen();
+    if (!mounted || !ref.read(pixTutorialControllerProvider).isActive) return;
+    context.push('/pix/deposit');
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentIndex = _getIndexFromLocation(widget.currentLocation);
@@ -150,13 +158,13 @@ class _MainNavigationScaffoldState
             body: PageView(
               controller: _pageController,
               onPageChanged: _onPageChanged,
-              physics:
-                  tutorialActive ? const NeverScrollableScrollPhysics() : null,
+              physics: tutorialActive
+                  ? const NeverScrollableScrollPhysics()
+                  : null,
               children: [
                 const HomeScreen(),
                 const HoldingsAsseetScreen(),
-                // const PixMainScreen(),
-                const ReceivePixScreen(),
+                const PixHubScreen(),
                 const SwapScreen(),
                 const MainSettingsScreen(),
               ],
@@ -165,12 +173,11 @@ class _MainNavigationScaffoldState
             resizeToAvoidBottomInset: false,
             bottomNavigationBar: CustomBottomNavBar(
               currentIndex: currentIndex,
+              // The lens of the bar follows the finger during a swipe.
+              pagePosition: _pageFloatNotifier,
               onTap: (index) {
                 if (index == 2) {
-                  // First visit to PIX starts the receive-screen tutorial.
-                  ref
-                      .read(pixTutorialControllerProvider.notifier)
-                      .startIfUnseen();
+                  _startPixTutorialIfUnseen();
                 }
                 if (_pageController.hasClients) {
                   _pageController.jumpToPage(index);
@@ -256,29 +263,28 @@ final walletRoutes = [
     routes: [
       GoRoute(
         path: '/home',
-        pageBuilder:
-            (context, state) => NoTransitionPage(child: const HomeScreen()),
+        pageBuilder: (context, state) =>
+            NoTransitionPage(child: const HomeScreen()),
       ),
       GoRoute(
         path: '/asset',
-        pageBuilder:
-            (context, state) => NoTransitionPage(child: HoldingsAsseetScreen()),
+        pageBuilder: (context, state) =>
+            NoTransitionPage(child: HoldingsAsseetScreen()),
       ),
       GoRoute(
         path: '/pix',
-        pageBuilder:
-            (context, state) => NoTransitionPage(child: PixMainScreen()),
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: PixHubScreen()),
       ),
       GoRoute(
         path: '/swap',
-        pageBuilder:
-            (context, state) => const NoTransitionPage(child: SwapScreen()),
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: SwapScreen()),
       ),
       GoRoute(
         path: '/menu',
-        pageBuilder:
-            (context, state) =>
-                const NoTransitionPage(child: MainSettingsScreen()),
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: MainSettingsScreen()),
       ),
     ],
   ),

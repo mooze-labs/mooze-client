@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+
+import 'send_flow_parts.dart';
 
 /// Banner shown on the Send screen when the user has zero L-BTC balance.
 /// L-BTC is required to pay Liquid network fees for any asset transfer.
@@ -47,74 +52,44 @@ class LbtcZeroBalanceBanner extends ConsumerWidget {
   }
 }
 
+/// The banner: a wallet icon, the reason, and a link to SWAP.
+///
+/// The whole banner opens SWAP. The warning tint, the icon, and the text
+/// carry the state together.
 class _LbtcZeroBalanceBannerContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final linkColor = context.colors.textPrimary;
 
-    return GestureDetector(
-      onTap: () => context.go('/swap'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: colorScheme.errorContainer.withValues(alpha: 0.25),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: colorScheme.error.withValues(alpha: 0.35)),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.account_balance_wallet_outlined,
-              color: colorScheme.error,
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t.wallet_send_lbtc_banner_title,
-                    style: textTheme.labelLarge?.copyWith(
-                      color: colorScheme.onErrorContainer,
-                      fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Semantics(
+        button: true,
+        child: SendNotice(
+          icon: PixIcons.deposit,
+          tone: PixTone.warning,
+          title: t.wallet_send_lbtc_banner_title,
+          message: t.wallet_send_lbtc_banner_body,
+          onTap: () => context.go('/swap'),
+          body: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    t.wallet_send_lbtc_banner_action,
+                    style: context.textTheme.labelLarge?.copyWith(
+                      color: linkColor,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    t.wallet_send_lbtc_banner_body,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onErrorContainer.withValues(
-                        alpha: 0.85,
-                      ),
-                      height: 1.4,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        t.wallet_send_lbtc_banner_action,
-                        style: textTheme.labelSmall?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.underline,
-                          decorationColor: colorScheme.primary,
-                        ),
-                      ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: colorScheme.primary,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 2),
+                PixIcon(PixIcons.chevronRight, size: 16, color: linkColor),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

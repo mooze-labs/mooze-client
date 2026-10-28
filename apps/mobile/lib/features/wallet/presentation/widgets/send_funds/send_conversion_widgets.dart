@@ -6,8 +6,16 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+import 'send_flow_parts.dart';
+
+/// Compact segmented choice of the unit the user types the amount in.
+///
+/// The selected segment has a brand tint and a brand border, so the
+/// selection shows by shape and not by color alone.
 class SendConversionOptionsRow extends ConsumerWidget {
   final Asset? selectedAsset;
 
@@ -20,17 +28,14 @@ class SendConversionOptionsRow extends ConsumerWidget {
     final conversionType = ref.watch(sendConversionTypeProvider);
     final fiatCurrency = ref.read(currencyControllerProvider.notifier).icon;
 
-    final hasSats =
-        selectedAsset == Asset.btc || selectedAsset == Asset.lbtc;
-    final cs = Theme.of(context).colorScheme;
+    final hasSats = selectedAsset == Asset.btc || selectedAsset == Asset.lbtc;
 
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        // onSurface @ 6% works as a slight darken in light + slight lighten
-        // in dark, so the track never disappears against the outer card.
-        color: cs.onSurface.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
+        color: GlassStyle.of(context).lensFill,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppSurfaces.hairline(context)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -73,36 +78,38 @@ class _SegmentPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: Colors.transparent,
+    final primary = context.colors.primaryColor;
+    const radius = BorderRadius.all(Radius.circular(999));
+    return Semantics(
+      button: true,
+      selected: isSelected,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
         onTap: onTap,
+        borderRadius: radius,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          duration: Motion.of(context, Motion.durationFast),
+          curve: Motion.curveMove,
+          // 42 pt high with the 3 pt track padding: a 48 pt touch row.
+          constraints: const BoxConstraints(minHeight: 42, minWidth: 48),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
+            color: isSelected
+                ? primary.withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: radius,
+            border: Border.all(
+              color: isSelected ? primary : Colors.transparent,
+              width: 1.4,
+            ),
           ),
           child: Text(
             label,
-            style: theme.textTheme.labelMedium?.copyWith(
+            style: context.textTheme.labelLarge?.copyWith(
               color: isSelected
-                  ? theme.colorScheme.onPrimary
+                  ? context.colors.textPrimary
                   : context.colors.textSecondary,
-              fontWeight: FontWeight.w600,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ),
@@ -111,6 +118,10 @@ class _SegmentPill extends StatelessWidget {
   }
 }
 
+/// The typed amount in the other units, as one quiet line.
+///
+/// For example "≈ 0.0012 BTC L2 · 120.000 sats". The line leaves out the
+/// unit the user types in, because the hero already shows it.
 class SendConversionPreview extends ConsumerWidget {
   final Asset selectedAsset;
   final double assetAmount;
@@ -124,15 +135,19 @@ class SendConversionPreview extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final fiatCurrency = ref.read(currencyControllerProvider.notifier).icon;
     final conversionType = ref.watch(sendConversionTypeProvider);
+    final quietStyle = context.textTheme.bodySmall?.copyWith(
+      color: context.colors.textSecondary,
+      fontFeatures: sendTabularFigures,
+    );
 
     return FutureBuilder(
       future: ref.read(fiatPriceProvider(selectedAsset).future),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
                 width: 10,
@@ -143,10 +158,10 @@ class SendConversionPreview extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                t.wallet_send_loading_conversions,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: context.colors.textSecondary,
+              Flexible(
+                child: Text(
+                  t.wallet_send_loading_conversions,
+                  style: quietStyle,
                 ),
               ),
             ],
@@ -157,42 +172,27 @@ class SendConversionPreview extends ConsumerWidget {
           final fiatValue = assetAmount * price;
           final satsValue =
               (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc)
-                  ? (assetAmount * 100000000).round()
-                  : null;
+              ? (assetAmount * 100000000).round()
+              : null;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                t.wallet_send_equivalent_conversions,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: context.colors.textSecondary,
-                  letterSpacing: 0.4,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              if (conversionType != SendConversionType.asset)
-                _ConversionRow(
-                  label: '${selectedAsset.ticker}:',
-                  value: _formatAssetAmount(),
-                  suffix: selectedAsset.ticker,
-                ),
-              if ((selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) &&
-                  conversionType != SendConversionType.sats &&
-                  satsValue != null)
-                _ConversionRow(
-                  label: t.wallet_send_satoshis_label,
-                  value: SatsInputFormatter.formatValue(satsValue),
-                  suffix: satsValue == 1 ? 'sat' : 'sats',
-                ),
-              if (conversionType != SendConversionType.fiat)
-                _ConversionRow(
-                  label: '$fiatCurrency:',
-                  value: fiatValue.toStringAsFixed(2),
-                  suffix: fiatCurrency,
-                ),
-            ],
+          final parts = [
+            if (conversionType != SendConversionType.asset)
+              '${_formatAssetAmount()} ${selectedAsset.ticker}',
+            if ((selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) &&
+                conversionType != SendConversionType.sats &&
+                satsValue != null)
+              '${SatsInputFormatter.formatValue(satsValue)} '
+                  '${satsValue == 1 ? 'sat' : 'sats'}',
+            if (conversionType != SendConversionType.fiat)
+              '${fiatValue.toStringAsFixed(2)} $fiatCurrency',
+          ];
+          if (parts.isEmpty) return const SizedBox.shrink();
+          final line = parts.join(' · ');
+
+          return Semantics(
+            label: '${t.wallet_send_equivalent_conversions} $line',
+            excludeSemantics: true,
+            child: Text('≈ $line', style: quietStyle),
           );
         });
       },
@@ -200,49 +200,12 @@ class SendConversionPreview extends ConsumerWidget {
   }
 
   String _formatAssetAmount() {
-    final decimals =
-        (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) ? 8 : 6;
+    final decimals = (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc)
+        ? 8
+        : 6;
     return assetAmount
         .toStringAsFixed(decimals)
         .replaceAll(RegExp(r'0+$'), '')
         .replaceAll(RegExp(r'\.$'), '');
-  }
-}
-
-class _ConversionRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final String suffix;
-
-  const _ConversionRow({
-    required this.label,
-    required this.value,
-    required this.suffix,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: context.colors.textSecondary,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            '$value $suffix',
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

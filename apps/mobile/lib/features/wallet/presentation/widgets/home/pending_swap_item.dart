@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swap
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// In-progress peg-in / peg-out row. Visually mirrors the swap row in
@@ -26,18 +27,27 @@ class PendingSwapItem extends ConsumerWidget {
     final isVisible = ref.watch(isVisibleProvider);
     final isFailed = swap.phase == PendingSwapPhase.failed;
     final isRefundable = swap.phase == PendingSwapPhase.refundable;
-    final subtitleColor =
+    // The icon and the live dot carry the status color. The status text
+    // stays readable: on the panels, the brand pink and the error red fail
+    // 4.5:1 as small text.
+    final statusColor =
         isFailed
-            ? Colors.redAccent
-            : (isRefundable ? Colors.orangeAccent : colors.primaryColor);
+            ? context.colorScheme.error
+            : (isRefundable ? context.appColors.warning : colors.primaryColor);
+    final statusTextColor =
+        isFailed ? context.colorScheme.onErrorContainer : colors.textSecondary;
+    final secondaryStyle = context.textTheme.bodySmall?.copyWith(
+      color: colors.textSecondary,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
     final route = '/swap/converting/${swap.localId}';
 
-    return GestureDetector(
+    return InkWell(
       onTap: () => context.push(route),
-      behavior: HitTestBehavior.opaque,
       child: Container(
         color: Colors.transparent,
-        padding: const EdgeInsets.symmetric(vertical: 5),
+        constraints: const BoxConstraints(minHeight: 68),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
             _SwapIcon(fromAsset: swap.fromAsset, toAsset: swap.toAsset),
@@ -48,25 +58,26 @@ class PendingSwapItem extends ConsumerWidget {
                 children: [
                   Text(
                     _title(t, swap),
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: context.textTheme.bodyLarge?.copyWith(
+                      color: colors.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Row(
                     children: [
                       if (isFailed)
-                        const Icon(
-                          Icons.error_outline,
-                          size: 12,
-                          color: Colors.redAccent,
-                        )
+                        Icon(Icons.error_outline, size: 12, color: statusColor)
                       else if (isRefundable)
-                        const Icon(
+                        Icon(
                           Icons.assignment_return,
                           size: 14,
-                          color: Colors.orangeAccent,
+                          color: statusColor,
                         )
                       else
-                        _LiveDot(color: subtitleColor),
+                        _LiveDot(color: statusColor),
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
@@ -74,9 +85,8 @@ class PendingSwapItem extends ConsumerWidget {
                               ? (swap.errorMessage ??
                                   t.pending_swap_status_failed)
                               : _subtitle(t, swap.phase),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: subtitleColor,
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: statusTextColor,
                             fontWeight: FontWeight.w500,
                           ),
                           maxLines: 1,
@@ -93,7 +103,7 @@ class PendingSwapItem extends ConsumerWidget {
                           isVisible
                               ? '•••••••'
                               : _formatAmount(swap.fromAsset, swap.sentAmount),
-                          style: const TextStyle(fontSize: 12),
+                          style: secondaryStyle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -103,7 +113,7 @@ class PendingSwapItem extends ConsumerWidget {
                           width: 12,
                           height: 12,
                           colorFilter: ColorFilter.mode(
-                            subtitleColor,
+                            statusColor,
                             BlendMode.srcIn,
                           ),
                         ),
@@ -112,7 +122,7 @@ class PendingSwapItem extends ConsumerWidget {
                           isVisible
                               ? '•••••••'
                               : '~${_formatAmount(swap.toAsset, swap.estimatedReceivedAmount)}',
-                          style: const TextStyle(fontSize: 12),
+                          style: secondaryStyle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -126,7 +136,7 @@ class PendingSwapItem extends ConsumerWidget {
                           : t.pending_swap_refundable_amount(
                             _formatAmount(swap.fromAsset, swap.sentAmount),
                           ),
-                      style: const TextStyle(fontSize: 12),
+                      style: secondaryStyle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -137,17 +147,10 @@ class PendingSwapItem extends ConsumerWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  _shortTime(swap.createdAt),
-                  style: const TextStyle(fontSize: 12),
-                ),
+                Text(_shortTime(swap.createdAt), style: secondaryStyle),
                 if (isRefundable) ...[
                   const SizedBox(height: 4),
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 18,
-                    color: Colors.orangeAccent,
-                  ),
+                  Icon(Icons.chevron_right, size: 18, color: statusColor),
                 ],
               ],
             ),
@@ -211,29 +214,23 @@ class _SwapIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 50,
-      height: 50,
+    // Same metrics as the swap icon of the transaction rows.
+    return SizedBox.square(
+      dimension: 40,
       child: Stack(
         children: [
           Positioned(
             left: 0,
-            top: 5,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(15.5),
-              child: SvgPicture.asset(
-                fromAsset.iconPath,
-                width: 31,
-                height: 31,
-              ),
+            top: 1,
+            child: ClipOval(
+              child: SvgPicture.asset(fromAsset.iconPath, width: 27, height: 27),
             ),
           ),
           Positioned(
             right: 0,
-            bottom: 5,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(15.5),
-              child: SvgPicture.asset(toAsset.iconPath, width: 31, height: 31),
+            bottom: 1,
+            child: ClipOval(
+              child: SvgPicture.asset(toAsset.iconPath, width: 27, height: 27),
             ),
           ),
         ],
@@ -250,17 +247,23 @@ class _LiveDot extends StatefulWidget {
   State<_LiveDot> createState() => _LiveDotState();
 }
 
+/// The dot pulses while the swap runs: it shows live progress, like a
+/// progress indicator. With reduced motion, it stays still.
 class _LiveDotState extends State<_LiveDot>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _ctl;
+  late final AnimationController _ctl = AnimationController(
+    vsync: this,
+    duration: Motion.durationCelebrate,
+    value: 1,
+  );
+  bool _started = false;
 
   @override
-  void initState() {
-    super.initState();
-    _ctl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (!Motion.isReduced(context)) _ctl.repeat(reverse: true);
   }
 
   @override

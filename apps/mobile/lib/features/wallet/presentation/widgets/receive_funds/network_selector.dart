@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_validation_controller.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/selected_receive_network_provider.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/shared/widgets/motion/press_scale.dart';
+import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+/// Shows the receive network of the selected asset.
+///
+/// An asset with one network shows a quiet line with the network and one
+/// hint. An asset with more networks shows one selectable row per network.
+/// The block cross-fades when the asset changes.
 class NetworkSelector extends ConsumerWidget {
   const NetworkSelector({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final selectedNetwork = ref.watch(selectedReceiveNetworkProvider);
     final selectedAsset = ref.watch(selectedReceiveAssetProvider);
     final validationController = ref.read(
@@ -38,54 +48,34 @@ class NetworkSelector extends ConsumerWidget {
       });
     }
 
-    if (availableNetworks.isEmpty) {
+    if (selectedAsset == null || availableNetworks.isEmpty) {
       return Text(
         t.receive_select_asset_first,
-        style: theme.textTheme.bodySmall?.copyWith(
+        style: context.textTheme.bodySmall?.copyWith(
           color: context.colors.textSecondary,
         ),
       );
     }
 
-    final isSingleNetwork = availableNetworks.length == 1;
+    final hint = _assetHint(t, selectedAsset);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Single-network assets get a self-describing info row
-        // ("Bitcoin · On-chain") so the section label would just be
-        // noise — drop it entirely there.
-        if (!isSingleNetwork) ...[
-          Text(
-            t.receive_select_network,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
-          child:
-              isSingleNetwork
-                  ? _NetworkInfoRow(
-                    icon: _icon(availableNetworks.first),
-                    label: _label(t, availableNetworks.first),
-                    subtitle: _subtitle(t, availableNetworks.first),
-                  )
-                  : _NetworkCardGrid(
-                    networks: availableNetworks,
-                    selectedNetwork: selectedNetwork,
-                    onSelect: (network) {
-                      ref.read(selectedReceiveNetworkProvider.notifier).state =
-                          network;
-                      validationController.validateNetwork(network);
-                    },
-                  ),
-        ),
-      ],
+    return SizeFadeSwitcher(
+      alignment: AlignmentDirectional.topStart,
+      child: KeyedSubtree(
+        key: ValueKey(selectedAsset),
+        child: availableNetworks.length == 1
+            ? _SingleNetwork(network: availableNetworks.first, hint: hint)
+            : _NetworkOptions(
+                networks: availableNetworks,
+                selectedNetwork: selectedNetwork,
+                hint: hint,
+                onSelect: (network) {
+                  ref.read(selectedReceiveNetworkProvider.notifier).state =
+                      network;
+                  validationController.validateNetwork(network);
+                },
+              ),
+      ),
     );
   }
 
@@ -101,8 +91,7 @@ class NetworkSelector extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Shared label/subtitle/icon helpers — used by both the multi-network
-// card grid and the single-network info row.
+// Shared label, subtitle, hint, and logo helpers.
 // ─────────────────────────────────────────────────────────────────────
 
 String _label(AppLocalizations t, NetworkType n) => switch (n) {
@@ -117,245 +106,260 @@ String _subtitle(AppLocalizations t, NetworkType n) => switch (n) {
   NetworkType.unknown => '',
 };
 
-IconData _icon(NetworkType n) => switch (n) {
-  NetworkType.bitcoin => Icons.link_rounded,
-  NetworkType.liquid => Icons.water_drop_outlined,
-  NetworkType.unknown => Icons.help_outline_rounded,
+/// One quiet line that tells why the asset uses this network.
+///
+/// Every asset except BTC receives on Liquid only. The L-BTC hint string
+/// still names Lightning, which the app removed, so L-BTC uses the
+/// Liquid-only hint.
+String _assetHint(AppLocalizations t, Asset asset) => switch (asset) {
+  Asset.btc => t.receive_asset_hint_btc,
+  _ => t.receive_asset_hint_liquid_only(asset.name),
 };
 
+/// The network logo. The logos are SVG assets, like the asset logos.
+class _NetworkLogo extends StatelessWidget {
+  final NetworkType network;
+  final double size;
+
+  const _NetworkLogo({required this.network, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = switch (network) {
+      NetworkType.bitcoin => 'assets/icons/asset/bitcoin.svg',
+      NetworkType.liquid => 'assets/icons/asset/lbtc.svg',
+      NetworkType.unknown => null,
+    };
+    if (asset == null) {
+      return PixIcon(
+        PixIcons.help,
+        size: size,
+        color: context.colors.textSecondary,
+      );
+    }
+    return SvgPicture.asset(
+      asset,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────
-// Multi-network: side-by-side visual cards with a large icon bubble at
-// the top, label, and subtitle.
+// Single network: a quiet line on the page. The asset fixes the
+// network, so there is nothing to choose. The line confirms it.
 // ─────────────────────────────────────────────────────────────────────
 
-class _NetworkCardGrid extends StatelessWidget {
+class _SingleNetwork extends StatelessWidget {
+  final NetworkType network;
+  final String hint;
+
+  const _SingleNetwork({required this.network, required this.hint});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final subtitle = _subtitle(t, network);
+    final name = subtitle.isEmpty
+        ? _label(t, network)
+        : '${_label(t, network)} · $subtitle';
+
+    return MergeSemantics(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: _NetworkLogo(network: network, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: context.colors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    hint,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: context.colors.textSecondary,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// More networks: one selectable glass row per network. The selected row
+// has a brand border and a check, so the selection never depends on
+// color alone.
+// ─────────────────────────────────────────────────────────────────────
+
+class _NetworkOptions extends StatelessWidget {
   final List<NetworkType> networks;
   final NetworkType? selectedNetwork;
+  final String hint;
   final ValueChanged<NetworkType> onSelect;
 
-  const _NetworkCardGrid({
+  const _NetworkOptions({
     required this.networks,
     required this.selectedNetwork,
+    required this.hint,
     required this.onSelect,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final cards = <Widget>[];
-    for (var i = 0; i < networks.length; i++) {
-      final n = networks[i];
-      if (i > 0) cards.add(const SizedBox(width: 12));
-      cards.add(
-        Expanded(
-          child: _NetworkCard(
-            icon: _icon(n),
-            label: _label(t, n),
-            subtitle: _subtitle(t, n),
-            isSelected: selectedNetwork == n,
-            onTap: () => onSelect(n),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            t.receive_select_network,
+            style: context.textTheme.labelLarge?.copyWith(
+              color: context.colors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-      );
-    }
-    // IntrinsicHeight keeps both cards the same height even when the
-    // subtitles have different line counts at narrow widths.
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: cards,
-      ),
+        const SizedBox(height: 10),
+        for (var i = 0; i < networks.length; i++) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _NetworkOptionRow(
+            network: networks[i],
+            isSelected: selectedNetwork == networks[i],
+            onTap: () => onSelect(networks[i]),
+          ),
+        ],
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            hint,
+            style: context.textTheme.bodySmall?.copyWith(
+              color: context.colors.textSecondary,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _NetworkCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
+class _NetworkOptionRow extends StatelessWidget {
+  final NetworkType network;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _NetworkCard({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
+  const _NetworkOptionRow({
+    required this.network,
     required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final t = AppLocalizations.of(context);
+    final primary = context.colors.primaryColor;
+    final label = _label(t, network);
+    final subtitle = _subtitle(t, network);
+    const radius = BorderRadius.all(Radius.circular(16));
 
-    final borderColor =
-        isSelected ? cs.primary : cs.onSurface.withValues(alpha: 0.08);
-
-    final cardBg =
-        isSelected
-            ? cs.primary.withValues(alpha: 0.08)
-            : cs.onSurface.withValues(alpha: 0.05);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
-        boxShadow:
-            isSelected
-                ? [
-                  BoxShadow(
-                    color: cs.primary.withValues(alpha: 0.18),
-                    blurRadius: 18,
-                    spreadRadius: -2,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-                : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _CardIconBubble(icon: icon, isSelected: isSelected),
-                const SizedBox(height: 14),
-                Text(
-                  label,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: isSelected ? cs.primary : cs.onSurface,
-                  ),
-                  textAlign: TextAlign.center,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      inMutuallyExclusiveGroup: true,
+      label: subtitle.isEmpty ? label : '$label, $subtitle',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: PressScale(
+        child: GlassPanel(
+          borderRadius: radius,
+          child: InkWell(
+            onTap: onTap,
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                border: Border.all(
+                  color: isSelected ? primary : Colors.transparent,
+                  width: 1.4,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: context.colors.textSecondary,
-                    letterSpacing: 0.2,
-                  ),
-                  textAlign: TextAlign.center,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
                 ),
-              ],
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: GlassStyle.of(context).lensFill,
+                        border: Border.all(
+                          color: AppSurfaces.hairline(context),
+                        ),
+                      ),
+                      child: _NetworkLogo(network: network, size: 20),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label,
+                            style: context.textTheme.bodyLarge?.copyWith(
+                              color: context.colors.textPrimary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                          if (subtitle.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: context.textTheme.bodySmall?.copyWith(
+                                color: context.colors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(width: 8),
+                      PixIcon(PixIcons.check, size: 20, color: primary),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _CardIconBubble extends StatelessWidget {
-  final IconData icon;
-  final bool isSelected;
-
-  const _CardIconBubble({required this.icon, required this.isSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: isSelected ? cs.primary : cs.onSurface.withValues(alpha: 0.08),
-        shape: BoxShape.circle,
-        boxShadow:
-            isSelected
-                ? [
-                  BoxShadow(
-                    color: cs.primary.withValues(alpha: 0.25),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-                : null,
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        icon,
-        size: 22,
-        color: isSelected ? cs.onPrimary : cs.onSurface,
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Single-network: compact, non-interactive info row. The network is
-// implied by the asset (e.g. BTC ⇒ Bitcoin On-chain) so there's no
-// selection to make — just confirm what's going to be used.
-// ─────────────────────────────────────────────────────────────────────
-
-class _NetworkInfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-
-  const _NetworkInfoRow({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: cs.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: cs.primary.withValues(alpha: 0.14),
-            ),
-            alignment: Alignment.center,
-            child: Icon(icon, size: 18, color: cs.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: context.colors.textSecondary,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

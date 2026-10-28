@@ -1,34 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
+import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 import '../../providers/send_funds/drain_provider.dart';
 import '../../providers/send_funds/fee_estimation_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/send_validation_controller.dart';
+import 'send_flow_parts.dart';
 
+/// The estimated network fee, as one quiet row on the page.
+///
+/// It shows a small spinner while the fee loads, and an alert icon with a
+/// message when the estimate fails.
 class FeeEstimationWidget extends ConsumerWidget {
   const FeeEstimationWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return SizeFadeSwitcher(child: _content(context, ref));
+  }
+
+  Widget _content(BuildContext context, WidgetRef ref) {
+    const none = SizedBox(key: ValueKey('none'), width: double.infinity);
     final t = AppLocalizations.of(context);
     final asset = ref.watch(selectedAssetProvider);
     final isDrainTransaction = ref.watch(isDrainTransactionProvider);
     final validationState = ref.watch(sendValidationControllerProvider);
 
     if (isDrainTransaction || asset == Asset.btc) {
-      return const SizedBox.shrink();
+      return none;
     }
 
     if (validationState.errors.isNotEmpty) {
       final hasOnlyBalanceErrors = validationState.errors.every(
         (error) => error.category == SendValidationErrorCategory.balance,
       );
-      if (!hasOnlyBalanceErrors) return const SizedBox.shrink();
+      if (!hasOnlyBalanceErrors) return none;
     }
 
     final feeEstimation = ref.watch(feeEstimationProvider);
@@ -36,15 +48,22 @@ class FeeEstimationWidget extends ConsumerWidget {
     return feeEstimation.when(
       data: (estimation) {
         if (!estimation.isValid || estimation.hasError) {
-          return const SizedBox.shrink();
+          return none;
         }
-        return _FeeCard(
+        return _FeeRow(
+          key: const ValueKey('fee'),
           label: t.wallet_send_fee_estimated,
           value: _formatFee(estimation.fees, asset, t),
         );
       },
-      loading: () => _FeeLoadingCard(label: t.wallet_send_fee_calculating),
-      error: (_, _) => _FeeErrorCard(label: t.wallet_send_fee_calc_error),
+      loading: () => _FeeLoadingRow(
+        key: const ValueKey('loading'),
+        label: t.wallet_send_fee_calculating,
+      ),
+      error: (_, _) => _FeeErrorRow(
+        key: const ValueKey('error'),
+        label: t.wallet_send_fee_calc_error,
+      ),
     );
   }
 
@@ -59,54 +78,63 @@ class FeeEstimationWidget extends ConsumerWidget {
   }
 }
 
-class _FeeCard extends StatelessWidget {
+/// Spacing above the fee row, so it sits apart from the amount.
+const _rowPadding = EdgeInsets.only(top: 18);
+
+class _FeeRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _FeeCard({required this.label, required this.value});
+  const _FeeRow({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return _Surface(
-      child: Row(
-        children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 16,
-            color: context.colors.textSecondary,
-          ),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
+    return Padding(
+      padding: _rowPadding,
+      child: MergeSemantics(
+        child: Row(
+          children: [
+            PixIcon(
+              PixIcons.receipt,
+              size: 16,
               color: context.colors.textSecondary,
             ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: cs.onSurface,
-              fontWeight: FontWeight.w700,
-              fontFeatures: const [FontFeature.tabularFigures()],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: context.colors.textSecondary,
+                ),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: context.colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: sendTabularFigures,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _FeeLoadingCard extends StatelessWidget {
+class _FeeLoadingRow extends StatelessWidget {
   final String label;
-  const _FeeLoadingCard({required this.label});
+  const _FeeLoadingRow({super.key, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return _Surface(
+    return Padding(
+      padding: _rowPadding,
       child: Row(
         children: [
           SizedBox(
@@ -117,44 +145,12 @@ class _FeeLoadingCard extends StatelessWidget {
               color: context.colors.textSecondary,
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: context.colors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeeErrorCard extends StatelessWidget {
-  final String label;
-  const _FeeErrorCard({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: cs.error.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.error.withValues(alpha: 0.30)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber_rounded, size: 16, color: cs.error),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: cs.error,
-                fontWeight: FontWeight.w500,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -164,24 +160,34 @@ class _FeeErrorCard extends StatelessWidget {
   }
 }
 
-/// Stat-card surface — identical recipe to the amount card and balance
-/// card, so the fee estimate row sits visually in the same family.
-class _Surface extends StatelessWidget {
-  final Widget child;
-  const _Surface({required this.child});
+class _FeeErrorRow extends StatelessWidget {
+  final String label;
+  const _FeeErrorRow({super.key, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: cs.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
+    final color = context.colors.negativeColor;
+    return Padding(
+      padding: _rowPadding,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: PixIcon(PixIcons.warning, size: 16, color: color),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
-      child: child,
     );
   }
 }

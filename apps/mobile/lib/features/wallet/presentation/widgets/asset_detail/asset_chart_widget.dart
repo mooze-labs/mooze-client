@@ -9,6 +9,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/services/price_service.dart';
 import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -29,6 +30,11 @@ class AssetChartWidget extends ConsumerStatefulWidget {
 class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
   double? _touchedPrice;
   int? _touchedIndex;
+
+  /// Last loaded series and its period. The chart keeps showing them while
+  /// a new period loads, so that the line can morph to the new data.
+  List<double>? _shownKlines;
+  TimePeriod? _shownPeriod;
 
   AssetPriceHistoryParams _getParamsForPeriod(TimePeriod period, Asset asset) {
     switch (period) {
@@ -64,7 +70,11 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
     }
   }
 
-  DateTime _getTimestampForIndex(int index, int totalPoints, TimePeriod period) {
+  DateTime _getTimestampForIndex(
+    int index,
+    int totalPoints,
+    TimePeriod period,
+  ) {
     final now = DateTime.now();
     final intervalMs = _getIntervalDuration(period).inMilliseconds;
     final offsetMs = (totalPoints - 1 - index) * intervalMs;
@@ -125,17 +135,38 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
         border: Border.all(color: onSurface.withValues(alpha: 0.1), width: 1),
       ),
       child: priceHistory.when(
-        data: (data) => data.fold(
-          (err) => _buildErrorChart(context),
-          (klines) => _buildSuccessChart(context, klines),
-        ),
+        data: (data) => data.fold((err) => _buildErrorChart(context), (klines) {
+          _shownKlines = klines;
+          _shownPeriod = widget.selectedPeriod;
+          return _buildSuccessChart(context, klines, widget.selectedPeriod);
+        }),
         error: (_, _) => _buildErrorChart(context),
-        loading: () => _buildLoadingChart(context),
+        loading: () {
+          final shownKlines = _shownKlines;
+          final shownPeriod = _shownPeriod;
+          if (shownKlines != null && shownPeriod != null) {
+            return _buildSuccessChart(context, shownKlines, shownPeriod);
+          }
+          return _buildLoadingChart(context);
+        },
       ),
     );
   }
 
-  Widget _buildSuccessChart(BuildContext context, List<double> klines) {
+  /// Builds the chart of [klines] for [period].
+  ///
+  /// Motion:
+  /// - First show: the chart reveals from left to right over
+  ///   [Motion.durationChartDraw].
+  /// - Period change: the line morphs to the new data over
+  ///   [Motion.durationEmphasis].
+  ///
+  /// With reduced motion, the chart shows the final state at once.
+  Widget _buildSuccessChart(
+    BuildContext context,
+    List<double> klines,
+    TimePeriod period,
+  ) {
     if (klines.isEmpty) return _buildErrorChart(context);
 
     final t = AppLocalizations.of(context);
@@ -154,7 +185,7 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
     final displayTime = _getTimestampForIndex(
       activeIndex.clamp(0, klines.length - 1),
       klines.length,
-      widget.selectedPeriod,
+      period,
     );
 
     final minY = klines.reduce((a, b) => a < b ? a : b);
@@ -173,9 +204,7 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
     final labelIndices = <int>{};
     if (klines.length > 1) {
       for (int i = 0; i < labelCount; i++) {
-        labelIndices.add(
-          ((klines.length - 1) * i / (labelCount - 1)).round(),
-        );
+        labelIndices.add(((klines.length - 1) * i / (labelCount - 1)).round());
       }
     } else {
       labelIndices.add(0);
@@ -189,7 +218,7 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              t.wallet_asset_chart_title(_getPeriodLabel(widget.selectedPeriod)),
+              t.wallet_asset_chart_title(_getPeriodLabel(period)),
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -205,7 +234,7 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
                   ),
                 ),
                 Text(
-                  _formatAxisTime(displayTime, widget.selectedPeriod),
+                  _formatAxisTime(displayTime, period),
                   style: textTheme.bodySmall?.copyWith(
                     color: context.colors.textSecondary,
                   ),
@@ -216,136 +245,152 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: LineChart(
-            LineChartData(
-              minY: minY - yPadding,
-              maxY: maxY + yPadding,
-              clipData: const FlClipData.all(),
-              lineTouchData: LineTouchData(
-                enabled: true,
-                touchCallback: (event, response) {
-                  if (event is FlTapUpEvent ||
-                      event is FlPanEndEvent ||
-                      event is FlPointerExitEvent) {
-                    setState(() {
-                      _touchedPrice = null;
-                      _touchedIndex = null;
-                    });
-                    return;
-                  }
-                  final spots = response?.lineBarSpots;
-                  if (spots != null && spots.isNotEmpty) {
-                    setState(() {
-                      _touchedPrice = spots.first.y;
-                      _touchedIndex = spots.first.x.round();
-                    });
-                  }
-                },
-                getTouchedSpotIndicator: (barData, spotIndexes) {
-                  return spotIndexes.map((i) {
-                    return TouchedSpotIndicatorData(
-                      FlLine(
-                        color: lineColor.withValues(alpha: 0.5),
-                        strokeWidth: 1.5,
-                        dashArray: [4, 4],
-                      ),
-                      FlDotData(
-                        getDotPainter: (spot, percent, bar, index) {
-                          return FlDotCirclePainter(
-                            radius: 5,
-                            color: lineColor,
-                            strokeWidth: 2,
-                            strokeColor: colorScheme.surface,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: Motion.of(context, Motion.durationChartDraw),
+            curve: Motion.curveEnter,
+            builder: (context, reveal, child) => ClipRect(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                widthFactor: reveal,
+                child: child,
+              ),
+            ),
+            child: RepaintBoundary(
+              child: LineChart(
+                LineChartData(
+                  minY: minY - yPadding,
+                  maxY: maxY + yPadding,
+                  clipData: const FlClipData.all(),
+                  lineTouchData: LineTouchData(
+                    enabled: true,
+                    touchCallback: (event, response) {
+                      if (event is FlTapUpEvent ||
+                          event is FlPanEndEvent ||
+                          event is FlPointerExitEvent) {
+                        setState(() {
+                          _touchedPrice = null;
+                          _touchedIndex = null;
+                        });
+                        return;
+                      }
+                      final spots = response?.lineBarSpots;
+                      if (spots != null && spots.isNotEmpty) {
+                        setState(() {
+                          _touchedPrice = spots.first.y;
+                          _touchedIndex = spots.first.x.round();
+                        });
+                      }
+                    },
+                    getTouchedSpotIndicator: (barData, spotIndexes) {
+                      return spotIndexes.map((i) {
+                        return TouchedSpotIndicatorData(
+                          FlLine(
+                            color: lineColor.withValues(alpha: 0.5),
+                            strokeWidth: 1.5,
+                            dashArray: [4, 4],
+                          ),
+                          FlDotData(
+                            getDotPainter: (spot, percent, bar, index) {
+                              return FlDotCirclePainter(
+                                radius: 5,
+                                color: lineColor,
+                                strokeWidth: 2,
+                                strokeColor: colorScheme.surface,
+                              );
+                            },
+                          ),
+                        );
+                      }).toList();
+                    },
+                    // Tooltip is handled in the header row above; return null per
+                    // spot to satisfy the required same-length contract.
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipColor: (_) => Colors.transparent,
+                      getTooltipItems: (spots) =>
+                          spots.map((_) => null).toList(),
+                    ),
+                  ),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: true,
+                    horizontalInterval: yRange == 0 ? 100 : yRange / 4,
+                    verticalInterval: (klines.length / 6).ceilToDouble(),
+                    getDrawingHorizontalLine: (_) => FlLine(
+                      color: colorScheme.onSurface.withValues(alpha: 0.08),
+                      strokeWidth: 1,
+                    ),
+                    getDrawingVerticalLine: (_) => FlLine(
+                      color: colorScheme.onSurface.withValues(alpha: 0.08),
+                      strokeWidth: 1,
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 24,
+                        interval: 1,
+                        getTitlesWidget: (value, meta) {
+                          final idx = value.round();
+                          if (!labelIndices.contains(idx)) {
+                            return const SizedBox.shrink();
+                          }
+                          final time = _getTimestampForIndex(
+                            idx,
+                            klines.length,
+                            period,
+                          );
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              _formatAxisTime(time, period),
+                              style: textTheme.bodySmall?.copyWith(
+                                color: context.colors.textTertiary,
+                                fontSize: 10,
+                              ),
+                            ),
                           );
                         },
                       ),
-                    );
-                  }).toList();
-                },
-                // Tooltip is handled in the header row above; return null per
-                // spot to satisfy the required same-length contract.
-                touchTooltipData: LineTouchTooltipData(
-                  getTooltipColor: (_) => Colors.transparent,
-                  getTooltipItems: (spots) =>
-                      spots.map((_) => null).toList(),
-                ),
-              ),
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: true,
-                horizontalInterval: yRange == 0 ? 100 : yRange / 4,
-                verticalInterval: (klines.length / 6).ceilToDouble(),
-                getDrawingHorizontalLine: (_) => FlLine(
-                  color: colorScheme.onSurface.withValues(alpha: 0.08),
-                  strokeWidth: 1,
-                ),
-                getDrawingVerticalLine: (_) => FlLine(
-                  color: colorScheme.onSurface.withValues(alpha: 0.08),
-                  strokeWidth: 1,
-                ),
-              ),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                leftTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 24,
-                    interval: 1,
-                    getTitlesWidget: (value, meta) {
-                      final idx = value.round();
-                      if (!labelIndices.contains(idx)) {
-                        return const SizedBox.shrink();
-                      }
-                      final time = _getTimestampForIndex(
-                        idx,
-                        klines.length,
-                        widget.selectedPeriod,
-                      );
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          _formatAxisTime(time, widget.selectedPeriod),
-                          style: textTheme.bodySmall?.copyWith(
-                            color: context.colors.textTertiary,
-                            fontSize: 10,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  curveSmoothness: 0.3,
-                  color: lineColor,
-                  barWidth: 2.5,
-                  isStrokeCapRound: true,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        lineColor.withValues(alpha: 0.25),
-                        lineColor.withValues(alpha: 0.0),
-                      ],
                     ),
                   ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      curveSmoothness: 0.3,
+                      color: lineColor,
+                      barWidth: 2.5,
+                      isStrokeCapRound: true,
+                      dotData: const FlDotData(show: false),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            lineColor.withValues(alpha: 0.25),
+                            lineColor.withValues(alpha: 0.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+                duration: Motion.of(context, Motion.durationEmphasis),
+                curve: Motion.curveMove,
+              ),
             ),
           ),
         ),
@@ -357,6 +402,8 @@ class _AssetChartWidgetState extends ConsumerState<AssetChartWidget> {
     return Shimmer.fromColors(
       baseColor: context.colors.baseColor,
       highlightColor: context.colors.highlightColor,
+      period: Motion.durationShimmer,
+      enabled: !Motion.isReduced(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
