@@ -23,6 +23,8 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_p
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/text_button.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
@@ -229,7 +231,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         extendBody: true,
-        appBar: AppBar(
+        // The app bar and the body share the backdrop of the main screens.
+        extendBodyBehindAppBar: true,
+        appBar: BackdropAppBar(
           title: Text(t.swap_title),
           actions: [
             _FiatModeSwitch(
@@ -248,7 +252,12 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
             const SizedBox(width: 12),
           ],
         ),
-        body: Padding(
+        body: Stack(
+          children: [
+            const Positioned.fill(child: AppBackdrop()),
+            SafeArea(
+              bottom: false,
+              child: Padding(
           // No outer card surface — the From/To cards already carry
           // their own elevated surfaces. A third wrapper just stacked
           // surfaces and muddied the contrast in both themes.
@@ -468,6 +477,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
             ),
           ),
         ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -500,9 +512,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     }
     final theme = Theme.of(context);
 
-    return Container(
+    return GlassPanel(
       padding: const EdgeInsets.all(18),
-      decoration: _swapCardDecoration(context),
+      borderRadius: _swapCardRadius,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -843,9 +855,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
     final theme = Theme.of(context);
 
-    return Container(
+    return GlassPanel(
       padding: const EdgeInsets.all(18),
-      decoration: _swapCardDecoration(context),
+      borderRadius: _swapCardRadius,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1497,42 +1509,11 @@ class _FiatCentInputFormatter extends TextInputFormatter {
   }
 }
 
-/// Shared decoration for the swap-screen From/To cards. Mirrors the
-/// `_DealCard` in [ConfirmSwapBottomSheet] (rounded surface-elevated
-/// container with theme-tuned border + per-theme shadow) so the two
-/// screens read as a single design system.
-BoxDecoration _swapCardDecoration(BuildContext context) {
-  final theme = Theme.of(context);
-  final isDark = theme.brightness == Brightness.dark;
-  return BoxDecoration(
-    // Dark mode: drop one elevation step so the card lands close to the
-    // scaffold tone — `surfaceContainerHighest` rendered as a too-bright
-    // gray block against the near-black scaffold. Pair with a stronger
-    // border to keep edges defined.
-    // Light mode: keep the higher elevation; the contrast is correct.
-    color:
-        isDark
-            ? theme.colorScheme.surfaceContainerHigh
-            : theme.colorScheme.surfaceContainerHighest,
-    borderRadius: BorderRadius.circular(18),
-    border: Border.all(
-      color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.75 : 0.55),
-    ),
-    // Light mode keeps a soft drop shadow; in dark mode shadows on a
-    // dark scaffold are invisible, so the elevation cue lives in the
-    // brighter border instead.
-    boxShadow:
-        isDark
-            ? null
-            : [
-              BoxShadow(
-                color: theme.colorScheme.shadow.withValues(alpha: 0.08),
-                blurRadius: 14,
-                offset: const Offset(0, 3),
-              ),
-            ],
-  );
-}
+/// Corner radius of the swap-screen From/To cards.
+///
+/// The cards are Liquid Glass panels on the screen backdrop. They have no
+/// backdrop blur, because the backdrop does not move.
+const _swapCardRadius = BorderRadius.all(Radius.circular(18));
 
 /// Small uppercase label rendered at the top of a swap card (e.g.
 /// "VOCÊ ENVIA"). Matches the `_AmountRow` label treatment in the
@@ -1726,21 +1707,18 @@ class _SwapDirectionChipState extends State<_SwapDirectionChip>
             const SizedBox(width: 12),
             ScaleTransition(
               scale: _scale,
-              child: Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.32),
-                    width: 1,
+              // A glass circle, like the wallet actions. The brand color
+              // stays on the icon.
+              child: SizedBox.square(
+                dimension: 40,
+                child: LiquidGlass(
+                  blurBackdrop: false,
+                  child: Center(
+                    child: RotationTransition(
+                      turns: _turns,
+                      child: const _SwapIcon(),
+                    ),
                   ),
-                ),
-                child: RotationTransition(
-                  turns: _turns,
-                  child: const _SwapIcon(),
                 ),
               ),
             ),
@@ -1899,53 +1877,57 @@ class _CustomAssetDropdownState extends State<_CustomAssetDropdown> {
                   top: position.dy + size.height + 4.0,
                   child: GestureDetector(
                     onTap: () {},
-                    child: Material(
-                      elevation: 4.0,
-                      borderRadius: BorderRadius.circular(8),
-                      color: context.colors.backgroundColor,
-                      child: Container(
-                        width: dropdownWidth,
-                        constraints: BoxConstraints(
-                          maxHeight: maxHeight > 0 ? maxHeight + 10 : 100,
-                        ),
-                        child: ListView(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          children:
-                              widget.items.map((core.Asset asset) {
-                                return InkWell(
-                                  onTap: () {
-                                    widget.onChanged(asset);
-                                    _closeDropdown();
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 12,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        SvgPicture.asset(
-                                          asset.iconPath,
-                                          width: 20,
-                                          height: 20,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Flexible(
-                                          child: Text(
-                                            asset.ticker,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
+                    // An opaque glass menu: it covers the card below it.
+                    child: LiquidGlass(
+                      borderRadius: BorderRadius.circular(12),
+                      blurBackdrop: false,
+                      opaque: true,
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: Container(
+                          width: dropdownWidth,
+                          constraints: BoxConstraints(
+                            maxHeight: maxHeight > 0 ? maxHeight + 10 : 100,
+                          ),
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            children:
+                                widget.items.map((core.Asset asset) {
+                                  return InkWell(
+                                    onTap: () {
+                                      widget.onChanged(asset);
+                                      _closeDropdown();
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SvgPicture.asset(
+                                            asset.iconPath,
+                                            width: 20,
+                                            height: 20,
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(width: 12),
+                                          Flexible(
+                                            child: Text(
+                                              asset.ticker,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              }).toList(),
+                                  );
+                                }).toList(),
+                          ),
                         ),
                       ),
                     ),

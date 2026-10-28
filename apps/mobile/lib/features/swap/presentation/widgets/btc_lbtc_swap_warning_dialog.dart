@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 
 class BtcLbtcSwapWarningDialog extends StatefulWidget {
   const BtcLbtcSwapWarningDialog({super.key});
@@ -52,8 +53,8 @@ class _BtcLbtcSwapWarningDialogState extends State<BtcLbtcSwapWarningDialog> {
     final t = AppLocalizations.of(context);
     final bool isButtonEnabled = _secondsRemaining == 0;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return GlassAlertDialog(
+      borderRadius: const BorderRadius.all(Radius.circular(16)),
       title: Row(
         children: [
           Icon(Icons.swap_horiz, color: Colors.orange, size: 28),
