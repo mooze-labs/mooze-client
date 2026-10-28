@@ -92,10 +92,9 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
 
                         PrimaryButton(
                           text: t.delete_wallet_button,
-                          onPressed:
-                              (_trustAware && _recoveryAware)
-                                  ? () => _verifyAndDeleteWallet(context)
-                                  : null,
+                          onPressed: (_trustAware && _recoveryAware)
+                              ? () => _verifyAndDeleteWallet(context)
+                              : null,
                           isEnabled: _trustAware && _recoveryAware,
                         ),
                       ],
@@ -121,17 +120,17 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
           showDialog(
             context: context,
             barrierDismissible: false,
-            builder:
-                (dialogContext) => const PopScope(
-                  canPop: false,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+            builder: (dialogContext) => const PopScope(
+              canPop: false,
+              child: Center(child: CircularProgressIndicator()),
+            ),
           );
 
           ref.invalidate(pixRepositoryProvider);
 
-          final controller =
-              await ref.read(appLifecycleControllerProvider.future);
+          final controller = await ref.read(
+            appLifecycleControllerProvider.future,
+          );
           final result = await controller.deleteWalletAndReimport();
 
           // Close loading dialog using captured navigator
