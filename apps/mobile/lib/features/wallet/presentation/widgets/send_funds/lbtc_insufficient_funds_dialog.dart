@@ -1,10 +1,16 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Dialog shown when the user attempts to send DEPIX or USDT without
 /// sufficient L-BTC balance to cover network mining fees.
+///
+/// The dialog is opaque Liquid Glass. "Go to SWAP" is the main action.
 class LbtcInsufficientFundsDialog extends StatefulWidget {
   final Asset asset;
 
@@ -31,9 +37,8 @@ class _LbtcInsufficientFundsDialogState
   @override
   void initState() {
     super.initState();
-    _swapRecognizer =
-        TapGestureRecognizer()
-          ..onTap = () => Navigator.of(context).pop(true);
+    _swapRecognizer = TapGestureRecognizer()
+      ..onTap = () => Navigator.of(context).pop(true);
   }
 
   @override
@@ -45,69 +50,64 @@ class _LbtcInsufficientFundsDialogState
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final assetName = widget.asset == Asset.depix ? 'DePIX' : 'USDT';
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
+    return GlassAlertDialog(
+      title: Column(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: colorScheme.errorContainer.withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.account_balance_wallet_outlined,
-              color: colorScheme.error,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              t.wallet_send_lbtc_insufficient_title,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.wallet_send_lbtc_insufficient_body(assetName),
-            style: textTheme.bodyMedium?.copyWith(height: 1.5),
+          const PixIconWell(
+            icon: PixIcons.deposit,
+            tone: PixTone.warning,
+            size: 56,
           ),
           const SizedBox(height: 16),
-          _buildSwapOption(context, colorScheme, textTheme),
-          const SizedBox(height: 10),
-          _buildLightningOption(context, colorScheme, textTheme),
+          Text(
+            t.wallet_send_lbtc_insufficient_title,
+            textAlign: TextAlign.center,
+            style: context.textTheme.titleLarge?.copyWith(
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
-      actions: [
-        OutlinedButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t.wallet_send_lbtc_insufficient_body(assetName),
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
+                height: 1.5,
+              ),
             ),
+            const SizedBox(height: 16),
+            _buildSwapOption(context),
+            const SizedBox(height: 12),
+            _buildLightningOption(context),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          style: TextButton.styleFrom(
+            foregroundColor: context.colors.textPrimary,
+            minimumSize: const Size(64, 48),
           ),
           child: Text(t.common_understood),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
           style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            backgroundColor: context.colors.primaryColor,
+            foregroundColor: context.colorScheme.onPrimary,
+            minimumSize: const Size(64, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
           child: Text(t.wallet_send_lbtc_go_swap),
@@ -116,33 +116,30 @@ class _LbtcInsufficientFundsDialogState
     );
   }
 
-  Widget _buildSwapOption(
-    BuildContext context,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-  ) {
+  TextStyle? _optionStyle(BuildContext context) => context.textTheme.bodySmall
+      ?.copyWith(color: context.colors.textSecondary, height: 1.4);
+
+  Widget _buildSwapOption(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildIconBadge(colorScheme, Icons.swap_horiz),
-        const SizedBox(width: 10),
+        const PixIconWell(icon: PixIcons.exchange, size: 36),
+        const SizedBox(width: 12),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.only(top: 8),
             child: RichText(
+              textScaler: MediaQuery.textScalerOf(context),
               text: TextSpan(
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.85),
-                  height: 1.4,
-                ),
+                style: _optionStyle(context),
                 children: [
                   TextSpan(text: t.wallet_send_lbtc_insufficient_swap_prefix),
                   TextSpan(
                     text: 'SWAP',
                     style: TextStyle(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.bold,
+                      color: context.colors.textPrimary,
+                      fontWeight: FontWeight.w700,
                       decoration: TextDecoration.underline,
                     ),
                     // Reuses the state-managed recognizer — no leak
@@ -158,42 +155,23 @@ class _LbtcInsufficientFundsDialogState
     );
   }
 
-  Widget _buildLightningOption(
-    BuildContext context,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-  ) {
+  Widget _buildLightningOption(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildIconBadge(colorScheme, Icons.bolt),
-        const SizedBox(width: 10),
+        const PixIconWell(icon: PixIcons.fast, size: 36),
+        const SizedBox(width: 12),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.only(top: 8),
             child: Text(
               t.wallet_send_lbtc_insufficient_lightning,
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.85),
-                height: 1.4,
-              ),
+              style: _optionStyle(context),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildIconBadge(ColorScheme colorScheme, IconData icon) {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.12),
-        shape: BoxShape.circle,
-      ),
-      child: Center(child: Icon(icon, size: 16, color: colorScheme.primary)),
     );
   }
 }

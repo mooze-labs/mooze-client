@@ -9,13 +9,14 @@ export 'fee_estimation_widget.dart';
 export 'fee_speed_selection_widget.dart';
 export 'lbtc_disclaimer_dialog.dart';
 export 'lbtc_zero_balance_banner.dart';
-export 'lbtc_fee_warning_badge.dart'; // exports LbtcFeeInfoButton and LbtcFeeWarningBadge
+export 'lbtc_fee_warning_badge.dart'; // exports LbtcFeeInfoButton
 export 'lbtc_insufficient_funds_dialog.dart';
 export 'network_indicator_widget.dart';
 export 'pre_defined_amount_widget.dart';
 export 'review_button.dart';
 export 'section_label.dart';
 export 'send_conversion_widgets.dart';
+export 'send_flow_parts.dart';
 export 'validation_errors_widget.dart';
 export 'transaction_card.dart';
 export 'clipboard_address_suggestion.dart';

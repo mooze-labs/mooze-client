@@ -1,51 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Always-visible AppBar info button — mirrors the PIX screen's info button.
-/// Explains why L-BTC is required and offers a shortcut to SWAP.
+/// Info button of the send screen app bar. It is always visible.
+///
+/// It opens a floating glass sheet, as the info button of the receive
+/// screen does. The sheet tells why a send needs L-BTC for the network
+/// fee and has a shortcut to the swap screen.
 class LbtcFeeInfoButton extends StatelessWidget {
   const LbtcFeeInfoButton({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return IconButton(
       onPressed: () => _showLbtcInfo(context),
-      icon: const Icon(Icons.info_outline_rounded),
+      tooltip: t.wallet_send_lbtc_info_title,
+      icon: PixIcon(PixIcons.info, size: 22, color: context.colors.textPrimary),
     );
   }
 
   void _showLbtcInfo(BuildContext context) {
     final t = AppLocalizations.of(context);
-    InfoOverlay.show(
+    showGlassInfoSheet(
       context,
       title: t.wallet_send_lbtc_info_title,
       steps: [
-        InfoStep(
-          icon: Icons.account_balance_wallet_outlined,
-          title: t.wallet_send_lbtc_info_step1_title,
-          description: t.wallet_send_lbtc_info_step1_desc,
+        (
+          t.wallet_send_lbtc_info_step1_title,
+          t.wallet_send_lbtc_info_step1_desc,
         ),
-        InfoStep(
-          icon: Icons.swap_horiz,
-          title: t.wallet_send_lbtc_obtain_title,
-          description: t.wallet_send_lbtc_obtain_desc_info,
-        ),
-        InfoStep(
-          icon: Icons.bolt,
-          title: t.wallet_send_lbtc_info_step3_title,
-          description: t.wallet_send_lbtc_info_step3_desc,
+        (t.wallet_send_lbtc_obtain_title, t.wallet_send_lbtc_obtain_desc_info),
+        (
+          t.wallet_send_lbtc_info_step3_title,
+          t.wallet_send_lbtc_info_step3_desc,
         ),
       ],
-      footerBuilder:
-          (closeOverlay) => SecondaryButton(
-            text: t.wallet_send_lbtc_go_swap,
-            onPressed: () {
-              closeOverlay();
-              context.go('/swap');
-            },
-          ),
+      actionLabel: t.wallet_send_lbtc_go_swap,
+      onAction: () => context.go('/swap'),
     );
   }
 }

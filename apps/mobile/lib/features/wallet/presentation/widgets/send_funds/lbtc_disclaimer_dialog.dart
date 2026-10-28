@@ -2,10 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+
+import 'send_flow_parts.dart';
 
 /// One-time disclaimer shown on the first access to the Send screen.
 /// Informs users that L-BTC is required to pay network mining fees.
+///
+/// The dialog is opaque Liquid Glass. The confirm button unlocks after a
+/// short countdown, so the user reads the text first.
 class LbtcDisclaimerDialog extends StatefulWidget {
   const LbtcDisclaimerDialog({super.key});
 
@@ -31,8 +41,8 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
     super.initState();
     _startTimer();
     // Navigate to swap and close dialog when SWAP link is tapped
-    _swapRecognizer =
-        TapGestureRecognizer()..onTap = () => Navigator.of(context).pop(true);
+    _swapRecognizer = TapGestureRecognizer()
+      ..onTap = () => Navigator.of(context).pop(true);
   }
 
   void _startTimer() {
@@ -57,128 +67,110 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final ready = _secondsRemaining == 0;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children: [
-          Icon(Icons.info_outline, color: colorScheme.primary, size: 28),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              t.wallet_send_lbtc_disclaimer_title,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.wallet_send_lbtc_disclaimer_body,
-            style: textTheme.bodyMedium?.copyWith(height: 1.5),
-          ),
-          const SizedBox(height: 16),
-          _buildInfoItem(
-            colorScheme,
-            Icons.bolt,
-            t.wallet_send_lbtc_network_fees_title,
-            t.wallet_send_lbtc_network_fees_desc,
-          ),
-          const SizedBox(height: 12),
-          _buildInfoItem(
-            colorScheme,
-            Icons.swap_horiz,
-            t.wallet_send_lbtc_obtain_title,
-            t.wallet_send_lbtc_obtain_desc_disclaimer,
-            highlightText: 'SWAP',
-            highlightRecognizer: _swapRecognizer,
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.lightbulb_outline, color: colorScheme.primary, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    t.wallet_send_lbtc_disclaimer_tip,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.8),
-                      height: 1.4,
+    return GlassDialog(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Center(
+                      child: PixIconWell(icon: PixIcons.info, size: 56),
                     ),
-                  ),
+                    const SizedBox(height: 18),
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        t.wallet_send_lbtc_disclaimer_title,
+                        textAlign: TextAlign.center,
+                        style: context.textTheme.titleLarge?.copyWith(
+                          color: context.colors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      t.wallet_send_lbtc_disclaimer_body,
+                      textAlign: TextAlign.center,
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: context.colors.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildInfoItem(
+                      PixIcons.fast,
+                      t.wallet_send_lbtc_network_fees_title,
+                      t.wallet_send_lbtc_network_fees_desc,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildInfoItem(
+                      PixIcons.exchange,
+                      t.wallet_send_lbtc_obtain_title,
+                      t.wallet_send_lbtc_obtain_desc_disclaimer,
+                      highlightText: 'SWAP',
+                      highlightRecognizer: _swapRecognizer,
+                    ),
+                    const SizedBox(height: 18),
+                    SendNotice(
+                      icon: PixIcons.info,
+                      message: t.wallet_send_lbtc_disclaimer_tip,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed:
-                _secondsRemaining == 0
-                    ? () => Navigator.of(context).pop(false)
-                    : null,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: Text(
-              _secondsRemaining == 0
+            const SizedBox(height: 20),
+            PrimaryButton(
+              text: ready
                   ? t.common_understood
                   : t.wallet_send_lbtc_disclaimer_understood_countdown(
-                    _secondsRemaining,
-                  ),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                      _secondsRemaining,
+                    ),
+              isEnabled: ready,
+              onPressed: ready ? () => Navigator.of(context).pop(false) : null,
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildInfoItem(
-    ColorScheme colorScheme,
-    IconData icon,
+    PixIconData icon,
     String title,
     String description, {
     String? highlightText,
     TapGestureRecognizer? highlightRecognizer,
   }) {
     final textTheme = Theme.of(context).textTheme;
+    final descriptionStyle = textTheme.bodySmall?.copyWith(
+      color: context.colors.textSecondary,
+      height: 1.4,
+    );
 
     Widget descriptionWidget;
     if (highlightText != null && description.contains(highlightText)) {
       final parts = description.split(highlightText);
       descriptionWidget = RichText(
+        textScaler: MediaQuery.textScalerOf(context),
         text: TextSpan(
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurface.withValues(alpha: 0.8),
-            height: 1.4,
-          ),
+          style: descriptionStyle,
           children: [
             TextSpan(text: parts[0]),
             TextSpan(
               text: highlightText,
               style: TextStyle(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.bold,
+                color: context.colors.textPrimary,
+                fontWeight: FontWeight.w700,
                 decoration: TextDecoration.underline,
               ),
               recognizer: highlightRecognizer,
@@ -188,29 +180,13 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
         ),
       );
     } else {
-      descriptionWidget = Text(
-        description,
-        style: textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurface.withValues(alpha: 0.8),
-          height: 1.4,
-        ),
-      );
+      descriptionWidget = Text(description, style: descriptionStyle);
     }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: colorScheme.primary.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Icon(icon, size: 18, color: colorScheme.primary),
-          ),
-        ),
+        PixIconWell(icon: icon, size: 36),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -218,9 +194,9 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
             children: [
               Text(
                 title,
-                style: textTheme.bodySmall?.copyWith(
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
