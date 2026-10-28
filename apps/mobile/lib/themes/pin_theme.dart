@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 import 'app_extra_colors.dart';
+import 'app_text_styles.dart';
 
 /// Produces [PinTheme] instances for the [Pinput] widget using active theme
 /// tokens instead of hardcoded colors.
@@ -42,7 +43,7 @@ class PinThemes {
       // Use onSurface with reduced opacity to give the 'white60' look
       // in dark mode while still being readable in light mode.
       color: colorScheme.onSurface.withValues(alpha: 0.6),
-      fontFamily: "roboto",
+      fontFamily: AppTextStyles.fontFamily,
     ),
     decoration: BoxDecoration(
       border: Border.all(color: colorScheme.primary),
@@ -96,7 +97,7 @@ class PinThemes {
     textStyle: TextStyle(
       fontSize: 20,
       color: extraColors.textTertiary,
-      fontFamily: "roboto",
+      fontFamily: AppTextStyles.fontFamily,
     ),
     decoration: BoxDecoration(
       border: Border.all(color: extraColors.textTertiary),

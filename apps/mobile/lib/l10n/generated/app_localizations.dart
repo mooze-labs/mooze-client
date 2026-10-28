@@ -238,6 +238,12 @@ abstract class AppLocalizations {
   /// **'Menu'**
   String get nav_menu;
 
+  /// No description provided for @nav_pix.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pix'**
+  String get nav_pix;
+
   /// No description provided for @onboarding_get_started.
   ///
   /// In pt, this message translates to:
@@ -6232,6 +6238,114 @@ abstract class AppLocalizations {
   /// **'Gerar QR Code'**
   String get merchant_generate_qr;
 
+  /// No description provided for @merchant_payment_method_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como o cliente vai pagar?'**
+  String get merchant_payment_method_title;
+
+  /// No description provided for @merchant_payment_method_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha uma opção para continuar.'**
+  String get merchant_payment_method_subtitle;
+
+  /// No description provided for @merchant_payment_method_qr_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'QR Code Pix'**
+  String get merchant_payment_method_qr_title;
+
+  /// No description provided for @merchant_payment_method_qr_description.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostre o QR Code. O cliente paga no app do banco.'**
+  String get merchant_payment_method_qr_description;
+
+  /// No description provided for @merchant_payment_method_link_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link de pagamento'**
+  String get merchant_payment_method_link_title;
+
+  /// No description provided for @merchant_payment_method_link_description.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gere um link para o cliente pagar de onde estiver.'**
+  String get merchant_payment_method_link_description;
+
+  /// No description provided for @merchant_payment_method_tag_instant.
+  ///
+  /// In pt, this message translates to:
+  /// **'Na hora'**
+  String get merchant_payment_method_tag_instant;
+
+  /// No description provided for @merchant_payment_method_tag_cpf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pede CPF'**
+  String get merchant_payment_method_tag_cpf;
+
+  /// No description provided for @merchant_payment_method_tag_remote.
+  ///
+  /// In pt, this message translates to:
+  /// **'À distância'**
+  String get merchant_payment_method_tag_remote;
+
+  /// No description provided for @merchant_payment_method_tag_browser.
+  ///
+  /// In pt, this message translates to:
+  /// **'No navegador'**
+  String get merchant_payment_method_tag_browser;
+
+  /// No description provided for @merchant_payment_receive_in.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você recebe em {asset}'**
+  String merchant_payment_receive_in(String asset);
+
+  /// No description provided for @merchant_payment_link_scan_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O cliente escaneia o QR Code com a câmera do celular e paga pelo navegador.'**
+  String get merchant_payment_link_scan_hint;
+
+  /// No description provided for @merchant_payment_link_share.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar link'**
+  String get merchant_payment_link_share;
+
+  /// No description provided for @merchant_payment_link_creating.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerando link de pagamento...'**
+  String get merchant_payment_link_creating;
+
+  /// No description provided for @merchant_payment_link_open.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir no navegador'**
+  String get merchant_payment_link_open;
+
+  /// No description provided for @merchant_payment_link_open_failed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível abrir o navegador.'**
+  String get merchant_payment_link_open_failed;
+
+  /// No description provided for @merchant_payment_link_share_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pague {amount} com Pix: {url}'**
+  String merchant_payment_link_share_message(String amount, String url);
+
+  /// No description provided for @merchant_payment_link_done.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concluir venda'**
+  String get merchant_payment_link_done;
+
   /// No description provided for @merchant_validation_min_amount.
   ///
   /// In pt, this message translates to:
@@ -6273,6 +6387,48 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'x{qty}'**
   String merchant_qty_prefix(int qty);
+
+  /// No description provided for @merchant_tutorial_skip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pular'**
+  String get merchant_tutorial_skip;
+
+  /// No description provided for @merchant_total_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Total da venda'**
+  String get merchant_total_label;
+
+  /// No description provided for @merchant_edit_action.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar'**
+  String get merchant_edit_action;
+
+  /// No description provided for @merchant_clear_cart_confirm_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar carrinho?'**
+  String get merchant_clear_cart_confirm_title;
+
+  /// No description provided for @merchant_clear_cart_confirm_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os itens desta venda serão removidos.'**
+  String get merchant_clear_cart_confirm_body;
+
+  /// No description provided for @merchant_product_name_required.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe o nome do produto.'**
+  String get merchant_product_name_required;
+
+  /// No description provided for @merchant_product_price_required.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe um preço maior que zero.'**
+  String get merchant_product_price_required;
 
   /// No description provided for @common_error.
   ///
@@ -6507,6 +6663,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Informações Importantes'**
   String get pix_fees_screen_footer_title;
+
+  /// No description provided for @pix_fees_back_to_top.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar ao topo'**
+  String get pix_fees_back_to_top;
 
   /// No description provided for @pix_fees_screen_footer_info_1.
   ///
@@ -7996,6 +8158,72 @@ abstract class AppLocalizations {
   /// **'Ver mais'**
   String get wallet_section_see_more;
 
+  /// No description provided for @wallet_holding_allocation_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Distribuição'**
+  String get wallet_holding_allocation_title;
+
+  /// No description provided for @wallet_tx_date_today.
+  ///
+  /// In pt, this message translates to:
+  /// **'Hoje'**
+  String get wallet_tx_date_today;
+
+  /// No description provided for @wallet_tx_date_yesterday.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ontem'**
+  String get wallet_tx_date_yesterday;
+
+  /// No description provided for @wallet_action_more.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais'**
+  String get wallet_action_more;
+
+  /// No description provided for @wallet_more_sheet_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais ações'**
+  String get wallet_more_sheet_title;
+
+  /// No description provided for @wallet_more_buy_pix.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comprar com PIX'**
+  String get wallet_more_buy_pix;
+
+  /// No description provided for @wallet_balance_show.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostrar saldo'**
+  String get wallet_balance_show;
+
+  /// No description provided for @wallet_balance_hide.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ocultar saldo'**
+  String get wallet_balance_hide;
+
+  /// No description provided for @wallet_balance_hidden.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo oculto'**
+  String get wallet_balance_hidden;
+
+  /// No description provided for @wallet_balance_change_unit_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterar unidade'**
+  String get wallet_balance_change_unit_hint;
+
+  /// No description provided for @wallet_amount_hidden.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor oculto'**
+  String get wallet_amount_hidden;
+
   /// No description provided for @wallet_tx_sent.
   ///
   /// In pt, this message translates to:
@@ -9315,6 +9543,1914 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível atualizar a preferência de dados de uso. Tente novamente.'**
   String get analytics_save_error;
+
+  /// No description provided for @pix_hub_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Área Pix'**
+  String get pix_hub_title;
+
+  /// No description provided for @pix_hub_demo_badge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Demonstração'**
+  String get pix_hub_demo_badge;
+
+  /// No description provided for @pix_hub_demo_badge_semantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conteúdo de demonstração'**
+  String get pix_hub_demo_badge_semantics;
+
+  /// No description provided for @pix_hub_demo_notice_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo demonstração'**
+  String get pix_hub_demo_notice_title;
+
+  /// No description provided for @pix_hub_demo_notice_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviar, receber, chaves, links e histórico usam dados fictícios. Nenhum valor sai da sua conta. Apenas o depósito na carteira usa o serviço real da Mooze.'**
+  String get pix_hub_demo_notice_body;
+
+  /// No description provided for @pix_hub_shortcut_send.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviar'**
+  String get pix_hub_shortcut_send;
+
+  /// No description provided for @pix_hub_shortcut_receive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receber'**
+  String get pix_hub_shortcut_receive;
+
+  /// No description provided for @pix_hub_shortcut_deposit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Depositar'**
+  String get pix_hub_shortcut_deposit;
+
+  /// No description provided for @pix_hub_more_operations.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais operações'**
+  String get pix_hub_more_operations;
+
+  /// No description provided for @pix_hub_action_pay_key.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagar com chave Pix'**
+  String get pix_hub_action_pay_key;
+
+  /// No description provided for @pix_hub_action_pay_key_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe CPF, CNPJ, celular, e-mail ou chave aleatória.'**
+  String get pix_hub_action_pay_key_subtitle;
+
+  /// No description provided for @pix_hub_action_pay_qr.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagar com QR Code'**
+  String get pix_hub_action_pay_qr;
+
+  /// No description provided for @pix_hub_action_pay_qr_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Use a câmera para ler o código.'**
+  String get pix_hub_action_pay_qr_subtitle;
+
+  /// No description provided for @pix_hub_action_copy_paste.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pix Copia e Cola'**
+  String get pix_hub_action_copy_paste;
+
+  /// No description provided for @pix_hub_action_copy_paste_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cole o código da cobrança.'**
+  String get pix_hub_action_copy_paste_subtitle;
+
+  /// No description provided for @pix_hub_action_links.
+  ///
+  /// In pt, this message translates to:
+  /// **'Links de pagamento'**
+  String get pix_hub_action_links;
+
+  /// No description provided for @pix_hub_action_links_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Crie e compartilhe cobranças.'**
+  String get pix_hub_action_links_subtitle;
+
+  /// No description provided for @pix_hub_action_keys.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minhas chaves Pix'**
+  String get pix_hub_action_keys;
+
+  /// No description provided for @pix_hub_action_keys_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja, copie e compartilhe suas chaves.'**
+  String get pix_hub_action_keys_subtitle;
+
+  /// No description provided for @pix_hub_action_history.
+  ///
+  /// In pt, this message translates to:
+  /// **'Histórico Pix'**
+  String get pix_hub_action_history;
+
+  /// No description provided for @pix_hub_action_history_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja apenas movimentações Pix.'**
+  String get pix_hub_action_history_subtitle;
+
+  /// No description provided for @pix_hub_recent_recipients.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contatos recentes'**
+  String get pix_hub_recent_recipients;
+
+  /// No description provided for @pix_hub_view_all.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver todos'**
+  String get pix_hub_view_all;
+
+  /// No description provided for @pix_hub_pending_links.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cobranças pendentes'**
+  String get pix_hub_pending_links;
+
+  /// No description provided for @pix_hub_recent_activity.
+  ///
+  /// In pt, this message translates to:
+  /// **'Últimas movimentações'**
+  String get pix_hub_recent_activity;
+
+  /// No description provided for @pix_hub_manage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerenciar'**
+  String get pix_hub_manage;
+
+  /// No description provided for @pix_hub_empty_recipients_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum contato recente'**
+  String get pix_hub_empty_recipients_title;
+
+  /// No description provided for @pix_hub_empty_recipients_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os contatos aparecem aqui depois do primeiro pagamento.'**
+  String get pix_hub_empty_recipients_body;
+
+  /// No description provided for @pix_hub_empty_links_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma cobrança pendente'**
+  String get pix_hub_empty_links_title;
+
+  /// No description provided for @pix_hub_empty_links_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Crie um link de pagamento para receber de outra pessoa.'**
+  String get pix_hub_empty_links_body;
+
+  /// No description provided for @pix_hub_empty_transactions_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma movimentação Pix'**
+  String get pix_hub_empty_transactions_title;
+
+  /// No description provided for @pix_hub_empty_transactions_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'As movimentações aparecem aqui depois da primeira operação.'**
+  String get pix_hub_empty_transactions_body;
+
+  /// No description provided for @pix_hub_empty_keys_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma chave cadastrada'**
+  String get pix_hub_empty_keys_title;
+
+  /// No description provided for @pix_hub_empty_keys_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'O cadastro de chaves depende de um serviço Pix que a Mooze ainda não possui.'**
+  String get pix_hub_empty_keys_body;
+
+  /// No description provided for @pix_hub_error_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar'**
+  String get pix_hub_error_title;
+
+  /// No description provided for @pix_hub_error_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Verifique a conexão e tente novamente.'**
+  String get pix_hub_error_body;
+
+  /// No description provided for @pix_hub_menu_fees.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver taxas'**
+  String get pix_hub_menu_fees;
+
+  /// No description provided for @pix_hub_menu_empty_preview_on.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver estados vazios'**
+  String get pix_hub_menu_empty_preview_on;
+
+  /// No description provided for @pix_hub_menu_empty_preview_off.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostrar dados de demonstração'**
+  String get pix_hub_menu_empty_preview_off;
+
+  /// No description provided for @pix_hub_send_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviar Pix'**
+  String get pix_hub_send_title;
+
+  /// No description provided for @pix_hub_key_input_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Qual é a chave Pix?'**
+  String get pix_hub_key_input_title;
+
+  /// No description provided for @pix_hub_key_input_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'A Mooze aceita CPF, CNPJ, celular, e-mail e chave aleatória. O aplicativo confere apenas o formato.'**
+  String get pix_hub_key_input_hint;
+
+  /// No description provided for @pix_hub_key_input_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave Pix'**
+  String get pix_hub_key_input_label;
+
+  /// No description provided for @pix_hub_key_input_placeholder.
+  ///
+  /// In pt, this message translates to:
+  /// **'exemplo@email.com'**
+  String get pix_hub_key_input_placeholder;
+
+  /// No description provided for @pix_hub_key_detected.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formato reconhecido: {type}.'**
+  String pix_hub_key_detected(String type);
+
+  /// No description provided for @pix_hub_key_error_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe a chave Pix.'**
+  String get pix_hub_key_error_empty;
+
+  /// No description provided for @pix_hub_key_error_unrecognized.
+  ///
+  /// In pt, this message translates to:
+  /// **'A chave não corresponde a nenhum formato Pix.'**
+  String get pix_hub_key_error_unrecognized;
+
+  /// No description provided for @pix_hub_key_error_document.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os dígitos verificadores do CPF ou do CNPJ não conferem.'**
+  String get pix_hub_key_error_document;
+
+  /// No description provided for @pix_hub_key_error_phone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe o celular com DDI e DDD. Exemplo: +5511999990000.'**
+  String get pix_hub_key_error_phone;
+
+  /// No description provided for @pix_hub_key_error_email.
+  ///
+  /// In pt, this message translates to:
+  /// **'O e-mail é inválido.'**
+  String get pix_hub_key_error_email;
+
+  /// No description provided for @pix_hub_key_error_random.
+  ///
+  /// In pt, this message translates to:
+  /// **'A chave aleatória tem 32 caracteres e quatro hífens.'**
+  String get pix_hub_key_error_random;
+
+  /// No description provided for @pix_hub_key_type_cpf.
+  ///
+  /// In pt, this message translates to:
+  /// **'CPF'**
+  String get pix_hub_key_type_cpf;
+
+  /// No description provided for @pix_hub_key_type_cnpj.
+  ///
+  /// In pt, this message translates to:
+  /// **'CNPJ'**
+  String get pix_hub_key_type_cnpj;
+
+  /// No description provided for @pix_hub_key_type_phone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Celular'**
+  String get pix_hub_key_type_phone;
+
+  /// No description provided for @pix_hub_key_type_email.
+  ///
+  /// In pt, this message translates to:
+  /// **'E-mail'**
+  String get pix_hub_key_type_email;
+
+  /// No description provided for @pix_hub_key_type_random.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave aleatória'**
+  String get pix_hub_key_type_random;
+
+  /// No description provided for @pix_hub_code_input_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cole o código Pix'**
+  String get pix_hub_code_input_title;
+
+  /// No description provided for @pix_hub_code_input_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'A Mooze confere a estrutura e o dígito de verificação do código. Essa checagem não confirma que a cobrança existe.'**
+  String get pix_hub_code_input_hint;
+
+  /// No description provided for @pix_hub_code_input_placeholder.
+  ///
+  /// In pt, this message translates to:
+  /// **'00020126...'**
+  String get pix_hub_code_input_placeholder;
+
+  /// No description provided for @pix_hub_code_paste.
+  ///
+  /// In pt, this message translates to:
+  /// **'Colar'**
+  String get pix_hub_code_paste;
+
+  /// No description provided for @pix_hub_code_sample.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar código de demonstração'**
+  String get pix_hub_code_sample;
+
+  /// No description provided for @pix_hub_code_read_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dados lidos do código'**
+  String get pix_hub_code_read_title;
+
+  /// No description provided for @pix_hub_code_local_check_warning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os dados vêm do próprio código. A Mooze não consultou nenhuma instituição.'**
+  String get pix_hub_code_local_check_warning;
+
+  /// No description provided for @pix_hub_code_clipboard_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'A área de transferência está vazia.'**
+  String get pix_hub_code_clipboard_empty;
+
+  /// No description provided for @pix_hub_code_copied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Código copiado.'**
+  String get pix_hub_code_copied;
+
+  /// No description provided for @pix_hub_code_error_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe o código Pix.'**
+  String get pix_hub_code_error_empty;
+
+  /// No description provided for @pix_hub_code_error_short.
+  ///
+  /// In pt, this message translates to:
+  /// **'O código é curto demais.'**
+  String get pix_hub_code_error_short;
+
+  /// No description provided for @pix_hub_code_error_malformed.
+  ///
+  /// In pt, this message translates to:
+  /// **'O código não segue o padrão Pix.'**
+  String get pix_hub_code_error_malformed;
+
+  /// No description provided for @pix_hub_code_error_not_pix.
+  ///
+  /// In pt, this message translates to:
+  /// **'O código não é uma cobrança Pix.'**
+  String get pix_hub_code_error_not_pix;
+
+  /// No description provided for @pix_hub_code_error_checksum.
+  ///
+  /// In pt, this message translates to:
+  /// **'O dígito de verificação do código não confere.'**
+  String get pix_hub_code_error_checksum;
+
+  /// No description provided for @pix_hub_scan_permission_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Câmera bloqueada'**
+  String get pix_hub_scan_permission_title;
+
+  /// No description provided for @pix_hub_scan_permission_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Libere o acesso à câmera para ler o QR Code.'**
+  String get pix_hub_scan_permission_body;
+
+  /// No description provided for @pix_hub_scan_open_settings.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir ajustes'**
+  String get pix_hub_scan_open_settings;
+
+  /// No description provided for @pix_hub_scan_unavailable_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Câmera indisponível'**
+  String get pix_hub_scan_unavailable_title;
+
+  /// No description provided for @pix_hub_scan_unavailable_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Use o Pix Copia e Cola.'**
+  String get pix_hub_scan_unavailable_body;
+
+  /// No description provided for @pix_hub_scan_demo_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem câmera disponível? Use o código de demonstração para testar o fluxo.'**
+  String get pix_hub_scan_demo_hint;
+
+  /// No description provided for @pix_hub_amount_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor'**
+  String get pix_hub_amount_title;
+
+  /// No description provided for @pix_hub_amount_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor do Pix'**
+  String get pix_hub_amount_label;
+
+  /// No description provided for @pix_hub_amount_error_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe um valor maior que zero.'**
+  String get pix_hub_amount_error_empty;
+
+  /// No description provided for @pix_hub_amount_error_max.
+  ///
+  /// In pt, this message translates to:
+  /// **'O valor máximo é {amount}.'**
+  String pix_hub_amount_error_max(String amount);
+
+  /// No description provided for @pix_hub_amount_fixed_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O código já define o valor da cobrança.'**
+  String get pix_hub_amount_fixed_hint;
+
+  /// No description provided for @pix_hub_description_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descrição (opcional)'**
+  String get pix_hub_description_label;
+
+  /// No description provided for @pix_hub_description_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mensagem para quem recebe'**
+  String get pix_hub_description_hint;
+
+  /// No description provided for @pix_hub_review_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Revisar pagamento'**
+  String get pix_hub_review_title;
+
+  /// No description provided for @pix_hub_review_amount_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você vai enviar'**
+  String get pix_hub_review_amount_label;
+
+  /// No description provided for @pix_hub_review_confirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar e pagar'**
+  String get pix_hub_review_confirm;
+
+  /// No description provided for @pix_hub_review_disclaimer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao confirmar, sua carteira envia o valor em DePix ao provedor Pix. Não é possível desfazer esta transferência.'**
+  String get pix_hub_review_disclaimer;
+
+  /// No description provided for @pix_hub_result_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Resultado'**
+  String get pix_hub_result_title;
+
+  /// No description provided for @pix_hub_result_success_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagamento enviado!'**
+  String get pix_hub_result_success_title;
+
+  /// No description provided for @pix_hub_result_success_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'O registro entrou no histórico de demonstração. Nenhum valor foi transferido.'**
+  String get pix_hub_result_success_body;
+
+  /// No description provided for @pix_hub_result_failure_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagamento simulado recusado'**
+  String get pix_hub_result_failure_title;
+
+  /// No description provided for @pix_hub_result_disclaimer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta tela é uma demonstração. Ela não comprova uma transação financeira.'**
+  String get pix_hub_result_disclaimer;
+
+  /// No description provided for @pix_hub_result_try_again.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar outro valor'**
+  String get pix_hub_result_try_again;
+
+  /// No description provided for @pix_hub_flow_expired.
+  ///
+  /// In pt, this message translates to:
+  /// **'O fluxo foi reiniciado. Comece outra vez.'**
+  String get pix_hub_flow_expired;
+
+  /// No description provided for @pix_hub_back_to_hub.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar ao Pix'**
+  String get pix_hub_back_to_hub;
+
+  /// No description provided for @pix_hub_summary_recipient.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para'**
+  String get pix_hub_summary_recipient;
+
+  /// No description provided for @pix_hub_summary_payer.
+  ///
+  /// In pt, this message translates to:
+  /// **'De'**
+  String get pix_hub_summary_payer;
+
+  /// No description provided for @pix_hub_summary_institution.
+  ///
+  /// In pt, this message translates to:
+  /// **'Instituição'**
+  String get pix_hub_summary_institution;
+
+  /// No description provided for @pix_hub_summary_document.
+  ///
+  /// In pt, this message translates to:
+  /// **'Documento'**
+  String get pix_hub_summary_document;
+
+  /// No description provided for @pix_hub_summary_method.
+  ///
+  /// In pt, this message translates to:
+  /// **'Forma de envio'**
+  String get pix_hub_summary_method;
+
+  /// No description provided for @pix_hub_summary_description.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descrição'**
+  String get pix_hub_summary_description;
+
+  /// No description provided for @pix_hub_summary_amount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor'**
+  String get pix_hub_summary_amount;
+
+  /// No description provided for @pix_hub_summary_date.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data'**
+  String get pix_hub_summary_date;
+
+  /// No description provided for @pix_hub_summary_reference.
+  ///
+  /// In pt, this message translates to:
+  /// **'Identificador'**
+  String get pix_hub_summary_reference;
+
+  /// No description provided for @pix_hub_summary_status.
+  ///
+  /// In pt, this message translates to:
+  /// **'Status'**
+  String get pix_hub_summary_status;
+
+  /// No description provided for @pix_hub_summary_type.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo'**
+  String get pix_hub_summary_type;
+
+  /// No description provided for @pix_hub_summary_city.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cidade'**
+  String get pix_hub_summary_city;
+
+  /// No description provided for @pix_hub_summary_created_at.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criada em'**
+  String get pix_hub_summary_created_at;
+
+  /// No description provided for @pix_hub_summary_expires_at.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expira em'**
+  String get pix_hub_summary_expires_at;
+
+  /// No description provided for @pix_hub_method_key.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave Pix'**
+  String get pix_hub_method_key;
+
+  /// No description provided for @pix_hub_method_qr.
+  ///
+  /// In pt, this message translates to:
+  /// **'QR Code'**
+  String get pix_hub_method_qr;
+
+  /// No description provided for @pix_hub_method_copy_paste.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copia e Cola'**
+  String get pix_hub_method_copy_paste;
+
+  /// No description provided for @pix_hub_method_recent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contato recente'**
+  String get pix_hub_method_recent;
+
+  /// No description provided for @pix_hub_receive_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receber Pix'**
+  String get pix_hub_receive_title;
+
+  /// No description provided for @pix_hub_receive_from_others.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receber de outra pessoa'**
+  String get pix_hub_receive_from_others;
+
+  /// No description provided for @pix_hub_receive_create_charge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criar cobrança'**
+  String get pix_hub_receive_create_charge;
+
+  /// No description provided for @pix_hub_receive_create_charge_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gere um QR Code e um código Copia e Cola.'**
+  String get pix_hub_receive_create_charge_subtitle;
+
+  /// No description provided for @pix_hub_receive_own_wallet.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar saldo na sua carteira'**
+  String get pix_hub_receive_own_wallet;
+
+  /// No description provided for @pix_hub_receive_deposit_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pague um Pix e receba o valor na carteira Mooze.'**
+  String get pix_hub_receive_deposit_subtitle;
+
+  /// No description provided for @pix_hub_receive_deposit_note.
+  ///
+  /// In pt, this message translates to:
+  /// **'O depósito usa o serviço real da Mooze e converte reais no ativo escolhido. Ele não é uma cobrança para outra pessoa.'**
+  String get pix_hub_receive_deposit_note;
+
+  /// No description provided for @pix_hub_my_keys.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minhas chaves Pix'**
+  String get pix_hub_my_keys;
+
+  /// No description provided for @pix_hub_keys_unavailable_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastro e exclusão indisponíveis'**
+  String get pix_hub_keys_unavailable_title;
+
+  /// No description provided for @pix_hub_keys_unavailable_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'A Mooze ainda não possui serviço para cadastrar ou excluir chaves Pix. As chaves acima são fictícias e servem para demonstrar a tela.'**
+  String get pix_hub_keys_unavailable_body;
+
+  /// No description provided for @pix_hub_key_copied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave copiada.'**
+  String get pix_hub_key_copied;
+
+  /// No description provided for @pix_hub_key_share_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minha chave Pix de demonstração: {key}'**
+  String pix_hub_key_share_message(String key);
+
+  /// No description provided for @pix_hub_copy.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiar'**
+  String get pix_hub_copy;
+
+  /// No description provided for @pix_hub_share.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar'**
+  String get pix_hub_share;
+
+  /// No description provided for @pix_hub_value_unavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não informado'**
+  String get pix_hub_value_unavailable;
+
+  /// No description provided for @pix_hub_charge_key_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave que recebe'**
+  String get pix_hub_charge_key_label;
+
+  /// No description provided for @pix_hub_charge_open_amount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quem paga escolhe o valor'**
+  String get pix_hub_charge_open_amount;
+
+  /// No description provided for @pix_hub_charge_open_amount_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'A cobrança fica sem valor definido.'**
+  String get pix_hub_charge_open_amount_hint;
+
+  /// No description provided for @pix_hub_charge_create.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar cobrança'**
+  String get pix_hub_charge_create;
+
+  /// No description provided for @pix_hub_charge_error_min.
+  ///
+  /// In pt, this message translates to:
+  /// **'O valor mínimo é {amount}.'**
+  String pix_hub_charge_error_min(String amount);
+
+  /// No description provided for @pix_hub_charge_detail_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cobrança'**
+  String get pix_hub_charge_detail_title;
+
+  /// No description provided for @pix_hub_charge_code_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Código Copia e Cola'**
+  String get pix_hub_charge_code_label;
+
+  /// No description provided for @pix_hub_charge_share_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cobrança Pix de demonstração: {code}'**
+  String pix_hub_charge_share_message(String code);
+
+  /// No description provided for @pix_hub_charge_disclaimer.
+  ///
+  /// In pt, this message translates to:
+  /// **'O QR Code e o código são de demonstração. Nenhuma cobrança foi registrada em uma instituição Pix.'**
+  String get pix_hub_charge_disclaimer;
+
+  /// No description provided for @pix_hub_charge_create_another.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criar outra cobrança'**
+  String get pix_hub_charge_create_another;
+
+  /// No description provided for @pix_hub_link_create.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criar link'**
+  String get pix_hub_link_create;
+
+  /// No description provided for @pix_hub_link_reference_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Identificação'**
+  String get pix_hub_link_reference_label;
+
+  /// No description provided for @pix_hub_link_reference_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mensalidade de março'**
+  String get pix_hub_link_reference_hint;
+
+  /// No description provided for @pix_hub_link_reference_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe uma identificação.'**
+  String get pix_hub_link_reference_error;
+
+  /// No description provided for @pix_hub_link_amount_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'O valor deve ficar entre {min} e {max}.'**
+  String pix_hub_link_amount_error(String min, String max);
+
+  /// No description provided for @pix_hub_link_single_use.
+  ///
+  /// In pt, this message translates to:
+  /// **'Uso único'**
+  String get pix_hub_link_single_use;
+
+  /// No description provided for @pix_hub_link_single_use_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O link aceita um pagamento e encerra.'**
+  String get pix_hub_link_single_use_hint;
+
+  /// No description provided for @pix_hub_link_reusable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reutilizável'**
+  String get pix_hub_link_reusable;
+
+  /// No description provided for @pix_hub_link_usage_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Uso'**
+  String get pix_hub_link_usage_label;
+
+  /// No description provided for @pix_hub_link_review.
+  ///
+  /// In pt, this message translates to:
+  /// **'Revisar link'**
+  String get pix_hub_link_review;
+
+  /// No description provided for @pix_hub_link_confirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar link'**
+  String get pix_hub_link_confirm;
+
+  /// No description provided for @pix_hub_link_detail_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link de pagamento'**
+  String get pix_hub_link_detail_title;
+
+  /// No description provided for @pix_hub_link_url_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço do link'**
+  String get pix_hub_link_url_label;
+
+  /// No description provided for @pix_hub_link_copied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link copiado.'**
+  String get pix_hub_link_copied;
+
+  /// No description provided for @pix_hub_link_share_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link de pagamento de demonstração: {url}'**
+  String pix_hub_link_share_message(String url);
+
+  /// No description provided for @pix_hub_link_paid_at.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pago em'**
+  String get pix_hub_link_paid_at;
+
+  /// No description provided for @pix_hub_link_open_amount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor livre'**
+  String get pix_hub_link_open_amount;
+
+  /// No description provided for @pix_hub_link_status_pending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pendente'**
+  String get pix_hub_link_status_pending;
+
+  /// No description provided for @pix_hub_link_status_paid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pago'**
+  String get pix_hub_link_status_paid;
+
+  /// No description provided for @pix_hub_link_status_expired.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expirado'**
+  String get pix_hub_link_status_expired;
+
+  /// No description provided for @pix_hub_link_disclaimer.
+  ///
+  /// In pt, this message translates to:
+  /// **'O endereço é fictício e não abre uma página de pagamento real.'**
+  String get pix_hub_link_disclaimer;
+
+  /// No description provided for @pix_hub_history_filter_all.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tudo'**
+  String get pix_hub_history_filter_all;
+
+  /// No description provided for @pix_hub_history_filter_sent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviados'**
+  String get pix_hub_history_filter_sent;
+
+  /// No description provided for @pix_hub_history_filter_received.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebidos'**
+  String get pix_hub_history_filter_received;
+
+  /// No description provided for @pix_hub_history_note.
+  ///
+  /// In pt, this message translates to:
+  /// **'A lista mostra apenas movimentações Pix fictícias. As transações da carteira ficam no histórico da carteira.'**
+  String get pix_hub_history_note;
+
+  /// No description provided for @pix_hub_tx_kind_sent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pix enviado'**
+  String get pix_hub_tx_kind_sent;
+
+  /// No description provided for @pix_hub_tx_kind_received.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pix recebido'**
+  String get pix_hub_tx_kind_received;
+
+  /// No description provided for @pix_hub_tx_kind_deposit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Depósito na carteira'**
+  String get pix_hub_tx_kind_deposit;
+
+  /// No description provided for @pix_hub_tx_kind_payment_link.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link de pagamento'**
+  String get pix_hub_tx_kind_payment_link;
+
+  /// No description provided for @pix_hub_tx_status_completed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concluído'**
+  String get pix_hub_tx_status_completed;
+
+  /// No description provided for @pix_hub_tx_status_pending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em processamento'**
+  String get pix_hub_tx_status_pending;
+
+  /// No description provided for @pix_hub_tx_status_failed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falhou'**
+  String get pix_hub_tx_status_failed;
+
+  /// No description provided for @pix_hub_tx_detail_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Detalhes da movimentação'**
+  String get pix_hub_tx_detail_title;
+
+  /// No description provided for @pix_hub_tx_detail_disclaimer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este registro é fictício. Ele não é um comprovante de pagamento.'**
+  String get pix_hub_tx_detail_disclaimer;
+
+  /// No description provided for @pix_hub_failure_load.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os dados.'**
+  String get pix_hub_failure_load;
+
+  /// No description provided for @pix_hub_failure_declined.
+  ///
+  /// In pt, this message translates to:
+  /// **'A simulação recusou o pagamento. O saldo de demonstração é de R\$ 2.500,00.'**
+  String get pix_hub_failure_declined;
+
+  /// No description provided for @pix_hub_failure_recipient.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum recebedor corresponde a esses dados.'**
+  String get pix_hub_failure_recipient;
+
+  /// No description provided for @pix_hub_failure_amount.
+  ///
+  /// In pt, this message translates to:
+  /// **'O valor está fora do limite aceito.'**
+  String get pix_hub_failure_amount;
+
+  /// No description provided for @pix_hub_failure_unknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Algo deu errado. Tente novamente.'**
+  String get pix_hub_failure_unknown;
+
+  /// No description provided for @pix_hub_failure_network.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão com o servidor. Verifique a internet e tente novamente.'**
+  String get pix_hub_failure_network;
+
+  /// No description provided for @pix_hub_failure_session.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível validar sua sessão. Tente novamente.'**
+  String get pix_hub_failure_session;
+
+  /// No description provided for @pix_hub_failure_not_eligible.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua conta ainda não pode criar links de pagamento. Suba de nível para liberar o recurso.'**
+  String get pix_hub_failure_not_eligible;
+
+  /// No description provided for @pix_hub_failure_rate_limited.
+  ///
+  /// In pt, this message translates to:
+  /// **'Muitas tentativas seguidas. Aguarde um pouco e tente novamente.'**
+  String get pix_hub_failure_rate_limited;
+
+  /// No description provided for @pix_hub_failure_unavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'O serviço está indisponível agora. Tente novamente mais tarde.'**
+  String get pix_hub_failure_unavailable;
+
+  /// No description provided for @pix_hub_failure_invalid_response.
+  ///
+  /// In pt, this message translates to:
+  /// **'O servidor respondeu sem o link de pagamento. Tente novamente.'**
+  String get pix_hub_failure_invalid_response;
+
+  /// No description provided for @pix_hub_failure_wallet.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível obter um endereço da sua carteira. Tente novamente.'**
+  String get pix_hub_failure_wallet;
+
+  /// No description provided for @pix_hub_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Envie, receba e gerencie seus pagamentos pelo Pix.'**
+  String get pix_hub_subtitle;
+
+  /// No description provided for @pix_hub_other_operations.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outras operações'**
+  String get pix_hub_other_operations;
+
+  /// No description provided for @pix_hub_action_pending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cobranças pendentes'**
+  String get pix_hub_action_pending;
+
+  /// No description provided for @pix_hub_action_pending_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja e remova cobranças em aberto.'**
+  String get pix_hub_action_pending_subtitle;
+
+  /// No description provided for @pix_hub_action_other_transactions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outras transações'**
+  String get pix_hub_action_other_transactions;
+
+  /// No description provided for @pix_hub_action_other_transactions_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Históricos, links e taxas do Pix.'**
+  String get pix_hub_action_other_transactions_subtitle;
+
+  /// No description provided for @pix_hub_info_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como o Pix funciona'**
+  String get pix_hub_info_title;
+
+  /// No description provided for @pix_hub_info_send_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Envio e recebimento'**
+  String get pix_hub_info_send_title;
+
+  /// No description provided for @pix_hub_info_send_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'O envio de Pix usa seu saldo de DePix. O provedor Pix paga o destinatário, e a taxa da rede Liquid é paga em L-BTC. Cobranças, chaves e links ainda usam dados fictícios.'**
+  String get pix_hub_info_send_body;
+
+  /// No description provided for @pix_hub_info_deposit_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Depósito na carteira'**
+  String get pix_hub_info_deposit_title;
+
+  /// No description provided for @pix_hub_info_deposit_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'O depósito usa o serviço real da Mooze. O valor em reais vira o ativo que você escolher na carteira.'**
+  String get pix_hub_info_deposit_body;
+
+  /// No description provided for @pix_hub_send_method_question.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como você quer enviar?'**
+  String get pix_hub_send_method_question;
+
+  /// No description provided for @pix_hub_send_method_qr_description.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escaneie o código do recebedor.'**
+  String get pix_hub_send_method_qr_description;
+
+  /// No description provided for @pix_hub_send_method_code_description.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cole o código Pix.'**
+  String get pix_hub_send_method_code_description;
+
+  /// No description provided for @pix_hub_send_method_recent_description.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pessoas para quem você já enviou.'**
+  String get pix_hub_send_method_recent_description;
+
+  /// No description provided for @pix_hub_key_type_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo de chave'**
+  String get pix_hub_key_type_label;
+
+  /// No description provided for @pix_hub_key_hint_cpf.
+  ///
+  /// In pt, this message translates to:
+  /// **'000.000.000-00'**
+  String get pix_hub_key_hint_cpf;
+
+  /// No description provided for @pix_hub_key_hint_cnpj.
+  ///
+  /// In pt, this message translates to:
+  /// **'00.000.000/0000-00'**
+  String get pix_hub_key_hint_cnpj;
+
+  /// No description provided for @pix_hub_key_hint_phone.
+  ///
+  /// In pt, this message translates to:
+  /// **'ex: 11 98765-4321'**
+  String get pix_hub_key_hint_phone;
+
+  /// No description provided for @pix_hub_key_hint_email.
+  ///
+  /// In pt, this message translates to:
+  /// **'nome@email.com'**
+  String get pix_hub_key_hint_email;
+
+  /// No description provided for @pix_hub_key_hint_random.
+  ///
+  /// In pt, this message translates to:
+  /// **'00000000-0000-0000-0000-000000000000'**
+  String get pix_hub_key_hint_random;
+
+  /// No description provided for @pix_hub_summary_payment_method.
+  ///
+  /// In pt, this message translates to:
+  /// **'Forma de pagamento'**
+  String get pix_hub_summary_payment_method;
+
+  /// No description provided for @pix_hub_review_edit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterar dados'**
+  String get pix_hub_review_edit;
+
+  /// No description provided for @pix_hub_review_key_chip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave Pix ({type})'**
+  String pix_hub_review_key_chip(String type);
+
+  /// No description provided for @pix_hub_result_to.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para {name}'**
+  String pix_hub_result_to(String name);
+
+  /// No description provided for @pix_hub_result_datetime.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data e hora'**
+  String get pix_hub_result_datetime;
+
+  /// No description provided for @pix_hub_result_details.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver detalhes'**
+  String get pix_hub_result_details;
+
+  /// No description provided for @pix_hub_deposit_gate_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Antes de depositar'**
+  String get pix_hub_deposit_gate_title;
+
+  /// No description provided for @pix_hub_deposit_gate_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe o CPF da conta bancária que vai pagar e confirme o aviso abaixo.'**
+  String get pix_hub_deposit_gate_subtitle;
+
+  /// No description provided for @pix_hub_deposit_cpf_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'A Mooze confere o formato e os dígitos verificadores. O aplicativo não confirma quem é o titular da conta bancária.'**
+  String get pix_hub_deposit_cpf_hint;
+
+  /// No description provided for @pix_hub_deposit_notice_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Importante'**
+  String get pix_hub_deposit_notice_title;
+
+  /// No description provided for @pix_hub_deposit_notice_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para fazer depósitos via Pix, você precisa usar uma conta bancária em seu próprio nome, registrada sob o mesmo CPF cadastrado na Mooze. Não use contas bancárias de terceiros.'**
+  String get pix_hub_deposit_notice_body;
+
+  /// No description provided for @pix_hub_deposit_notice_ack.
+  ///
+  /// In pt, this message translates to:
+  /// **'Li e entendi o aviso.'**
+  String get pix_hub_deposit_notice_ack;
+
+  /// No description provided for @pix_hub_deposit_notice_screen_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aviso sobre depósitos'**
+  String get pix_hub_deposit_notice_screen_title;
+
+  /// No description provided for @pix_hub_deposit_cpf_stored_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'CPF informado'**
+  String get pix_hub_deposit_cpf_stored_label;
+
+  /// No description provided for @pix_hub_deposit_cpf_missing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum CPF informado.'**
+  String get pix_hub_deposit_cpf_missing;
+
+  /// No description provided for @pix_hub_deposit_change_cpf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterar CPF'**
+  String get pix_hub_deposit_change_cpf;
+
+  /// No description provided for @pix_hub_pending_deposits.
+  ///
+  /// In pt, this message translates to:
+  /// **'Depósitos em andamento'**
+  String get pix_hub_pending_deposits;
+
+  /// No description provided for @pix_hub_pending_deposits_empty_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum depósito em andamento'**
+  String get pix_hub_pending_deposits_empty_title;
+
+  /// No description provided for @pix_hub_pending_deposits_empty_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os depósitos que aguardam pagamento aparecem aqui.'**
+  String get pix_hub_pending_deposits_empty_body;
+
+  /// No description provided for @pix_hub_pending_deposits_note.
+  ///
+  /// In pt, this message translates to:
+  /// **'A Mooze não cancela um depósito em andamento. A cobrança deixa de valer quando expira.'**
+  String get pix_hub_pending_deposits_note;
+
+  /// No description provided for @pix_hub_pending_links_section.
+  ///
+  /// In pt, this message translates to:
+  /// **'Links de pagamento'**
+  String get pix_hub_pending_links_section;
+
+  /// No description provided for @pix_hub_pending_remove_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover link?'**
+  String get pix_hub_pending_remove_title;
+
+  /// No description provided for @pix_hub_pending_remove_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'O link \"{reference}\" sai da lista de demonstração.'**
+  String pix_hub_pending_remove_body(String reference);
+
+  /// No description provided for @pix_hub_pending_remove_confirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover'**
+  String get pix_hub_pending_remove_confirm;
+
+  /// No description provided for @pix_hub_pending_removed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link removido.'**
+  String get pix_hub_pending_removed;
+
+  /// No description provided for @pix_hub_other_section_history.
+  ///
+  /// In pt, this message translates to:
+  /// **'Históricos'**
+  String get pix_hub_other_section_history;
+
+  /// No description provided for @pix_hub_other_deposit_history.
+  ///
+  /// In pt, this message translates to:
+  /// **'Histórico de depósitos'**
+  String get pix_hub_other_deposit_history;
+
+  /// No description provided for @pix_hub_other_deposit_history_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seus depósitos reais pelo Pix.'**
+  String get pix_hub_other_deposit_history_subtitle;
+
+  /// No description provided for @pix_hub_other_section_tools.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ferramentas'**
+  String get pix_hub_other_section_tools;
+
+  /// No description provided for @pix_hub_other_recipients_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pessoas para quem você já enviou.'**
+  String get pix_hub_other_recipients_subtitle;
+
+  /// No description provided for @pix_hub_other_fees_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja as taxas aplicadas.'**
+  String get pix_hub_other_fees_subtitle;
+
+  /// No description provided for @pix_hub_preferences.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preferências'**
+  String get pix_hub_preferences;
+
+  /// No description provided for @pix_hub_preferences_limits.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meus limites'**
+  String get pix_hub_preferences_limits;
+
+  /// No description provided for @pix_hub_preferences_limits_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja os limites do Pix na sua conta.'**
+  String get pix_hub_preferences_limits_subtitle;
+
+  /// No description provided for @pix_hub_preferences_level.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meu nível'**
+  String get pix_hub_preferences_level;
+
+  /// No description provided for @pix_hub_preferences_level_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja o nível atual e como subir de nível.'**
+  String get pix_hub_preferences_level_subtitle;
+
+  /// No description provided for @pix_hub_limits_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os valores abaixo vêm da sua conta Mooze.'**
+  String get pix_hub_limits_subtitle;
+
+  /// No description provided for @pix_hub_limits_how_it_works.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como os limites funcionam'**
+  String get pix_hub_limits_how_it_works;
+
+  /// No description provided for @pix_hub_shortcut_receive_description.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhe sua chave ou gere um QR Code'**
+  String get pix_hub_shortcut_receive_description;
+
+  /// No description provided for @pix_hub_failure_invalid_request.
+  ///
+  /// In pt, this message translates to:
+  /// **'O servidor recusou os dados. Confira a chave, o CPF/CNPJ e o valor.'**
+  String get pix_hub_failure_invalid_request;
+
+  /// No description provided for @pix_hub_failure_limit_exceeded.
+  ///
+  /// In pt, this message translates to:
+  /// **'O valor passa do seu limite atual, ou sua conta ainda não pode enviar Pix.'**
+  String get pix_hub_failure_limit_exceeded;
+
+  /// No description provided for @pix_hub_failure_provider_refused.
+  ///
+  /// In pt, this message translates to:
+  /// **'O provedor Pix recusou o envio. Confira se a chave pertence ao CPF/CNPJ informado.'**
+  String get pix_hub_failure_provider_refused;
+
+  /// No description provided for @pix_hub_failure_outcome_unknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'O serviço não confirmou o pedido. Nenhum valor saiu da sua carteira. Tente de novo em alguns minutos.'**
+  String get pix_hub_failure_outcome_unknown;
+
+  /// No description provided for @pix_hub_failure_quote_mismatch.
+  ///
+  /// In pt, this message translates to:
+  /// **'A cotação recebida não confere com o pedido. Nenhum valor foi enviado. Tente de novo.'**
+  String get pix_hub_failure_quote_mismatch;
+
+  /// No description provided for @pix_hub_failure_quote_expired.
+  ///
+  /// In pt, this message translates to:
+  /// **'O prazo da cotação acabou. Peça uma nova cotação para continuar.'**
+  String get pix_hub_failure_quote_expired;
+
+  /// No description provided for @pix_hub_failure_insufficient_funds.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu saldo de DePix não cobre este envio e a taxa.'**
+  String get pix_hub_failure_insufficient_funds;
+
+  /// No description provided for @pix_hub_failure_insufficient_fee_asset.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você precisa de L-BTC para pagar a taxa da rede Liquid.'**
+  String get pix_hub_failure_insufficient_fee_asset;
+
+  /// No description provided for @pix_hub_failure_funding_failed.
+  ///
+  /// In pt, this message translates to:
+  /// **'A carteira não conseguiu montar a transferência de DePix. Nenhum valor saiu da sua carteira.'**
+  String get pix_hub_failure_funding_failed;
+
+  /// No description provided for @pix_hub_failure_unsupported_code.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este código não tem chave Pix. O Mooze paga apenas códigos com chave.'**
+  String get pix_hub_failure_unsupported_code;
+
+  /// No description provided for @pix_hub_tax_id_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'CPF ou CNPJ do dono da chave'**
+  String get pix_hub_tax_id_label;
+
+  /// No description provided for @pix_hub_tax_id_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'000.000.000-00'**
+  String get pix_hub_tax_id_hint;
+
+  /// No description provided for @pix_hub_tax_id_help.
+  ///
+  /// In pt, this message translates to:
+  /// **'O provedor Pix confere se a chave pertence a este documento. O Mooze não guarda o número.'**
+  String get pix_hub_tax_id_help;
+
+  /// No description provided for @pix_hub_tax_id_error_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe o CPF ou CNPJ.'**
+  String get pix_hub_tax_id_error_empty;
+
+  /// No description provided for @pix_hub_tax_id_error_invalid.
+  ///
+  /// In pt, this message translates to:
+  /// **'CPF ou CNPJ inválido.'**
+  String get pix_hub_tax_id_error_invalid;
+
+  /// No description provided for @pix_hub_amount_error_min.
+  ///
+  /// In pt, this message translates to:
+  /// **'O valor mínimo é {amount}.'**
+  String pix_hub_amount_error_min(String amount);
+
+  /// No description provided for @pix_hub_amount_error_balance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu saldo de DePix não cobre este valor.'**
+  String get pix_hub_amount_error_balance;
+
+  /// No description provided for @pix_hub_amount_balance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo disponível: {amount}'**
+  String pix_hub_amount_balance(String amount);
+
+  /// No description provided for @pix_hub_amount_fee_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'A taxa do provedor Pix aparece na revisão e é somada ao valor em DePix.'**
+  String get pix_hub_amount_fee_hint;
+
+  /// No description provided for @pix_hub_summary_code_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome no código'**
+  String get pix_hub_summary_code_name;
+
+  /// No description provided for @pix_hub_code_no_key.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem chave Pix (código dinâmico)'**
+  String get pix_hub_code_no_key;
+
+  /// No description provided for @pix_hub_review_receives.
+  ///
+  /// In pt, this message translates to:
+  /// **'O destinatário recebe'**
+  String get pix_hub_review_receives;
+
+  /// No description provided for @pix_hub_review_provider_fee.
+  ///
+  /// In pt, this message translates to:
+  /// **'Taxa do provedor Pix'**
+  String get pix_hub_review_provider_fee;
+
+  /// No description provided for @pix_hub_review_depix_debit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sai da sua carteira'**
+  String get pix_hub_review_depix_debit;
+
+  /// No description provided for @pix_hub_review_network_fee.
+  ///
+  /// In pt, this message translates to:
+  /// **'Taxa da rede Liquid'**
+  String get pix_hub_review_network_fee;
+
+  /// No description provided for @pix_hub_review_network_fee_value.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount} sats (L-BTC)'**
+  String pix_hub_review_network_fee_value(String amount);
+
+  /// No description provided for @pix_hub_review_owner_document.
+  ///
+  /// In pt, this message translates to:
+  /// **'Documento do dono da chave'**
+  String get pix_hub_review_owner_document;
+
+  /// No description provided for @pix_hub_review_deadline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pague até {time}'**
+  String pix_hub_review_deadline(String time);
+
+  /// No description provided for @pix_hub_review_time_left.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faltam {time}'**
+  String pix_hub_review_time_left(String time);
+
+  /// No description provided for @pix_hub_review_expired.
+  ///
+  /// In pt, this message translates to:
+  /// **'O prazo desta cotação acabou.'**
+  String get pix_hub_review_expired;
+
+  /// No description provided for @pix_hub_review_new_quote.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pedir nova cotação'**
+  String get pix_hub_review_new_quote;
+
+  /// No description provided for @pix_hub_result_processing_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pix em processamento'**
+  String get pix_hub_result_processing_title;
+
+  /// No description provided for @pix_hub_result_processing_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu DePix foi enviado. O provedor Pix está processando a transferência. Isso pode levar alguns minutos.'**
+  String get pix_hub_result_processing_body;
+
+  /// No description provided for @pix_hub_result_completed_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pix entregue'**
+  String get pix_hub_result_completed_title;
+
+  /// No description provided for @pix_hub_result_completed_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'O provedor Pix confirmou o pagamento ao destinatário.'**
+  String get pix_hub_result_completed_body;
+
+  /// No description provided for @pix_hub_result_failed_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pix não concluído'**
+  String get pix_hub_result_failed_title;
+
+  /// No description provided for @pix_hub_result_refunded_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'O provedor devolveu o depósito ao seu endereço de reembolso.'**
+  String get pix_hub_result_refunded_body;
+
+  /// No description provided for @pix_hub_result_failed_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'O provedor encerrou o pedido sem pagar o Pix. Se o DePix não voltar à sua carteira, fale com o suporte e informe o ID do pedido.'**
+  String get pix_hub_result_failed_body;
+
+  /// No description provided for @pix_hub_result_unknown_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Resultado não confirmado'**
+  String get pix_hub_result_unknown_title;
+
+  /// No description provided for @pix_hub_result_unknown_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não conseguimos confirmar se a transferência de DePix chegou à rede. Não pague de novo. Acompanhe o status abaixo.'**
+  String get pix_hub_result_unknown_body;
+
+  /// No description provided for @pix_hub_result_polling_stopped.
+  ///
+  /// In pt, this message translates to:
+  /// **'O status ainda não mudou. Atualize mais tarde.'**
+  String get pix_hub_result_polling_stopped;
+
+  /// No description provided for @pix_hub_result_status_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível atualizar o status.'**
+  String get pix_hub_result_status_error;
+
+  /// No description provided for @pix_hub_result_refresh.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar status'**
+  String get pix_hub_result_refresh;
+
+  /// No description provided for @pix_hub_result_receipt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir comprovante'**
+  String get pix_hub_result_receipt;
+
+  /// No description provided for @pix_hub_result_copy_id.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiar ID do pedido'**
+  String get pix_hub_result_copy_id;
+
+  /// No description provided for @pix_hub_result_id_copied.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID copiado.'**
+  String get pix_hub_result_id_copied;
+
+  /// No description provided for @pix_hub_summary_withdrawal_id.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID do pedido'**
+  String get pix_hub_summary_withdrawal_id;
+
+  /// No description provided for @pix_hub_summary_funding_txid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transação Liquid'**
+  String get pix_hub_summary_funding_txid;
+
+  /// No description provided for @pix_hub_summary_end_to_end.
+  ///
+  /// In pt, this message translates to:
+  /// **'ID fim a fim'**
+  String get pix_hub_summary_end_to_end;
+
+  /// No description provided for @pix_hub_summary_refund.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor devolvido'**
+  String get pix_hub_summary_refund;
+
+  /// No description provided for @pix_hub_withdrawal_status_checking.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consultando…'**
+  String get pix_hub_withdrawal_status_checking;
+
+  /// No description provided for @pix_hub_withdrawal_status_creating.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criando'**
+  String get pix_hub_withdrawal_status_creating;
+
+  /// No description provided for @pix_hub_withdrawal_status_rejected.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recusado'**
+  String get pix_hub_withdrawal_status_rejected;
+
+  /// No description provided for @pix_hub_withdrawal_status_uncertain.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em verificação'**
+  String get pix_hub_withdrawal_status_uncertain;
+
+  /// No description provided for @pix_hub_withdrawal_status_unsent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando o depósito'**
+  String get pix_hub_withdrawal_status_unsent;
+
+  /// No description provided for @pix_hub_withdrawal_status_sending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviando o Pix'**
+  String get pix_hub_withdrawal_status_sending;
+
+  /// No description provided for @pix_hub_withdrawal_status_sent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pix entregue'**
+  String get pix_hub_withdrawal_status_sent;
+
+  /// No description provided for @pix_hub_withdrawal_status_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro no provedor'**
+  String get pix_hub_withdrawal_status_error;
+
+  /// No description provided for @pix_hub_withdrawal_status_canceled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelado'**
+  String get pix_hub_withdrawal_status_canceled;
+
+  /// No description provided for @pix_hub_withdrawal_status_refunded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Devolvido'**
+  String get pix_hub_withdrawal_status_refunded;
+
+  /// No description provided for @pix_hub_withdrawal_status_replaced.
+  ///
+  /// In pt, this message translates to:
+  /// **'Substituído'**
+  String get pix_hub_withdrawal_status_replaced;
+
+  /// No description provided for @pix_hub_withdrawal_status_unknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desconhecido'**
+  String get pix_hub_withdrawal_status_unknown;
+
+  /// No description provided for @pix_hub_pending_withdrawals_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pix em andamento'**
+  String get pix_hub_pending_withdrawals_title;
+
+  /// No description provided for @pix_hub_pending_withdrawal_item.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount} para {key}'**
+  String pix_hub_pending_withdrawal_item(String amount, String key);
+
+  /// No description provided for @pix_hub_pending_withdrawal_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para ver o status.'**
+  String get pix_hub_pending_withdrawal_hint;
+
+  /// No description provided for @pix_hub_send_key_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para quem você quer transferir?'**
+  String get pix_hub_send_key_title;
+
+  /// No description provided for @pix_hub_send_key_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Insira o dado de quem vai receber'**
+  String get pix_hub_send_key_label;
+
+  /// No description provided for @pix_hub_send_key_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'CPF/CNPJ, celular, e-mail ou chave Pix'**
+  String get pix_hub_send_key_hint;
+
+  /// No description provided for @pix_hub_send_key_scan.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ler QR Code'**
+  String get pix_hub_send_key_scan;
+
+  /// No description provided for @pix_hub_send_key_clear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar'**
+  String get pix_hub_send_key_clear;
+
+  /// No description provided for @pix_hub_send_key_code_detected.
+  ///
+  /// In pt, this message translates to:
+  /// **'Código Pix Copia e Cola reconhecido.'**
+  String get pix_hub_send_key_code_detected;
+
+  /// No description provided for @pix_hub_send_key_ambiguous.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este número é um CPF ou um celular?'**
+  String get pix_hub_send_key_ambiguous;
+
+  /// No description provided for @pix_hub_amount_question.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto você quer transferir?'**
+  String get pix_hub_amount_question;
+
+  /// No description provided for @pix_hub_tax_id_valid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Documento válido'**
+  String get pix_hub_tax_id_valid;
 }
 
 class _AppLocalizationsDelegate

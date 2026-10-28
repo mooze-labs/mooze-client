@@ -78,6 +78,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get nav_menu => 'Menu';
 
   @override
+  String get nav_pix => 'Pix';
+
+  @override
   String get onboarding_get_started => 'Começar';
 
   @override
@@ -3451,6 +3454,69 @@ class AppLocalizationsPt extends AppLocalizations {
   String get merchant_generate_qr => 'Gerar QR Code';
 
   @override
+  String get merchant_payment_method_title => 'Como o cliente vai pagar?';
+
+  @override
+  String get merchant_payment_method_subtitle =>
+      'Escolha uma opção para continuar.';
+
+  @override
+  String get merchant_payment_method_qr_title => 'QR Code Pix';
+
+  @override
+  String get merchant_payment_method_qr_description =>
+      'Mostre o QR Code. O cliente paga no app do banco.';
+
+  @override
+  String get merchant_payment_method_link_title => 'Link de pagamento';
+
+  @override
+  String get merchant_payment_method_link_description =>
+      'Gere um link para o cliente pagar de onde estiver.';
+
+  @override
+  String get merchant_payment_method_tag_instant => 'Na hora';
+
+  @override
+  String get merchant_payment_method_tag_cpf => 'Pede CPF';
+
+  @override
+  String get merchant_payment_method_tag_remote => 'À distância';
+
+  @override
+  String get merchant_payment_method_tag_browser => 'No navegador';
+
+  @override
+  String merchant_payment_receive_in(String asset) {
+    return 'Você recebe em $asset';
+  }
+
+  @override
+  String get merchant_payment_link_scan_hint =>
+      'O cliente escaneia o QR Code com a câmera do celular e paga pelo navegador.';
+
+  @override
+  String get merchant_payment_link_share => 'Compartilhar link';
+
+  @override
+  String get merchant_payment_link_creating => 'Gerando link de pagamento...';
+
+  @override
+  String get merchant_payment_link_open => 'Abrir no navegador';
+
+  @override
+  String get merchant_payment_link_open_failed =>
+      'Não foi possível abrir o navegador.';
+
+  @override
+  String merchant_payment_link_share_message(String amount, String url) {
+    return 'Pague $amount com Pix: $url';
+  }
+
+  @override
+  String get merchant_payment_link_done => 'Concluir venda';
+
+  @override
   String merchant_validation_min_amount(String amount) {
     return 'Valor mínimo: R\$ $amount';
   }
@@ -3476,6 +3542,29 @@ class AppLocalizationsPt extends AppLocalizations {
   String merchant_qty_prefix(int qty) {
     return 'x$qty';
   }
+
+  @override
+  String get merchant_tutorial_skip => 'Pular';
+
+  @override
+  String get merchant_total_label => 'Total da venda';
+
+  @override
+  String get merchant_edit_action => 'Editar';
+
+  @override
+  String get merchant_clear_cart_confirm_title => 'Limpar carrinho?';
+
+  @override
+  String get merchant_clear_cart_confirm_body =>
+      'Os itens desta venda serão removidos.';
+
+  @override
+  String get merchant_product_name_required => 'Informe o nome do produto.';
+
+  @override
+  String get merchant_product_price_required =>
+      'Informe um preço maior que zero.';
 
   @override
   String get common_error => 'Erro';
@@ -3613,6 +3702,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pix_fees_screen_footer_title => 'Informações Importantes';
+
+  @override
+  String get pix_fees_back_to_top => 'Voltar ao topo';
 
   @override
   String get pix_fees_screen_footer_info_1 =>
@@ -4476,6 +4568,39 @@ class AppLocalizationsPt extends AppLocalizations {
   String get wallet_section_see_more => 'Ver mais';
 
   @override
+  String get wallet_holding_allocation_title => 'Distribuição';
+
+  @override
+  String get wallet_tx_date_today => 'Hoje';
+
+  @override
+  String get wallet_tx_date_yesterday => 'Ontem';
+
+  @override
+  String get wallet_action_more => 'Mais';
+
+  @override
+  String get wallet_more_sheet_title => 'Mais ações';
+
+  @override
+  String get wallet_more_buy_pix => 'Comprar com PIX';
+
+  @override
+  String get wallet_balance_show => 'Mostrar saldo';
+
+  @override
+  String get wallet_balance_hide => 'Ocultar saldo';
+
+  @override
+  String get wallet_balance_hidden => 'Saldo oculto';
+
+  @override
+  String get wallet_balance_change_unit_hint => 'Alterar unidade';
+
+  @override
+  String get wallet_amount_hidden => 'Valor oculto';
+
+  @override
   String wallet_tx_sent(String ticker) {
     return 'Enviou $ticker';
   }
@@ -5265,4 +5390,1076 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get analytics_save_error =>
       'Não foi possível atualizar a preferência de dados de uso. Tente novamente.';
+
+  @override
+  String get pix_hub_title => 'Área Pix';
+
+  @override
+  String get pix_hub_demo_badge => 'Demonstração';
+
+  @override
+  String get pix_hub_demo_badge_semantics => 'Conteúdo de demonstração';
+
+  @override
+  String get pix_hub_demo_notice_title => 'Modo demonstração';
+
+  @override
+  String get pix_hub_demo_notice_body =>
+      'Enviar, receber, chaves, links e histórico usam dados fictícios. Nenhum valor sai da sua conta. Apenas o depósito na carteira usa o serviço real da Mooze.';
+
+  @override
+  String get pix_hub_shortcut_send => 'Enviar';
+
+  @override
+  String get pix_hub_shortcut_receive => 'Receber';
+
+  @override
+  String get pix_hub_shortcut_deposit => 'Depositar';
+
+  @override
+  String get pix_hub_more_operations => 'Mais operações';
+
+  @override
+  String get pix_hub_action_pay_key => 'Pagar com chave Pix';
+
+  @override
+  String get pix_hub_action_pay_key_subtitle =>
+      'Informe CPF, CNPJ, celular, e-mail ou chave aleatória.';
+
+  @override
+  String get pix_hub_action_pay_qr => 'Pagar com QR Code';
+
+  @override
+  String get pix_hub_action_pay_qr_subtitle =>
+      'Use a câmera para ler o código.';
+
+  @override
+  String get pix_hub_action_copy_paste => 'Pix Copia e Cola';
+
+  @override
+  String get pix_hub_action_copy_paste_subtitle => 'Cole o código da cobrança.';
+
+  @override
+  String get pix_hub_action_links => 'Links de pagamento';
+
+  @override
+  String get pix_hub_action_links_subtitle => 'Crie e compartilhe cobranças.';
+
+  @override
+  String get pix_hub_action_keys => 'Minhas chaves Pix';
+
+  @override
+  String get pix_hub_action_keys_subtitle =>
+      'Veja, copie e compartilhe suas chaves.';
+
+  @override
+  String get pix_hub_action_history => 'Histórico Pix';
+
+  @override
+  String get pix_hub_action_history_subtitle =>
+      'Veja apenas movimentações Pix.';
+
+  @override
+  String get pix_hub_recent_recipients => 'Contatos recentes';
+
+  @override
+  String get pix_hub_view_all => 'Ver todos';
+
+  @override
+  String get pix_hub_pending_links => 'Cobranças pendentes';
+
+  @override
+  String get pix_hub_recent_activity => 'Últimas movimentações';
+
+  @override
+  String get pix_hub_manage => 'Gerenciar';
+
+  @override
+  String get pix_hub_empty_recipients_title => 'Nenhum contato recente';
+
+  @override
+  String get pix_hub_empty_recipients_body =>
+      'Os contatos aparecem aqui depois do primeiro pagamento.';
+
+  @override
+  String get pix_hub_empty_links_title => 'Nenhuma cobrança pendente';
+
+  @override
+  String get pix_hub_empty_links_body =>
+      'Crie um link de pagamento para receber de outra pessoa.';
+
+  @override
+  String get pix_hub_empty_transactions_title => 'Nenhuma movimentação Pix';
+
+  @override
+  String get pix_hub_empty_transactions_body =>
+      'As movimentações aparecem aqui depois da primeira operação.';
+
+  @override
+  String get pix_hub_empty_keys_title => 'Nenhuma chave cadastrada';
+
+  @override
+  String get pix_hub_empty_keys_body =>
+      'O cadastro de chaves depende de um serviço Pix que a Mooze ainda não possui.';
+
+  @override
+  String get pix_hub_error_title => 'Não foi possível carregar';
+
+  @override
+  String get pix_hub_error_body => 'Verifique a conexão e tente novamente.';
+
+  @override
+  String get pix_hub_menu_fees => 'Ver taxas';
+
+  @override
+  String get pix_hub_menu_empty_preview_on => 'Ver estados vazios';
+
+  @override
+  String get pix_hub_menu_empty_preview_off => 'Mostrar dados de demonstração';
+
+  @override
+  String get pix_hub_send_title => 'Enviar Pix';
+
+  @override
+  String get pix_hub_key_input_title => 'Qual é a chave Pix?';
+
+  @override
+  String get pix_hub_key_input_hint =>
+      'A Mooze aceita CPF, CNPJ, celular, e-mail e chave aleatória. O aplicativo confere apenas o formato.';
+
+  @override
+  String get pix_hub_key_input_label => 'Chave Pix';
+
+  @override
+  String get pix_hub_key_input_placeholder => 'exemplo@email.com';
+
+  @override
+  String pix_hub_key_detected(String type) {
+    return 'Formato reconhecido: $type.';
+  }
+
+  @override
+  String get pix_hub_key_error_empty => 'Informe a chave Pix.';
+
+  @override
+  String get pix_hub_key_error_unrecognized =>
+      'A chave não corresponde a nenhum formato Pix.';
+
+  @override
+  String get pix_hub_key_error_document =>
+      'Os dígitos verificadores do CPF ou do CNPJ não conferem.';
+
+  @override
+  String get pix_hub_key_error_phone =>
+      'Informe o celular com DDI e DDD. Exemplo: +5511999990000.';
+
+  @override
+  String get pix_hub_key_error_email => 'O e-mail é inválido.';
+
+  @override
+  String get pix_hub_key_error_random =>
+      'A chave aleatória tem 32 caracteres e quatro hífens.';
+
+  @override
+  String get pix_hub_key_type_cpf => 'CPF';
+
+  @override
+  String get pix_hub_key_type_cnpj => 'CNPJ';
+
+  @override
+  String get pix_hub_key_type_phone => 'Celular';
+
+  @override
+  String get pix_hub_key_type_email => 'E-mail';
+
+  @override
+  String get pix_hub_key_type_random => 'Chave aleatória';
+
+  @override
+  String get pix_hub_code_input_title => 'Cole o código Pix';
+
+  @override
+  String get pix_hub_code_input_hint =>
+      'A Mooze confere a estrutura e o dígito de verificação do código. Essa checagem não confirma que a cobrança existe.';
+
+  @override
+  String get pix_hub_code_input_placeholder => '00020126...';
+
+  @override
+  String get pix_hub_code_paste => 'Colar';
+
+  @override
+  String get pix_hub_code_sample => 'Usar código de demonstração';
+
+  @override
+  String get pix_hub_code_read_title => 'Dados lidos do código';
+
+  @override
+  String get pix_hub_code_local_check_warning =>
+      'Os dados vêm do próprio código. A Mooze não consultou nenhuma instituição.';
+
+  @override
+  String get pix_hub_code_clipboard_empty =>
+      'A área de transferência está vazia.';
+
+  @override
+  String get pix_hub_code_copied => 'Código copiado.';
+
+  @override
+  String get pix_hub_code_error_empty => 'Informe o código Pix.';
+
+  @override
+  String get pix_hub_code_error_short => 'O código é curto demais.';
+
+  @override
+  String get pix_hub_code_error_malformed => 'O código não segue o padrão Pix.';
+
+  @override
+  String get pix_hub_code_error_not_pix => 'O código não é uma cobrança Pix.';
+
+  @override
+  String get pix_hub_code_error_checksum =>
+      'O dígito de verificação do código não confere.';
+
+  @override
+  String get pix_hub_scan_permission_title => 'Câmera bloqueada';
+
+  @override
+  String get pix_hub_scan_permission_body =>
+      'Libere o acesso à câmera para ler o QR Code.';
+
+  @override
+  String get pix_hub_scan_open_settings => 'Abrir ajustes';
+
+  @override
+  String get pix_hub_scan_unavailable_title => 'Câmera indisponível';
+
+  @override
+  String get pix_hub_scan_unavailable_body => 'Use o Pix Copia e Cola.';
+
+  @override
+  String get pix_hub_scan_demo_hint =>
+      'Sem câmera disponível? Use o código de demonstração para testar o fluxo.';
+
+  @override
+  String get pix_hub_amount_title => 'Valor';
+
+  @override
+  String get pix_hub_amount_label => 'Valor do Pix';
+
+  @override
+  String get pix_hub_amount_error_empty => 'Informe um valor maior que zero.';
+
+  @override
+  String pix_hub_amount_error_max(String amount) {
+    return 'O valor máximo é $amount.';
+  }
+
+  @override
+  String get pix_hub_amount_fixed_hint =>
+      'O código já define o valor da cobrança.';
+
+  @override
+  String get pix_hub_description_label => 'Descrição (opcional)';
+
+  @override
+  String get pix_hub_description_hint => 'Mensagem para quem recebe';
+
+  @override
+  String get pix_hub_review_title => 'Revisar pagamento';
+
+  @override
+  String get pix_hub_review_amount_label => 'Você vai enviar';
+
+  @override
+  String get pix_hub_review_confirm => 'Confirmar e pagar';
+
+  @override
+  String get pix_hub_review_disclaimer =>
+      'Ao confirmar, sua carteira envia o valor em DePix ao provedor Pix. Não é possível desfazer esta transferência.';
+
+  @override
+  String get pix_hub_result_title => 'Resultado';
+
+  @override
+  String get pix_hub_result_success_title => 'Pagamento enviado!';
+
+  @override
+  String get pix_hub_result_success_body =>
+      'O registro entrou no histórico de demonstração. Nenhum valor foi transferido.';
+
+  @override
+  String get pix_hub_result_failure_title => 'Pagamento simulado recusado';
+
+  @override
+  String get pix_hub_result_disclaimer =>
+      'Esta tela é uma demonstração. Ela não comprova uma transação financeira.';
+
+  @override
+  String get pix_hub_result_try_again => 'Tentar outro valor';
+
+  @override
+  String get pix_hub_flow_expired =>
+      'O fluxo foi reiniciado. Comece outra vez.';
+
+  @override
+  String get pix_hub_back_to_hub => 'Voltar ao Pix';
+
+  @override
+  String get pix_hub_summary_recipient => 'Para';
+
+  @override
+  String get pix_hub_summary_payer => 'De';
+
+  @override
+  String get pix_hub_summary_institution => 'Instituição';
+
+  @override
+  String get pix_hub_summary_document => 'Documento';
+
+  @override
+  String get pix_hub_summary_method => 'Forma de envio';
+
+  @override
+  String get pix_hub_summary_description => 'Descrição';
+
+  @override
+  String get pix_hub_summary_amount => 'Valor';
+
+  @override
+  String get pix_hub_summary_date => 'Data';
+
+  @override
+  String get pix_hub_summary_reference => 'Identificador';
+
+  @override
+  String get pix_hub_summary_status => 'Status';
+
+  @override
+  String get pix_hub_summary_type => 'Tipo';
+
+  @override
+  String get pix_hub_summary_city => 'Cidade';
+
+  @override
+  String get pix_hub_summary_created_at => 'Criada em';
+
+  @override
+  String get pix_hub_summary_expires_at => 'Expira em';
+
+  @override
+  String get pix_hub_method_key => 'Chave Pix';
+
+  @override
+  String get pix_hub_method_qr => 'QR Code';
+
+  @override
+  String get pix_hub_method_copy_paste => 'Copia e Cola';
+
+  @override
+  String get pix_hub_method_recent => 'Contato recente';
+
+  @override
+  String get pix_hub_receive_title => 'Receber Pix';
+
+  @override
+  String get pix_hub_receive_from_others => 'Receber de outra pessoa';
+
+  @override
+  String get pix_hub_receive_create_charge => 'Criar cobrança';
+
+  @override
+  String get pix_hub_receive_create_charge_subtitle =>
+      'Gere um QR Code e um código Copia e Cola.';
+
+  @override
+  String get pix_hub_receive_own_wallet => 'Adicionar saldo na sua carteira';
+
+  @override
+  String get pix_hub_receive_deposit_subtitle =>
+      'Pague um Pix e receba o valor na carteira Mooze.';
+
+  @override
+  String get pix_hub_receive_deposit_note =>
+      'O depósito usa o serviço real da Mooze e converte reais no ativo escolhido. Ele não é uma cobrança para outra pessoa.';
+
+  @override
+  String get pix_hub_my_keys => 'Minhas chaves Pix';
+
+  @override
+  String get pix_hub_keys_unavailable_title =>
+      'Cadastro e exclusão indisponíveis';
+
+  @override
+  String get pix_hub_keys_unavailable_body =>
+      'A Mooze ainda não possui serviço para cadastrar ou excluir chaves Pix. As chaves acima são fictícias e servem para demonstrar a tela.';
+
+  @override
+  String get pix_hub_key_copied => 'Chave copiada.';
+
+  @override
+  String pix_hub_key_share_message(String key) {
+    return 'Minha chave Pix de demonstração: $key';
+  }
+
+  @override
+  String get pix_hub_copy => 'Copiar';
+
+  @override
+  String get pix_hub_share => 'Compartilhar';
+
+  @override
+  String get pix_hub_value_unavailable => 'Não informado';
+
+  @override
+  String get pix_hub_charge_key_label => 'Chave que recebe';
+
+  @override
+  String get pix_hub_charge_open_amount => 'Quem paga escolhe o valor';
+
+  @override
+  String get pix_hub_charge_open_amount_hint =>
+      'A cobrança fica sem valor definido.';
+
+  @override
+  String get pix_hub_charge_create => 'Gerar cobrança';
+
+  @override
+  String pix_hub_charge_error_min(String amount) {
+    return 'O valor mínimo é $amount.';
+  }
+
+  @override
+  String get pix_hub_charge_detail_title => 'Cobrança';
+
+  @override
+  String get pix_hub_charge_code_label => 'Código Copia e Cola';
+
+  @override
+  String pix_hub_charge_share_message(String code) {
+    return 'Cobrança Pix de demonstração: $code';
+  }
+
+  @override
+  String get pix_hub_charge_disclaimer =>
+      'O QR Code e o código são de demonstração. Nenhuma cobrança foi registrada em uma instituição Pix.';
+
+  @override
+  String get pix_hub_charge_create_another => 'Criar outra cobrança';
+
+  @override
+  String get pix_hub_link_create => 'Criar link';
+
+  @override
+  String get pix_hub_link_reference_label => 'Identificação';
+
+  @override
+  String get pix_hub_link_reference_hint => 'Mensalidade de março';
+
+  @override
+  String get pix_hub_link_reference_error => 'Informe uma identificação.';
+
+  @override
+  String pix_hub_link_amount_error(String min, String max) {
+    return 'O valor deve ficar entre $min e $max.';
+  }
+
+  @override
+  String get pix_hub_link_single_use => 'Uso único';
+
+  @override
+  String get pix_hub_link_single_use_hint =>
+      'O link aceita um pagamento e encerra.';
+
+  @override
+  String get pix_hub_link_reusable => 'Reutilizável';
+
+  @override
+  String get pix_hub_link_usage_label => 'Uso';
+
+  @override
+  String get pix_hub_link_review => 'Revisar link';
+
+  @override
+  String get pix_hub_link_confirm => 'Gerar link';
+
+  @override
+  String get pix_hub_link_detail_title => 'Link de pagamento';
+
+  @override
+  String get pix_hub_link_url_label => 'Endereço do link';
+
+  @override
+  String get pix_hub_link_copied => 'Link copiado.';
+
+  @override
+  String pix_hub_link_share_message(String url) {
+    return 'Link de pagamento de demonstração: $url';
+  }
+
+  @override
+  String get pix_hub_link_paid_at => 'Pago em';
+
+  @override
+  String get pix_hub_link_open_amount => 'Valor livre';
+
+  @override
+  String get pix_hub_link_status_pending => 'Pendente';
+
+  @override
+  String get pix_hub_link_status_paid => 'Pago';
+
+  @override
+  String get pix_hub_link_status_expired => 'Expirado';
+
+  @override
+  String get pix_hub_link_disclaimer =>
+      'O endereço é fictício e não abre uma página de pagamento real.';
+
+  @override
+  String get pix_hub_history_filter_all => 'Tudo';
+
+  @override
+  String get pix_hub_history_filter_sent => 'Enviados';
+
+  @override
+  String get pix_hub_history_filter_received => 'Recebidos';
+
+  @override
+  String get pix_hub_history_note =>
+      'A lista mostra apenas movimentações Pix fictícias. As transações da carteira ficam no histórico da carteira.';
+
+  @override
+  String get pix_hub_tx_kind_sent => 'Pix enviado';
+
+  @override
+  String get pix_hub_tx_kind_received => 'Pix recebido';
+
+  @override
+  String get pix_hub_tx_kind_deposit => 'Depósito na carteira';
+
+  @override
+  String get pix_hub_tx_kind_payment_link => 'Link de pagamento';
+
+  @override
+  String get pix_hub_tx_status_completed => 'Concluído';
+
+  @override
+  String get pix_hub_tx_status_pending => 'Em processamento';
+
+  @override
+  String get pix_hub_tx_status_failed => 'Falhou';
+
+  @override
+  String get pix_hub_tx_detail_title => 'Detalhes da movimentação';
+
+  @override
+  String get pix_hub_tx_detail_disclaimer =>
+      'Este registro é fictício. Ele não é um comprovante de pagamento.';
+
+  @override
+  String get pix_hub_failure_load => 'Não foi possível carregar os dados.';
+
+  @override
+  String get pix_hub_failure_declined =>
+      'A simulação recusou o pagamento. O saldo de demonstração é de R\$ 2.500,00.';
+
+  @override
+  String get pix_hub_failure_recipient =>
+      'Nenhum recebedor corresponde a esses dados.';
+
+  @override
+  String get pix_hub_failure_amount => 'O valor está fora do limite aceito.';
+
+  @override
+  String get pix_hub_failure_unknown => 'Algo deu errado. Tente novamente.';
+
+  @override
+  String get pix_hub_failure_network =>
+      'Sem conexão com o servidor. Verifique a internet e tente novamente.';
+
+  @override
+  String get pix_hub_failure_session =>
+      'Não foi possível validar sua sessão. Tente novamente.';
+
+  @override
+  String get pix_hub_failure_not_eligible =>
+      'Sua conta ainda não pode criar links de pagamento. Suba de nível para liberar o recurso.';
+
+  @override
+  String get pix_hub_failure_rate_limited =>
+      'Muitas tentativas seguidas. Aguarde um pouco e tente novamente.';
+
+  @override
+  String get pix_hub_failure_unavailable =>
+      'O serviço está indisponível agora. Tente novamente mais tarde.';
+
+  @override
+  String get pix_hub_failure_invalid_response =>
+      'O servidor respondeu sem o link de pagamento. Tente novamente.';
+
+  @override
+  String get pix_hub_failure_wallet =>
+      'Não foi possível obter um endereço da sua carteira. Tente novamente.';
+
+  @override
+  String get pix_hub_subtitle =>
+      'Envie, receba e gerencie seus pagamentos pelo Pix.';
+
+  @override
+  String get pix_hub_other_operations => 'Outras operações';
+
+  @override
+  String get pix_hub_action_pending => 'Cobranças pendentes';
+
+  @override
+  String get pix_hub_action_pending_subtitle =>
+      'Veja e remova cobranças em aberto.';
+
+  @override
+  String get pix_hub_action_other_transactions => 'Outras transações';
+
+  @override
+  String get pix_hub_action_other_transactions_subtitle =>
+      'Históricos, links e taxas do Pix.';
+
+  @override
+  String get pix_hub_info_title => 'Como o Pix funciona';
+
+  @override
+  String get pix_hub_info_send_title => 'Envio e recebimento';
+
+  @override
+  String get pix_hub_info_send_body =>
+      'O envio de Pix usa seu saldo de DePix. O provedor Pix paga o destinatário, e a taxa da rede Liquid é paga em L-BTC. Cobranças, chaves e links ainda usam dados fictícios.';
+
+  @override
+  String get pix_hub_info_deposit_title => 'Depósito na carteira';
+
+  @override
+  String get pix_hub_info_deposit_body =>
+      'O depósito usa o serviço real da Mooze. O valor em reais vira o ativo que você escolher na carteira.';
+
+  @override
+  String get pix_hub_send_method_question => 'Como você quer enviar?';
+
+  @override
+  String get pix_hub_send_method_qr_description =>
+      'Escaneie o código do recebedor.';
+
+  @override
+  String get pix_hub_send_method_code_description => 'Cole o código Pix.';
+
+  @override
+  String get pix_hub_send_method_recent_description =>
+      'Pessoas para quem você já enviou.';
+
+  @override
+  String get pix_hub_key_type_label => 'Tipo de chave';
+
+  @override
+  String get pix_hub_key_hint_cpf => '000.000.000-00';
+
+  @override
+  String get pix_hub_key_hint_cnpj => '00.000.000/0000-00';
+
+  @override
+  String get pix_hub_key_hint_phone => 'ex: 11 98765-4321';
+
+  @override
+  String get pix_hub_key_hint_email => 'nome@email.com';
+
+  @override
+  String get pix_hub_key_hint_random => '00000000-0000-0000-0000-000000000000';
+
+  @override
+  String get pix_hub_summary_payment_method => 'Forma de pagamento';
+
+  @override
+  String get pix_hub_review_edit => 'Alterar dados';
+
+  @override
+  String pix_hub_review_key_chip(String type) {
+    return 'Chave Pix ($type)';
+  }
+
+  @override
+  String pix_hub_result_to(String name) {
+    return 'Para $name';
+  }
+
+  @override
+  String get pix_hub_result_datetime => 'Data e hora';
+
+  @override
+  String get pix_hub_result_details => 'Ver detalhes';
+
+  @override
+  String get pix_hub_deposit_gate_title => 'Antes de depositar';
+
+  @override
+  String get pix_hub_deposit_gate_subtitle =>
+      'Informe o CPF da conta bancária que vai pagar e confirme o aviso abaixo.';
+
+  @override
+  String get pix_hub_deposit_cpf_hint =>
+      'A Mooze confere o formato e os dígitos verificadores. O aplicativo não confirma quem é o titular da conta bancária.';
+
+  @override
+  String get pix_hub_deposit_notice_title => 'Importante';
+
+  @override
+  String get pix_hub_deposit_notice_body =>
+      'Para fazer depósitos via Pix, você precisa usar uma conta bancária em seu próprio nome, registrada sob o mesmo CPF cadastrado na Mooze. Não use contas bancárias de terceiros.';
+
+  @override
+  String get pix_hub_deposit_notice_ack => 'Li e entendi o aviso.';
+
+  @override
+  String get pix_hub_deposit_notice_screen_title => 'Aviso sobre depósitos';
+
+  @override
+  String get pix_hub_deposit_cpf_stored_label => 'CPF informado';
+
+  @override
+  String get pix_hub_deposit_cpf_missing => 'Nenhum CPF informado.';
+
+  @override
+  String get pix_hub_deposit_change_cpf => 'Alterar CPF';
+
+  @override
+  String get pix_hub_pending_deposits => 'Depósitos em andamento';
+
+  @override
+  String get pix_hub_pending_deposits_empty_title =>
+      'Nenhum depósito em andamento';
+
+  @override
+  String get pix_hub_pending_deposits_empty_body =>
+      'Os depósitos que aguardam pagamento aparecem aqui.';
+
+  @override
+  String get pix_hub_pending_deposits_note =>
+      'A Mooze não cancela um depósito em andamento. A cobrança deixa de valer quando expira.';
+
+  @override
+  String get pix_hub_pending_links_section => 'Links de pagamento';
+
+  @override
+  String get pix_hub_pending_remove_title => 'Remover link?';
+
+  @override
+  String pix_hub_pending_remove_body(String reference) {
+    return 'O link \"$reference\" sai da lista de demonstração.';
+  }
+
+  @override
+  String get pix_hub_pending_remove_confirm => 'Remover';
+
+  @override
+  String get pix_hub_pending_removed => 'Link removido.';
+
+  @override
+  String get pix_hub_other_section_history => 'Históricos';
+
+  @override
+  String get pix_hub_other_deposit_history => 'Histórico de depósitos';
+
+  @override
+  String get pix_hub_other_deposit_history_subtitle =>
+      'Seus depósitos reais pelo Pix.';
+
+  @override
+  String get pix_hub_other_section_tools => 'Ferramentas';
+
+  @override
+  String get pix_hub_other_recipients_subtitle =>
+      'Pessoas para quem você já enviou.';
+
+  @override
+  String get pix_hub_other_fees_subtitle => 'Veja as taxas aplicadas.';
+
+  @override
+  String get pix_hub_preferences => 'Preferências';
+
+  @override
+  String get pix_hub_preferences_limits => 'Meus limites';
+
+  @override
+  String get pix_hub_preferences_limits_subtitle =>
+      'Veja os limites do Pix na sua conta.';
+
+  @override
+  String get pix_hub_preferences_level => 'Meu nível';
+
+  @override
+  String get pix_hub_preferences_level_subtitle =>
+      'Veja o nível atual e como subir de nível.';
+
+  @override
+  String get pix_hub_limits_subtitle =>
+      'Os valores abaixo vêm da sua conta Mooze.';
+
+  @override
+  String get pix_hub_limits_how_it_works => 'Como os limites funcionam';
+
+  @override
+  String get pix_hub_shortcut_receive_description =>
+      'Compartilhe sua chave ou gere um QR Code';
+
+  @override
+  String get pix_hub_failure_invalid_request =>
+      'O servidor recusou os dados. Confira a chave, o CPF/CNPJ e o valor.';
+
+  @override
+  String get pix_hub_failure_limit_exceeded =>
+      'O valor passa do seu limite atual, ou sua conta ainda não pode enviar Pix.';
+
+  @override
+  String get pix_hub_failure_provider_refused =>
+      'O provedor Pix recusou o envio. Confira se a chave pertence ao CPF/CNPJ informado.';
+
+  @override
+  String get pix_hub_failure_outcome_unknown =>
+      'O serviço não confirmou o pedido. Nenhum valor saiu da sua carteira. Tente de novo em alguns minutos.';
+
+  @override
+  String get pix_hub_failure_quote_mismatch =>
+      'A cotação recebida não confere com o pedido. Nenhum valor foi enviado. Tente de novo.';
+
+  @override
+  String get pix_hub_failure_quote_expired =>
+      'O prazo da cotação acabou. Peça uma nova cotação para continuar.';
+
+  @override
+  String get pix_hub_failure_insufficient_funds =>
+      'Seu saldo de DePix não cobre este envio e a taxa.';
+
+  @override
+  String get pix_hub_failure_insufficient_fee_asset =>
+      'Você precisa de L-BTC para pagar a taxa da rede Liquid.';
+
+  @override
+  String get pix_hub_failure_funding_failed =>
+      'A carteira não conseguiu montar a transferência de DePix. Nenhum valor saiu da sua carteira.';
+
+  @override
+  String get pix_hub_failure_unsupported_code =>
+      'Este código não tem chave Pix. O Mooze paga apenas códigos com chave.';
+
+  @override
+  String get pix_hub_tax_id_label => 'CPF ou CNPJ do dono da chave';
+
+  @override
+  String get pix_hub_tax_id_hint => '000.000.000-00';
+
+  @override
+  String get pix_hub_tax_id_help =>
+      'O provedor Pix confere se a chave pertence a este documento. O Mooze não guarda o número.';
+
+  @override
+  String get pix_hub_tax_id_error_empty => 'Informe o CPF ou CNPJ.';
+
+  @override
+  String get pix_hub_tax_id_error_invalid => 'CPF ou CNPJ inválido.';
+
+  @override
+  String pix_hub_amount_error_min(String amount) {
+    return 'O valor mínimo é $amount.';
+  }
+
+  @override
+  String get pix_hub_amount_error_balance =>
+      'Seu saldo de DePix não cobre este valor.';
+
+  @override
+  String pix_hub_amount_balance(String amount) {
+    return 'Saldo disponível: $amount';
+  }
+
+  @override
+  String get pix_hub_amount_fee_hint =>
+      'A taxa do provedor Pix aparece na revisão e é somada ao valor em DePix.';
+
+  @override
+  String get pix_hub_summary_code_name => 'Nome no código';
+
+  @override
+  String get pix_hub_code_no_key => 'Sem chave Pix (código dinâmico)';
+
+  @override
+  String get pix_hub_review_receives => 'O destinatário recebe';
+
+  @override
+  String get pix_hub_review_provider_fee => 'Taxa do provedor Pix';
+
+  @override
+  String get pix_hub_review_depix_debit => 'Sai da sua carteira';
+
+  @override
+  String get pix_hub_review_network_fee => 'Taxa da rede Liquid';
+
+  @override
+  String pix_hub_review_network_fee_value(String amount) {
+    return '$amount sats (L-BTC)';
+  }
+
+  @override
+  String get pix_hub_review_owner_document => 'Documento do dono da chave';
+
+  @override
+  String pix_hub_review_deadline(String time) {
+    return 'Pague até $time';
+  }
+
+  @override
+  String pix_hub_review_time_left(String time) {
+    return 'Faltam $time';
+  }
+
+  @override
+  String get pix_hub_review_expired => 'O prazo desta cotação acabou.';
+
+  @override
+  String get pix_hub_review_new_quote => 'Pedir nova cotação';
+
+  @override
+  String get pix_hub_result_processing_title => 'Pix em processamento';
+
+  @override
+  String get pix_hub_result_processing_body =>
+      'Seu DePix foi enviado. O provedor Pix está processando a transferência. Isso pode levar alguns minutos.';
+
+  @override
+  String get pix_hub_result_completed_title => 'Pix entregue';
+
+  @override
+  String get pix_hub_result_completed_body =>
+      'O provedor Pix confirmou o pagamento ao destinatário.';
+
+  @override
+  String get pix_hub_result_failed_title => 'Pix não concluído';
+
+  @override
+  String get pix_hub_result_refunded_body =>
+      'O provedor devolveu o depósito ao seu endereço de reembolso.';
+
+  @override
+  String get pix_hub_result_failed_body =>
+      'O provedor encerrou o pedido sem pagar o Pix. Se o DePix não voltar à sua carteira, fale com o suporte e informe o ID do pedido.';
+
+  @override
+  String get pix_hub_result_unknown_title => 'Resultado não confirmado';
+
+  @override
+  String get pix_hub_result_unknown_body =>
+      'Não conseguimos confirmar se a transferência de DePix chegou à rede. Não pague de novo. Acompanhe o status abaixo.';
+
+  @override
+  String get pix_hub_result_polling_stopped =>
+      'O status ainda não mudou. Atualize mais tarde.';
+
+  @override
+  String get pix_hub_result_status_error =>
+      'Não foi possível atualizar o status.';
+
+  @override
+  String get pix_hub_result_refresh => 'Atualizar status';
+
+  @override
+  String get pix_hub_result_receipt => 'Abrir comprovante';
+
+  @override
+  String get pix_hub_result_copy_id => 'Copiar ID do pedido';
+
+  @override
+  String get pix_hub_result_id_copied => 'ID copiado.';
+
+  @override
+  String get pix_hub_summary_withdrawal_id => 'ID do pedido';
+
+  @override
+  String get pix_hub_summary_funding_txid => 'Transação Liquid';
+
+  @override
+  String get pix_hub_summary_end_to_end => 'ID fim a fim';
+
+  @override
+  String get pix_hub_summary_refund => 'Valor devolvido';
+
+  @override
+  String get pix_hub_withdrawal_status_checking => 'Consultando…';
+
+  @override
+  String get pix_hub_withdrawal_status_creating => 'Criando';
+
+  @override
+  String get pix_hub_withdrawal_status_rejected => 'Recusado';
+
+  @override
+  String get pix_hub_withdrawal_status_uncertain => 'Em verificação';
+
+  @override
+  String get pix_hub_withdrawal_status_unsent => 'Aguardando o depósito';
+
+  @override
+  String get pix_hub_withdrawal_status_sending => 'Enviando o Pix';
+
+  @override
+  String get pix_hub_withdrawal_status_sent => 'Pix entregue';
+
+  @override
+  String get pix_hub_withdrawal_status_error => 'Erro no provedor';
+
+  @override
+  String get pix_hub_withdrawal_status_canceled => 'Cancelado';
+
+  @override
+  String get pix_hub_withdrawal_status_refunded => 'Devolvido';
+
+  @override
+  String get pix_hub_withdrawal_status_replaced => 'Substituído';
+
+  @override
+  String get pix_hub_withdrawal_status_unknown => 'Desconhecido';
+
+  @override
+  String get pix_hub_pending_withdrawals_title => 'Pix em andamento';
+
+  @override
+  String pix_hub_pending_withdrawal_item(String amount, String key) {
+    return '$amount para $key';
+  }
+
+  @override
+  String get pix_hub_pending_withdrawal_hint => 'Toque para ver o status.';
+
+  @override
+  String get pix_hub_send_key_title => 'Para quem você quer transferir?';
+
+  @override
+  String get pix_hub_send_key_label => 'Insira o dado de quem vai receber';
+
+  @override
+  String get pix_hub_send_key_hint => 'CPF/CNPJ, celular, e-mail ou chave Pix';
+
+  @override
+  String get pix_hub_send_key_scan => 'Ler QR Code';
+
+  @override
+  String get pix_hub_send_key_clear => 'Limpar';
+
+  @override
+  String get pix_hub_send_key_code_detected =>
+      'Código Pix Copia e Cola reconhecido.';
+
+  @override
+  String get pix_hub_send_key_ambiguous =>
+      'Este número é um CPF ou um celular?';
+
+  @override
+  String get pix_hub_amount_question => 'Quanto você quer transferir?';
+
+  @override
+  String get pix_hub_tax_id_valid => 'Documento válido';
 }

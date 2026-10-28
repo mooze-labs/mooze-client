@@ -20,6 +20,10 @@ class MoozeTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final Widget? prefixIcon;
+
+  /// Action rendered inside the field, on the trailing edge.
+  final Widget? suffixIcon;
+
   final TextStyle? style;
 
   const MoozeTextField({
@@ -37,6 +41,7 @@ class MoozeTextField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.prefixIcon,
+    this.suffixIcon,
     this.style,
   });
 
@@ -65,10 +70,14 @@ class MoozeTextField extends StatelessWidget {
         hintText: hintText,
         errorText: errorText,
         prefixIcon: prefixIcon,
+        suffixIcon: suffixIcon,
         filled: true,
         fillColor: context.colors.surfaceLow,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: border(cs.outlineVariant),
         enabledBorder: border(cs.outlineVariant),
         focusedBorder: border(cs.primary, 1.5),
