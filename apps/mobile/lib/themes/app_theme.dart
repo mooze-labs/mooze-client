@@ -30,7 +30,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      fontFamily: "Inter",
+      fontFamily: AppTextStyles.fontFamily,
 
       // Typography
       textTheme: AppTextStyles.buildResponsiveTextTheme(
@@ -88,6 +88,10 @@ class AppTheme {
 
       // Switch
       switchTheme: ComponentThemes.switchTheme(colorScheme),
+
+      // Cupertino widgets (for example the date picker) read their own
+      // text theme. It gets the app typeface too.
+      cupertinoOverrideTheme: AppTextStyles.cupertinoTheme(),
 
       // Custom token extensions
       extensions: const [extraColors],
@@ -103,7 +107,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      fontFamily: "Inter",
+      fontFamily: AppTextStyles.fontFamily,
 
       // Typography
       textTheme: AppTextStyles.buildResponsiveTextTheme(
@@ -161,6 +165,10 @@ class AppTheme {
 
       // Switch
       switchTheme: ComponentThemes.switchTheme(colorScheme),
+
+      // Cupertino widgets (for example the date picker) read their own
+      // text theme. It gets the app typeface too.
+      cupertinoOverrideTheme: AppTextStyles.cupertinoTheme(),
 
       // Custom token extensions
       extensions: const [extraColors],

@@ -140,3 +140,54 @@ flutter:
     - assets/images/getstarted/
     - assets/images/phone_verification/
     - assets/logos/
+
+  # Geist (SIL Open Font License 1.1, embedded in each file). Static files:
+  # Flutter maps FontWeight and FontStyle to these entries.
+  fonts:
+    - family: Geist
+      fonts:
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-ThinItalic.ttf
+          weight: 100
+          style: italic
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-ExtraLightItalic.ttf
+          weight: 200
+          style: italic
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-Light.ttf
+          weight: 300
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-LightItalic.ttf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-BoldItalic.ttf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-ExtraBoldItalic.ttf
+          weight: 800
+          style: italic
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-Black.ttf
+          weight: 900
+        - asset: assets/fonts/geist-font/Geist/ttf/Geist-BlackItalic.ttf
+          weight: 900
+          style: italic

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/app_text_styles.dart';
 
 class SeedWordDisplay extends StatelessWidget {
   final String word;
@@ -20,11 +21,14 @@ class SeedWordDisplay extends StatelessWidget {
         children: [
           Text(
             t.setup_seed_word_label(position),
-            style: const TextStyle(fontFamily: "Inter"),
+            style: const TextStyle(fontFamily: AppTextStyles.fontFamily),
           ),
           SizedBox(width: (position >= 10) ? 8 : 14),
           Expanded(
-            child: Text(word, style: const TextStyle(fontFamily: "Inter")),
+            child: Text(
+              word,
+              style: const TextStyle(fontFamily: AppTextStyles.fontFamily),
+            ),
           ),
         ],
       ),
