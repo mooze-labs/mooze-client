@@ -5,6 +5,9 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 
@@ -131,293 +134,291 @@ class _SwapSuccessScreenState extends State<SwapSuccessScreen>
     final textTheme = context.textTheme;
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Center(
-                  child: AnimatedBuilder(
-                    animation: _glowAnimation,
-                    builder: (context, child) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: context.colors.primaryColor.withValues(
-                                alpha: 0.18 + (_glowAnimation.value * 0.18),
-                              ),
-                              blurRadius: 24 + (_glowAnimation.value * 20),
-                              spreadRadius: 0,
-                            ),
-                            BoxShadow(
-                              color: context.colors.primaryColor.withValues(
-                                alpha: 0.08 + (_glowAnimation.value * 0.08),
-                              ),
-                              blurRadius: 56 + (_glowAnimation.value * 24),
-                              spreadRadius: 0,
-                            ),
-                          ],
-                        ),
-                        child: ScaleTransition(
-                          scale: _checkAnimation,
-                          child: Container(
-                            width: 120,
-                            height: 120,
+      body: Stack(
+        children: [
+          // The shared backdrop of the main screens, under the glass card.
+          const Positioned.fill(child: AppBackdrop()),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Center(
+                      child: AnimatedBuilder(
+                        animation: _glowAnimation,
+                        builder: (context, child) {
+                          return Container(
                             decoration: BoxDecoration(
-                              color: context.colors.primaryColor,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
                                   color: context.colors.primaryColor.withValues(
-                                    alpha: 1,
+                                    alpha: 0.18 + (_glowAnimation.value * 0.18),
                                   ),
-                                  blurRadius: 80,
-                                  spreadRadius: 20,
+                                  blurRadius: 24 + (_glowAnimation.value * 20),
+                                  spreadRadius: 0,
+                                ),
+                                BoxShadow(
+                                  color: context.colors.primaryColor.withValues(
+                                    alpha: 0.08 + (_glowAnimation.value * 0.08),
+                                  ),
+                                  blurRadius: 56 + (_glowAnimation.value * 24),
+                                  spreadRadius: 0,
                                 ),
                               ],
                             ),
-                            child: Icon(
-                              Icons.check,
-                              color: colorScheme.onPrimary,
-                              size: 60,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              Expanded(
-                flex: 4,
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.3),
-                      end: Offset.zero,
-                    ).animate(_fadeAnimation),
-                    child: Column(
-                      children: [
-                        // Title
-                        Text(
-                          t.swap_success_title,
-                          style: textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        Text(
-                          t.swap_success_body,
-                          style: textTheme.bodyMedium,
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Swap Info
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: context.colors.backgroundCard,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: context.colors.primaryColor.withValues(
-                                alpha: 0.2,
+                            child: ScaleTransition(
+                              scale: _checkAnimation,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: context.colors.primaryColor,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: context.colors.primaryColor.withValues(
+                                        alpha: 1,
+                                      ),
+                                      blurRadius: 80,
+                                      spreadRadius: 20,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.check,
+                                  color: colorScheme.onPrimary,
+                                  size: 60,
+                                ),
                               ),
-                              width: 1,
                             ),
-                          ),
-                          child: Column(
-                            children: [
-                              // FROM -> TO
-                              Row(
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  Expanded(
+                    flex: 4,
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.3),
+                          end: Offset.zero,
+                        ).animate(_fadeAnimation),
+                        child: Column(
+                          children: [
+                            // Title
+                            Text(
+                              t.swap_success_title,
+                              style: textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            Text(
+                              t.swap_success_body,
+                              style: textTheme.bodyMedium,
+                              textAlign: TextAlign.center,
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Swap Info: a Liquid Glass panel on the backdrop.
+                            GlassPanel(
+                              padding: const EdgeInsets.all(20),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Column(
                                 children: [
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
+                                  // FROM -> TO
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
                                           children: [
-                                            SvgPicture.asset(
-                                              widget.fromAsset.iconPath,
-                                              width: 20,
-                                              height: 20,
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                SvgPicture.asset(
+                                                  widget.fromAsset.iconPath,
+                                                  width: 20,
+                                                  height: 20,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  widget.fromAsset.name,
+                                                  style: textTheme.bodySmall,
+                                                ),
+                                              ],
                                             ),
-                                            const SizedBox(width: 8),
+                                            const SizedBox(height: 4),
                                             Text(
-                                              widget.fromAsset.name,
-                                              style: textTheme.bodySmall,
+                                              widget.amountSent.toStringAsFixed(8),
+                                              style: textTheme.bodyLarge?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          widget.amountSent.toStringAsFixed(8),
-                                          style: textTheme.bodyLarge?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                      ),
+
+                                      Container(
+                                        margin: const EdgeInsets.symmetric(
+                                          horizontal: 16,
                                         ),
-                                      ],
-                                    ),
-                                  ),
+                                        child: Icon(
+                                          Icons.arrow_forward,
+                                          color: context.colors.primaryColor,
+                                          size: 20,
+                                        ),
+                                      ),
 
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    child: Icon(
-                                      Icons.arrow_forward,
-                                      color: context.colors.primaryColor,
-                                      size: 20,
-                                    ),
-                                  ),
-
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
+                                      Expanded(
+                                        child: Column(
                                           children: [
-                                            SvgPicture.asset(
-                                              widget.toAsset.iconPath,
-                                              width: 20,
-                                              height: 20,
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                SvgPicture.asset(
+                                                  widget.toAsset.iconPath,
+                                                  width: 20,
+                                                  height: 20,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  widget.toAsset.name,
+                                                  style: textTheme.bodySmall,
+                                                ),
+                                              ],
                                             ),
-                                            const SizedBox(width: 8),
+                                            const SizedBox(height: 4),
                                             Text(
-                                              widget.toAsset.name,
-                                              style: textTheme.bodySmall,
+                                              widget.amountReceived.toStringAsFixed(
+                                                8,
+                                              ),
+                                              style: textTheme.bodyLarge?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          widget.amountReceived.toStringAsFixed(
-                                            8,
-                                          ),
-                                          style: textTheme.bodyLarge?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 20),
+
+                                  // TXID
+                                  GestureDetector(
+                                    onTap: () async {
+                                      await Clipboard.setData(
+                                        ClipboardData(text: widget.txid),
+                                      );
+                                      setState(() {
+                                        _txidCopied = true;
+                                      });
+                                      await Future.delayed(
+                                        const Duration(seconds: 2),
+                                      );
+                                      if (mounted) {
+                                        setState(() {
+                                          _txidCopied = false;
+                                        });
+                                      }
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 300),
+                                      padding: EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        // A lens inside the glass panel.
+                                        color:
+                                            _txidCopied
+                                                ? context.colors.primaryColor
+                                                    .withValues(alpha: 0.08)
+                                                : GlassStyle.of(context).lensFill,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color:
+                                              _txidCopied
+                                                  ? context.colors.primaryColor
+                                                      .withValues(alpha: 0.5)
+                                                  : context.colors.primaryColor
+                                                      .withValues(alpha: 0.2),
+                                          width: 1.2,
                                         ),
-                                      ],
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                t.tx_id,
+                                                style: textTheme.bodySmall,
+                                              ),
+                                              SizedBox(height: 2),
+                                              Text(
+                                                truncateHashId(
+                                                  widget.txid,
+                                                  length: 10,
+                                                ),
+                                                style: textTheme.labelLarge
+                                                    ?.copyWith(
+                                                      color:
+                                                          _txidCopied
+                                                              ? colorScheme.primary
+                                                              : null,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                          Icon(
+                                            _txidCopied
+                                                ? Icons.check_rounded
+                                                : Icons.copy_rounded,
+                                            color:
+                                                _txidCopied
+                                                    ? context.colors.primaryColor
+                                                    : context.colors.primaryColor
+                                                        .withValues(alpha: 0.7),
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
+                            ),
 
-                              const SizedBox(height: 20),
+                            const Spacer(),
 
-                              // TXID
-                              GestureDetector(
-                                onTap: () async {
-                                  await Clipboard.setData(
-                                    ClipboardData(text: widget.txid),
-                                  );
-                                  setState(() {
-                                    _txidCopied = true;
-                                  });
-                                  await Future.delayed(
-                                    const Duration(seconds: 2),
-                                  );
-                                  if (mounted) {
-                                    setState(() {
-                                      _txidCopied = false;
-                                    });
-                                  }
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  padding: EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        _txidCopied
-                                            ? context.colors.primaryColor
-                                                .withValues(alpha: 0.08)
-                                            : context.colors.backgroundColor,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color:
-                                          _txidCopied
-                                              ? context.colors.primaryColor
-                                                  .withValues(alpha: 0.5)
-                                              : context.colors.primaryColor
-                                                  .withValues(alpha: 0.2),
-                                      width: 1.2,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            t.tx_id,
-                                            style: textTheme.bodySmall,
-                                          ),
-                                          SizedBox(height: 2),
-                                          Text(
-                                            truncateHashId(
-                                              widget.txid,
-                                              length: 10,
-                                            ),
-                                            style: textTheme.labelLarge
-                                                ?.copyWith(
-                                                  color:
-                                                      _txidCopied
-                                                          ? colorScheme.primary
-                                                          : null,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                      Icon(
-                                        _txidCopied
-                                            ? Icons.check_rounded
-                                            : Icons.copy_rounded,
-                                        color:
-                                            _txidCopied
-                                                ? context.colors.primaryColor
-                                                : context.colors.primaryColor
-                                                    .withValues(alpha: 0.7),
-                                        size: 20,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                            PrimaryButton(
+                              text: t.refund_success_back_dashboard,
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ],
                         ),
-
-                        const Spacer(),
-
-                        PrimaryButton(
-                          text: t.refund_success_back_dashboard,
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

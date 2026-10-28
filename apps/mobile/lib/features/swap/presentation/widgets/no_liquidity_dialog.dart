@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class NoLiquidityDialog extends StatelessWidget {
@@ -22,8 +23,7 @@ class NoLiquidityDialog extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final warning = context.appColors.warning;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    return GlassDialog(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(

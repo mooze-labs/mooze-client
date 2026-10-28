@@ -4,7 +4,9 @@ import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/swap/presentation/utils/post_swap_refresh.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../providers/swap_controller.dart' as sc;
@@ -100,19 +102,12 @@ class _ConfirmSwapBottomSheetState
         state.millisecondsRemaining ?? state.ttlMilliseconds;
 
     return PlatformSafeArea(
-      child: Container(
+      child: GlassSheet(
         constraints: BoxConstraints(
           minHeight: MediaQuery.of(context).size.height * 0.4,
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -140,6 +135,8 @@ class _ConfirmSwapBottomSheetState
                       isLoadingReceive: isFetching,
                       sendLabel: t.swap_you_send,
                       receiveLabel: t.swap_you_receive,
+                      // A lens inside the glass sheet.
+                      backgroundColor: GlassStyle.of(context).lensFill,
                     ),
                     const SizedBox(height: 14),
                     _ExchangeRateRow(state: state, t: t),

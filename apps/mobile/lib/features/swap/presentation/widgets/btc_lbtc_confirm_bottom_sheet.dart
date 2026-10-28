@@ -9,6 +9,8 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_sele
 import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.dart';
 import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
 import 'package:mooze_mobile/features/swap/presentation/widgets/swap_deal_card.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
@@ -149,19 +151,12 @@ class _BtcLbtcConfirmBottomSheetState
         !_isConfirming && !_isLoadingFees && _currentQuote != null;
 
     return PlatformSafeArea(
-      child: Container(
+      child: GlassSheet(
         constraints: BoxConstraints(
           minHeight: MediaQuery.of(context).size.height * 0.5,
           maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -186,6 +181,8 @@ class _BtcLbtcConfirmBottomSheetState
                       isLoadingReceive: _isLoadingFees || quote == null,
                       sendLabel: t.swap_you_send,
                       receiveLabel: t.swap_you_receive,
+                      // A lens inside the glass sheet.
+                      backgroundColor: GlassStyle.of(context).lensFill,
                     ),
                     const SizedBox(height: 20),
                     const Divider(),
