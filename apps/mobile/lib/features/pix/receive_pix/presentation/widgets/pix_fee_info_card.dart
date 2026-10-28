@@ -5,6 +5,10 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/referral_provider.dart';
 import 'package:mooze_mobile/infra/core/core_sync_helpers.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 // ---------------------------------------------------------------------------
@@ -51,7 +55,6 @@ int _activeTierIndex(double amount) =>
     -1;
 
 const _discountColor = Color(0xFF2A9D6B);
-const _expandDuration = Duration(milliseconds: 220);
 
 // ---------------------------------------------------------------------------
 // Card widget
@@ -83,17 +86,20 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
     final isFixedFee = depositAmount <= fixedFeeRateThreshold;
     // Discount only applies to percentage-based tiers, not the fixed-fee tier.
     final hasDiscount = hasReferral && !isFixedFee;
-    final colorScheme = context.colorScheme;
 
     final expanded = _userExpanded ?? (activeTier == -1);
     final hasCollapsedContent = activeTier != -1;
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: expanded
+          ? _expandedBody(context, activeTier, hasDiscount)
+          : hasCollapsedContent
+          ? _collapsedBody(context, activeTier, hasDiscount)
+          : const [SizedBox(width: double.infinity)],
+    );
 
-    return Container(
-      clipBehavior: Clip.hardEdge,
-      decoration: BoxDecoration(
-        color: context.colors.surfaceLow,
-        borderRadius: BorderRadius.circular(12),
-      ),
+    // A glass panel, like the other summaries of the Pix screens.
+    return GlassPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -107,16 +113,16 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.percent_rounded,
+                  PixIcon(
+                    PixIcons.percent,
                     size: 14,
-                    color: colorScheme.onSurface.withValues(alpha: 0.45),
+                    color: context.colors.textSecondary,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     t.pix_fee_conversion_title,
                     style: context.textTheme.labelMedium?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.55),
+                      color: context.colors.textSecondary,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.2,
                     ),
@@ -128,12 +134,12 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
                   ],
                   AnimatedRotation(
                     turns: expanded ? 0.5 : 0,
-                    duration: _expandDuration,
-                    curve: Curves.easeInOut,
-                    child: Icon(
-                      Icons.expand_more_rounded,
+                    duration: Motion.of(context, Motion.durationBase),
+                    curve: Motion.curveMove,
+                    child: PixIcon(
+                      PixIcons.chevronDown,
                       size: 18,
-                      color: colorScheme.onSurface.withValues(alpha: 0.55),
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ],
@@ -141,22 +147,17 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
             ),
           ),
           // ── Animated body ────────────────────────────────────────────────
-          AnimatedSize(
-            duration: _expandDuration,
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: ClipRect(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children:
-                    expanded
-                        ? _expandedBody(context, activeTier, hasDiscount)
-                        : hasCollapsedContent
-                        ? _collapsedBody(context, activeTier, hasDiscount)
-                        : const [SizedBox(width: double.infinity)],
-              ),
+          // AnimatedSize does not accept a zero duration, so reduced motion
+          // shows the new body at once without it.
+          if (Motion.isReduced(context))
+            body
+          else
+            AnimatedSize(
+              duration: Motion.durationBase,
+              curve: Motion.curveMove,
+              alignment: Alignment.topCenter,
+              child: ClipRect(child: body),
             ),
-          ),
         ],
       ),
     );
@@ -168,13 +169,12 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
     bool hasDiscount,
   ) {
     final t = AppLocalizations.of(context);
-    final colorScheme = context.colorScheme;
     final tiers = _localizedTiers(t);
     return [
       Divider(
         height: 1,
         thickness: 0.5,
-        color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        color: AppSurfaces.hairline(context),
       ),
       for (int i = 0; i < tiers.length; i++) ...[
         _TierRow(
@@ -187,7 +187,7 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
           Divider(
             height: 1,
             thickness: 0.5,
-            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            color: AppSurfaces.hairline(context),
             indent: 16,
             endIndent: 16,
           ),
@@ -196,9 +196,10 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
         padding: const EdgeInsets.fromLTRB(16, 2, 16, 3),
         child: Text(
           t.pix_fee_footnote_discount,
+          // Secondary, not 35% opacity: the footnotes are fee disclosures
+          // and must pass 4.5:1.
           style: context.textTheme.labelSmall?.copyWith(
-            color: colorScheme.onSurface.withValues(alpha: 0.35),
-            fontStyle: FontStyle.italic,
+            color: context.colors.textSecondary,
           ),
         ),
       ),
@@ -206,9 +207,10 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
         padding: const EdgeInsets.fromLTRB(16, 3, 16, 12),
         child: Text(
           t.pix_fee_footnote_network,
+          // Secondary, not 35% opacity: the footnotes are fee disclosures
+          // and must pass 4.5:1.
           style: context.textTheme.labelSmall?.copyWith(
-            color: colorScheme.onSurface.withValues(alpha: 0.35),
-            fontStyle: FontStyle.italic,
+            color: context.colors.textSecondary,
           ),
         ),
       ),
@@ -221,13 +223,12 @@ class _PixFeeInfoCardState extends ConsumerState<PixFeeInfoCard> {
     bool hasDiscount,
   ) {
     final t = AppLocalizations.of(context);
-    final colorScheme = context.colorScheme;
     final tiers = _localizedTiers(t);
     return [
       Divider(
         height: 1,
         thickness: 0.5,
-        color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        color: AppSurfaces.hairline(context),
       ),
       _TierRow(
         tier: tiers[activeTier],
@@ -262,11 +263,7 @@ class _DiscountBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.local_offer_rounded,
-            size: 11,
-            color: _discountColor,
-          ),
+          const PixIcon(PixIcons.tag, size: 11, color: _discountColor),
           const SizedBox(width: 4),
           Text(
             t.pix_fee_discount_active_short,
@@ -313,8 +310,8 @@ class _TierRow extends StatelessWidget {
             : tier.fee.replaceAll('*', '').trimRight();
 
     return AnimatedContainer(
-      duration: _expandDuration,
-      curve: Curves.easeInOut,
+      duration: Motion.of(context, Motion.durationBase),
+      curve: Motion.curveMove,
       // Left padding shrinks by the border width so text stays aligned.
       padding: EdgeInsets.only(
         left: isActive ? 13 : 16,

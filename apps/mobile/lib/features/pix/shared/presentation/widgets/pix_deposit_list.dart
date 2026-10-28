@@ -108,10 +108,10 @@ class PixDepositListItem extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     decoration:
                         deposit.status == DepositStatus.finished ||
-                                deposit.status == DepositStatus.expired &&
-                                    !isVisible
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
+                            deposit.status == DepositStatus.expired &&
+                                !isVisible
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
                   ),
                 ),
                 const SizedBox(height: 4),

@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/motion/fade_slide_in.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Data model for a single info tip. Keep it immutable so tips can live as
 /// compile-time constants and are trivially replaceable with a dynamic source.
+///
+/// Give a [pixIcon] for the Pix icon set. [icon] stays for callers that
+/// still pass a Material icon. A tip needs one of the two.
 class InfoTip {
-  final IconData icon;
+  final IconData? icon;
+  final PixIconData? pixIcon;
   final String text;
-  final Color iconColor;
 
-  const InfoTip({
-    required this.icon,
-    required this.text,
-    required this.iconColor,
-  });
+  /// Color of the icon. Null draws a neutral icon.
+  final Color? iconColor;
+
+  const InfoTip({this.icon, this.pixIcon, required this.text, this.iconColor})
+    : assert(icon != null || pixIcon != null, 'A tip needs an icon.');
 }
 
 // ---------------------------------------------------------------------------
@@ -22,21 +28,9 @@ class InfoTip {
 // Extend or swap this list for dynamic/remote content in the future.
 // ---------------------------------------------------------------------------
 List<InfoTip> _defaultPixDepositTips(AppLocalizations t) => [
-  InfoTip(
-    icon: Icons.info_outline_rounded,
-    text: t.pix_tip_consecutive_daily,
-    iconColor: const Color(0xFFE8733A),
-  ),
-  InfoTip(
-    icon: Icons.shield_rounded,
-    text: t.pix_tip_outside_rules_returned,
-    iconColor: const Color(0xFF2A9D6B),
-  ),
-  InfoTip(
-    icon: Icons.access_time_rounded,
-    text: t.pix_tip_processing_avg_time,
-    iconColor: const Color(0xFFE8A020),
-  ),
+  InfoTip(pixIcon: PixIcons.info, text: t.pix_tip_consecutive_daily),
+  InfoTip(pixIcon: PixIcons.shield, text: t.pix_tip_outside_rules_returned),
+  InfoTip(pixIcon: PixIcons.clock, text: t.pix_tip_processing_avg_time),
 ];
 
 /// Maximum number of tips shown by default. Keeps the screen uncluttered
@@ -47,11 +41,16 @@ const _defaultMaxTips = 3;
 // Section widget
 // ---------------------------------------------------------------------------
 
-/// Displays a card with concise reassurance tips.
+/// Displays concise reassurance tips as secondary text.
 ///
-/// Fades in with a subtle upward slide on first render. Accepts an optional
-/// [tips] override and [maxTips] cap so the caller can control content
-/// without touching this file.
+/// The tips are fine print, so they have no card of their own: each tip is a
+/// small icon and a line of secondary text. The section can sit on the page
+/// or inside a glass panel.
+///
+/// The section fades in with a small rise when it first appears. With
+/// reduced motion it appears at once. Accepts an optional [tips] override and
+/// [maxTips] cap so the caller can control content without touching this
+/// file.
 class InfoTipsSection extends StatefulWidget {
   /// Override the default static tip list (e.g. from a remote config).
   final List<InfoTip>? tips;
@@ -67,25 +66,25 @@ class InfoTipsSection extends StatefulWidget {
 
 class _InfoTipsSectionState extends State<InfoTipsSection>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: Motion.durationBase,
+  );
+  late final Animation<double> _animation = CurvedAnimation(
+    parent: _controller,
+    curve: Motion.curveEnter,
+  );
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 420),
-      vsync: this,
-    );
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    // Slight delay so the screen settles before the tips appear.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _controller.forward());
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller.isDismissed) {
+      if (Motion.isReduced(context)) {
+        _controller.value = 1;
+      } else {
+        _controller.forward();
+      }
+    }
   }
 
   @override
@@ -97,36 +96,20 @@ class _InfoTipsSectionState extends State<InfoTipsSection>
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final visibleTips =
-        (widget.tips ?? _defaultPixDepositTips(t)).take(widget.maxTips).toList();
+    final visibleTips = (widget.tips ?? _defaultPixDepositTips(t))
+        .take(widget.maxTips)
+        .toList();
 
-    return FadeTransition(
-      opacity: _fade,
-      child: SlideTransition(
-        position: _slide,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: context.colors.surfaceLow,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (int i = 0; i < visibleTips.length; i++) ...[
-                InfoTipItem(tip: visibleTips[i]),
-                if (i < visibleTips.length - 1)
-                  Divider(
-                    height: 20,
-                    thickness: 0.5,
-                    color: context.colorScheme.outlineVariant.withValues(
-                      alpha: 0.45,
-                    ),
-                  ),
-              ],
-            ],
-          ),
-        ),
+    return FadeSlideIn(
+      animation: _animation,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < visibleTips.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            InfoTipItem(tip: visibleTips[i]),
+          ],
+        ],
       ),
     );
   }
@@ -136,36 +119,36 @@ class _InfoTipsSectionState extends State<InfoTipsSection>
 // Single tip row
 // ---------------------------------------------------------------------------
 
-/// Renders one tip: a tinted icon badge on the left and short text on the
+/// Renders one tip: a small icon on the left and short secondary text on the
 /// right. Fully reusable — pass any [InfoTip] instance.
 class InfoTipItem extends StatelessWidget {
   final InfoTip tip;
 
   const InfoTipItem({super.key, required this.tip});
 
+  static const double _iconSize = 16;
+
   @override
   Widget build(BuildContext context) {
+    final color = tip.iconColor ?? context.colors.textSecondary;
+    final pixIcon = tip.pixIcon;
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: tip.iconColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(tip.icon, size: 16, color: tip.iconColor),
+        Padding(
+          // The icon lines up with the first line of text.
+          padding: const EdgeInsets.only(top: 1),
+          child: pixIcon != null
+              ? PixIcon(pixIcon, size: _iconSize, color: color)
+              : Icon(tip.icon, size: _iconSize, color: color),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              tip.text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: context.colorScheme.onSurface.withValues(alpha: 0.68),
-                height: 1.5,
-              ),
+          child: Text(
+            tip.text,
+            style: context.textTheme.bodySmall?.copyWith(
+              color: context.colors.textSecondary,
+              height: 1.45,
             ),
           ),
         ),

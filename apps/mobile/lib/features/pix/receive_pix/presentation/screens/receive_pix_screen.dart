@@ -17,10 +17,24 @@ import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/shared/widgets/motion/fade_slide_in.dart';
+import 'package:mooze_mobile/themes/motion.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/asset_selector_widget.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/info_tips_section.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/pix_value_input_widget.dart';
 
+/// Amount step of the Pix deposit (`/pix/deposit`).
+///
+/// The screen follows the Pix hub: the backdrop behind a clear app bar, a
+/// large title, the asset choice as a compact row, the amount as the hero,
+/// and the limits in one glass summary. The main action stays pinned at the
+/// bottom, above the keyboard.
 class ReceivePixScreen extends ConsumerStatefulWidget {
   const ReceivePixScreen({super.key});
 
@@ -95,14 +109,12 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
-            builder:
-                (context, coach) => pixTutorialContentCard(
-                  title: title,
-                  body: body,
-                  buttonLabel: t.common_next,
-                  onPressed:
-                      () => onNext != null ? onNext(coach) : coach.next(),
-                ),
+            builder: (context, coach) => pixTutorialContentCard(
+              title: title,
+              body: body,
+              buttonLabel: t.common_next,
+              onPressed: () => onNext != null ? onNext(coach) : coach.next(),
+            ),
           ),
         ],
       );
@@ -131,16 +143,15 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
-              builder:
-                  (context, coach) => pixTutorialContentCard(
-                    title: t.pix_tutorial_step7_title,
-                    body: t.pix_tutorial_step7_body,
-                    buttonLabel: t.common_next,
-                    onPressed: () {
-                      _receiveAdvancing = true;
-                      coach.next();
-                    },
-                  ),
+              builder: (context, coach) => pixTutorialContentCard(
+                title: t.pix_tutorial_step7_title,
+                body: t.pix_tutorial_step7_body,
+                buttonLabel: t.common_next,
+                onPressed: () {
+                  _receiveAdvancing = true;
+                  coach.next();
+                },
+              ),
             ),
           ],
         ),
@@ -219,30 +230,112 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
       _syncReceiveTutorial();
     });
 
+    final depositAmount = ref.watch(depositAmountProvider);
+    final validation = ref.watch(depositValidationProvider);
+    final canContinue = depositAmount > 0 && validation.isValid;
+    final tutorial = ref.read(pixTutorialControllerProvider.notifier);
+
+    // The overlay starts below the app bar, so the back button stays usable
+    // while the API is down.
+    final appBarBottom = MediaQuery.paddingOf(context).top + kToolbarHeight;
+
     return Scaffold(
+      // The app bar is clear and paints its slice of the backdrop, so the
+      // bar and the page read as one surface.
+      extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: Text(t.pix_receive_appbar_title),
+      appBar: BackdropAppBar(
+        title: Text(t.pix_hub_shortcut_deposit),
         actions: [
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
           IconButton(
+            tooltip: t.pix_receive_info_title,
             onPressed: () => _showPixInfo(context),
-            icon: const Icon(Icons.info_outline_rounded),
+            // Neutral: the brand color stays on the main action.
+            icon: PixIcon(
+              PixIcons.info,
+              size: 22,
+              color: context.colors.textPrimary,
+            ),
           ),
         ],
       ),
-      bottomSheet: _buildKeyboardContinueButton(context),
       body: Stack(
         children: [
+          const Positioned.fill(child: AppBackdrop()),
           GestureDetector(
+            behavior: HitTestBehavior.translucent,
             onTap: () => FocusScope.of(context).unfocus(),
-            child: SingleChildScrollView(child: _buildBody(context)),
+            child: SafeArea(
+              child: _ContentEntrance(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(
+                          PixScreenScaffold.gutter,
+                          8,
+                          PixScreenScaffold.gutter,
+                          16,
+                        ),
+                        children: [
+                          PixScreenTitle(
+                            title: t.pix_hub_info_deposit_title,
+                            // The brand name is not translated.
+                            subtitle:
+                                '${t.pix_receive_instruction_prefix}Mooze.',
+                          ),
+                          const SizedBox(height: 16),
+                          KeyedSubtree(
+                            key: tutorial.assetSelectorKey,
+                            child: const AssetSelectorWidget(),
+                          ),
+                          const SizedBox(height: 20),
+                          PixValueInputWidget(
+                            onContinue: _advance,
+                            amountKey: tutorial.amountInputKey,
+                            limitsKey: tutorial.limitsKey,
+                          ),
+                          const SizedBox(height: 14),
+                          InfoTipsSection(
+                            tips: [
+                              InfoTip(
+                                pixIcon: PixIcons.trendingUp,
+                                text: t.pix_receive_tip_more_payments,
+                              ),
+                            ],
+                            maxTips: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                    // One main action, pinned above the keyboard.
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        PixScreenScaffold.gutter,
+                        8,
+                        PixScreenScaffold.gutter,
+                        12,
+                      ),
+                      child: PrimaryButton(
+                        text: t.pix_receive_advance,
+                        onPressed: _advance,
+                        isEnabled: canContinue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          ApiUnavailableOverlay(
-            onRetry: () {
-              ref.invalidate(depositAmountProvider);
-            },
-            customMessage: t.pix_receive_api_unavailable,
+          Positioned.fill(
+            top: appBarBottom,
+            child: ApiUnavailableOverlay(
+              onRetry: () {
+                ref.invalidate(depositAmountProvider);
+              },
+              customMessage: t.pix_receive_api_unavailable,
+            ),
           ),
         ],
       ),
@@ -251,132 +344,195 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
 
   void _advance() => context.push('/pix/confirm');
 
-  Widget? _buildKeyboardContinueButton(BuildContext context) {
-    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
-    final depositAmount = ref.watch(depositAmountProvider);
-    final validation = ref.watch(depositValidationProvider);
-    final canContinue = depositAmount > 0 && validation.isValid;
-
-    if (!isKeyboardVisible || !canContinue) return null;
-
-    final t = AppLocalizations.of(context);
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: SafeArea(
-        top: false,
-        child: PrimaryButton(text: t.pix_receive_advance, onPressed: _advance),
-      ),
-    );
-  }
-
+  /// Opens the guidance about deposits in a glass sheet.
   void _showPixInfo(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    InfoOverlay.show(
-      context,
-      title: t.pix_receive_info_title,
-      steps: [
-        InfoStep(
-          icon: Icons.schedule,
-          title: t.pix_receive_info_step1_title,
-          description: t.pix_receive_info_step1_desc,
-        ),
-        InfoStep(
-          icon: Icons.currency_bitcoin,
-          title: t.pix_receive_info_step2_title,
-          description: t.pix_receive_info_step2_desc,
-        ),
-        InfoStep(
-          icon: Icons.receipt_long,
-          title: t.pix_receive_info_step3_title,
-          description: t.pix_receive_info_step3_desc,
-        ),
-      ],
-      footerBuilder:
-          (closeOverlay) => SecondaryButton(
-            text: t.pix_receive_info_see_fees,
-            onPressed: () {
-              closeOverlay();
-              context.push('/pix/fees');
-            },
-          ),
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _DepositInfoSheet(
+        onSeeFees: () {
+          Navigator.of(sheetContext).pop();
+          context.push('/pix/fees');
+        },
+      ),
     );
   }
+}
 
-  Widget _buildInstructionText(BuildContext context) {
+/// Guidance about deposits: processing time, the L-BTC rate, and the fees.
+class _DepositInfoSheet extends StatelessWidget {
+  final VoidCallback onSeeFees;
+
+  const _DepositInfoSheet({required this.onSeeFees});
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return Center(
-      child: RichText(
-        textAlign: TextAlign.center,
-        text: TextSpan(
-          text: t.pix_receive_instruction_prefix,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(height: 1.4),
+    final steps = [
+      (
+        icon: PixIcons.clock,
+        title: t.pix_receive_info_step1_title,
+        body: t.pix_receive_info_step1_desc,
+      ),
+      (
+        icon: PixIcons.trendingUp,
+        title: t.pix_receive_info_step2_title,
+        body: t.pix_receive_info_step2_desc,
+      ),
+      (
+        icon: PixIcons.receipt,
+        title: t.pix_receive_info_step3_title,
+        body: t.pix_receive_info_step3_desc,
+      ),
+    ];
+
+    return GlassSheet(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 10, 8, 16),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextSpan(
-              text: 'Mooze',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: context.colorScheme.onSurface.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-            const TextSpan(text: '.'),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      t.pix_receive_info_title,
+                      style: context.textTheme.titleMedium?.copyWith(
+                        color: context.colors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: t.common_close,
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: PixIcon(
+                    PixIcons.close,
+                    size: 20,
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final step in steps) ...[
+                    if (step != steps.first) const SizedBox(height: 18),
+                    MergeSemantics(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          PixIconWell(icon: step.icon, size: 36),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  step.title,
+                                  style: context.textTheme.bodyLarge?.copyWith(
+                                    color: context.colors.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  step.body,
+                                  style: context.textTheme.bodySmall?.copyWith(
+                                    color: context.colors.textSecondary,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  SecondaryButton(
+                    text: t.pix_receive_info_see_fees,
+                    onPressed: onSeeFees,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildBody(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    final depositAmount = ref.watch(depositAmountProvider);
-    final validation = ref.watch(depositValidationProvider);
-    final isButtonEnabled = depositAmount > 0 && validation.isValid;
-    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+/// Fades and raises the content once, when the screen opens.
+///
+/// It matches the entrance of [PixScreenScaffold]. With reduced motion the
+/// content appears at once.
+class _ContentEntrance extends StatefulWidget {
+  const _ContentEntrance({required this.child});
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 8, left: 16, bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInstructionText(context),
-          const SizedBox(height: 10),
-          KeyedSubtree(
-            key:
-                ref
-                    .read(pixTutorialControllerProvider.notifier)
-                    .assetSelectorKey,
-            child: AssetSelectorWidget(),
-          ),
-          const SizedBox(height: 10),
-          PixValueInputWidget(
-            onContinue: _advance,
-            amountKey:
-                ref.read(pixTutorialControllerProvider.notifier).amountInputKey,
-            limitsKey:
-                ref.read(pixTutorialControllerProvider.notifier).limitsKey,
-          ),
-          const SizedBox(height: 12),
-          InfoTipsSection(
-            tips: [
-              InfoTip(
-                icon: Icons.trending_up_rounded,
-                text: t.pix_receive_tip_more_payments,
-                iconColor: const Color(0xFF2A9D6B),
-              ),
-            ],
-            maxTips: 1,
-          ),
-          if (!isKeyboardVisible) ...[
-            const SizedBox(height: 24),
-            PrimaryButton(
-              text: t.pix_receive_advance,
-              onPressed: _advance,
-              isEnabled: isButtonEnabled,
-            ),
-          ],
-          const SizedBox(height: 120),
-        ],
-      ),
-    );
+  final Widget child;
+
+  @override
+  State<_ContentEntrance> createState() => _ContentEntranceState();
+}
+
+class _ContentEntranceState extends State<_ContentEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: Motion.durationBase,
+  );
+  late final Animation<double> _animation = CurvedAnimation(
+    parent: _controller,
+    curve: Motion.curveEnter,
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller.isDismissed) {
+      if (Motion.isReduced(context)) {
+        _controller.value = 1;
+      } else {
+        _controller.forward();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeSlideIn(animation: _animation, child: widget.child);
   }
 }

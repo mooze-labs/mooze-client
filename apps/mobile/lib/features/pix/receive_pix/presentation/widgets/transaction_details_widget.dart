@@ -1,44 +1,52 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_empty_state.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_card.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/referral_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/selected_asset_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_validation_provider.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
+import 'package:mooze_mobile/shared/widgets/motion/skeleton.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
-import 'package:shimmer/shimmer.dart';
 
+const _tabular = [FontFeature.tabularFigures()];
+
+/// The amount of the selected asset that the deposit delivers.
+///
+/// The value comes from the asset quote and the deposit after fees. A
+/// skeleton holds its place while the quote loads.
 class AssetAmountDisplay extends ConsumerWidget {
   const AssetAmountDisplay({super.key});
+
+  TextStyle? _style(BuildContext context) =>
+      context.textTheme.headlineMedium?.copyWith(
+        color: context.colors.textPrimary,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.6,
+        height: 1.15,
+        fontFeatures: _tabular,
+      );
 
   Widget _returnError(BuildContext context) {
     return Text(
       "N/A",
-      style: TextStyle(
-        color: Theme.of(context).colorScheme.error,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.5,
-      ),
+      style: _style(context)?.copyWith(color: context.colors.negativeColor),
     );
   }
 
   Widget _buildShimmer(BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: context.colors.baseColor,
-      highlightColor: context.colors.highlightColor,
-      child: Container(
-        width: 30,
-        height: 10,
-        decoration: BoxDecoration(
-          color: context.colors.baseColor,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ),
+    return const SkeletonShimmer(
+      child: SkeletonBox(width: 140, height: 30, radius: 8),
     );
   }
 
@@ -69,11 +77,7 @@ class AssetAmountDisplay extends ConsumerWidget {
               final locale = Localizations.localeOf(context).toString();
               return Text(
                 selectedAsset.formatQuoteAmount(amount, locale: locale),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
+                style: _style(context),
               );
             },
             error: (error, stackTrace) {
@@ -89,6 +93,10 @@ class AssetAmountDisplay extends ConsumerWidget {
   }
 }
 
+/// Review of a deposit: what the user receives and the fees that apply.
+///
+/// The amount sits on the page. The fees share one glass panel. Without a
+/// valid amount, the widget asks for one instead.
 class TransactionDisplayWidget extends ConsumerWidget {
   const TransactionDisplayWidget({super.key});
 
@@ -98,51 +106,63 @@ class TransactionDisplayWidget extends ConsumerWidget {
     final depositAmount = ref.watch(depositAmountProvider);
     final validation = ref.watch(depositValidationProvider);
 
-    return Container(
-      decoration: _buildContainerDecoration(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (validation.isValid) ...[
-              _buildHeader(context),
-              _buildAssetAmount(context, selectedAsset, ref),
-              _buildReaisAmount(context, depositAmount),
-              const SizedBox(height: 10),
-              _buildFeeBreakdown(context, ref, depositAmount),
-            ] else ...[
-              _buildEmptyState(context),
+    // Each state fills the width, so both states keep the same alignment
+    // during the switch.
+    return SizeFadeSwitcher(
+      child: SizedBox(
+        key: ValueKey(validation.isValid),
+        width: double.infinity,
+        child: validation.isValid
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context, selectedAsset),
+                  const SizedBox(height: 6),
+                  _buildReaisAmount(context, depositAmount),
+                  const SizedBox(height: 24),
+                  _buildFeeBreakdown(context, ref, depositAmount),
+                ],
+              )
+            : _buildEmptyState(context),
+      ),
+    );
+  }
+
+  /// The "You will receive" label and the asset amount, with the asset logo.
+  Widget _buildHeader(BuildContext context, Asset asset) {
+    return MergeSemantics(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.of(context).pix_you_will_receive,
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: context.colors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              SvgPicture.asset(asset.iconPath, width: 28, height: 28),
+              const SizedBox(width: 10),
+              // Not const: a new instance reads the current amount on every
+              // rebuild of this widget.
+              Flexible(child: AssetAmountDisplay()),
             ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Text(
-      AppLocalizations.of(context).pix_you_will_receive,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-        color: Theme.of(context).colorScheme.primary,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-
-  Widget _buildAssetAmount(BuildContext context, Asset asset, WidgetRef ref) {
-    return AssetAmountDisplay();
   }
 
   Widget _buildReaisAmount(BuildContext context, double amount) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Text(
-      AppLocalizations.of(context).pix_of_amount(
-        amount.toStringAsFixed(2).replaceAll('.', ','),
-      ),
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-        color: onSurface.withValues(alpha: 0.5),
-        letterSpacing: 0.3,
+      AppLocalizations.of(
+        context,
+      ).pix_of_amount(amount.toStringAsFixed(2).replaceAll('.', ',')),
+      style: context.textTheme.bodyMedium?.copyWith(
+        color: context.colors.textSecondary,
+        fontFeatures: _tabular,
       ),
     );
   }
@@ -157,6 +177,9 @@ class TransactionDisplayWidget extends ConsumerWidget {
     return '${s.replaceAll('.', ',')}%';
   }
 
+  static String _reais(double amount) =>
+      'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}';
+
   Widget _buildFeeBreakdown(
     BuildContext context,
     WidgetRef ref,
@@ -167,7 +190,6 @@ class TransactionDisplayWidget extends ConsumerWidget {
     final feeRate = ref.watch(feeRateProvider(depositAmount));
     final hasReferral = ref.watch(hasReferralProvider);
     final isFixedFee = depositAmount <= fixedFeeRateThreshold;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     // Derive the percent label from the live fee rate (already includes the
     // 15% referral discount when applicable).
@@ -176,264 +198,247 @@ class TransactionDisplayWidget extends ConsumerWidget {
       orElse: () => '...%',
     );
 
+    // The row of the Mooze fee and, with a referral, the amount saved.
+    final Widget moozeFeeRow;
+    String? savings;
+    if (isFixedFee) {
+      moozeFeeRow = _FeeRow(
+        title: t.pix_fee_fixed_mooze,
+        subtitle: t.pix_fee_fixed_for_small_subtitle,
+        value: const _FeeValue('R\$ 1,00'),
+      );
+    } else {
+      final loadingRow = _FeeRow(
+        title: t.pix_fee_mooze,
+        value: const _FeeValueSkeleton(),
+      );
+      moozeFeeRow = feeAmount.when(
+        data: (amount) => hasReferral.when(
+          data: (hasRef) {
+            if (hasRef) {
+              final originalAmount = amount / 0.85;
+              final savedAmount = originalAmount - amount;
+              savings = t.pix_fee_savings(
+                savedAmount.toStringAsFixed(2).replaceAll('.', ','),
+              );
+              return _FeeRow(
+                title: t.pix_fee_mooze,
+                subtitle: t.pix_fee_referral_discount,
+                value: _FeeValue(_reais(amount)),
+                percent: percentLabel,
+              );
+            }
+            return _FeeRow(
+              title: t.pix_fee_mooze,
+              value: _FeeValue(_reais(amount)),
+              percent: percentLabel,
+            );
+          },
+          error: (_, _) => _FeeRow(
+            title: t.pix_fee_mooze,
+            value: _FeeValue(_reais(amount)),
+            percent: percentLabel,
+          ),
+          loading: () => loadingRow,
+        ),
+        error: (_, _) => _FeeRow(
+          title: t.pix_fee_mooze,
+          value: _FeeValue(t.common_error, muted: true),
+        ),
+        loading: () => loadingRow,
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           t.pix_fees_applied,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: onSurface.withValues(alpha: 0.7),
+          style: context.textTheme.labelLarge?.copyWith(
+            color: context.colors.textSecondary,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 12),
-        if (isFixedFee) ...[
-          _buildSimpleFeeCard(
-            context,
-            title: t.pix_fee_fixed_mooze,
-            value: 'R\$ 1,00',
-            subtitle: t.pix_fee_fixed_for_small_subtitle,
-            icon: Icons.receipt_long,
-          ),
-        ] else ...[
-          feeAmount.when(
-            data: (amount) => hasReferral.when(
-              data: (hasRef) {
-                if (hasRef) {
-                  final originalAmount = amount / 0.85;
-                  final savedAmount = originalAmount - amount;
-                  return Column(
-                    children: [
-                      _buildSimpleFeeCard(
-                        context,
-                        title: t.pix_fee_mooze,
-                        value:
-                            'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
-                        percent: percentLabel,
-                        subtitle: t.pix_fee_referral_discount,
-                        icon: Icons.receipt_long,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildDiscountBadge(
-                        context,
-                        t.pix_fee_savings(
-                          savedAmount.toStringAsFixed(2).replaceAll('.', ','),
-                        ),
-                      ),
-                    ],
-                  );
-                }
-                return _buildSimpleFeeCard(
-                  context,
-                  title: t.pix_fee_mooze,
-                  value:
-                      'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
-                  subtitle: null,
-                  percent: percentLabel,
-                  icon: Icons.receipt_long,
-                );
-              },
-              error: (_, _) => _buildSimpleFeeCard(
-                context,
-                title: t.pix_fee_mooze,
-                value: 'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
-                subtitle: null,
-                percent: percentLabel,
-                icon: Icons.receipt_long,
-              ),
-              loading: () => _buildSimpleFeeCard(
-                context,
-                title: t.pix_fee_mooze,
-                value: '...',
-                percent: '...%',
-                subtitle: null,
-                icon: Icons.receipt_long,
-              ),
-            ),
-            error: (_, _) => _buildSimpleFeeCard(
-              context,
-              title: t.pix_fee_mooze,
-              value: t.common_error,
-              percent: '...%',
-              subtitle: null,
-              icon: Icons.receipt_long,
-            ),
-            loading: () => _buildSimpleFeeCard(
-              context,
-              title: t.pix_fee_mooze,
-              value: '...',
-              percent: '...%',
-              subtitle: null,
-              icon: Icons.receipt_long,
-            ),
-          ),
-        ],
-        const SizedBox(height: 8),
-        _buildSimpleFeeCard(
-          context,
-          title: t.pix_fee_processor,
-          value: 'R\$ 1,00',
-          subtitle: null,
-          icon: Icons.account_balance,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSimpleFeeCard(
-    BuildContext context, {
-    required String title,
-    required String value,
-    required IconData icon,
-    String? percent,
-    String? subtitle,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final onSurface = colorScheme.onSurface;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: onSurface.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 18, color: colorScheme.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.labelLarge?.copyWith(
-                    color: onSurface.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: onSurface.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.end,
+        const SizedBox(height: 10),
+        PixSurfaceCard(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+          child: Column(
             children: [
-              Text(
-                value,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: onSurface,
-                  fontWeight: FontWeight.w700,
-                ),
+              moozeFeeRow,
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: AppSurfaces.hairline(context),
               ),
-              percent != null && percent.isNotEmpty
-                  ? Text(
-                    percent,
-                    style: textTheme.labelMedium?.copyWith(
-                      color: onSurface.withValues(alpha: 0.5),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  )
-                  : const SizedBox.shrink(),
+              _FeeRow(
+                title: t.pix_fee_processor,
+                value: const _FeeValue('R\$ 1,00'),
+              ),
             ],
           ),
+        ),
+        if (savings != null) ...[
+          const SizedBox(height: 12),
+          _SavingsNote(text: savings!),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDiscountBadge(BuildContext context, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.celebration, size: 16, color: const Color(0xFF4CAF50)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF4CAF50),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final textTheme = Theme.of(context).textTheme;
+    return PixEmptyState(
+      icon: PixIcons.amount,
+      title: t.pix_waiting_amount_title,
+      message: t.pix_waiting_amount_body,
+      isCompact: true,
+    );
+  }
+}
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: onSurface.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: onSurface.withValues(alpha: 0.08),
-          width: 1.5,
+/// One fee: its name, an optional note, the amount, and an optional rate.
+///
+/// The amount keeps its own width, up to 60% of the row. The name takes the
+/// rest, so a short amount does not make a long name wrap.
+class _FeeRow extends StatelessWidget {
+  const _FeeRow({
+    required this.title,
+    required this.value,
+    this.subtitle,
+    this.percent,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget value;
+  final String? percent;
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = this.percent;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 13),
+      child: MergeSemantics(
+        child: LayoutBuilder(
+          builder: (context, constraints) => Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: context.colors.textTertiary,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: constraints.maxWidth * 0.6,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    value,
+                    if (percent != null && percent.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        percent,
+                        textAlign: TextAlign.end,
+                        style: context.textTheme.labelMedium?.copyWith(
+                          color: context.colors.textSecondary,
+                          fontFeatures: _tabular,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.info_outline, size: 40, color: onSurface.withValues(alpha: 0.3)),
-          SizedBox(height: 12),
-          Text(
-            t.pix_waiting_amount_title,
-            style: textTheme.bodyMedium?.copyWith(
-              color: onSurface.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            t.pix_waiting_amount_body,
-            textAlign: TextAlign.center,
-            style: textTheme.labelLarge?.copyWith(
-              color: onSurface.withValues(alpha: 0.4),
-              height: 1.4,
-            ),
-          ),
-        ],
       ),
     );
   }
+}
 
-  BoxDecoration _buildContainerDecoration(BuildContext context) {
-    return BoxDecoration(
-      color: context.colors.surfaceLow,
-      borderRadius: BorderRadius.circular(12),
+/// The amount of a fee, with tabular figures.
+class _FeeValue extends StatelessWidget {
+  const _FeeValue(this.text, {this.muted = false});
+
+  final String text;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.end,
+      style: context.textTheme.bodyMedium?.copyWith(
+        color: muted
+            ? context.colors.textSecondary
+            : context.colors.textPrimary,
+        fontWeight: FontWeight.w600,
+        fontFeatures: _tabular,
+      ),
+    );
+  }
+}
+
+/// Placeholder of a fee that is still loading.
+class _FeeValueSkeleton extends StatelessWidget {
+  const _FeeValueSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonShimmer(
+      child: SkeletonBox(width: 56, height: 14, radius: 6),
+    );
+  }
+}
+
+/// The amount a referral code saves, in the positive tone.
+///
+/// The icon and the text carry the meaning together with the color.
+class _SavingsNote extends StatelessWidget {
+  const _SavingsNote({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = pixToneColor(context, PixTone.positive);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PixIcon(PixIcons.celebrate, size: 18, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: context.textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

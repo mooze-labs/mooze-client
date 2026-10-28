@@ -155,7 +155,6 @@ void showPixCoachMarkWhenReady(
           const Duration(milliseconds: 50),
           () => attempt(remaining - 1),
         );
-
       } else {
         debugPrint(
           '[PixTutorial] target "${label ?? key.toString()}" never became '

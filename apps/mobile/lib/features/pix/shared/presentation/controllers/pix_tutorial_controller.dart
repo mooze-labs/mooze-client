@@ -33,7 +33,8 @@ class PixTutorialController extends Notifier<PixTutorialState> {
   @override
   PixTutorialState build() => const PixTutorialState();
 
-  Future<bool> hasSeen() => ref.read(pixTutorialServiceProvider).isTutorialShown();
+  Future<bool> hasSeen() =>
+      ref.read(pixTutorialServiceProvider).isTutorialShown();
 
   /// Starts the tutorial on the receive screen. The tutorial no longer
   /// auto-runs on the home screen; it begins the first time the user opens

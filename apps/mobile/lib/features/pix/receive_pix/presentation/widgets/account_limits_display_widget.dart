@@ -1,186 +1,221 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_section_header.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_card.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/exceptions/user_friendly_exception.dart';
 import 'package:mooze_mobile/shared/formatters/fiat_input_formatter.dart';
-import 'package:shimmer/shimmer.dart';
-
-import 'package:mooze_mobile/shared/extensions.dart';
-import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
+import 'package:mooze_mobile/shared/widgets/motion/skeleton.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 
+/// Deposit limits of the account, as one quiet glass summary.
+///
+/// Each limit is a label on the left and its value on the right, split by
+/// hairlines, as in the Pix review summaries. While the limits load, the
+/// values are skeletons, so the panel keeps its size. A load error shows an
+/// alert with a retry inside the same panel.
 class AccountLimitsDisplay extends ConsumerWidget {
+  /// Shows a "View levels" action next to the title when not null.
   final VoidCallback? onToggleView;
 
-  const AccountLimitsDisplay({super.key, this.onToggleView});
+  /// Extra row at the end of the panel, after a hairline, for example the
+  /// level of the user.
+  final Widget? footer;
+
+  const AccountLimitsDisplay({super.key, this.onToggleView, this.footer});
+
+  static String _brl(double value) =>
+      'R\$ ${FiatInputFormatter.formatValue(value)}';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     final levelsData = ref.watch(levelsProvider);
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final onSurface = colorScheme.onSurface;
+    final dailyLimit = _brl(UserLevelsData.dailyLimit);
+
+    // The rows swap as a whole when the state changes. The key names the
+    // state, so a reload of the same state does not animate.
+    final rows = levelsData.when(
+      data: (data) => Column(
+        key: const ValueKey('limits-data'),
+        children: [
+          _LimitRow(label: t.pix_receive_daily_limit, value: dailyLimit),
+          const _Hairline(),
+          _LimitRow(
+            label: t.pix_receive_per_transaction,
+            value: _brl(data.allowedSpending),
+          ),
+          const _Hairline(),
+          _LimitRow(
+            label: t.pix_receive_min,
+            value: _brl(data.absoluteMinLimit),
+          ),
+        ],
+      ),
+      loading: () => Column(
+        key: const ValueKey('limits-loading'),
+        children: [
+          _LimitRow(label: t.pix_receive_daily_limit, value: dailyLimit),
+          const _Hairline(),
+          _LimitRow(label: t.pix_receive_per_transaction),
+          const _Hairline(),
+          _LimitRow(label: t.pix_receive_min),
+        ],
+      ),
+      error: (error, stackTrace) => Column(
+        key: const ValueKey('limits-error'),
+        children: [
+          // The daily limit is fixed, so it shows without the levels.
+          _LimitRow(label: t.pix_receive_daily_limit, value: dailyLimit),
+          const _Hairline(),
+          _LimitsError(
+            error: error,
+            onRetry: () {
+              ref.invalidate(walletLevelsRemoteProvider);
+              ref.invalidate(userDataProvider);
+            },
+          ),
+        ],
+      ),
+    );
 
     return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        GestureDetector(
-          onTap: onToggleView,
-          child: InfoRow(
-            label: t.pix_receive_my_limits,
-            value: onToggleView != null ? t.pix_receive_see_levels : '',
-            labelColor: onSurface,
-            valueColor: context.colors.primaryColor,
-            fontSize: context.responsiveFont(14),
-          ),
+        PixSectionHeader(
+          title: t.pix_receive_my_limits,
+          actionLabel: onToggleView != null ? t.pix_receive_see_levels : null,
+          onAction: onToggleView,
         ),
-        const SizedBox(height: 10),
-        levelsData.when(
-          data: (data) => Row(
+        const SizedBox(height: 8),
+        PixSurfaceCard(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Column(
             children: [
-              Expanded(
-                child: _buildLimitCard(
-                  context,
-                  label: t.pix_receive_daily_limit,
-                  value: 'R\$ ${FiatInputFormatter.formatValue(UserLevelsData.dailyLimit)}',
-                  icon: Icons.calendar_today_rounded,
-                  iconColor: context.appColors.warning,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildLimitCard(
-                  context,
-                  label: t.pix_receive_per_transaction,
-                  value: 'R\$ ${FiatInputFormatter.formatValue(data.allowedSpending)}',
-                  icon: Icons.swap_horiz_rounded,
-                  iconColor: colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildLimitCard(
-                  context,
-                  label: t.pix_receive_min,
-                  value: 'R\$ ${FiatInputFormatter.formatValue(data.absoluteMinLimit)}',
-                  icon: Icons.south_rounded,
-                  iconColor: colorScheme.tertiary,
-                ),
-              ),
+              SizeFadeSwitcher(child: rows),
+              if (footer != null) ...[const _Hairline(), footer!],
             ],
           ),
-          error: (error, stackTrace) {
-            final warning = context.appColors.warning;
-            return Column(
+        ),
+      ],
+    );
+  }
+}
+
+/// A limit on one line. A null [value] shows a skeleton.
+class _LimitRow extends StatelessWidget {
+  final String label;
+  final String? value;
+
+  const _LimitRow({required this.label, this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final value = this.value;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      child: MergeSemantics(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            if (value != null)
+              Flexible(
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: context.colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              )
+            else
+              const SkeletonShimmer(child: SkeletonBox(width: 76, height: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Alert shown in the panel when the limits do not load.
+///
+/// The alert icon, the title, and the warning color mark the state together.
+class _LimitsError extends StatelessWidget {
+  final Object error;
+  final VoidCallback onRetry;
+
+  const _LimitsError({required this.error, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final error = this.error;
+    final technical = error is UserFriendlyException
+        ? error.getTechnicalMessage()
+        : null;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildLimitCard(
-                        context,
-                        label: t.pix_receive_daily_limit,
-                        value: 'R\$ ${FiatInputFormatter.formatValue(UserLevelsData.dailyLimit)}',
-                        icon: Icons.calendar_today_rounded,
-                        iconColor: context.appColors.warning,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildSkeletonCard(context)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildSkeletonCard(context)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: warning.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: PixIcon(
+                    PixIcons.warning,
+                    size: 18,
+                    color: context.appColors.warning,
                   ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            color: warning,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              t.pix_receive_limits_error,
-                              style: textTheme.labelLarge?.copyWith(
-                                color: warning,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              ref.invalidate(walletLevelsRemoteProvider);
-                              ref.invalidate(userDataProvider);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: warning,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.refresh_rounded,
-                                    color: colorScheme.onPrimary,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    t.common_retry,
-                                    style: textTheme.labelMedium?.copyWith(
-                                      color: colorScheme.onPrimary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
                       Text(
-                        error.toString(),
-                        style: textTheme.labelMedium?.copyWith(
-                          color: onSurface.withValues(alpha: 0.7),
+                        t.pix_receive_limits_error,
+                        style: context.textTheme.bodyMedium?.copyWith(
+                          color: context.colors.textPrimary,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (error is UserFriendlyException &&
-                          error.getTechnicalMessage() != null &&
-                          kDebugMode)
+                      const SizedBox(height: 4),
+                      Text(
+                        error.toString(),
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: context.colors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                      if (technical != null && kDebugMode)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            t.pix_receive_details(
-                              error.getTechnicalMessage() ?? '',
-                            ),
-                            style: textTheme.labelSmall?.copyWith(
-                              color: onSurface.withValues(alpha: 0.6),
+                            t.pix_receive_details(technical),
+                            style: context.textTheme.labelSmall?.copyWith(
+                              color: context.colors.textTertiary,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -189,132 +224,38 @@ class AccountLimitsDisplay extends ConsumerWidget {
                   ),
                 ),
               ],
-            );
-          },
-          loading: () => Row(
-            children: [
-              Expanded(child: _buildSkeletonCard(context)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildSkeletonCard(context)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildSkeletonCard(context)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLimitCard(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color iconColor,
-  }) {
-    final colorScheme = context.colorScheme;
-    final textTheme = context.textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.onSurface.withValues(alpha: 0.08),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: iconColor, size: 14),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: textTheme.bodySmall?.copyWith(
-              color: context.colors.textSecondary,
             ),
           ),
-          const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                foregroundColor: context.colors.textPrimary,
+                minimumSize: const Size(48, 48),
               ),
+              icon: const PixIcon(PixIcons.refresh, size: 16),
+              label: Text(t.common_retry),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildSkeletonCard(BuildContext context) {
-    final baseColor = context.colors.baseColor;
-    final highlightColor = context.colors.highlightColor;
-    final colorScheme = context.colorScheme;
+/// Hairline between the rows of the panel, aligned with the row text.
+class _Hairline extends StatelessWidget {
+  const _Hairline();
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.onSurface.withValues(alpha: 0.08),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Shimmer.fromColors(
-            baseColor: baseColor,
-            highlightColor: highlightColor,
-            child: Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: baseColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Shimmer.fromColors(
-            baseColor: baseColor,
-            highlightColor: highlightColor,
-            child: Container(
-              width: 48,
-              height: 10,
-              decoration: BoxDecoration(
-                color: baseColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Shimmer.fromColors(
-            baseColor: baseColor,
-            highlightColor: highlightColor,
-            child: Container(
-              width: double.infinity,
-              height: 12,
-              decoration: BoxDecoration(
-                color: baseColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-        ],
-      ),
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      indent: 16,
+      endIndent: 16,
+      color: AppSurfaces.hairline(context),
     );
   }
 }
