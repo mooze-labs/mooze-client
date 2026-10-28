@@ -4,6 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class ValuesToReceiveCard extends ConsumerStatefulWidget {
@@ -16,21 +18,42 @@ class ValuesToReceiveCard extends ConsumerStatefulWidget {
 
 class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
     with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulse;
+  /// Number of pulses when the card appears. The icon then stays still, so
+  /// the screen has no endless loop.
+  static const _pulseCount = 2;
 
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1600),
-      vsync: this,
-    )..repeat(reverse: true);
-    _pulse = CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut);
+  // One pulse fades the icon down and back up. Two pulses take 3.2 s.
+  late final AnimationController _pulseController = AnimationController(
+    duration: Motion.durationCelebrate,
+    vsync: this,
+    value: 1,
+  );
+  late final CurvedAnimation _pulse = CurvedAnimation(
+    parent: _pulseController,
+    curve: Motion.curveMove,
+  );
+  bool _pulsed = false;
+
+  /// Pulses the icon once per mount, when the card first shows. With
+  /// reduced motion, the icon stays still.
+  void _pulseOnFirstShow() {
+    if (_pulsed) return;
+    _pulsed = true;
+    if (Motion.isReduced(context)) return;
+    // Start after the frame: the call comes from build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _pulseController
+          .repeat(min: 0, max: 1, reverse: true, count: _pulseCount * 2)
+          .whenComplete(() {
+            if (mounted) _pulseController.value = 1;
+          });
+    });
   }
 
   @override
   void dispose() {
+    _pulse.dispose();
     _pulseController.dispose();
     super.dispose();
   }
@@ -48,6 +71,7 @@ class _ValuesToReceiveCardState extends ConsumerState<ValuesToReceiveCard>
             toReceiveList,
           ) {
             if (toReceiveList.isEmpty) return const SizedBox.shrink();
+            _pulseOnFirstShow();
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _SoftCard(
@@ -132,11 +156,8 @@ class _Header extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        AnimatedBuilder(
-          animation: pulse,
-          builder: (context, child) {
-            return Opacity(opacity: 0.55 + 0.45 * pulse.value, child: child);
-          },
+        FadeTransition(
+          opacity: Tween(begin: 0.55, end: 1.0).animate(pulse),
           child: Container(
             width: 40,
             height: 40,
@@ -176,15 +197,7 @@ class _Header extends StatelessWidget {
 class _Hairline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
-      height: 1,
-      color:
-          isDark
-              ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
-              : theme.colorScheme.onSurface.withValues(alpha: 0.05),
-    );
+    return Container(height: 1, color: AppSurfaces.hairline(context));
   }
 }
 
@@ -254,35 +267,10 @@ class _SoftCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cs = theme.colorScheme;
-
+    // The shared panel surface of the main screens.
     return Container(
       padding: padding,
-      decoration: BoxDecoration(
-        color: isDark ? cs.surfaceContainerHigh : cs.surface,
-        borderRadius: BorderRadius.circular(20),
-        border:
-            isDark
-                ? Border.all(color: cs.onSurface.withValues(alpha: 0.06))
-                : null,
-        boxShadow:
-            isDark
-                ? null
-                : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-      ),
+      decoration: AppSurfaces.panel(context),
       child: child,
     );
   }
