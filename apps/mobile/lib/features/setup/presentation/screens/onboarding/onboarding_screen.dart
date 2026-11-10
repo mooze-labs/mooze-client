@@ -1,222 +1,448 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/data/onboarding/onboarding_data.dart';
 import 'package:mooze_mobile/features/setup/presentation/providers/onboarding_provider.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/widgets/onboarding_scene.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/themes/motion.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+/// The first screens of a new install: four pages about the wallet, Pix,
+/// swaps, and security, before the choice to create or import a wallet.
+///
+/// Each page has its art at the top, see [OnboardingSceneView], and its
+/// text below. The art enters the first time its page shows, drifts for a
+/// few seconds, and rests; as the pages slide, it moves slower than the
+/// text and turns with the finger. Under reduced motion the art stays
+/// still.
+///
+/// "Skip" and the button of the last page mark the onboarding as done and
+/// open the first access screen, or run [onDone] instead.
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({super.key});
+  const OnboardingScreen({super.key, this.onDone});
+
+  /// Runs instead of the end of the onboarding, for example to close a
+  /// preview.
+  final VoidCallback? onDone;
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  // Controllers
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
+    with TickerProviderStateMixin {
+  /// Side margin of the content.
+  static const double _gutter = 24;
+
   final PageController _pageController = PageController();
 
-  // State
+  /// One clock per page, from the first time it shows. A page shown again
+  /// keeps its art at rest.
+  late final List<AnimationController> _clocks = [
+    for (final _ in OnboardingScene.values)
+      AnimationController(vsync: this, duration: Motion.durationAmbient * 2),
+  ];
+
   int _currentIndex = 0;
+  bool _started = false;
 
-  // Constants
-  static const Duration _pageAnimationDuration = Duration(milliseconds: 400);
-  static const Duration _indicatorAnimationDuration = Duration(
-    milliseconds: 300,
-  );
-  static const double _logoHeight = 33.0;
-  static const double _mockupHeight = 300.0;
-  static const double _indicatorActiveWidth = 24.0;
-  static const double _indicatorInactiveSize = 8.0;
-  static const double _horizontalPadding = 24.0;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    _play(0);
+  }
 
-  /// Resolved on every build so locale changes propagate without recreating
-  /// the state. The list itself is cheap to build.
-  late List<OnboardingPageData> _pages;
+  @override
+  void initState() {
+    super.initState();
+    _pageController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
     _pageController.dispose();
+    for (final clock in _clocks) {
+      clock.dispose();
+    }
     super.dispose();
   }
 
-  void _handleNextPage() {
-    if (_currentIndex < _pages.length - 1) {
-      _pageController.nextPage(
-        duration: _pageAnimationDuration,
-        curve: Curves.easeInOut,
-      );
+  void _play(int index) {
+    final clock = _clocks[index];
+    if (!clock.isDismissed) return;
+    if (Motion.isReduced(context)) {
+      clock.value = 1;
     } else {
-      _navigateToNextScreen();
+      clock.forward();
     }
   }
 
-  void _handleSkip() {
-    _navigateToNextScreen();
-  }
-
-  void _navigateToNextScreen() async {
-    // Mark onboarding as completed
-    final onboardingService = ref.read(onboardingServiceProvider);
-    await onboardingService.setOnboardingCompleted();
-
-    // Navigate to first access screen
-    if (mounted) {
-      context.go('/setup/first-access');
+  /// Plays the art of a page as soon as a third of it shows, so it enters
+  /// while the finger still slides it in, before the page counts as
+  /// changed at half.
+  void _onScroll() {
+    final page = _pageController.page;
+    if (page == null) return;
+    for (final index in {page.floor(), page.ceil()}) {
+      if ((index - page).abs() <= 2 / 3) _play(index);
     }
   }
 
   void _onPageChanged(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    setState(() => _currentIndex = index);
+    _play(index);
   }
 
-  String _buttonText(AppLocalizations t) {
-    return _currentIndex == _pages.length - 1 ? t.onboarding_get_started : t.common_next;
+  void _handleNextPage() {
+    if (_currentIndex == _clocks.length - 1) {
+      _finish();
+    } else if (Motion.isReduced(context)) {
+      _pageController.jumpToPage(_currentIndex + 1);
+    } else {
+      _pageController.nextPage(
+        duration: Motion.durationSlow,
+        curve: Motion.curveLargeMove,
+      );
+    }
+  }
+
+  Future<void> _finish() async {
+    final onDone = widget.onDone;
+    if (onDone != null) {
+      onDone();
+      return;
+    }
+    await ref.read(onboardingServiceProvider).setOnboardingCompleted();
+    if (mounted) context.go('/setup/first-access');
+  }
+
+  /// Where the page of [index] is from the center of the screen.
+  double _offsetOf(int index) {
+    final position = _pageController.hasClients
+        ? _pageController.position
+        : null;
+    final page = position != null && position.haveDimensions
+        ? _pageController.page!
+        : _currentIndex.toDouble();
+    return (index - page).clamp(-1.0, 1.0);
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    _pages = OnboardingPageData.items(t);
+    final pages = OnboardingPageData.items(t);
+    final isLast = _currentIndex == pages.length - 1;
+    final still = Motion.isReduced(context);
+
     return Scaffold(
-      body: SafeArea(
-        child: Column(
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackdrop()),
+          SafeArea(
+            child: Column(
+              children: [
+                _Header(
+                  skipLabel: t.onboarding_skip,
+                  showSkip: !isLast,
+                  onSkip: _finish,
+                ),
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: pages.length,
+                    onPageChanged: _onPageChanged,
+                    itemBuilder: (context, index) => _OnboardingPage(
+                      pages: pages,
+                      index: index,
+                      art: AnimatedBuilder(
+                        animation: Listenable.merge([
+                          _pageController,
+                          _clocks[index],
+                        ]),
+                        builder: (context, _) {
+                          final offset = still ? 0.0 : _offsetOf(index);
+                          return _Parallax(
+                            offset: offset,
+                            child: OnboardingSceneView(
+                              scene: pages[index].scene,
+                              motion: SceneMotion(
+                                time: _clocks[index].value,
+                                offset: offset,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: _PageDots(
+                    controller: _pageController,
+                    count: pages.length,
+                    currentIndex: _currentIndex,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(_gutter, 0, _gutter, 12),
+                  child: PrimaryButton(
+                    text: isLast ? t.onboarding_get_started : t.common_next,
+                    onPressed: _handleNextPage,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The logo, and "Skip" until the last page.
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.skipLabel,
+    required this.showSkip,
+    required this.onSkip,
+  });
+
+  final String skipLabel;
+  final bool showSkip;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 12, 0),
+      child: SizedBox(
+        height: 48,
+        child: Row(
           children: [
-            _buildHeader(),
-            _buildPageView(),
-            _buildBottomSection(t),
+            SvgPicture.asset(
+              'assets/logos/logo_primary.svg',
+              height: 22,
+              colorFilter: ColorFilter.mode(
+                context.colors.textPrimary,
+                BlendMode.srcIn,
+              ),
+            ),
+            const Spacer(),
+            AnimatedOpacity(
+              opacity: showSkip ? 1 : 0,
+              duration: Motion.of(context, Motion.durationFast),
+              curve: Motion.curveMove,
+              child: IgnorePointer(
+                ignoring: !showSkip,
+                child: ExcludeSemantics(
+                  excluding: !showSkip,
+                  child: TextButton(
+                    onPressed: onSkip,
+                    child: Text(
+                      skipLabel,
+                      style: context.textTheme.labelLarge?.copyWith(
+                        color: context.colors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 24),
-      child: SvgPicture.asset(
-        'assets/logos/logo_primary.svg',
-        height: _logoHeight,
-        colorFilter: ColorFilter.mode(
-          Theme.of(context).colorScheme.onSurface,
-          BlendMode.srcIn,
-        ),
-      ),
-    );
-  }
+/// The page of [index]: its [art] on top, its text below.
+///
+/// The text takes the height of the longest text of all [pages], so the
+/// art has the same room on every page and does not jump as the pages
+/// slide.
+class _OnboardingPage extends StatelessWidget {
+  const _OnboardingPage({
+    required this.pages,
+    required this.index,
+    required this.art,
+  });
 
-  Widget _buildPageView() {
-    return Expanded(
-      child: PageView.builder(
-        controller: _pageController,
-        itemCount: _pages.length,
-        onPageChanged: _onPageChanged,
-        itemBuilder: (context, index) {
-          return _buildOnboardingPage(_pages[index]);
-        },
-      ),
-    );
-  }
+  final List<OnboardingPageData> pages;
+  final int index;
+  final Widget art;
 
-  Widget _buildOnboardingPage(OnboardingPageData pageData) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
-      child: Column(
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => Column(
         children: [
-          const SizedBox(height: 60),
-          _buildMockupContainer(),
-          const SizedBox(height: 32),
-          _buildPageIndicator(),
-          const SizedBox(height: 24),
-          _buildPageTitle(pageData.title),
-          const SizedBox(height: 16),
-          _buildPageSubtitle(pageData.subtitle),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: art,
+            ),
+          ),
+          ConstrainedBox(
+            // With large text the text scrolls, and the art keeps a third
+            // of the page.
+            constraints: BoxConstraints(
+              maxHeight: constraints.maxHeight * 2 / 3,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              child: IndexedStack(
+                index: index,
+                children: [for (final page in pages) _PageText(page)],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+}
 
-  /// (placeholder for images/illustrations)
-  Widget _buildMockupContainer() {
-    return Container(
-      height: _mockupHeight,
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(20),
-      ),
-      // TODO: Add specific illustrations for each page.
-    );
-  }
+/// The eyebrow, the title with its highlight in the brand color, and the
+/// body of a page.
+class _PageText extends StatelessWidget {
+  const _PageText(this.data);
 
-  Widget _buildPageIndicator() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_pages.length, (index) {
-        return _buildIndicatorDot(index);
-      }),
-    );
-  }
+  final OnboardingPageData data;
 
-  Widget _buildIndicatorDot(int index) {
-    final isActive = index == _currentIndex;
-    final Color primaryColor = Theme.of(context).colorScheme.primary;
-
-    return AnimatedContainer(
-      duration: _indicatorAnimationDuration,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      height: _indicatorInactiveSize,
-      width: isActive ? _indicatorActiveWidth : _indicatorInactiveSize,
-      decoration: BoxDecoration(
-        color: isActive ? primaryColor : primaryColor.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
-      ),
-    );
-  }
-
-  Widget _buildPageTitle(String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.headlineSmall,
-      textAlign: TextAlign.center,
-    );
-  }
-
-  Widget _buildPageSubtitle(String subtitle) {
-    return Text(
-      subtitle,
-      style: Theme.of(context).textTheme.bodyMedium,
-      textAlign: TextAlign.center,
-    );
-  }
-
-  Widget _buildBottomSection(AppLocalizations t) {
+  @override
+  Widget build(BuildContext context) {
+    final title = data.title;
+    final start = title.indexOf(data.highlight);
+    final brand = TextStyle(color: context.colors.primaryColor);
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 24),
-        _buildPrimaryButton(t),
-        _buildSkipButton(),
-        const SizedBox(height: 24),
+        Text(
+          data.eyebrow,
+          textAlign: TextAlign.center,
+          style: context.textTheme.labelMedium?.copyWith(
+            color: context.colors.textSecondary,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Semantics(
+          header: true,
+          child: Text.rich(
+            start < 0
+                ? TextSpan(text: title)
+                : TextSpan(
+                    children: [
+                      TextSpan(text: title.substring(0, start)),
+                      TextSpan(text: data.highlight, style: brand),
+                      TextSpan(
+                        text: title.substring(start + data.highlight.length),
+                      ),
+                    ],
+                  ),
+            textAlign: TextAlign.center,
+            style: context.textTheme.headlineMedium?.copyWith(
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.4,
+              height: 1.15,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          data.body,
+          textAlign: TextAlign.center,
+          style: context.textTheme.bodyMedium?.copyWith(
+            color: context.colors.textSecondary,
+            height: 1.5,
+          ),
+        ),
       ],
     );
   }
+}
 
-  Widget _buildPrimaryButton(AppLocalizations t) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
-      child: PrimaryButton(text: _buttonText(t), onPressed: _handleNextPage),
+/// The art of a page at its [offset] from the center: it moves slower than
+/// the page and fades as it leaves, so the arts of two pages cross-fade.
+class _Parallax extends StatelessWidget {
+  const _Parallax({required this.offset, required this.child});
+
+  final double offset;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => Opacity(
+        opacity: 1 - offset.abs(),
+        child: Transform.translate(
+          offset: Offset(-offset * constraints.maxWidth * 0.35, 0),
+          child: child,
+        ),
+      ),
     );
   }
+}
 
-  Widget _buildSkipButton() {
-    return TextButton(
-      onPressed: _handleSkip,
-      child: Text(
-        'Pular',
-        style: TextStyle(color: Theme.of(context).colorScheme.primary),
+/// One dot per page. The dot of the page in view stretches, following the
+/// finger as the pages slide.
+class _PageDots extends StatelessWidget {
+  const _PageDots({
+    required this.controller,
+    required this.count,
+    required this.currentIndex,
+  });
+
+  final PageController controller;
+  final int count;
+  final int currentIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.colors.primaryColor;
+    return ExcludeSemantics(
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          final page =
+              controller.hasClients && controller.position.haveDimensions
+              ? controller.page!
+              : currentIndex.toDouble();
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < count; i++)
+                Builder(
+                  builder: (context) {
+                    final shown = (1 - (page - i).abs()).clamp(0.0, 1.0);
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      height: 8,
+                      width: lerpDouble(8, 24, shown),
+                      decoration: BoxDecoration(
+                        color: brand.withValues(
+                          alpha: lerpDouble(0.3, 1, shown),
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          );
+        },
       ),
     );
   }
