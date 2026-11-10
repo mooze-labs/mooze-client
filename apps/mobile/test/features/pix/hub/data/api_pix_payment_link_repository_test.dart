@@ -358,10 +358,136 @@ void main() {
     ];
 
     expect(links[0].status, PixPaymentLinkStatus.paid);
-    expect(links[1].status, PixPaymentLinkStatus.expired);
+    expect(links[1].status, PixPaymentLinkStatus.revoked);
     expect(links[2].status, PixPaymentLinkStatus.expired);
     expect(links[3].amountInCents, isNull);
     expect(links[3].singleUse, isFalse);
+    expect(links[0].asset, Asset.depix);
+  });
+
+  test('an open amount sends a variable amount policy', () async {
+    final adapter = _QueueAdapter([_json(201, _created)]);
+
+    await repositoryWith(adapter)
+        .createLink(
+          asset: Asset.lbtc,
+          destinationAddress: 'lq1qqdest',
+          singleUse: false,
+          idempotencyKey: 'key-1',
+        )
+        .run();
+
+    final body = jsonDecode(adapter.bodies.single) as Map<String, dynamic>;
+    expect(body['amount_policy'], {'type': 'variable'});
+    expect(body['asset'], lbtcAssetId);
+    expect(body['usage_policy'], 'reusable');
+  });
+
+  group('lists the links of the user', () {
+    Map<String, Object?> item(int index) => {
+      ...Map<String, dynamic>.from(_created['data']! as Map),
+      'id': 'id-$index',
+      'url': 'https://pay.mooze.app/pay/tok_$index',
+      'created_at': '2026-10-21T13:00:00Z',
+    };
+    Map<String, Object?> page(List<Map<String, Object?>> items) => {
+      'data': {
+        'items': items,
+        'next_cursor': items.isEmpty
+            ? null
+            : {'created_at': '2026-10-21T13:00:00Z', 'id': items.last['id']},
+      },
+      'error': null,
+    };
+
+    test('reads one page with the session JWT', () async {
+      final adapter = _QueueAdapter([
+        _json(200, page([item(1), item(2)])),
+      ]);
+
+      final links = (await repositoryWith(
+        adapter,
+      ).listLinks().run()).getRight().toNullable()!;
+
+      expect(links.map((l) => l.id), ['id-1', 'id-2']);
+      final request = adapter.requests.single;
+      expect(request.method, 'GET');
+      expect(request.path, '/payment-links');
+      expect(request.queryParameters, {'limit': '100'});
+      expect(request.headers['Authorization'], 'Bearer jwt-1');
+    });
+
+    test('a full page asks for the next one with its cursor', () async {
+      final adapter = _QueueAdapter([
+        _json(200, page([for (var i = 0; i < 100; i++) item(i)])),
+        _json(200, page([item(100)])),
+      ]);
+
+      final links = (await repositoryWith(
+        adapter,
+      ).listLinks().run()).getRight().toNullable()!;
+
+      expect(links, hasLength(101));
+      expect(adapter.requests.last.queryParameters, {
+        'limit': '100',
+        'before_created_at': '2026-10-21T13:00:00Z',
+        'before_id': 'id-99',
+      });
+    });
+
+    test('a rejected JWT gets one refresh', () async {
+      final adapter = _QueueAdapter([
+        _text(401, ''),
+        _json(200, page([item(1)])),
+      ]);
+
+      final result = await repositoryWith(adapter).listLinks().run();
+
+      expect(result.isRight(), isTrue);
+      expect(adapter.requests.last.headers['Authorization'], 'Bearer jwt-2');
+    });
+
+    test('a failure keeps the error code of the API', () async {
+      final adapter = _QueueAdapter([
+        _json(503, {'data': null, 'error': 'MAINTENANCE'}),
+      ]);
+
+      final result = await repositoryWith(adapter).listLinks().run();
+
+      expect(
+        result.getLeft().toNullable()!.code,
+        PixHubErrorCode.serviceUnavailable,
+      );
+    });
+  });
+
+  group('revokes a link', () {
+    test('posts to the revoke route of the link', () async {
+      final adapter = _QueueAdapter([
+        _json(200, {
+          'data': {'revoked': true},
+          'error': null,
+        }),
+      ]);
+
+      final result = await repositoryWith(adapter).revokeLink('id-7').run();
+
+      expect(result, const Right<PixHubFailure, Unit>(unit));
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/payment-links/id-7/revoke');
+      expect(request.headers['Authorization'], 'Bearer jwt-1');
+    });
+
+    test('an unknown link is a failure', () async {
+      final adapter = _QueueAdapter([
+        _json(404, {'data': null, 'error': 'NOT_FOUND'}),
+      ]);
+
+      final result = await repositoryWith(adapter).revokeLink('id-7').run();
+
+      expect(result.isLeft(), isTrue);
+    });
   });
 
   test('checks the amount bounds and the asset before any request', () async {

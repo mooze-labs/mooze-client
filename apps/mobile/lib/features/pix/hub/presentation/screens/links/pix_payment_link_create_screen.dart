@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/pix/hub/data/repositories/api_pix_payment_link_repository.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link_amount.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_hub_providers.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_receive_providers.dart';
@@ -13,7 +14,10 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_sc
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_card.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_card.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_picker_sheet.dart'
+    show AssetLensLogo;
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
@@ -22,12 +26,13 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Creates a payment link.
 ///
-/// The amount bounds come from [PaymentLinkAmount]. Mooze has no payment-link
-/// API yet, so the hub keeps these bounds locally.
+/// The amount bounds come from [PaymentLinkAmount], the `AmountPolicy` of the
+/// payment-link API. The link pays a new address of the wallet, in the asset
+/// that the user picks.
 ///
 /// The amount is the hero of the step. The two switches share one glass
-/// group, and the reference is a bare underline field. The review opens in
-/// a floating glass sheet.
+/// group, the assets another, and the reference is a bare underline field.
+/// The review opens in a floating glass sheet.
 class PixPaymentLinkCreateScreen extends ConsumerStatefulWidget {
   const PixPaymentLinkCreateScreen({super.key});
 
@@ -44,6 +49,9 @@ class _PixPaymentLinkCreateScreenState
   bool _openAmount = false;
   bool _singleUse = true;
   bool _submitted = false;
+
+  /// Asset that the wallet receives. DePix keeps the BRL value.
+  Asset _asset = Asset.depix;
 
   @override
   void dispose() {
@@ -88,6 +96,7 @@ class _PixPaymentLinkCreateScreenState
         usageLabel: _singleUse
             ? t.pix_hub_link_single_use
             : t.pix_hub_link_reusable,
+        assetLabel: _asset.ticker,
       ),
     );
 
@@ -98,6 +107,7 @@ class _PixPaymentLinkCreateScreenState
         .create(
           reference: _referenceController.text.trim(),
           singleUse: _singleUse,
+          asset: _asset,
           amountInCents: _openAmount ? null : _amountInCents,
         );
 
@@ -111,7 +121,6 @@ class _PixPaymentLinkCreateScreenState
     }
 
     ref.invalidate(pixHubPaymentLinksProvider);
-    ref.invalidate(pixHubOverviewProvider);
     context.pushReplacement('/pix/links/detail', extra: link);
   }
 
@@ -167,6 +176,30 @@ class _PixPaymentLinkCreateScreenState
                 value: _singleUse,
                 onChanged: (value) => setState(() => _singleUse = value),
               ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        _Caption(t.pix_hub_link_asset_title),
+        const SizedBox(height: 10),
+        PixSurfaceCard(
+          child: Column(
+            children: [
+              for (final (index, asset)
+                  in ApiPixPaymentLinkRepository.acceptedAssets.indexed) ...[
+                if (index > 0)
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    indent: PixActionTile.textInset,
+                    color: AppSurfaces.hairline(context),
+                  ),
+                _AssetRow(
+                  asset: asset,
+                  selected: asset == _asset,
+                  onTap: () => setState(() => _asset = asset),
+                ),
+              ],
             ],
           ),
         ),
@@ -244,6 +277,74 @@ class _SwitchRow extends StatelessWidget {
   }
 }
 
+/// One asset that the link can pay, with a check when it is the chosen one.
+///
+/// The rows act as one choice: screen readers read the selection, and the
+/// check carries it besides the color.
+class _AssetRow extends StatelessWidget {
+  final Asset asset;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _AssetRow({
+    required this.asset,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 16, 12),
+          child: Row(
+            children: [
+              AssetLensLogo(asset: asset, size: PixIconWell.defaultSize),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      asset.ticker,
+                      style: context.textTheme.bodyLarge?.copyWith(
+                        color: context.colors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      asset.name,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              AnimatedOpacity(
+                opacity: selected ? 1 : 0,
+                duration: Motion.of(context, Motion.durationFast),
+                child: PixIcon(
+                  PixIcons.check,
+                  size: 20,
+                  color: context.colors.primaryColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The reference of the link, drawn as a bare underline.
 ///
 /// It follows the underline fields of the send flow. Unlike those, it keeps
@@ -310,11 +411,13 @@ class _ReviewSheet extends StatelessWidget {
   final String reference;
   final String amountLabel;
   final String usageLabel;
+  final String assetLabel;
 
   const _ReviewSheet({
     required this.reference,
     required this.amountLabel,
     required this.usageLabel,
+    required this.assetLabel,
   });
 
   @override
@@ -354,6 +457,7 @@ class _ReviewSheet extends StatelessWidget {
                     amountLabel,
                     highlight: true,
                   ),
+                  PixSummaryEntry(t.pix_hub_link_asset_label, assetLabel),
                   PixSummaryEntry(t.pix_hub_link_usage_label, usageLabel),
                 ],
               ),

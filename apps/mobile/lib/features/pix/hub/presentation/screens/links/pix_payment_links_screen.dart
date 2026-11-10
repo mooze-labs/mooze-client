@@ -126,7 +126,7 @@ class PixPaymentLinkTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        link.reference,
+                        pixPaymentLinkTitle(t, link),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: context.textTheme.bodyLarge?.copyWith(
@@ -205,8 +205,9 @@ class PixPaymentLinkStatusChip extends StatelessWidget {
         pixToneColor(context, PixTone.warning),
         PixIcons.clock,
       ),
-      // An expired link no longer takes a payment: a broken link, in gray.
-      PixPaymentLinkStatus.expired => (
+      // An expired or revoked link no longer takes a payment: a broken
+      // link, in gray.
+      PixPaymentLinkStatus.expired || PixPaymentLinkStatus.revoked => (
         context.colors.textSecondary,
         PixIcons.linkOff,
       ),

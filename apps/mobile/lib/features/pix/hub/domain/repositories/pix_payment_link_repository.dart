@@ -3,9 +3,7 @@ import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_hub_failure.da
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 
-/// Creates payment links through the Mooze payment-link API.
-///
-/// Unlike [PixHubRepository], this contract calls the real backend.
+/// The payment links of the user, through the Mooze payment-link API.
 abstract class PixPaymentLinkRepository {
   /// Creates a link that charges [amountInCents] BRL cents and pays [asset]
   /// to [destinationAddress], a Liquid address of the wallet.
@@ -19,4 +17,24 @@ abstract class PixPaymentLinkRepository {
     required bool singleUse,
     required String idempotencyKey,
   });
+
+  /// Creates a link like [createFixedAmountLink]. A null [amountInCents]
+  /// lets the payer choose the amount.
+  ///
+  /// The API accepts an open amount only while the server enables it, and
+  /// answers an error otherwise.
+  TaskEither<PixHubFailure, PixPaymentLink> createLink({
+    int? amountInCents,
+    required Asset asset,
+    required String destinationAddress,
+    required bool singleUse,
+    required String idempotencyKey,
+  });
+
+  /// Lists the links of the user, newest first. The references are empty:
+  /// the API does not store them.
+  TaskEither<PixHubFailure, List<PixPaymentLink>> listLinks();
+
+  /// Turns the link [id] off. A second call has no further effect.
+  TaskEither<PixHubFailure, Unit> revokeLink(String id);
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_hub_providers.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_link_revoke.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_links_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_field.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_demo_badge.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
@@ -13,12 +15,19 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Details of one payment link, with the actions to copy and to share it.
+/// Details of one payment link, with the actions to copy, to share and to
+/// turn it off.
 ///
 /// The amount is the hero, with the status chip below it. The QR Code of
 /// the link address sits on its white tile, and the address is a copy
-/// field. Share is the main action.
-class PixPaymentLinkDetailScreen extends StatelessWidget {
+/// field. Share is the main action. A link that still takes payments can be
+/// revoked below it.
+///
+/// The screen follows the link in the list, so a revoke turns the status
+/// and the actions here at once.
+class PixPaymentLinkDetailScreen extends ConsumerWidget {
+  /// The link as the previous screen saw it. It shows until the list has
+  /// the link, for example right after the link was created.
   final PixPaymentLink link;
 
   const PixPaymentLinkDetailScreen({super.key, required this.link});
@@ -31,20 +40,40 @@ class PixPaymentLinkDetailScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
+    final link =
+        ref.watch(
+          pixHubPaymentLinksProvider.select(
+            (links) => links.valueOrNull
+                ?.where((l) => l.id == this.link.id)
+                .firstOrNull,
+          ),
+        ) ??
+        this.link;
+    final asset = link.asset;
 
     return PixScreenScaffold(
       title: t.pix_hub_link_detail_title,
-      appBarActions: const [
-        Padding(
-          padding: EdgeInsets.only(right: 16),
-          child: Center(child: PixDemoBadge()),
-        ),
-      ],
-      bottomAction: PrimaryButton(
-        text: t.pix_hub_share,
-        onPressed: () => _share(context),
+      bottomAction: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PrimaryButton(
+            text: t.pix_hub_share,
+            onPressed: () => _share(context),
+          ),
+          if (link.isActive) ...[
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: () => confirmAndRevokePaymentLink(context, ref, link),
+              style: TextButton.styleFrom(
+                foregroundColor: context.colors.negativeColor,
+                minimumSize: const Size(64, 48),
+              ),
+              child: Text(t.pix_hub_link_revoke),
+            ),
+          ],
+        ],
       ),
       children: [
         Center(child: _HeroAmount(amountInCents: link.amountInCents)),
@@ -61,7 +90,10 @@ class PixPaymentLinkDetailScreen extends StatelessWidget {
         const SizedBox(height: 24),
         PixSummaryCard(
           entries: [
-            PixSummaryEntry(t.pix_hub_link_reference_label, link.reference),
+            if (link.reference.isNotEmpty)
+              PixSummaryEntry(t.pix_hub_link_reference_label, link.reference),
+            if (asset != null)
+              PixSummaryEntry(t.pix_hub_link_asset_label, asset.ticker),
             PixSummaryEntry(
               t.pix_hub_link_usage_label,
               link.singleUse
