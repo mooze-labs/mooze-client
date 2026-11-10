@@ -92,10 +92,18 @@ class _BackdropPainter extends CustomPainter {
 /// `Scaffold(extendBodyBehindAppBar: true)` and an [AppBackdrop] behind the
 /// body.
 class BackdropAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const BackdropAppBar({super.key, this.title, this.actions});
+  const BackdropAppBar({
+    super.key,
+    this.title,
+    this.actions,
+    this.leading,
+    this.automaticallyImplyLeading = true,
+  });
 
   final Widget? title;
   final List<Widget>? actions;
+  final Widget? leading;
+  final bool automaticallyImplyLeading;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -105,6 +113,8 @@ class BackdropAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: title,
       actions: actions,
+      leading: leading,
+      automaticallyImplyLeading: automaticallyImplyLeading,
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       foregroundColor: context.colors.textPrimary,
