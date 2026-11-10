@@ -4,6 +4,8 @@ import 'package:mooze_mobile/features/favorite_payers/domain/entities/favorite_p
 import 'package:mooze_mobile/features/favorite_payers/domain/repositories/favorite_payers_repository.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/providers/favorite_payers_providers.dart';
+import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// In-memory repository. It mimics the core rules that the controller
 /// relies on: mask stripping, label trimming, duplicate refusal.
@@ -43,9 +45,15 @@ class _MemoryRepo implements FavoritePayersRepository {
   Future<void> clearAll() async => rows.clear();
 }
 
+/// Holds the "my user" mark that a delete clears.
+late SharedPreferences _prefs;
+
 ProviderContainer _container(FavoritePayersRepository repo) {
   final container = ProviderContainer(
-    overrides: [favoritePayersRepositoryProvider.overrideWithValue(repo)],
+    overrides: [
+      favoritePayersRepositoryProvider.overrideWithValue(repo),
+      sharedPreferencesProvider.overrideWithValue(_prefs),
+    ],
   );
   addTearDown(container.dispose);
   return container;
@@ -53,7 +61,11 @@ ProviderContainer _container(FavoritePayersRepository repo) {
 
 void main() {
   late _MemoryRepo repo;
-  setUp(() => repo = _MemoryRepo());
+  setUp(() async {
+    repo = _MemoryRepo();
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+  });
 
   test('starts empty', () async {
     final c = _container(repo);

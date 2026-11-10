@@ -3,7 +3,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mooze_core_bridge/mooze_core_bridge.dart' show PixFlagDto;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/favorite_payers/data/datasources/own_payer_store.dart';
 import '../../features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
+import '../../features/favorite_payers/presentation/controllers/own_payer_controller.dart';
 import '../../features/pix/hub/data/datasources/pix_withdrawal_record_store.dart';
 import '../../features/pix/shared/data/services/pix_deposit_profile_service.dart';
 import '../../features/wallet/data/services/wallet_id_service.dart';
@@ -62,6 +64,10 @@ Future<void> Function() buildPixCleanupHook(Ref ref) {
 
     // The withdrawals that the deleted wallet tried to fund.
     await PixWithdrawalRecordStore(prefs).clear();
+
+    // The payer marked as "my user" belongs to the deleted favorites.
+    await OwnPayerStore(prefs).clear();
+    ref.invalidate(ownPayerIdProvider);
   };
 }
 

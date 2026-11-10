@@ -6,6 +6,7 @@ import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/app/di/wallet_cleanup_hooks.dart';
 import 'package:mooze_mobile/database/database.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
+import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/own_payer_controller.dart';
 import 'package:mooze_mobile/shared/infra/db/providers.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,6 +56,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'hasSeenPixTutorial': true,
       'pix_favorite_payers': '[]',
+      'favorite_payer_own_id': 1,
     });
     final sp = await SharedPreferences.getInstance();
     final c = ProviderContainer(
@@ -94,6 +96,9 @@ void main() {
     final sp = c.read(sharedPreferencesProvider);
     expect(sp.containsKey('hasSeenPixTutorial'), isFalse);
     expect(sp.containsKey('pix_favorite_payers'), isFalse);
+    // The next wallet starts without a payer marked as "my user".
+    expect(sp.containsKey('favorite_payer_own_id'), isFalse);
+    expect(c.read(ownPayerIdProvider), isNull);
   });
 
   test(
