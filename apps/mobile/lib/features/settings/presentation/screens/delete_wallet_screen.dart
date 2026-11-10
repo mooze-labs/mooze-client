@@ -129,8 +129,10 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
             ref.invalidate(walletIdProvider);
             ref.invalidate(allBalancesProvider);
 
+            // The delete also reset the onboarding: the app starts over as
+            // on its first launch.
             if (context.mounted) {
-              context.go('/setup/first-access');
+              context.go('/setup/onboarding');
             }
           } else {
             if (context.mounted) {

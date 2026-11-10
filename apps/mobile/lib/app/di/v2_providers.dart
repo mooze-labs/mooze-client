@@ -216,7 +216,11 @@ final deleteWalletUseCaseProvider =
     logger: ref.read(loggerProvider),
     sessionCleanup: buildSessionCleanupHook(ref),
     pixCleanup: buildPixCleanupHook(ref),
-    postDeleteHooks: [...buildLegacyCleanupHooks(), buildAuthResetHook(ref)],
+    postDeleteHooks: [
+      ...buildLegacyCleanupHooks(),
+      buildAuthResetHook(ref),
+      buildOnboardingResetHook(ref),
+    ],
   );
 });
 

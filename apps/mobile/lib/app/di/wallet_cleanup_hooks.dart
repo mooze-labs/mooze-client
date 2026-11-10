@@ -8,6 +8,7 @@ import '../../features/favorite_payers/presentation/controllers/favorite_payers_
 import '../../features/favorite_payers/presentation/controllers/own_payer_controller.dart';
 import '../../features/pix/hub/data/datasources/pix_withdrawal_record_store.dart';
 import '../../features/pix/shared/data/services/pix_deposit_profile_service.dart';
+import '../../features/setup/presentation/providers/onboarding_provider.dart';
 import '../../features/wallet/data/services/wallet_id_service.dart';
 import '../../features/wallet/data/storage/balance_snapshot_storage.dart';
 import '../../features/wallet/data/storage/pending_transaction_storage.dart';
@@ -34,6 +35,14 @@ Future<void> Function() buildSessionCleanupHook(Ref ref) {
 Future<void> Function() buildAuthResetHook(Ref ref) {
   return () async {
     await ref.read(sessionManagerServiceProvider).resetIdentity().run();
+  };
+}
+
+/// Makes the onboarding show again, as on the first launch. Run it after
+/// the wallet is deleted.
+Future<void> Function() buildOnboardingResetHook(Ref ref) {
+  return () async {
+    await ref.read(onboardingServiceProvider).resetOnboarding();
   };
 }
 

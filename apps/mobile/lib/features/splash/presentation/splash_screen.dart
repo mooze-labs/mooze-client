@@ -121,7 +121,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (mounted) {
         mnemonic.fold(
           () {
-            // No mnemonic found: a first launch shows the onboarding once.
+            // No mnemonic found: the onboarding shows until it is done, on
+            // the first launch and again after the wallet is deleted.
             if (!hasCompletedOnboarding) {
               if (kDebugMode) {
                 debugPrint(
