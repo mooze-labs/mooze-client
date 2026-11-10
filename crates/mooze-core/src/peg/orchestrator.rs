@@ -156,6 +156,8 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
             let address = self.wallet.liquid_payout_address().await?;
             self.wallet.quote_liquid_funding(&address, amount_sat, fee_rate_sat_per_vbyte.map(f64::from), drain).await?
         };
+        // A drain learns its amount here, after the network fee.
+        ensure_minimum(funding.amount_sat, minimum)?;
         Ok(PegQuote {
             direction,
             amount_sat: funding.amount_sat,
@@ -184,6 +186,10 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
     }
 
     /// Creates the order, records it, builds and broadcasts the funding.
+    ///
+    /// It never broadcasts an amount below the minimum of SideSwap, which
+    /// does not process such a peg: the funds could be lost. The check does
+    /// not rely on a previous [`Self::quote`].
     pub async fn execute(
         &mut self,
         direction: PegDirection,
@@ -192,6 +198,10 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
         drain: bool,
         external_payout_address: Option<&str>,
     ) -> std::result::Result<PegExecution, PegError> {
+        let minimum = self.repository.get_limits().await?.minimum_for(direction);
+        if !drain {
+            ensure_minimum(amount_sat, minimum)?;
+        }
         let payout = self.resolve_payout_address(direction, external_payout_address).await?;
         let order = self.repository.create_order(direction, &payout).await?;
 
@@ -206,7 +216,8 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
                 .quote_liquid_funding(&order.deposit_address, amount_sat, fee_rate_sat_per_vbyte.map(f64::from), drain)
                 .await
         };
-        let funding = match quote {
+        // A drain learns its amount only here, after the network fee.
+        let funding = match quote.and_then(|f| ensure_minimum(f.amount_sat, minimum).map(|()| f)) {
             Ok(f) => f,
             Err(e) => {
                 // Nothing was broadcast: the order is dead.
@@ -238,6 +249,14 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
         // Best-effort: the row stays as created and is still recoverable.
         let _ = self.store.record_terminal(order_id, PegPhase::Failed, None, Some(&msg)).await;
     }
+}
+
+/// Refuses an amount below the minimum of SideSwap for the direction.
+fn ensure_minimum(amount_sat: u64, minimum_sat: u64) -> std::result::Result<(), PegError> {
+    if amount_sat < minimum_sat {
+        return Err(PegError::BelowMinimum { minimum_sat, actual_sat: amount_sat });
+    }
+    Ok(())
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -297,6 +316,8 @@ pub(crate) mod tests {
         log: Log,
         fail_quote: bool,
         fail_broadcast: bool,
+        /// Balance that a drain spends, before the network fee.
+        drain_balance: u64,
     }
 
     impl PegWallet for FakeWallet {
@@ -312,13 +333,14 @@ pub(crate) mod tests {
             destination: &str,
             amount_sat: u64,
             _fee: Option<u32>,
-            _drain: bool,
+            drain: bool,
         ) -> impl Future<Output = std::result::Result<PegFundingQuote<String>, PegError>> + MaybeSend {
             self.log.lock().unwrap().push(format!("quote-btc:{destination}"));
+            let amount = if drain { self.drain_balance - 150 } else { amount_sat };
             ready(if self.fail_quote {
                 Err(PegError::InsufficientFunds("no".into()))
             } else {
-                Ok(PegFundingQuote { handle: destination.to_owned(), amount_sat, network_fee_sat: 150 })
+                Ok(PegFundingQuote { handle: destination.to_owned(), amount_sat: amount, network_fee_sat: 150 })
             })
         }
         fn quote_liquid_funding(
@@ -329,8 +351,8 @@ pub(crate) mod tests {
             drain: bool,
         ) -> impl Future<Output = std::result::Result<PegFundingQuote<String>, PegError>> + MaybeSend {
             self.log.lock().unwrap().push(format!("quote-lbtc:{destination}"));
-            // Drain: balance 200 000 minus fee 26.
-            let amount = if drain { 199_974 } else { amount_sat };
+            // Drain: the balance minus the fee of 26.
+            let amount = if drain { self.drain_balance - 26 } else { amount_sat };
             ready(if self.fail_quote {
                 Err(PegError::InsufficientFunds("no".into()))
             } else {
@@ -384,15 +406,66 @@ pub(crate) mod tests {
         fail_broadcast: bool,
         fail_store: bool,
     ) -> (PegOrchestrator<FakeRepo, FakeWallet, LogStore>, Log) {
+        orch_with(fail_quote, fail_broadcast, fail_store, 200_000)
+    }
+
+    fn orch_with(
+        fail_quote: bool,
+        fail_broadcast: bool,
+        fail_store: bool,
+        drain_balance: u64,
+    ) -> (PegOrchestrator<FakeRepo, FakeWallet, LogStore>, Log) {
         let log: Log = Arc::default();
         (
             PegOrchestrator::new(
                 FakeRepo { log: log.clone(), status: None },
-                FakeWallet { log: log.clone(), fail_quote, fail_broadcast },
+                FakeWallet { log: log.clone(), fail_quote, fail_broadcast, drain_balance },
                 LogStore { log: log.clone(), fail: fail_store },
             ),
             log,
         )
+    }
+
+    /// Lines of the log that start with one of `prefixes`.
+    fn logged(log: &Log, prefixes: &[&str]) -> Vec<String> {
+        log.lock().unwrap().iter().filter(|l| prefixes.iter().any(|p| l.starts_with(p))).cloned().collect()
+    }
+
+    #[test]
+    fn quote_refuses_a_drain_below_the_minimum() {
+        // 25 010 of balance leaves 24 984 after the fee: below 25 000.
+        let (mut o, _) = orch_with(false, false, false, 25_010);
+        assert_eq!(
+            block_on(o.quote(PegDirection::PegOut, 25_010, None, true)),
+            Err(PegError::BelowMinimum { minimum_sat: 25_000, actual_sat: 24_984 })
+        );
+        // Peg-in: 10 100 leaves 9 950 after the fee: below 10 000.
+        let (mut o, _) = orch_with(false, false, false, 10_100);
+        assert_eq!(
+            block_on(o.quote(PegDirection::PegIn, 10_100, None, true)),
+            Err(PegError::BelowMinimum { minimum_sat: 10_000, actual_sat: 9_950 })
+        );
+    }
+
+    #[test]
+    fn execute_never_broadcasts_below_the_minimum() {
+        // An amount below the minimum is refused before any order exists.
+        let (mut o, log) = orch(false, false, false);
+        assert_eq!(
+            block_on(o.execute(PegDirection::PegOut, 12_000, None, false, None)),
+            Err(PegError::BelowMinimum { minimum_sat: 25_000, actual_sat: 12_000 })
+        );
+        assert!(logged(&log, &["create", "quote", "broadcast"]).is_empty());
+
+        // A drain learns its amount when the funding is sized. Below the
+        // minimum, nothing is broadcast and the order is marked failed.
+        let (mut o, log) = orch_with(false, false, false, 25_010);
+        assert_eq!(
+            block_on(o.execute(PegDirection::PegOut, 25_010, None, true, None)),
+            Err(PegError::BelowMinimum { minimum_sat: 25_000, actual_sat: 24_984 })
+        );
+        assert!(logged(&log, &["broadcast"]).is_empty());
+        assert_eq!(log.lock().unwrap().last().unwrap(), "terminal:order-1:failed");
     }
 
     #[test]

@@ -46,8 +46,9 @@ impl PegAmountValidation {
 }
 
 /// Validates a peg amount. Minimum comes from `limits`, or the fallback when
-/// limits are unknown. The maximum is the spendable balance. Drain is always
-/// valid. Below-minimum wins over above-balance.
+/// limits are unknown. The maximum is the spendable balance. A drain is valid
+/// when the spendable balance reaches the minimum. Below-minimum wins over
+/// above-balance.
 pub fn evaluate_peg_amount(
     direction: PegDirection,
     amount_sat: Option<u64>,
@@ -58,6 +59,13 @@ pub fn evaluate_peg_amount(
 ) -> PegAmountValidation {
     let minimum = limits.map_or(fallback_minimum_sats, |l| l.minimum_for(direction));
     if drain {
+        // A drain sends the whole spendable balance, less the network fee.
+        // SideSwap does not process a peg below its minimum, so the funds
+        // could be lost. The amount after the fee is checked again when the
+        // funding is sized (`PegOrchestrator`).
+        if spendable_sat < minimum {
+            return PegAmountValidation::invalid(PegAmountIssue::BelowMinimum, minimum, spendable_sat);
+        }
         return PegAmountValidation::valid(minimum, spendable_sat);
     }
     let amount = match amount_sat {
@@ -124,5 +132,20 @@ mod tests {
         assert!(evaluate_peg_amount(IN, Some(30_000), 100_000, None, 25_000, false).is_valid);
         // Below-minimum wins over above-balance.
         assert_eq!(eval(OUT, Some(20_000), 10_000).issue, Some(PegAmountIssue::BelowMinimum));
+    }
+
+    #[test]
+    fn a_drain_below_the_minimum_is_refused() {
+        // Max sends the whole balance. Below the minimum SideSwap does not
+        // process the peg, so the drain is not valid.
+        let out = evaluate_peg_amount(OUT, Some(20_000), 20_000, Some(&LIMITS), 25_000, true);
+        assert_eq!((out.is_valid, out.issue), (false, Some(PegAmountIssue::BelowMinimum)));
+        assert!(out.shows_issue());
+        assert_eq!(out.minimum_sats, Some(25_000));
+        let pin = evaluate_peg_amount(IN, None, 9_999, Some(&LIMITS), 25_000, true);
+        assert_eq!(pin.issue, Some(PegAmountIssue::BelowMinimum));
+        let unknown = evaluate_peg_amount(IN, None, 24_000, None, 25_000, true);
+        assert_eq!(unknown.issue, Some(PegAmountIssue::BelowMinimum));
+        assert!(evaluate_peg_amount(OUT, Some(25_000), 25_000, Some(&LIMITS), 25_000, true).is_valid);
     }
 }

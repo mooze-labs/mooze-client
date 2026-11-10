@@ -85,8 +85,8 @@ pub fn pix_looks_like_key(value: String) -> bool {
 }
 
 /// Validates a peg amount (Dart `evaluatePegAmount`). The minimum comes
-/// from `limits`, or `fallback_minimum_sats` when unknown. A drain is
-/// always valid.
+/// from `limits`, or `fallback_minimum_sats` when unknown. A drain is valid
+/// when the spendable balance reaches the minimum.
 pub fn peg_validate_amount(
     direction: PegDirectionDto,
     amount_sat: Option<u64>,
