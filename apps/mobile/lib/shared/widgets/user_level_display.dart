@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/user/level_names.dart';
 import 'package:mooze_mobile/shared/extensions.dart';
 import 'package:mooze_mobile/shared/models/user_levels.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
@@ -359,7 +360,7 @@ class _UserLevelDisplayStatefulState extends State<_UserLevelDisplayStateful>
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text(
-            level.name,
+            AppLocalizations.of(context).levelName(level.order),
             style: textTheme.labelMedium?.copyWith(
               fontWeight: isCurrentLevel ? FontWeight.bold : FontWeight.w500,
               color:
