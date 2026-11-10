@@ -160,7 +160,16 @@ impl<C: WsConnector> SideSwapClient<C> {
             return Err(Error::Protocol(CLOSED_MESSAGE.into()));
         }
         self.connect().await?;
-        self.call_connected(req).await
+        match self.call_connected(req).await {
+            // The server, a proxy or the OS dropped an idle connection, for
+            // example while the app slept: the request got no answer. A new
+            // connection answers it, once. A signed swap is not sent again.
+            Err(Error::Network(_)) if !self.is_connected() && req.is_resendable() => {
+                self.connect().await?;
+                self.call_connected(req).await
+            }
+            result => result,
+        }
     }
 
     async fn call_connected(&mut self, req: &Request) -> Result<Value> {
@@ -354,6 +363,8 @@ mod tests {
     use super::*;
     use crate::sideswap::protocol::QuoteOutcome;
     use crate::testing::{block_on, FixedClock, MockWs};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
     fn id_of(frame: &str) -> u64 {
         serde_json::from_str::<Value>(frame).unwrap()["id"].as_u64().unwrap()
@@ -446,16 +457,52 @@ mod tests {
         assert_eq!(block_on(c.call(&Request::peg_status(true, "x"))), Err(Error::Protocol(UNEXPECTED_RESULT.into())));
     }
 
+    fn count(ws: &MockWs, method: &str) -> usize {
+        ws.sent().iter().filter(|f| method_of(f) == method).count()
+    }
+
     #[test]
     fn closed_transport_is_network_error_and_reconnects() {
-        // Server answers login only, so the call sees the close.
+        // Server answers login only, so the call sees the close, on the
+        // first connection and on the one it opens to send again.
         let ws = MockWs::new(|f| login_ok(f).unwrap_or_default());
         let mut c = SideSwapClient::new(ws.clone(), "k");
         assert!(matches!(block_on(c.call(&Request::server_status())), Err(Error::Network(_))));
         assert!(!c.is_connected());
+        assert_eq!((count(&ws, "login_client"), count(&ws, "server_status")), (2, 2));
         let _ = block_on(c.call(&Request::server_status()));
-        let logins = ws.sent().iter().filter(|f| method_of(f) == "login_client").count();
-        assert_eq!(logins, 2);
+        assert_eq!(count(&ws, "login_client"), 4);
+    }
+
+    #[test]
+    fn a_request_on_a_dropped_connection_goes_out_once_more() {
+        // The first connection died without notice, as after the app slept:
+        // the request gets no answer. A fresh connection answers it.
+        let answered = Arc::new(AtomicUsize::new(0));
+        let seen = answered.clone();
+        let ws = MockWs::new(move |f| {
+            if let Some(login) = login_ok(f) {
+                return login;
+            }
+            if seen.fetch_add(1, Ordering::SeqCst) == 0 {
+                return vec![];
+            }
+            vec![json!({"id": id_of(f), "method": "server_status", "result": {"ok": true}}).to_string()]
+        });
+        let mut c = SideSwapClient::new(ws.clone(), "k");
+        assert_eq!(block_on(c.call(&Request::server_status())), Ok(json!({"ok": true})));
+        assert_eq!((count(&ws, "login_client"), count(&ws, "server_status")), (2, 2));
+    }
+
+    #[test]
+    fn a_signed_swap_is_never_sent_twice() {
+        // The first taker_sign may have reached the server before the drop.
+        let ws = MockWs::new(|f| login_ok(f).unwrap_or_default());
+        let mut c = SideSwapClient::new(ws.clone(), "k");
+        assert!(matches!(block_on(c.call(&Request::taker_sign(7, "pset"))), Err(Error::Network(_))));
+        assert_eq!(count(&ws, "market"), 1);
+        assert!(!Request::taker_sign(7, "pset").is_resendable());
+        assert!(Request::peg(true, "x").is_resendable());
     }
 
     #[test]

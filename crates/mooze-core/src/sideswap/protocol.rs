@@ -90,6 +90,13 @@ impl Request {
         json!({ "id": id, "method": self.method, "params": self.params }).to_string()
     }
 
+    /// True when the request can go out once more, on a new connection, if
+    /// the connection dropped before the answer. A signed swap (`taker_sign`)
+    /// never does: the first one may have reached the server.
+    pub fn is_resendable(&self) -> bool {
+        !(self.method == method::MARKET && self.params.get("taker_sign").is_some())
+    }
+
     /// `login_client` with the fixed user agent and version.
     pub fn login(api_key: &str) -> Self {
         Self::new(
