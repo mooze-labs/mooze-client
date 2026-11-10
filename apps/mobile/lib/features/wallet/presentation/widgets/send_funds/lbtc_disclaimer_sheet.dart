@@ -9,29 +9,31 @@ import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+import '../glass_info_sheet.dart';
 import 'send_flow_parts.dart';
 
-/// One-time disclaimer shown on the first access to the Send screen.
-/// Informs users that L-BTC is required to pay network mining fees.
+/// One-time notice shown on the first access to the Send screen: L-BTC
+/// pays the network mining fees.
 ///
-/// The dialog is opaque Liquid Glass. The confirm button unlocks after a
-/// short countdown, so the user reads the text first.
-class LbtcDisclaimerDialog extends StatefulWidget {
-  const LbtcDisclaimerDialog({super.key});
+/// A floating glass sheet. The user reads it before going on: a tap
+/// outside or a drag does not close it, and the confirm button unlocks
+/// after a short countdown. The SWAP link closes it with true.
+class LbtcDisclaimerSheet extends StatefulWidget {
+  const LbtcDisclaimerSheet({super.key});
 
   @override
-  State<LbtcDisclaimerDialog> createState() => _LbtcDisclaimerDialogState();
+  State<LbtcDisclaimerSheet> createState() => _LbtcDisclaimerSheetState();
 
   static Future<bool?> show(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const LbtcDisclaimerDialog(),
+    return showFloatingGlassSheet<bool>(
+      context,
+      dismissible: false,
+      builder: (context) => const LbtcDisclaimerSheet(),
     );
   }
 }
 
-class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
+class _LbtcDisclaimerSheetState extends State<LbtcDisclaimerSheet> {
   int _secondsRemaining = 7;
   Timer? _timer;
   TapGestureRecognizer? _swapRecognizer;
@@ -69,67 +71,72 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
     final t = AppLocalizations.of(context);
     final ready = _secondsRemaining == 0;
 
-    return GlassDialog(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Center(
-                      child: PixIconWell(icon: PixIcons.info, size: 56),
-                    ),
-                    const SizedBox(height: 18),
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        t.wallet_send_lbtc_disclaimer_title,
-                        textAlign: TextAlign.center,
-                        style: context.textTheme.titleLarge?.copyWith(
-                          color: context.colors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      t.wallet_send_lbtc_disclaimer_body,
+    return GlassSheet(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
+      padding: const EdgeInsets.fromLTRB(8, 28, 8, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Center(
+                    child: PixIconWell(icon: PixIcons.info, size: 56),
+                  ),
+                  const SizedBox(height: 18),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      t.wallet_send_lbtc_disclaimer_title,
                       textAlign: TextAlign.center,
-                      style: context.textTheme.bodyMedium?.copyWith(
-                        color: context.colors.textSecondary,
-                        height: 1.5,
+                      style: context.textTheme.titleLarge?.copyWith(
+                        color: context.colors.textPrimary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    _buildInfoItem(
-                      PixIcons.fast,
-                      t.wallet_send_lbtc_network_fees_title,
-                      t.wallet_send_lbtc_network_fees_desc,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    t.wallet_send_lbtc_disclaimer_body,
+                    textAlign: TextAlign.center,
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: context.colors.textSecondary,
+                      height: 1.5,
                     ),
-                    const SizedBox(height: 14),
-                    _buildInfoItem(
-                      PixIcons.exchange,
-                      t.wallet_send_lbtc_obtain_title,
-                      t.wallet_send_lbtc_obtain_desc_disclaimer,
-                      highlightText: 'SWAP',
-                      highlightRecognizer: _swapRecognizer,
-                    ),
-                    const SizedBox(height: 18),
-                    SendNotice(
-                      icon: PixIcons.info,
-                      message: t.wallet_send_lbtc_disclaimer_tip,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildInfoItem(
+                    PixIcons.fast,
+                    t.wallet_send_lbtc_network_fees_title,
+                    t.wallet_send_lbtc_network_fees_desc,
+                  ),
+                  const SizedBox(height: 14),
+                  _buildInfoItem(
+                    PixIcons.exchange,
+                    t.wallet_send_lbtc_obtain_title,
+                    t.wallet_send_lbtc_obtain_desc_disclaimer,
+                    highlightText: 'SWAP',
+                    highlightRecognizer: _swapRecognizer,
+                  ),
+                  const SizedBox(height: 18),
+                  SendNotice(
+                    icon: PixIcons.info,
+                    message: t.wallet_send_lbtc_disclaimer_tip,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            PrimaryButton(
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: PrimaryButton(
               text: ready
                   ? t.common_understood
                   : t.wallet_send_lbtc_disclaimer_understood_countdown(
@@ -138,8 +145,8 @@ class _LbtcDisclaimerDialogState extends State<LbtcDisclaimerDialog> {
               isEnabled: ready,
               onPressed: ready ? () => Navigator.of(context).pop(false) : null,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

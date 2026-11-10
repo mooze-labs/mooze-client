@@ -107,7 +107,7 @@ class _AddressFieldState extends ConsumerState<AddressField> {
     final hasText = addressState.isNotEmpty || controller.text.isNotEmpty;
 
     SendValidationError? addressError;
-    for (final error in validationState.errors) {
+    for (final error in validationState.shownErrors) {
       if (error.category == SendValidationErrorCategory.address ||
           error.category == SendValidationErrorCategory.network) {
         addressError = error;

@@ -51,7 +51,7 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
 
     if (!onboardingService.hasSeenFirstTimeDialog() && mounted) {
       final router = GoRouter.of(context);
-      final goToSwap = await LbtcDisclaimerDialog.show(context);
+      final goToSwap = await LbtcDisclaimerSheet.show(context);
 
       if (!mounted) return;
       await onboardingService.markFirstTimeDialogAsSeen();
@@ -79,6 +79,7 @@ class _NewTransactionScreenState extends ConsumerState<NewTransactionScreen> {
       ref.invalidate(detectedAmountProvider);
 
       ref.invalidate(feeSpeedProvider);
+      ref.invalidate(customFeeRateProvider);
 
       ref.invalidate(balanceProvider);
       ref.invalidate(selectedAssetBalanceProvider);

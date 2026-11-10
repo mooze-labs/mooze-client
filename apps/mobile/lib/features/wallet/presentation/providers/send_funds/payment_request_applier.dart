@@ -5,6 +5,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'address_controller_provider.dart';
 import 'address_provider.dart';
 import 'amount_detection_provider.dart';
+import 'amount_provider.dart';
 import 'detected_amount_provider.dart';
 import 'network_detection_provider.dart';
 import 'qr_validation_service.dart';
@@ -62,12 +63,17 @@ class PaymentRequestApplier {
   /// A BIP21 asset hint wins. Otherwise a Bitcoin address selects BTC and a
   /// Liquid address selects L-BTC, but only when the current selection is
   /// already a native coin, so a user who picked a Liquid token keeps it.
+  ///
+  /// A switch puts the amount and "max" back to zero, as a manual choice of
+  /// the asset does: they were in the units and the balance of the other
+  /// asset. An amount in a BIP21 request still applies. Without a switch,
+  /// the amount stays.
   static void autoSwitchAsset(WidgetRef ref, String data) {
     if (data.isEmpty) return;
 
     final detected = AmountDetectionService.detectAmount(data);
     if (detected.asset != null) {
-      ref.read(selectedAssetProvider.notifier).state = detected.asset!;
+      _switchTo(ref, detected.asset!);
       return;
     }
 
@@ -80,8 +86,14 @@ class PaymentRequestApplier {
       NetworkType.liquid => Asset.lbtc,
       NetworkType.unknown => null,
     };
-    if (next != null && next != current) {
-      ref.read(selectedAssetProvider.notifier).state = next;
-    }
+    if (next != null) _switchTo(ref, next);
+  }
+
+  /// Selects [asset], with an empty amount, when it is not selected yet.
+  static void _switchTo(WidgetRef ref, Asset asset) {
+    if (ref.read(selectedAssetProvider) == asset) return;
+    ref.read(amountStateProvider.notifier).state = 0;
+    ref.read(maxSendRequestedProvider.notifier).state = false;
+    ref.read(selectedAssetProvider.notifier).state = asset;
   }
 }

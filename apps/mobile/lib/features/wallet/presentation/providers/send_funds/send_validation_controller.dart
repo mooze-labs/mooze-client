@@ -39,7 +39,12 @@ enum SendValidationErrorCode {
   validateBalanceFees,
   minUsdt,
   minDepix,
-  validateLimits,
+  validateLimits;
+
+  /// The error only says that a field is still empty: nothing the user
+  /// entered is wrong. The form does not show it, so a new form does not
+  /// open in red. The review button stays off until the field is filled.
+  bool get isMissingInput => this == addressRequired || this == amountPositive;
 }
 
 class SendValidationError {
@@ -588,6 +593,13 @@ class SendValidationState {
     this.errors = const [],
     this.canProceed = false,
   });
+
+  /// The errors that the form shows: the errors about what the user
+  /// entered. An empty field is not an error on screen.
+  List<SendValidationError> get shownErrors => [
+    for (final error in errors)
+      if (!error.code.isMissingInput) error,
+  ];
 }
 
 final sendValidationControllerProvider =

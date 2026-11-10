@@ -6,16 +6,15 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
-import 'package:mooze_mobile/themes/app_surfaces.dart';
-import 'package:mooze_mobile/themes/motion.dart';
+import 'package:mooze_mobile/shared/widgets/glass/glass_segmented_control.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 import 'send_flow_parts.dart';
 
 /// Compact segmented choice of the unit the user types the amount in.
 ///
-/// The selected segment has a brand tint and a brand border, so the
-/// selection shows by shape and not by color alone.
+/// A [GlassSegmentedControl]: the glass lens of the navigation bar marks
+/// the unit, and a drag sideways moves it.
 class SendConversionOptionsRow extends ConsumerWidget {
   final Asset? selectedAsset;
 
@@ -30,97 +29,26 @@ class SendConversionOptionsRow extends ConsumerWidget {
 
     final hasSats = selectedAsset == Asset.btc || selectedAsset == Asset.lbtc;
 
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: GlassStyle.of(context).lensFill,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppSurfaces.hairline(context)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _SegmentPill(
-            label: selectedAsset!.ticker,
-            isSelected: conversionType == SendConversionType.asset,
-            onTap: () => ref.read(sendConversionTypeProvider.notifier).state =
-                SendConversionType.asset,
-          ),
-          if (hasSats)
-            _SegmentPill(
-              label: 'sats',
-              isSelected: conversionType == SendConversionType.sats,
-              onTap: () => ref.read(sendConversionTypeProvider.notifier).state =
-                  SendConversionType.sats,
-            ),
-          _SegmentPill(
-            label: fiatCurrency,
-            isSelected: conversionType == SendConversionType.fiat,
-            onTap: () => ref.read(sendConversionTypeProvider.notifier).state =
-                SendConversionType.fiat,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SegmentPill extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _SegmentPill({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primary = context.colors.primaryColor;
-    const radius = BorderRadius.all(Radius.circular(999));
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: radius,
-        child: AnimatedContainer(
-          duration: Motion.of(context, Motion.durationFast),
-          curve: Motion.curveMove,
-          // 42 pt high with the 3 pt track padding: a 48 pt touch row.
-          constraints: const BoxConstraints(minHeight: 42, minWidth: 48),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? primary.withValues(alpha: 0.12)
-                : Colors.transparent,
-            borderRadius: radius,
-            border: Border.all(
-              color: isSelected ? primary : Colors.transparent,
-              width: 1.4,
-            ),
-          ),
-          child: Text(
-            label,
-            style: context.textTheme.labelLarge?.copyWith(
-              color: isSelected
-                  ? context.colors.textPrimary
-                  : context.colors.textSecondary,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
+    return GlassSegmentedControl<SendConversionType>(
+      segments: [
+        GlassSegment(
+          value: SendConversionType.asset,
+          label: selectedAsset!.ticker,
         ),
-      ),
+        if (hasSats)
+          const GlassSegment(value: SendConversionType.sats, label: 'sats'),
+        GlassSegment(value: SendConversionType.fiat, label: fiatCurrency),
+      ],
+      selected: conversionType,
+      onChanged: (type) =>
+          ref.read(sendConversionTypeProvider.notifier).state = type,
     );
   }
 }
 
 /// The typed amount in the other units, as one quiet line.
 ///
-/// For example "≈ 0.0012 BTC L2 · 120.000 sats". The line leaves out the
+/// For example "≈ 0.0012 L-BTC · 120.000 sats". The line leaves out the
 /// unit the user types in, because the hero already shows it.
 class SendConversionPreview extends ConsumerWidget {
   final Asset selectedAsset;

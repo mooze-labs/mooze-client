@@ -20,7 +20,7 @@ class ValidationErrorsWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     final validationState = ref.watch(sendValidationControllerProvider);
-    final errors = validationState.errors;
+    final errors = validationState.shownErrors;
     final showHelp = errors.any(
       (error) =>
           error.category == SendValidationErrorCategory.amount ||

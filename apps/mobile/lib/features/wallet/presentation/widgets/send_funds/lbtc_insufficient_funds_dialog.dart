@@ -86,7 +86,7 @@ class _LbtcInsufficientFundsDialogState
             const SizedBox(height: 16),
             _buildSwapOption(context),
             const SizedBox(height: 12),
-            _buildLightningOption(context),
+            _buildReceiveOption(context),
           ],
         ),
       ),
@@ -155,18 +155,18 @@ class _LbtcInsufficientFundsDialogState
     );
   }
 
-  Widget _buildLightningOption(BuildContext context) {
+  Widget _buildReceiveOption(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const PixIconWell(icon: PixIcons.fast, size: 36),
+        const PixIconWell(icon: PixIcons.receive, size: 36),
         const SizedBox(width: 12),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              t.wallet_send_lbtc_insufficient_lightning,
+              t.wallet_send_lbtc_insufficient_receive,
               style: _optionStyle(context),
             ),
           ),

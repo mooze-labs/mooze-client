@@ -232,7 +232,7 @@ class _AmountFieldSendState extends ConsumerState<AmountFieldSend> {
     final btcAmount = amountInSats / 100000000;
 
     SendValidationError? amountError;
-    for (final error in validationState.errors) {
+    for (final error in validationState.shownErrors) {
       final cat = error.category;
       if (cat == SendValidationErrorCategory.amount ||
           cat == SendValidationErrorCategory.limits ||
