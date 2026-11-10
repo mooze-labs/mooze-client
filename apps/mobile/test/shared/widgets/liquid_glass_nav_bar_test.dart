@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
@@ -66,6 +68,42 @@ double _slotCenter(WidgetTester tester, int index) {
 }
 
 Rect _lens(WidgetTester tester) => tester.getRect(find.byType(GlassLens));
+
+/// The bar as the shell drives it: a tab from [CustomBottomNavBar.onTap]
+/// jumps [page] to it and becomes the selected tab. [taps] records them.
+Widget _shell({
+  required List<int> taps,
+  ValueNotifier<double>? page,
+  int initial = 0,
+}) {
+  var index = initial;
+  return StatefulBuilder(
+    builder: (context, setState) => _host(
+      currentIndex: index,
+      pagePosition: page,
+      onTap: (tab) {
+        taps.add(tab);
+        page?.value = tab.toDouble();
+        setState(() => index = tab);
+      },
+    ),
+  );
+}
+
+/// Width of one tab.
+double _slot(WidgetTester tester) =>
+    (_capsule(tester).width - CustomBottomNavBar.inset * 2) / 5;
+
+/// Starts a touch on tab [index] and moves past the drag slop, so the drag
+/// on the capsule has started.
+Future<TestGesture> _grab(WidgetTester tester, int index) async {
+  final gesture = await tester.startGesture(
+    Offset(_slotCenter(tester, index), _capsule(tester).center.dy),
+  );
+  await gesture.moveBy(const Offset(kTouchSlop + 1, 0));
+  await tester.pump();
+  return gesture;
+}
 
 void main() {
   group('Floating capsule', () {
@@ -212,6 +250,222 @@ void main() {
         inExclusiveRange(_slotCenter(tester, 0), _slotCenter(tester, 4)),
       );
       await tester.pumpAndSettle();
+    });
+  });
+
+  group('Capsule drag', () {
+    testWidgets('the lens follows the finger, stretches, and lights the tab '
+        'under it', (tester) async {
+      final taps = <int>[];
+      await tester.pumpWidget(_shell(taps: taps));
+      final restWidth = _lens(tester).width;
+      final slot = _slot(tester);
+
+      final gesture = await _grab(tester, 0);
+      await gesture.moveBy(Offset(slot * 1.5, 0));
+      await tester.pump();
+
+      // Halfway between the second and the third tab, give or take the slop.
+      final halfway = (_slotCenter(tester, 1) + _slotCenter(tester, 2)) / 2;
+      expect(_lens(tester).center.dx, closeTo(halfway, kTouchSlop + 1));
+      expect(_lens(tester).width, greaterThan(restWidth));
+      expect(taps, isEmpty);
+
+      await gesture.moveBy(Offset(slot * 0.5, 0));
+      await tester.pump();
+      // On a tab, the lens is round again, and that tab shows its label.
+      expect(
+        _lens(tester).center.dx,
+        closeTo(_slotCenter(tester, 2), kTouchSlop + 1),
+      );
+      expect(find.text('Pix'), findsOneWidget);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(taps, [2]);
+      expect(_lens(tester).center.dx, closeTo(_slotCenter(tester, 2), 0.5));
+      expect(_lens(tester).width, closeTo(restWidth, 0.01));
+    });
+
+    testWidgets('a slow short drag springs back to the selected tab', (
+      tester,
+    ) async {
+      final taps = <int>[];
+      await tester.pumpWidget(_shell(taps: taps, initial: 1));
+
+      final gesture = await _grab(tester, 1);
+      await gesture.moveBy(Offset(_slot(tester) * 0.2, 0));
+      await tester.pump(const Duration(milliseconds: 500));
+      await gesture.up();
+      await tester.pump(Motion.durationEmphasis ~/ 2);
+      // On the way back.
+      expect(_lens(tester).center.dx, greaterThan(_slotCenter(tester, 1)));
+
+      await tester.pumpAndSettle();
+      expect(taps, isEmpty);
+      expect(_lens(tester).center.dx, closeTo(_slotCenter(tester, 1), 0.5));
+    });
+
+    testWidgets('a flick moves on after a short drag, in both directions', (
+      tester,
+    ) async {
+      final taps = <int>[];
+      await tester.pumpWidget(_shell(taps: taps, initial: 2));
+
+      /// Flicks from tab [from] by 50 pt in [direction], at about 1250 pt/s.
+      /// Past the slop, that is less than half a tab of travel.
+      Future<void> flick(int from, double direction) async {
+        final gesture = await tester.startGesture(
+          Offset(_slotCenter(tester, from), _capsule(tester).center.dy),
+        );
+        for (var i = 1; i <= 5; i++) {
+          await gesture.moveBy(
+            Offset(10 * direction, 0),
+            timeStamp: Duration(milliseconds: 8 * i),
+          );
+        }
+        await gesture.up(timeStamp: const Duration(milliseconds: 48));
+        await tester.pumpAndSettle();
+      }
+
+      expect(50 - kTouchSlop, lessThan(_slot(tester) / 2));
+      await flick(2, 1);
+      expect(taps.last, greaterThan(2));
+
+      final from = taps.last;
+      await flick(from, -1);
+      expect(taps.last, lessThan(from));
+      expect(
+        _lens(tester).center.dx,
+        closeTo(_slotCenter(tester, taps.last), 0.5),
+      );
+    });
+
+    testWidgets('the lens presses against the end of the capsule', (
+      tester,
+    ) async {
+      final taps = <int>[];
+      await tester.pumpWidget(_shell(taps: taps));
+      final capsule = _capsule(tester);
+
+      final gesture = await _grab(tester, 0);
+      await gesture.moveBy(Offset(-_slot(tester) * 2, 0));
+      await tester.pump();
+      final lens = _lens(tester);
+      expect(lens.left, greaterThanOrEqualTo(capsule.left));
+      expect(lens.right, lessThan(capsule.right));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(taps, isEmpty);
+      expect(_lens(tester).center.dx, closeTo(_slotCenter(tester, 0), 0.5));
+    });
+
+    testWidgets('the page jump that follows the release does not cut the '
+        'spring', (tester) async {
+      final taps = <int>[];
+      final page = ValueNotifier<double>(0);
+      addTearDown(page.dispose);
+      await tester.pumpWidget(_shell(taps: taps, page: page));
+
+      final gesture = await _grab(tester, 0);
+      await gesture.moveBy(Offset(_slot(tester) * 2.6, 0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+      expect(taps, [3]);
+      expect(page.value, 3);
+
+      await tester.pump(const Duration(milliseconds: 32));
+      // Still springing toward the tab, not jumped there.
+      expect(
+        (_lens(tester).center.dx - _slotCenter(tester, 3)).abs(),
+        greaterThan(0.5),
+      );
+      await tester.pumpAndSettle();
+      expect(_lens(tester).center.dx, closeTo(_slotCenter(tester, 3), 0.5));
+    });
+
+    testWidgets('each tab crossed plays one selection click', (tester) async {
+      var clicks = 0;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate') clicks++;
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await tester.pumpWidget(_shell(taps: []));
+
+      final gesture = await _grab(tester, 0);
+      for (var i = 0; i < 6; i++) {
+        await gesture.moveBy(Offset(_slot(tester) * 0.5, 0));
+        await tester.pump();
+      }
+      expect(clicks, 3);
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a vertical drag leaves the bar alone', (tester) async {
+      final taps = <int>[];
+      await tester.pumpWidget(_shell(taps: taps, initial: 1));
+      final before = _lens(tester);
+
+      await tester.dragFrom(
+        Offset(_slotCenter(tester, 1), _capsule(tester).center.dy),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+      expect(taps, isEmpty);
+      expect(_lens(tester), before);
+    });
+
+    testWidgets('a tap still opens its tab and keeps the lens animation', (
+      tester,
+    ) async {
+      final taps = <int>[];
+      await tester.pumpWidget(_shell(taps: taps));
+
+      await tester.tap(find.text('Início'));
+      await tester.tapAt(
+        Offset(_slotCenter(tester, 4), _capsule(tester).center.dy),
+      );
+      // One frame starts the lens move, then it runs.
+      await tester.pump();
+      await tester.pump(Motion.durationSlow ~/ 2);
+      expect(taps, [0, 4]);
+      expect(
+        _lens(tester).center.dx,
+        inExclusiveRange(_slotCenter(tester, 0), _slotCenter(tester, 4)),
+      );
+      await tester.pumpAndSettle();
+      expect(_lens(tester).center.dx, closeTo(_slotCenter(tester, 4), 0.5));
+    });
+
+    testWidgets('reduced motion follows the finger and lands at once', (
+      tester,
+    ) async {
+      reduceMotion(tester);
+      final taps = <int>[];
+      await tester.pumpWidget(_shell(taps: taps));
+      final restWidth = _lens(tester).width;
+
+      final gesture = await _grab(tester, 0);
+      await gesture.moveBy(Offset(_slot(tester) * 1.8, 0));
+      await tester.pump();
+      expect(_lens(tester).width, closeTo(restWidth, 0.01));
+
+      await gesture.up();
+      await tester.pump();
+      expect(taps, [2]);
+      expect(_lens(tester).center.dx, closeTo(_slotCenter(tester, 2), 0.5));
     });
   });
 
