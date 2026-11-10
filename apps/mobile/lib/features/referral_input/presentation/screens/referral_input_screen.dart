@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/shared/widgets/motion/fade_slide_in.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 
 import '../controllers/referral_input_controller.dart';
 import '../widgets/active_referral_card.dart';
@@ -28,30 +30,32 @@ class ReferralInputScreen extends ConsumerStatefulWidget {
 }
 
 class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   final TextEditingController _referralCodeController = TextEditingController();
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+
+  /// Fades and raises the content once, when the screen opens.
+  late final AnimationController _animationController = AnimationController(
+    duration: Motion.durationBase,
+    vsync: this,
+  );
+  late final Animation<double> _entrance = CurvedAnimation(
+    parent: _animationController,
+    curve: Motion.curveEnter,
+  );
+
+  /// Side margin of the content.
+  static const double _gutter = 20;
 
   @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
-    );
-
-    _animationController.forward();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_animationController.isDismissed) {
+      if (Motion.isReduced(context)) {
+        _animationController.value = 1;
+      } else {
+        _animationController.forward();
+      }
+    }
   }
 
   @override
@@ -123,61 +127,76 @@ class _ReferralInputScreenState extends ConsumerState<ReferralInputScreen>
       }
     });
 
+    final hasCode = state.existingReferralCode != null;
+
+    // The app bar is clear and paints its slice of the backdrop, so the bar
+    // and the page read as one surface.
     return Scaffold(
-      appBar: AppBar(
+      extendBodyBehindAppBar: true,
+      appBar: BackdropAppBar(
         title: Text(AppLocalizations.of(context).referral_title),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
         actions: [
           ApiDownIndicatorIcon(),
           OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
         ],
       ),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const ReferralInfoCard(),
-                        const SizedBox(height: 16),
-                        if (state.existingReferralCode != null)
-                          ActiveReferralCard(
-                            referralCode: state.existingReferralCode!,
-                          )
-                        else
-                          ReferralCodeInput(
-                            controller: _referralCodeController,
-                            isEnabled: !state.isLoading && !isApiDown,
-                            isApiDown: isApiDown,
-                            onChanged: _onTextChanged,
-                          ),
-                        if (state.existingReferralCode == null) ...[
-                          const SizedBox(height: 24),
-                          ReferralSubmitButton(
-                            isApiDown: isApiDown,
-                            isLoading: state.isLoading,
-                            onSubmit: _onSubmit,
-                          ),
-                          const SizedBox(height: 25),
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackdrop()),
+          SafeArea(
+            child: FadeSlideIn(
+              animation: _entrance,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(
+                        _gutter,
+                        24,
+                        _gutter,
+                        24,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const ReferralInfoCard(),
+                          const SizedBox(height: 32),
+                          if (hasCode)
+                            ActiveReferralCard(
+                              referralCode: state.existingReferralCode!,
+                            )
+                          else
+                            ReferralCodeInput(
+                              controller: _referralCodeController,
+                              isEnabled: !state.isLoading && !isApiDown,
+                              isApiDown: isApiDown,
+                              onChanged: _onTextChanged,
+                            ),
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  // The main action stays above the keyboard and the bottom
+                  // edge.
+                  if (!hasCode)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        _gutter,
+                        8,
+                        _gutter,
+                        12,
+                      ),
+                      child: ReferralSubmitButton(
+                        isApiDown: isApiDown,
+                        isLoading: state.isLoading,
+                        onSubmit: _onSubmit,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

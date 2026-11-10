@@ -1,104 +1,86 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Displays the currently active referral code with a success state.
+/// The referral code the user already applied, in a glass panel.
 ///
-/// Shows a green gradient card with the applied code
-/// and a message confirming the user is saving on transactions.
+/// The first row confirms the active discount and shows the code. The
+/// second row says what the code gives. The positive color marks the state
+/// on the check only.
 class ActiveReferralCard extends StatelessWidget {
   final String referralCode;
 
   const ActiveReferralCard({super.key, required this.referralCode});
 
+  static const double _wellSize = 40;
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final positiveColor = colorScheme.tertiary;
-    final onPositive = colorScheme.onTertiary;
     final t = AppLocalizations.of(context);
+    final positive = context.colors.positiveColor;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [positiveColor, Color.lerp(positiveColor, onPositive, 0.2)!],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: positiveColor.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return GlassPanel(
       child: Column(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: onPositive.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Icon(
-                  Icons.check_circle_rounded,
-                  color: onPositive,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t.referral_active_title,
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: onPositive,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      t.referral_code_with_value(referralCode),
-                      style: textTheme.titleSmall?.copyWith(
-                        color: onPositive.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: onPositive.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: _wellSize,
+                  height: _wellSize,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: positive.withValues(alpha: 0.14),
+                    border: Border.all(color: positive.withValues(alpha: 0.24)),
+                  ),
+                  child: Icon(Icons.check_rounded, size: 20, color: positive),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.referral_active_title,
+                        style: context.textTheme.titleMedium?.copyWith(
+                          color: context.colors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        t.referral_code_with_value(referralCode),
+                        style: context.textTheme.bodyMedium?.copyWith(
+                          color: context.colors.textSecondary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PanelDivider(indent: 16),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
                 Icon(
-                  Icons.savings_rounded,
-                  color: onPositive.withValues(alpha: 0.9),
-                  size: 18,
+                  Icons.savings_outlined,
+                  size: 20,
+                  color: context.colors.textSecondary,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     t.referral_savings_message,
-                    style: textTheme.labelMedium?.copyWith(
-                      color: onPositive.withValues(alpha: 0.9),
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),
