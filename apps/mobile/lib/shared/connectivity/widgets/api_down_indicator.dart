@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/ensure_auth_session_provider.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/status_banner.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 final apiDownProvider = StateProvider<bool>((ref) => false);
 
@@ -118,31 +121,15 @@ class ApiDownIndicator extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return GestureDetector(
-      onTap: () => _showApiDownDialog(context, ref, onRetry),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        margin: const EdgeInsets.only(right: 8),
-        decoration: BoxDecoration(
-          color: Colors.orange.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.orange.withValues(alpha: 0.4), width: 1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cloud_off_rounded, size: 16, color: Colors.orange[300]),
-            const SizedBox(width: 5),
-            Text(
-              AppLocalizations.of(context).api_down_indicator,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Colors.orange[300],
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
+    final t = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: StatusBanner(
+        icon: PixIcons.warning,
+        color: context.appColors.warning,
+        title: t.api_down_dialog_title,
+        message: t.status_banner_hint,
+        onTap: () => _showApiDownDialog(context, ref, onRetry),
       ),
     );
   }

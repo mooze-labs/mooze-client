@@ -1,7 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/shared/widgets/motion/press_scale.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
+
 import '../providers/connectivity_provider.dart';
 
+/// A small glass pill that says the app is offline and shows saved prices.
+///
+/// It is the same glass pill as the parts of the `StatusIsland`: a cloud icon
+/// in the warning tone and the label in the primary text color. The tap
+/// target is at least 48 tall, while the pill keeps its small size.
 class OfflineIndicator extends ConsumerWidget {
   final VoidCallback? onTap;
 
@@ -15,36 +27,47 @@ class OfflineIndicator extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        margin: const EdgeInsets.only(right: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
+    final pill = LiquidGlass(
+      blurBackdrop: false,
+      // A small control: the short shadow keeps it light on the page.
+      shadows: GlassStyle.of(context).controlShadows,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.cloud_off_rounded,
+            PixIcon(
+              PixIcons.offline,
               size: 16,
-              color: Theme.of(context).colorScheme.error,
+              color: context.appColors.warning,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
               'Offline',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.error,
+              style: context.textTheme.labelSmall?.copyWith(
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ],
+        ),
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Semantics(
+        button: onTap != null,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Center(
+              widthFactor: 1,
+              child: onTap == null ? pill : PressScale(child: pill),
+            ),
+          ),
         ),
       ),
     );
@@ -70,7 +93,7 @@ class OfflineIndicatorIcon extends ConsumerWidget {
         Icons.cloud_off_rounded,
         color: Theme.of(context).colorScheme.error,
       ),
-      tooltip: 'App está offline - usando preços em cache',
+      tooltip: AppLocalizations.of(context).offline_indicator_tooltip,
     );
   }
 }

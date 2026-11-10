@@ -18,25 +18,6 @@ class AssetCacheInfo {
     this.lastPrice,
     this.currencySymbol = 'R\$',
   });
-
-  String get formattedAge {
-    if (ageInMinutes == null) return 'Sem dados';
-
-    if (ageInMinutes! < 60) {
-      return '${ageInMinutes}min atrás';
-    } else if (ageInMinutes! < 1440) {
-      final hours = (ageInMinutes! / 60).round();
-      return '${hours}h atrás';
-    } else {
-      final days = (ageInMinutes! / 1440).round();
-      return '${days}d atrás';
-    }
-  }
-
-  String get formattedPrice {
-    if (lastPrice == null) return 'N/A';
-    return '$currencySymbol ${lastPrice!.toStringAsFixed(2)}';
-  }
 }
 
 final cacheInfoProvider = FutureProvider<List<AssetCacheInfo>>((ref) async {
