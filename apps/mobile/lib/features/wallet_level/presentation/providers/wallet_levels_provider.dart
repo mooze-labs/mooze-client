@@ -9,10 +9,7 @@ final walletLevelsProvider =
     FutureProvider.autoDispose<List<WalletLevelEntity>>((ref) async {
       final useCase = ref.watch(getAllWalletLevelsUseCaseProvider);
       final result = await useCase.call();
-      return result.fold(
-        (levels) => levels,
-        (error) => throw Exception(error),
-      );
+      return result.fold((levels) => levels, (error) => throw Exception(error));
     });
 
 /// Fetches a specific wallet level by type.
@@ -20,8 +17,5 @@ final walletLevelByTypeProvider = FutureProvider.autoDispose
     .family<WalletLevelEntity, WalletLevelType>((ref, type) async {
       final useCase = ref.watch(getWalletLevelByTypeUseCaseProvider);
       final result = await useCase.call(type);
-      return result.fold(
-        (level) => level,
-        (error) => throw Exception(error),
-      );
+      return result.fold((level) => level, (error) => throw Exception(error));
     });

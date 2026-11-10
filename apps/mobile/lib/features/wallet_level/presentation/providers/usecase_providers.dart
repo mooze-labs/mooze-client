@@ -23,11 +23,12 @@ final walletLevelsRepositoryProvider = Provider<WalletLevelsRepository>((ref) {
 });
 
 // Use Cases
-final getAllWalletLevelsUseCaseProvider =
-    Provider<GetAllWalletLevelsUseCase>((ref) {
-      final repository = ref.watch(walletLevelsRepositoryProvider);
-      return GetAllWalletLevelsUseCase(repository);
-    });
+final getAllWalletLevelsUseCaseProvider = Provider<GetAllWalletLevelsUseCase>((
+  ref,
+) {
+  final repository = ref.watch(walletLevelsRepositoryProvider);
+  return GetAllWalletLevelsUseCase(repository);
+});
 
 final getWalletLevelByTypeUseCaseProvider =
     Provider<GetWalletLevelByTypeUseCase>((ref) {

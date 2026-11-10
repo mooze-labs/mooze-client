@@ -32,16 +32,13 @@ class WalletLevelsRepositoryImpl implements WalletLevelsRepository {
   ) async {
     try {
       final result = await getAllWalletLevels();
-      return result.fold(
-        (levels) {
-          final level = levels.where((l) => l.type == type).firstOrNull;
-          if (level == null) {
-            return Failure('Nível ${type.name} não encontrado');
-          }
-          return Success(level);
-        },
-        (error) => Failure(error),
-      );
+      return result.fold((levels) {
+        final level = levels.where((l) => l.type == type).firstOrNull;
+        if (level == null) {
+          return Failure('Nível ${type.name} não encontrado');
+        }
+        return Success(level);
+      }, (error) => Failure(error));
     } catch (e) {
       return Failure(
         'Erro ao buscar nível por tipo: ${e.toString()}',
