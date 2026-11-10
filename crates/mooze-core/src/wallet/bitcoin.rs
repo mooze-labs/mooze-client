@@ -16,7 +16,7 @@ use bdk_wallet::bitcoin::{Address, Amount, FeeRate, Psbt, ScriptBuf};
 use bdk_wallet::chain::{ChainPosition, Merge};
 use bdk_wallet::descriptor::IntoWalletDescriptor;
 use bdk_wallet::signer::SignersContainer;
-use bdk_wallet::{ChangeSet, KeychainKind, SignOptions, Wallet};
+use bdk_wallet::{ChangeSet, KeychainKind, LoadError, SignOptions, Wallet};
 
 use super::backend::ChainBackend;
 #[cfg(all(feature = "electrum", not(target_arch = "wasm32")))]
@@ -414,11 +414,19 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
                     .descriptor(KeychainKind::Internal, Some(desc.internal.clone()))
                     .check_network(bitcoin_network(network))
                     .lookahead(LOOKAHEAD)
-                    .load_wallet_no_persist(cs.clone())
-                    .map_err(|e| svc(format!("bdk init failed: {e}")))?;
+                    .load_wallet_no_persist(cs.clone());
                 match loaded {
-                    Some(w) => (w, cs),
-                    None => (Self::create(&desc.external, &desc.internal, network)?, ChangeSet::default()),
+                    Ok(Some(w)) => (w, cs),
+                    Ok(None) => (Self::create(&desc.external, &desc.internal, network)?, ChangeSet::default()),
+                    // The store holds another wallet, for example the one the
+                    // device had before a new wallet was created or imported:
+                    // the key does not depend on the wallet. The state is a
+                    // chain cache, so this wallet starts fresh, overwrites it
+                    // below, and the first full scan rebuilds it.
+                    Err(LoadError::Mismatch(_)) => {
+                        (Self::create(&desc.external, &desc.internal, network)?, ChangeSet::default())
+                    }
+                    Err(e) => return Err(svc(format!("bdk init failed: {e}"))),
                 }
             }
             None => (Self::create(&desc.external, &desc.internal, network)?, ChangeSet::default()),
@@ -989,6 +997,34 @@ mod tests {
             EndpointResolver::with_defaults(AppNetwork::Mainnet),
         ))
         .unwrap()
+    }
+
+    /// A valid phrase of another wallet (a BIP39 test vector).
+    const ZOO: &str = "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong";
+
+    #[test]
+    fn starts_fresh_over_the_state_of_another_wallet() {
+        // The device kept the state of its previous wallet, as after a new
+        // wallet is created or imported on it.
+        let kv = MemoryKv::new();
+        let previous = WalletCredentials { mnemonic: ZOO.into(), network: AppNetwork::Mainnet };
+        block_on(BitcoinWallet::connect(
+            &previous,
+            kv.clone(),
+            FixedClock::new(1_000),
+            EndpointResolver::with_defaults(AppNetwork::Mainnet),
+        ))
+        .unwrap();
+        let foreign = block_on(kv.get(CHANGESET_KEY)).unwrap();
+
+        connect(kv.clone());
+
+        // The store now holds this wallet, so the next connect loads it as
+        // it is.
+        let own = block_on(kv.get(CHANGESET_KEY)).unwrap();
+        assert_ne!(own, foreign);
+        connect(kv.clone());
+        assert_eq!(block_on(kv.get(CHANGESET_KEY)).unwrap(), own);
     }
 
     #[test]

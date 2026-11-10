@@ -58,8 +58,15 @@ pub const DRAIN_AMOUNT_ERROR: &str = "não foi possível calcular o valor do env
 
 /// True for LWK errors that mean the persisted state drifted and a wipe
 /// plus rescan fixes it.
+///
+/// A store that the descriptor cannot decrypt belongs to another wallet,
+/// for example the one the device had before a new wallet was created or
+/// imported: the store prefix does not depend on the wallet. LWK reports
+/// it as an encryption error of the store.
 pub fn is_recoverable_persistence_error(desc: &str) -> bool {
-    desc.contains("UpdateOnDifferentStatus") || desc.contains("UpdateHeightTooOld")
+    desc.contains("UpdateOnDifferentStatus")
+        || desc.contains("UpdateHeightTooOld")
+        || desc.contains("encryption error")
 }
 
 fn describe(e: &lwk_wollet::Error) -> String {
@@ -109,7 +116,8 @@ pub struct LiquidWallet<K: KvStore, C: Clock> {
 
 impl<K: KvStore, C: Clock> LiquidWallet<K, C> {
     /// Builds the descriptor and the wollet from the stored updates.
-    /// Wipes the store once and retries if LWK reports drifted state.
+    /// Wipes the store once and retries if LWK reports drifted state, or a
+    /// store of another wallet (see [`is_recoverable_persistence_error`]).
     ///
     /// NOTE: connect does not prime balance or history;
     /// the first [`Self::sync`] does (or [`Self::refresh_balance`]).
@@ -968,6 +976,36 @@ mod tests {
         assert!(is_recoverable_persistence_error("UpdateOnDifferentStatus { wollet_status: 1 }"));
         assert!(is_recoverable_persistence_error("UpdateHeightTooOld"));
         assert!(!is_recoverable_persistence_error("Descriptor mismatch"));
+    }
+
+    #[test]
+    fn starts_fresh_over_the_store_of_another_wallet() {
+        use lwk_common::Store as _;
+
+        // The store of the previous wallet of the device, encrypted with
+        // the key of that wallet's descriptor. LWK reads update 0 first.
+        let kv = MemoryKv::new();
+        let previous = liquid_descriptor("zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong", AppNetwork::Mainnet)
+            .unwrap();
+        let journal = JournalStore::new();
+        lwk_common::EncryptedStore::new(journal.clone(), previous.encryption_key_bytes())
+            .put("000000000000", b"update of the previous wallet")
+            .unwrap();
+        block_on(flush_journal(&kv, STORE_PREFIX, &journal)).unwrap();
+
+        let creds = WalletCredentials { mnemonic: ABANDON.into(), network: AppNetwork::Mainnet };
+        let r = block_on(LiquidWallet::connect(
+            &creds,
+            kv.clone(),
+            FixedClock::new(1_000),
+            EndpointResolver::with_defaults(AppNetwork::Mainnet),
+        ));
+
+        if let Err(e) = &r {
+            panic!("connect over another wallet's store failed: {e}");
+        }
+        assert!(block_on(kv.get(&format!("{STORE_PREFIX}000000000000"))).unwrap().is_none());
+        assert!(is_recoverable_persistence_error("store error: encryption error: Aead error: aead::Error"));
     }
 
     #[test]
