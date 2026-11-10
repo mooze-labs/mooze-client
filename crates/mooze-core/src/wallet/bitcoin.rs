@@ -326,8 +326,9 @@ fn check_request(request: &SendRequest, verb: &str) -> Result<()> {
 /// Builds an unsigned PSBT.
 ///
 /// `drain` or `subtract_fee_from_amount` drains the whole wallet to the
-/// destination and ignores `amount_sat`. A fee-rate override is rounded up
-/// to whole sat/vB; without it BDK uses its default rate.
+/// destination and ignores `amount_sat`. A fee-rate override keeps its
+/// fraction (see [`fee_rate_from_sat_per_vb`]); without it BDK uses its
+/// default rate of 1 sat/vB.
 pub fn build_psbt(wallet: &mut Wallet, request: &SendRequest) -> Result<Psbt> {
     let address = Address::from_str(request.destination.trim())
         .and_then(|a| a.require_network(wallet.network()))
@@ -340,9 +341,20 @@ pub fn build_psbt(wallet: &mut Wallet, request: &SendRequest) -> Result<Psbt> {
         builder.add_recipient(script, Amount::from_sat(request.amount_sat));
     }
     if let Some(rate) = request.fee_rate_override_sat_per_vbyte {
-        builder.fee_rate(FeeRate::from_sat_per_vb_u32(rate.ceil().clamp(0.0, u32::MAX as f64) as u32));
+        builder.fee_rate(fee_rate_from_sat_per_vb(rate));
     }
     builder.finish().map_err(|e| svc(format!("bdk build PSBT failed: {e}")))
+}
+
+/// A fee rate in sat/vB as a BDK fee rate, which counts sat per 1000 weight
+/// units: 1 sat/vB is 250 sat/kwu.
+///
+/// The rate goes to the nearest sat/kwu, so a fraction below 1 sat/vB
+/// stays: 0.1 sat/vB is 25 sat/kwu. BDK takes any rate here. Whether the
+/// network relays a rate below 1 sat/vB depends on its nodes: Bitcoin Core
+/// relays down to 0.1 sat/vB from version 29.1, and older nodes refuse it.
+fn fee_rate_from_sat_per_vb(rate: f64) -> FeeRate {
+    FeeRate::from_sat_per_kwu((rate * 250.0).round().clamp(0.0, u64::MAX as f64) as u64)
 }
 
 /// Reviewed on-chain send.
@@ -1102,8 +1114,8 @@ mod tests {
         let mut req = SendRequest::new(ChainId::Bitcoin, dest, 30_000);
         req.fee_rate_override_sat_per_vbyte = Some(1.2);
         let est = block_on(w.estimate_fee(&req)).unwrap();
-        // One P2WPKH input, two outputs at 2 sat/vB (1.2 rounded up).
-        assert!(est.absolute_fee_sat >= 2 * 140 && est.absolute_fee_sat <= 2 * 145, "{}", est.absolute_fee_sat);
+        // One P2WPKH input, two outputs (about 141 vB) at 1.2 sat/vB.
+        assert!(est.absolute_fee_sat >= 168 && est.absolute_fee_sat <= 175, "{}", est.absolute_fee_sat);
         assert_eq!(est.fee_rate_sat_per_vbyte, Some(1.2));
 
         let (tx, fee) = block_on(w.build_signed(&req)).unwrap();
@@ -1123,6 +1135,40 @@ mod tests {
         assert_eq!(tx.output.len(), 1);
         assert_eq!(tx.output[0].value.to_sat(), 100_000 - fee);
         assert_eq!(fee, p.network_fee_sat);
+    }
+
+    #[test]
+    fn keeps_a_fee_rate_below_one_sat_per_vbyte() {
+        assert_eq!(fee_rate_from_sat_per_vb(0.1).to_sat_per_kwu(), 25);
+        assert_eq!(fee_rate_from_sat_per_vb(0.5).to_sat_per_kwu(), 125);
+        assert_eq!(fee_rate_from_sat_per_vb(1.0).to_sat_per_kwu(), 250);
+        assert_eq!(fee_rate_from_sat_per_vb(2.7).to_sat_per_kwu(), 675);
+
+        let mut w = connect(MemoryKv::new());
+        fund(&mut w, 100_000);
+        let dest = "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g";
+        let mut req = SendRequest::new(ChainId::Bitcoin, dest, 30_000);
+        req.fee_rate_override_sat_per_vbyte = Some(1.0);
+        let one = block_on(w.estimate_fee(&req)).unwrap().absolute_fee_sat;
+        req.fee_rate_override_sat_per_vbyte = Some(0.1);
+        let est = block_on(w.estimate_fee(&req)).unwrap();
+        // About 141 vB at 0.1 sat/vB, not at 1 sat/vB. BDK rounds each part
+        // of the fee up, so a tiny rate pays a few sats more.
+        assert!(est.absolute_fee_sat >= 14 && est.absolute_fee_sat <= 20, "{}", est.absolute_fee_sat);
+        assert!(est.absolute_fee_sat * 5 < one, "{} vs {one}", est.absolute_fee_sat);
+
+        let (tx, fee) = block_on(w.build_signed(&req)).unwrap();
+        assert_eq!(fee, est.absolute_fee_sat);
+        assert!(tx.output.iter().any(|o| o.value.to_sat() == 30_000));
+
+        // A drain of the whole wallet keeps the fraction too.
+        let mut drain = SendRequest::new(ChainId::Bitcoin, dest, 0);
+        drain.drain = true;
+        drain.fee_rate_override_sat_per_vbyte = Some(1.0);
+        let one = block_on(w.estimate_fee(&drain)).unwrap().absolute_fee_sat;
+        drain.fee_rate_override_sat_per_vbyte = Some(0.4);
+        let tenths = block_on(w.estimate_fee(&drain)).unwrap().absolute_fee_sat;
+        assert!(tenths * 2 < one, "{tenths} vs {one}");
     }
 
     const ADDR0: &str = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu";
