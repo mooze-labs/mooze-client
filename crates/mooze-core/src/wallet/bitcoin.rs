@@ -393,6 +393,10 @@ pub struct BitcoinWallet<K: KvStore, C: Clock> {
 impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
     /// Loads the wallet from `kv`, or creates it if the store is empty.
     /// Primes balance and history from the stored state (cold restore).
+    /// The first sync still reports every stored transaction as created,
+    /// like the Liquid wallet: the app's transaction store fills only from
+    /// these events, and an import or a wallet delete empties it while this
+    /// state stays.
     pub async fn connect(
         credentials: &WalletCredentials,
         kv: K,
@@ -454,7 +458,6 @@ impl<K: KvStore, C: Clock> BitcoinWallet<K, C> {
         };
         this.persist().await?;
         this.refresh_cache(now);
-        this.tracker.prime(&this.last_list);
         this.state = ServiceState { lifecycle: ServiceLifecycle::Connected, failure: None, last_sync_at_ms: None };
         Ok(this)
     }
@@ -1025,6 +1028,29 @@ mod tests {
         assert_ne!(own, foreign);
         connect(kv.clone());
         assert_eq!(block_on(kv.get(CHANGESET_KEY)).unwrap(), own);
+    }
+
+    #[test]
+    fn reports_the_stored_history_on_the_first_sync() {
+        // The device kept the state of this same wallet, as after it is
+        // deleted and imported again. The import emptied the app's
+        // transaction store, which only fills from these events.
+        let kv = MemoryKv::new();
+        let mut w = connect(kv.clone());
+        fund(&mut w, 42_000);
+        block_on(w.persist()).unwrap();
+        let id = w.list_transactions()[0].id.clone();
+
+        let mut restored = connect(kv);
+        // The history shows before the first sync.
+        assert_eq!(restored.list_transactions()[0].id, id);
+        // The first sync diffs the history once the chain update is applied.
+        let history = restored.list_transactions().to_vec();
+        assert_eq!(restored.tracker.diff(&history, 2_000), 1);
+        let events = restored.take_events();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, crate::domain::TransactionEventKind::Created);
+        assert_eq!(events[0].transaction.id, id);
     }
 
     #[test]
