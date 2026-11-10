@@ -26,11 +26,10 @@ void main() {
     ],
     supportedLocales: AppLocalizations.supportedLocales,
     home: Builder(
-      builder:
-          (ctx) => Theme(
-            data: AppTheme.darkTheme(ctx),
-            child: Scaffold(body: child),
-          ),
+      builder: (ctx) => Theme(
+        data: AppTheme.darkTheme(ctx),
+        child: Scaffold(body: child),
+      ),
     ),
   );
 
