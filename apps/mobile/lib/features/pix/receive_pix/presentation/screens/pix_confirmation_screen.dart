@@ -14,8 +14,8 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/sel
 import 'package:mooze_mobile/features/pix/shared/cpf/presentation/pix_cpf_gate.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/pix_fee_info_card.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/info_tips_section.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/loading_overlay_widget.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/transaction_details_widget.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_qr_loading_overlay.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
@@ -41,9 +41,8 @@ class PixConfirmationScreen extends ConsumerStatefulWidget {
 
 class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     with TickerProviderStateMixin {
-  late AnimationController _circleController;
-  late Animation<double> _circleAnimation;
-  OverlayEntry? _overlayEntry;
+  /// The scene that covers the screen while the charge is created.
+  PixQrLoadingOverlay? _loading;
   bool _isLoading = false;
 
   // Fades and raises the content once, when the screen opens.
@@ -51,18 +50,6 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     vsync: this,
     duration: Motion.durationBase,
   );
-
-  @override
-  void initState() {
-    super.initState();
-    _circleController = AnimationController(
-      duration: Motion.durationCelebrate,
-      vsync: this,
-    );
-    _circleAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
-      CurvedAnimation(parent: _circleController, curve: Motion.curveEnter),
-    );
-  }
 
   @override
   void didChangeDependencies() {
@@ -78,9 +65,8 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
 
   @override
   void dispose() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _circleController.dispose();
+    // A scene that is ending outlives the screen it uncovers.
+    _loading?.cancel();
     _entranceController.dispose();
     super.dispose();
   }
@@ -101,13 +87,10 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
       return;
     }
 
-    _showLoadingOverlay();
-    // With reduced motion, the circle covers the screen at once.
-    if (Motion.isReduced(context)) {
-      _circleController.value = 1;
-    } else {
-      _circleController.forward();
-    }
+    final loading = _loading = PixQrLoadingOverlay.show(
+      context,
+      text: AppLocalizations.of(context).pix_generating_qr,
+    );
 
     final depositAmount = ref.read(depositAmountProvider);
     final selectedAsset = ref.read(selectedAssetProvider);
@@ -129,14 +112,13 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
       await minAnimationTime;
 
       result.fold(
-        (err) async {
+        (err) {
           if (!mounted) return;
           setState(() => _isLoading = false);
-          _hideLoadingOverlay();
+          loading.fail();
           AppSnackBar.error(context, err);
-          _circleController.reset();
         },
-        (deposit) async {
+        (deposit) {
           if (!mounted) return;
 
           setState(() => _isLoading = false);
@@ -147,44 +129,23 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
           ref.invalidate(discountedFeesDepositProvider);
           ref.invalidate(assetQuoteProvider);
 
-          // Replace /pix/confirm in the stack so pop() from the payment
-          // screen returns to /pix, not back here.
-          context.pushReplacement("/pix/payment/${deposit.depositId}");
-
-          await Future.delayed(const Duration(milliseconds: 200));
-          if (mounted) {
-            _hideLoadingOverlay();
-          }
+          // The code locks in, then the payment screen opens under the
+          // scene. It replaces /pix/confirm in the stack so pop() from the
+          // payment screen returns to /pix, not back here.
+          loading.succeed(() {
+            if (mounted) {
+              context.pushReplacement("/pix/payment/${deposit.depositId}");
+            }
+          });
         },
       );
     } catch (e) {
       await minAnimationTime;
       if (!mounted) return;
       setState(() => _isLoading = false);
-      _hideLoadingOverlay();
+      loading.fail();
       AppSnackBar.error(context, humanizeError(context, e));
-      _circleController.reset();
     }
-  }
-
-  void _showLoadingOverlay() {
-    if (_overlayEntry != null) return;
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => LoadingOverlayWidget(
-        circleController: _circleController,
-        circleAnimation: _circleAnimation,
-        loadingText: AppLocalizations.of(context).pix_generating_qr,
-        showLoadingText: true,
-      ),
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _hideLoadingOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
   }
 
   @override

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/shared/utils/error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,9 +26,9 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/ass
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/pix_deposit_controller_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/asset_selector_widget.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/loading_overlay_widget.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/transaction_details_widget.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_qr_loading_overlay.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
@@ -35,7 +37,6 @@ import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
-import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Merchant Charge Screen (Presentation Layer)
@@ -66,11 +67,10 @@ class MerchantChargeScreen extends ConsumerStatefulWidget {
       _MerchantChargeScreenState();
 }
 
-class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _circleController;
-  late Animation<double> _circleAnimation;
-  OverlayEntry? _overlayEntry;
+class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen> {
+  /// The scene that covers the screen while the charge or the link is
+  /// created.
+  PixQrLoadingOverlay? _loading;
   bool _isLoading = false;
 
   /// True while the payment method screen is open, so a second tap on
@@ -83,7 +83,6 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   @override
   void initState() {
     super.initState();
-    _initializeControllers();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFirstTimeAccess();
@@ -91,16 +90,6 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
         ref.read(depositAmountProvider.notifier).state = widget.totalAmount;
       }
     });
-  }
-
-  void _initializeControllers() {
-    _circleController = AnimationController(
-      duration: Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    _circleAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
-      CurvedAnimation(parent: _circleController, curve: Curves.easeOutCubic),
-    );
   }
 
   Future<void> _checkFirstTimeAccess() async {
@@ -125,9 +114,8 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
 
   @override
   void dispose() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _circleController.dispose();
+    // A scene that is ending outlives the screen it uncovers.
+    _loading?.cancel();
     super.dispose();
   }
 
@@ -175,9 +163,10 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     return request;
   }
 
-  /// Creates a payment link for the sale, with the loading animation of
-  /// the QR Code flow. The link flow has no CPF step. When the merchant
-  /// ends the sale on the link screen, this screen closes too.
+  /// Creates a payment link for the sale, with the scene of the QR Code
+  /// flow: the link shows as a QR Code too. The link flow has no CPF step.
+  /// When the merchant ends the sale on the link screen, this screen closes
+  /// too.
   Future<void> _startPaymentLinkFlow() async {
     if (_isLoading) return;
     final t = AppLocalizations.of(context);
@@ -185,14 +174,16 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
     final provider = merchantPaymentLinkControllerProvider(request);
 
     var link = ref.read(provider).link;
-    final created = link == null;
-    if (created) {
+    PixQrLoadingOverlay? loading;
+    if (link == null) {
       setState(() {
         _isLoading = true;
         _creatingLink = true;
       });
-      _showLoadingOverlay(t.merchant_payment_link_creating);
-      _playLoadingAnimation();
+      loading = _loading = PixQrLoadingOverlay.show(
+        context,
+        text: t.merchant_payment_link_creating,
+      );
       final minAnimationTime = Future.delayed(
         const Duration(milliseconds: 1500),
       );
@@ -207,26 +198,31 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
         _creatingLink = false;
       });
       if (link == null) {
-        _hideLoadingOverlay();
-        _circleController.reset();
+        loading.fail();
         _showPaymentLinkFailure(state.failure);
         return;
       }
     }
 
-    final finished = MerchantPaymentLinkScreen.open(
+    // A new link opens under the scene, which then fades away to uncover
+    // it. A link of an earlier visit opens at once.
+    final ready = link;
+    final finished = Completer<bool>();
+    void open() => MerchantPaymentLinkScreen.open(
       context,
-      link: link,
+      link: ready,
       request: request,
-      playReveal: created,
-    );
-    // The link screen covers the overlay with its reveal, as in the QR flow.
-    await Future.delayed(const Duration(milliseconds: 200));
-    if (mounted) _hideLoadingOverlay();
+    ).then(finished.complete);
+    if (loading == null) {
+      open();
+    } else {
+      loading.succeed(() {
+        if (mounted) open();
+      });
+    }
 
-    final done = await finished;
+    final done = await finished.future;
     if (!mounted) return;
-    _circleController.reset();
     if (done) Navigator.of(context).pop();
   }
 
@@ -268,8 +264,10 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
       return;
     }
 
-    _showLoadingOverlay();
-    _playLoadingAnimation();
+    final loading = _loading = PixQrLoadingOverlay.show(
+      context,
+      text: AppLocalizations.of(context).pix_generating_qr,
+    );
 
     final depositAmount = ref.read(depositAmountProvider);
     final selectedAsset = ref.read(selectedAssetProvider);
@@ -295,8 +293,7 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
         (err) {
           if (mounted) {
             setState(() => _isLoading = false);
-            _hideLoadingOverlay();
-            _circleController.reset();
+            loading.fail();
 
             AppSnackBar.show(
               context,
@@ -306,36 +303,34 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
             );
           }
         },
-        (deposit) async {
+        (deposit) {
           if (!mounted) return;
 
           setState(() => _isLoading = false);
 
-          context.push("/pix/payment/${deposit.depositId}").then((_) {
-            if (mounted) {
-              _circleController.reset();
-              ref.read(depositAmountProvider.notifier).state =
-                  widget.totalAmount;
-              ref.invalidate(pixDepositControllerProvider);
-              ref.invalidate(feeRateProvider);
-              ref.invalidate(feeAmountProvider);
-              ref.invalidate(discountedFeesDepositProvider);
-              ref.invalidate(assetQuoteProvider);
-            }
+          // The code locks in, then the QR Code screen opens under the
+          // scene.
+          loading.succeed(() {
+            if (!mounted) return;
+            context.push("/pix/payment/${deposit.depositId}").then((_) {
+              if (mounted) {
+                ref.read(depositAmountProvider.notifier).state =
+                    widget.totalAmount;
+                ref.invalidate(pixDepositControllerProvider);
+                ref.invalidate(feeRateProvider);
+                ref.invalidate(feeAmountProvider);
+                ref.invalidate(discountedFeesDepositProvider);
+                ref.invalidate(assetQuoteProvider);
+              }
+            });
           });
-
-          await Future.delayed(Duration(milliseconds: 200));
-          if (mounted) {
-            _hideLoadingOverlay();
-          }
         },
       );
     } catch (e) {
       await minAnimationTime;
       if (!mounted) return;
       setState(() => _isLoading = false);
-      _hideLoadingOverlay();
-      _circleController.reset();
+      loading.fail();
 
       AppSnackBar.show(
         context,
@@ -343,38 +338,6 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
         type: SnackBarType.error,
         action: SnackBarAction(label: 'OK', onPressed: () {}),
       );
-    }
-  }
-
-  /// Shows the loading animation. [text] defaults to the QR Code text.
-  void _showLoadingOverlay([String? text]) {
-    if (_overlayEntry != null) return;
-
-    _overlayEntry = OverlayEntry(
-      builder:
-          (context) => LoadingOverlayWidget(
-            circleController: _circleController,
-            circleAnimation: _circleAnimation,
-            loadingText: text ?? AppLocalizations.of(context).pix_generating_qr,
-            showLoadingText: true,
-          ),
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _hideLoadingOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  /// Grows the pink circle of the loading overlay. With reduced motion, the
-  /// overlay covers the screen at once.
-  void _playLoadingAnimation() {
-    if (Motion.isReduced(context)) {
-      _circleController.value = 1;
-    } else {
-      _circleController.forward();
     }
   }
 

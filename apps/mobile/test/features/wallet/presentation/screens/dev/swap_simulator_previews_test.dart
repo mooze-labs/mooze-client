@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/domain/events/sync_outcome.dart';
 import 'package:mooze_mobile/domain/failures/failure.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_qr_scene.dart';
 import 'package:mooze_mobile/features/setup/presentation/providers/onboarding_provider.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:mooze_mobile/features/setup/presentation/services/onboarding_service.dart';
@@ -147,6 +149,33 @@ void main() {
     // Each preview stays long enough to ask for its refresh, as a real send
     // does. The fake answers it, so no wallet syncs.
     expect(sync.refreshes, 4);
+  });
+
+  testWidgets('the Pix QR previews end as a request would: one opens a '
+      'sample charge, the other shows the error', (tester) async {
+    await pump(tester);
+
+    await tapPreview(tester, 'Pix QR: created');
+    await tester.pump();
+    expect(find.byType(PixQrScene), findsOneWidget);
+    // The simulated request, then the code locks in and the scene fades.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(find.byType(PixQrScene), findsNothing);
+    expect(find.byType(PixQrPanel), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(SwapSimulatorScreen), findsOneWidget);
+
+    await tapPreview(tester, 'Pix QR: failed');
+    await tester.pump();
+    expect(find.byType(PixQrScene), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(PixQrScene), findsNothing);
+    expect(find.text('Simulated failure'), findsOneWidget);
+    expect(find.byType(PixQrPanel), findsNothing);
   });
 
   testWidgets('every swap preview opens the end of a swap and closes', (

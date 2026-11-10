@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Full-screen blocking overlay used while a PIX charge or payment is being
-/// created.
+/// Full-screen blocking overlay used while a PIX payment is being sent. The
+/// flows that create a QR code use `PixQrLoadingOverlay` instead.
 ///
 /// Shows the step label as soon as the reveal animation covers the screen.
 /// After [slowAfter] it adds a second line so a stalled request does not

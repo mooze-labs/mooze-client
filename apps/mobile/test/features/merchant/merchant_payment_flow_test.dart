@@ -177,9 +177,34 @@ void main() {
         }),
       );
       await tester.tap(find.text('open'));
-      // The reveal animation runs for two seconds, then removes itself.
       await tester.pumpAndSettle();
     }
+
+    testWidgets('opens uncovered: no pink layer covers it', (tester) async {
+      await tester.pumpWidget(
+        _host((context) async {
+          await MerchantPaymentLinkScreen.open(
+            context,
+            link: _link,
+            request: _request,
+          );
+        }),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pump();
+
+      final pink = Theme.of(
+        tester.element(find.text('open')),
+      ).colorScheme.primary;
+      for (var frame = 0; frame < 12; frame++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(
+          find.byWidgetPredicate((w) => w is ColoredBox && w.color == pink),
+          findsNothing,
+        );
+      }
+      await tester.pumpAndSettle();
+    });
 
     testWidgets('shows the link as a QR Code, the address and the actions', (
       tester,
@@ -211,29 +236,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(finished, isTrue);
-    });
-
-    // A second visit to the same sale opens the link without the reveal.
-    testWidgets('a visit without the reveal closes cleanly', (tester) async {
-      bool? finished;
-      await tester.pumpWidget(
-        _host((context) async {
-          finished = await MerchantPaymentLinkScreen.open(
-            context,
-            link: _link,
-            request: _request,
-            playReveal: false,
-          );
-        }),
-      );
-
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
-      await _back(tester);
-      await tester.pumpAndSettle();
-
-      expect(finished, isFalse);
-      expect(tester.takeException(), isNull);
     });
 
     testWidgets('back returns to the charge screen', (tester) async {

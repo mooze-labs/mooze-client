@@ -9,7 +9,6 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/payme
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/payment/widgets/qr_code_display.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -23,15 +22,10 @@ class MerchantPaymentLinkScreen extends StatefulWidget {
   final PixPaymentLink link;
   final MerchantPaymentLinkRequest request;
 
-  /// Plays the reveal that continues the loading overlay of the charge
-  /// screen. Turn it off when the screen opens without that overlay.
-  final bool playReveal;
-
   const MerchantPaymentLinkScreen({
     super.key,
     required this.link,
     required this.request,
-    this.playReveal = true,
   });
 
   /// Opens the screen. Returns true when the merchant ends the sale.
@@ -39,15 +33,10 @@ class MerchantPaymentLinkScreen extends StatefulWidget {
     BuildContext context, {
     required PixPaymentLink link,
     required MerchantPaymentLinkRequest request,
-    bool playReveal = true,
   }) async {
     final done = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => MerchantPaymentLinkScreen(
-          link: link,
-          request: request,
-          playReveal: playReveal,
-        ),
+        builder: (_) => MerchantPaymentLinkScreen(link: link, request: request),
       ),
     );
     return done ?? false;
@@ -58,87 +47,10 @@ class MerchantPaymentLinkScreen extends StatefulWidget {
       _MerchantPaymentLinkScreenState();
 }
 
-class _MerchantPaymentLinkScreenState extends State<MerchantPaymentLinkScreen>
-    with SingleTickerProviderStateMixin {
-  // Created in initState, never lazily: dispose must not create a ticker.
-  late final AnimationController _revealController;
-  late final Animation<double> _revealAnimation;
-  OverlayEntry? _revealEntry;
-
-  @override
-  void initState() {
-    super.initState();
-    _revealController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-    _revealAnimation = Tween<double>(begin: 3.0, end: 0.0).animate(
-      CurvedAnimation(parent: _revealController, curve: Curves.easeInOutCubic),
-    );
-    if (widget.playReveal) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // With reduced motion, the screen shows at once, without the
-        // shrinking circle.
-        if (!mounted || Motion.isReduced(context)) return;
-        _showReveal();
-        _revealController.forward().then((_) => _hideReveal());
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _hideReveal();
-    _revealController.dispose();
-    super.dispose();
-  }
-
-  /// The shrinking circle of `PixPaymentScreen`. It starts over the full
-  /// pink overlay of the charge screen and uncovers this screen.
-  void _showReveal() {
-    if (_revealEntry != null) return;
-    _revealEntry = OverlayEntry(
-      builder: (context) => AnimatedBuilder(
-        animation: _revealController,
-        builder: (context, child) {
-          final size = MediaQuery.of(context).size;
-          final value = _revealAnimation.value;
-          final primary = context.colors.primaryColor;
-          return IgnorePointer(
-            child: Stack(
-              children: [
-                Positioned(
-                  left: -size.width * 1.2,
-                  bottom: -size.height * 0.3,
-                  child: Container(
-                    width: size.width * value * 1.2,
-                    height: size.width * value * 1.2,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: primary,
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: value / 3.0,
-                    child: ColoredBox(color: primary),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-    Overlay.of(context).insert(_revealEntry!);
-  }
-
-  void _hideReveal() {
-    _revealEntry?.remove();
-    _revealEntry = null;
-  }
-
+// When the link was just created, the scene of the QR code covers this
+// screen as it opens, and fades away to uncover it: see
+// `PixQrLoadingOverlay`.
+class _MerchantPaymentLinkScreenState extends State<MerchantPaymentLinkScreen> {
   Future<void> _share() async {
     final t = AppLocalizations.of(context);
     await SharePlus.instance.share(

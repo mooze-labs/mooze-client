@@ -63,103 +63,10 @@ class ValidPixPaymentScreen extends StatefulWidget {
   State<ValidPixPaymentScreen> createState() => _ValidPixPaymentScreenState();
 }
 
-class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen>
-    with TickerProviderStateMixin {
-  // The screen opens under the full pink circle of the loading overlay of
-  // the previous screen. This overlay shrinks and fades that circle, so the
-  // two screens join without a cut.
-  late AnimationController _reverseCircleController;
-  late Animation<double> _reverseCircleAnimation;
-  OverlayEntry? _overlayEntry;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeReverseAnimation();
-  }
-
-  void _initializeReverseAnimation() {
-    _reverseCircleController = AnimationController(
-      duration: Motion.durationCelebrate,
-      vsync: this,
-    );
-    _reverseCircleAnimation = Tween<double>(begin: 3.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _reverseCircleController,
-        curve: Motion.curveExit,
-      ),
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // With reduced motion, the screen shows at once, without the circle.
-      if (!mounted || Motion.isReduced(context)) return;
-      _showReverseOverlay();
-      _reverseCircleController.forward().then((_) {
-        _hideReverseOverlay();
-      });
-    });
-  }
-
-  void _showReverseOverlay() {
-    if (_overlayEntry != null) return;
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => AnimatedBuilder(
-        animation: _reverseCircleController,
-        builder: (context, child) {
-          final size = MediaQuery.of(context).size;
-          final progress = _reverseCircleAnimation.value / 3.0;
-
-          return IgnorePointer(
-            ignoring: true,
-            child: Material(
-              color: Colors.transparent,
-              child: SizedBox.expand(
-                child: Stack(
-                  children: [
-                    // The circle that shrinks.
-                    Positioned(
-                      left: -size.width * 1.2,
-                      bottom: -size.height * 0.3,
-                      child: Container(
-                        width: size.width * _reverseCircleAnimation.value * 1.2,
-                        height:
-                            size.width * _reverseCircleAnimation.value * 1.2,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: context.colors.primaryColor,
-                        ),
-                      ),
-                    ),
-                    Opacity(
-                      opacity: progress,
-                      child: Container(color: context.colors.primaryColor),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _hideReverseOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  @override
-  void dispose() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _reverseCircleController.dispose();
-    super.dispose();
-  }
-
+// When the charge was just created, the scene of the QR code covers this
+// screen as it opens, and fades away to uncover it: see
+// `PixQrLoadingOverlay`.
+class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen> {
   void _showExpiredDialog() {
     final t = AppLocalizations.of(context);
     showDialog(

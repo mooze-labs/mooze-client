@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 import 'package:go_router/go_router.dart';
 
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_qr_loading_overlay.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_success_screen.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
@@ -11,6 +13,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swap
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/transaction_sent_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
@@ -30,8 +33,9 @@ import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 ///
 /// It also opens the screens that only real events show, with sample
 /// data: the confirmation of a received transaction and the end of a send
-/// for each asset, a level up, a level down, and the pending DePix
-/// receipts of the holdings screen.
+/// for each asset, a level up, a level down, the pending DePix receipts of
+/// the holdings screen, and the scene that covers a screen while a Pix QR
+/// code is created.
 ///
 /// Route: `/dev/swap-simulator` (registered in `walletRoutes`).
 class SwapSimulatorScreen extends ConsumerStatefulWidget {
@@ -180,6 +184,20 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
                 icon: const Icon(Icons.hourglass_bottom),
                 label: const Text('Pending DePix receipts'),
               ),
+              // The scene that covers a screen while a Pix QR code is
+              // created, ended as a request would end it. Nothing is
+              // charged.
+              for (final (label, wait, created) in [
+                ('Pix QR: created', const Duration(milliseconds: 2500), true),
+                ('Pix QR: slow', const Duration(seconds: 17), true),
+                ('Pix QR: failed', const Duration(seconds: 2), false),
+              ])
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      _previewQrLoading(wait: wait, created: created),
+                  icon: const Icon(Icons.qr_code_2),
+                  label: Text(label),
+                ),
             ],
           ),
           const SizedBox(height: 24),
@@ -321,6 +339,34 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
     notifier.reconcileWith([synthetic]);
   }
 
+  /// Covers the simulator with the scene of a Pix QR code being created,
+  /// then ends it after [wait]: with a sample charge when [created], else
+  /// with an error.
+  Future<void> _previewQrLoading({
+    required Duration wait,
+    required bool created,
+  }) async {
+    final loading = PixQrLoadingOverlay.show(
+      context,
+      text: AppLocalizations.of(context).pix_generating_qr,
+    );
+    await Future<void>.delayed(wait);
+    if (!mounted) {
+      loading.cancel();
+      return;
+    }
+    if (created) {
+      loading.succeed(
+        () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const _SampleChargePreview()),
+        ),
+      );
+    } else {
+      loading.fail();
+      AppSnackBar.error(context, 'Simulated failure');
+    }
+  }
+
   /// A destination on the network of [asset], for the previews. It is not
   /// a real address.
   String _sampleAddress(Asset asset) =>
@@ -331,6 +377,23 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
     // "looks like a real txid" check if/when you let it flow through.
     final body = (seed.abs().toRadixString(16) * 16).substring(0, 63);
     return (prefix + body).padRight(64, '0').substring(0, 64);
+  }
+}
+
+/// A sample charge with its QR code, where the Pix QR preview ends. The
+/// code holds no payment.
+class _SampleChargePreview extends StatelessWidget {
+  const _SampleChargePreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return const BackdropPageScaffold(
+      title: 'Sample charge',
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(BackdropPageScaffold.gutter),
+        child: PixQrPanel(data: 'mooze-preview-sample-charge'),
+      ),
+    );
   }
 }
 
