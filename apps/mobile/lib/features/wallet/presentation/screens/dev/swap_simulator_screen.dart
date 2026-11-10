@@ -8,6 +8,7 @@ import 'package:mooze_mobile/features/swap/presentation/screens/swap_success_scr
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/transaction_sent_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -28,9 +29,9 @@ import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 ///   - Clear individual rows or wipe the whole pending state.
 ///
 /// It also opens the screens that only real events show, with sample
-/// data: the confirmation of a received transaction for each asset, a
-/// level up, a level down, and the pending DePix receipts of the holdings
-/// screen.
+/// data: the confirmation of a received transaction and the end of a send
+/// for each asset, a level up, a level down, and the pending DePix
+/// receipts of the holdings screen.
 ///
 /// Route: `/dev/swap-simulator` (registered in `walletRoutes`).
 class SwapSimulatorScreen extends ConsumerStatefulWidget {
@@ -87,6 +88,29 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
                   ),
                   icon: const Icon(Icons.check_circle_outline),
                   label: Text('Received ${asset.ticker}'),
+                ),
+              // The end of a send to a sample destination. Its button closes
+              // the preview: it neither clears the send form nor goes home.
+              for (final (asset, amount) in [
+                (Asset.btc, 25400),
+                (Asset.lbtc, 25400),
+                (Asset.depix, 15000000000),
+                (Asset.usdt, 2550000000),
+              ])
+                OutlinedButton.icon(
+                  onPressed: () => TransactionSentScreen.show(
+                    context,
+                    asset: asset,
+                    amount: BigInt.from(amount),
+                    destinationAddress: _sampleAddress(asset),
+                    transactionId: _fakeLeg64(
+                      'e',
+                      DateTime.now().microsecondsSinceEpoch,
+                    ),
+                    onDone: () => Navigator.of(context).pop(),
+                  ),
+                  icon: const Icon(Icons.send_outlined),
+                  label: Text('Sent ${asset.ticker}'),
                 ),
               // The end of a swap: the coin of the sent asset turns into
               // the coin of the received one. Nothing is sent.
@@ -296,6 +320,11 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
     // line up, the optimistic row should disappear from the home list.
     notifier.reconcileWith([synthetic]);
   }
+
+  /// A destination on the network of [asset], for the previews. It is not
+  /// a real address.
+  String _sampleAddress(Asset asset) =>
+      asset == Asset.btc ? 'bc1q${'0' * 38}' : 'lq1qq${'0' * 75}';
 
   String _fakeLeg64(String prefix, int seed) {
     // Build a 64-char lowercase hex string so it passes the unifier's

@@ -61,6 +61,11 @@ abstract final class Motion {
   /// (1.8 s).
   static const durationSwap = Duration(milliseconds: 1800);
 
+  /// Entrance of a sent payment: the paper plane leaves from behind the
+  /// coin of the sent asset, passes under it, and breaks away into the
+  /// distance, until the scene rests (1.8 s).
+  static const durationSend = Duration(milliseconds: 1800);
+
   /// Entrance of an onboarding scene: its art takes its place the first
   /// time its page shows (1.2 s). A slow drift follows, within
   /// [durationAmbient] forward and back.
