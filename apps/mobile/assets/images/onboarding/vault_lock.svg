@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <!-- A padlock: the shackle in shade, the body in light, the keyhole cut in shade. -->
+  <path d="M19 30V22C19 14.82 24.82 9 32 9C39.18 9 45 14.82 45 22V30H38V22C38 18.69 35.31 16 32 16C28.69 16 26 18.69 26 22V30Z" fill="#8E8E93"/>
+  <rect x="12" y="28" width="40" height="28" rx="7" fill="#FFFFFF"/>
+  <circle cx="32" cy="39.5" r="4.5" fill="#8E8E93"/>
+  <rect x="30" y="41" width="4" height="8" rx="2" fill="#8E8E93"/>
+</svg>

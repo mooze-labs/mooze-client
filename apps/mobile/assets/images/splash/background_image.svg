@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="928" height="1664" viewBox="0 0 928 1664" fill="none">
+  <defs>
+    <linearGradient id="topRibbon" x1="65" y1="15" x2="710" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EA1E63" stop-opacity=".98"/>
+      <stop offset=".38" stop-color="#B80E52" stop-opacity=".88"/>
+      <stop offset=".72" stop-color="#6E0A39" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#24051A" stop-opacity=".18"/>
+    </linearGradient>
+    <linearGradient id="topHighlight" x1="40" y1="270" x2="735" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF4A91" stop-opacity=".08"/>
+      <stop offset=".48" stop-color="#FF2B83" stop-opacity=".95"/>
+      <stop offset=".8" stop-color="#FF8AB9" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#EA1E63" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="bottomRibbon" x1="210" y1="1210" x2="950" y2="1640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#39051F" stop-opacity=".2"/>
+      <stop offset=".32" stop-color="#8E0A43" stop-opacity=".78"/>
+      <stop offset=".72" stop-color="#D70F5D" stop-opacity=".96"/>
+      <stop offset="1" stop-color="#EA1E63"/>
+    </linearGradient>
+    <linearGradient id="bottomHighlight" x1="160" y1="1570" x2="940" y2="1100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EA1E63" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#FF4B98" stop-opacity=".92"/>
+      <stop offset="1" stop-color="#FF8BB8" stop-opacity=".8"/>
+    </linearGradient>
+    <linearGradient id="innerFold" x1="160" y1="760" x2="770" y2="940" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EA1E63" stop-opacity=".06"/>
+      <stop offset=".52" stop-color="#F51B70" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#FF8AB9" stop-opacity=".65"/>
+    </linearGradient>
+    <radialGradient id="pinkBloomTop" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(0 0) rotate(45) scale(660 470)">
+      <stop stop-color="#EA1E63" stop-opacity=".8"/>
+      <stop offset=".48" stop-color="#EA1E63" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#EA1E63" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pinkBloomBottom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(928 1664) rotate(225) scale(650 560)">
+      <stop stop-color="#EA1E63" stop-opacity=".72"/>
+      <stop offset=".5" stop-color="#EA1E63" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#EA1E63" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blurGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+
+  <!-- Transparent canvas: no background rectangle. -->
+  <ellipse cx="25" cy="25" rx="530" ry="370" fill="url(#pinkBloomTop)"/>
+  <ellipse cx="930" cy="1660" rx="520" ry="480" fill="url(#pinkBloomBottom)"/>
+
+  <!-- Upper flowing glass ribbon -->
+  <path d="M-110 -90H1035V480
+    C900 493 805 458 700 393
+    C603 333 545 274 453 269
+    C348 263 264 327 159 320
+    C49 313 -40 250 -110 208V-90Z"
+    fill="url(#topRibbon)"/>
+  <path d="M-110 208
+    C-5 257 62 287 159 293
+    C268 301 345 241 455 251
+    C557 260 618 326 711 376
+    C812 431 911 461 1035 446"
+    stroke="#FF3D8C" stroke-opacity=".32" stroke-width="5" filter="url(#softGlow)"/>
+  <path d="M-110 208
+    C-5 257 62 287 159 293
+    C268 301 345 241 455 251
+    C557 260 618 326 711 376
+    C812 431 911 461 1035 446"
+    stroke="url(#topHighlight)" stroke-width="2.8"/>
+
+  <!-- Soft inner fold and reflective edge -->
+  <path d="M-100 305
+    C75 365 204 413 352 464
+    C475 506 570 537 663 510
+    C739 488 778 435 821 389
+    C757 500 707 580 619 620
+    C494 678 361 634 225 583
+    C88 532 -10 503 -100 488V305Z"
+    fill="url(#innerFold)" opacity=".62"/>
+  <path d="M-70 486C115 516 250 591 400 627C548 663 665 636 744 548"
+    stroke="#FF78AC" stroke-opacity=".18" stroke-width="2"/>
+
+  <!-- Lower sweeping ribbon, entering from bottom-left and curling to right -->
+  <path d="M-130 1664V1530
+    C46 1490 153 1400 256 1307
+    C374 1201 467 1114 600 1062
+    C716 1016 826 1022 1035 1072
+    V1740H-130V1664Z"
+    fill="url(#bottomRibbon)"/>
+  <path d="M-100 1588
+    C91 1534 188 1438 296 1341
+    C411 1237 503 1156 622 1113
+    C741 1070 851 1081 1010 1120"
+    stroke="#FF3A8D" stroke-opacity=".38" stroke-width="18" filter="url(#blurGlow)"/>
+  <path d="M-100 1588
+    C91 1534 188 1438 296 1341
+    C411 1237 503 1156 622 1113
+    C741 1070 851 1081 1010 1120"
+    stroke="url(#bottomHighlight)" stroke-width="2.8"/>
+
+  <!-- Second lower ribbon creates the layered, sculpted fold -->
+  <path d="M140 1695
+    C271 1580 350 1464 468 1377
+    C603 1277 758 1214 1005 1166
+    V1695H140Z"
+    fill="#A90B50" fill-opacity=".5"/>
+  <path d="M160 1690
+    C302 1571 384 1462 501 1382
+    C644 1284 793 1234 1000 1190"
+    stroke="#FF78AC" stroke-opacity=".42" stroke-width="2.2"/>
+
+  <!-- Fine contour lines -->
+  <path d="M-80 1450C112 1360 230 1238 384 1138C532 1042 697 1005 1000 1028"
+    stroke="#EA1E63" stroke-opacity=".16" stroke-width="1.6"/>
+  <path d="M-70 65C114 161 269 221 410 337"
+    stroke="#FF6CA6" stroke-opacity=".12" stroke-width="1.6"/>
+</svg>

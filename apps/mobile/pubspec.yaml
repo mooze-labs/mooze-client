@@ -133,13 +133,17 @@ flutter:
     - assets/icons/
     - assets/icons/asset/
     - assets/icons/contacts/
+    - assets/icons/level/
     - assets/icons/menu/
     - assets/icons/menu/navigation/
     - assets/icons/menu/settings/
     - assets/icons/pix/
     - assets/images/
     - assets/images/getstarted/
+    - assets/images/onboarding/
     - assets/images/phone_verification/
+    - assets/images/splash/
+    - assets/images/transaction/
     - assets/logos/
 
   # Geist (SIL Open Font License 1.1, embedded in each file). Static files:

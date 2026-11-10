@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <!-- Diamond: a cut gem. Neighboring facets alternate between light and shade. -->
+  <g stroke-width="2.5" stroke-linejoin="round">
+    <path d="M22 11L8 24H24Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M42 11L56 24H40Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M24 24H40L32 54Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M22 11H42L40 24H24Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+    <path d="M8 24H24L32 54Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+    <path d="M40 24H56L32 54Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+  </g>
+</svg>

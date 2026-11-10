@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <!-- Bronze: one chevron, lit from the left. -->
+  <g stroke-width="2.5" stroke-linejoin="round">
+    <path d="M32 17L54 35V47L32 29Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M10 35L32 17V29L10 47Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <!-- Gold: three chevrons, lit from the left. -->
+  <g stroke-width="2.5" stroke-linejoin="round">
+    <path d="M32 6L54 24V32L32 14Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M32 19L54 37V45L32 27Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M32 32L54 50V58L32 40Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M10 24L32 6V14L10 32Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+    <path d="M10 37L32 19V27L10 45Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+    <path d="M10 50L32 32V40L10 58Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+  </g>
+</svg>
