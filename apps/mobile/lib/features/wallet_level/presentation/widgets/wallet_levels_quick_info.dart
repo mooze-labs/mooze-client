@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+/// What the levels give, as a strip of three columns in one glass panel.
+///
+/// The columns are split by vertical hairlines: an icon, a short title, and
+/// a muted line.
 class WalletLevelsQuickInfo extends StatelessWidget {
   final bool isLoading;
 
@@ -11,46 +18,93 @@ class WalletLevelsQuickInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
 
-    if (isLoading) {
-      return _buildLoadingQuickInfo(colorScheme, context);
-    }
+    final items = isLoading
+        ? null
+        : [
+            (
+              Icons.lock_open_rounded,
+              t.wallet_levels_quick_unlock_title,
+              t.wallet_levels_quick_unlock_subtitle,
+            ),
+            (
+              Icons.redeem_rounded,
+              t.wallet_levels_quick_earn_title,
+              t.wallet_levels_quick_earn_subtitle,
+            ),
+            (
+              Icons.star_rate_rounded,
+              t.wallet_levels_quick_status_title,
+              t.wallet_levels_quick_status_subtitle,
+            ),
+          ];
 
-    return SizedBox(
-      height: 125,
-      child: Center(
+    return GlassPanel(
+      child: IntrinsicHeight(
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: _buildInfoCard(
-                icon: Icons.lock_open_rounded,
-                title: t.wallet_levels_quick_unlock_title,
-                subtitle: t.wallet_levels_quick_unlock_subtitle,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
+            for (int i = 0; i < 3; i++) ...[
+              if (i > 0)
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: AppSurfaces.hairline(context),
+                ),
+              Expanded(
+                child: items == null
+                    ? const _LoadingColumn()
+                    : _InfoColumn(
+                        icon: items[i].$1,
+                        title: items[i].$2,
+                        subtitle: items[i].$3,
+                      ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoColumn extends StatelessWidget {
+  const _InfoColumn({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return MergeSemantics(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 22, color: context.colors.textPrimary),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: context.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: context.colors.textPrimary,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildInfoCard(
-                icon: Icons.redeem_rounded,
-                title: t.wallet_levels_quick_earn_title,
-                subtitle: t.wallet_levels_quick_earn_subtitle,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildInfoCard(
-                icon: Icons.star_rate_rounded,
-                title: t.wallet_levels_quick_status_title,
-                subtitle: t.wallet_levels_quick_status_subtitle,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: context.textTheme.labelSmall?.copyWith(
+                color: context.colors.textSecondary,
               ),
             ),
           ],
@@ -58,113 +112,40 @@ class WalletLevelsQuickInfo extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildInfoCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required ColorScheme colorScheme,
-    required TextTheme textTheme,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(10),
+class _LoadingColumn extends StatelessWidget {
+  const _LoadingColumn();
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = context.colors.baseColor;
+
+    Widget box(double width, double height) => Container(
+      width: width,
+      height: height,
       decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(icon, size: 20, color: colorScheme.primary),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            subtitle,
-            style: textTheme.labelSmall?.copyWith(
-              fontSize: 9,
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        color: baseColor,
+        borderRadius: BorderRadius.circular(height / 2),
       ),
     );
-  }
 
-  Widget _buildLoadingQuickInfo(ColorScheme colorScheme, BuildContext context) {
-    final baseColor = context.colors.baseColor;
-    final highlightColor = context.colors.highlightColor;
-
-    return SizedBox(
-      height: 125,
-      child: Row(
-        children: List.generate(
-          3,
-          (index) => Expanded(
-            child: Container(
-              margin: EdgeInsets.only(right: index < 2 ? 12 : 0),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: colorScheme.surface.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: colorScheme.outline.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Shimmer.fromColors(
-                    baseColor: baseColor,
-                    highlightColor: highlightColor,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: baseColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Shimmer.fromColors(
-                    baseColor: baseColor,
-                    highlightColor: highlightColor,
-                    child: Container(
-                      width: 60,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: baseColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Shimmer.fromColors(
-                    baseColor: baseColor,
-                    highlightColor: highlightColor,
-                    child: Container(
-                      width: 40,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: baseColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: context.colors.highlightColor,
+      period: Motion.durationShimmer,
+      enabled: !Motion.isReduced(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            box(22, 22),
+            const SizedBox(height: 10),
+            box(60, 12),
+            const SizedBox(height: 6),
+            box(44, 10),
+          ],
         ),
       ),
     );

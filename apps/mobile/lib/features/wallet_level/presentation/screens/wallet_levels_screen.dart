@@ -10,8 +10,10 @@ import 'package:mooze_mobile/features/wallet_level/presentation/providers/wallet
 import 'package:mooze_mobile/features/wallet_level/domain/entities/wallet_level_entity.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/wallet_levels_header.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/widgets/wallet_levels_quick_info.dart';
+import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
-import 'package:mooze_mobile/themes/app_extra_colors.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
@@ -58,33 +60,20 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     }
   }
 
+  /// Side margin of the content.
+  static const double _gutter = BackdropPageScaffold.gutter;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final walletLevelsAsync = ref.watch(walletLevelsProvider);
 
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: walletLevelsAsync.when(
-        data: (walletLevels) => _buildBody(theme, colorScheme, walletLevels),
-        loading: () => _buildLoadingBody(theme, colorScheme),
-        error: (error, stackTrace) => _buildError(error, colorScheme),
-      ),
-      floatingActionButton:
-          _showBackToTop ? _buildBackToTopButton(colorScheme) : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      title: Text(AppLocalizations.of(context).wallet_levels_title),
-      leading: IconButton(
-        onPressed: () {
-          context.go('/menu');
-        },
-        icon: const Icon(Icons.arrow_back_ios_new_rounded),
+    return BackdropPageScaffold(
+      title: AppLocalizations.of(context).wallet_levels_title,
+      // The menu and the Pix hub both push this screen, so back returns to
+      // the screen that opened it. A deep link has nothing below it, so it
+      // falls back to the menu.
+      leading: BackButton(
+        onPressed: () => context.canPop() ? context.pop() : context.go('/menu'),
       ),
       actions: [
         Consumer(
@@ -99,17 +88,16 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
           },
         ),
       ],
+      body: walletLevelsAsync.when(
+        data: (walletLevels) => _buildBody(walletLevels),
+        loading: () => _buildLoadingBody(),
+        error: (error, stackTrace) => _buildError(error),
+      ),
+      floatingActionButton: _showBackToTop ? _buildBackToTopButton() : null,
     );
   }
 
-  Widget _buildBody(
-    ThemeData theme,
-    ColorScheme colorScheme,
-    List<WalletLevelEntity> walletLevels,
-  ) {
-    final textTheme = theme.textTheme;
-    final extraColors = theme.extension<AppExtraColors>();
-
+  Widget _buildBody(List<WalletLevelEntity> walletLevels) {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(walletLevelsProvider);
@@ -129,83 +117,31 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          SliverToBoxAdapter(
-            child: Container(
-              margin: const EdgeInsets.all(16),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(_gutter, 24, _gutter, 32),
+            sliver: SliverToBoxAdapter(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Consumer(
                     builder: (context, ref, child) {
                       final isApiDown = ref.watch(apiDownProvider);
                       if (isApiDown) {
-                        return Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: extraColors?.warning.withValues(
-                                  alpha: 0.1,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color:
-                                      extraColors?.warning.withValues(
-                                        alpha: 0.3,
-                                      ) ??
-                                      colorScheme.outline,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.cloud_off_rounded,
-                                    color: extraColors?.onWarning,
-                                    size: 24,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          AppLocalizations.of(context)
-                                              .wallet_levels_api_down_title,
-                                          style: textTheme.titleSmall?.copyWith(
-                                            color: extraColors?.onWarning,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          AppLocalizations.of(context)
-                                              .wallet_levels_api_down_body,
-                                          style: textTheme.bodySmall?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: _buildApiDownNotice(),
                         );
                       }
                       return const SizedBox.shrink();
                     },
                   ),
                   const WalletLevelsHeader(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 28),
                   const WalletLevelsQuickInfo(),
                   const SizedBox(height: 16),
-                  _buildUserLevelCard(colorScheme),
+                  _buildUserLevelCard(),
                   const SizedBox(height: 16),
                   const CurrentLimitsCard(),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -215,77 +151,108 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     );
   }
 
-  Widget _buildLoadingBody(ThemeData theme, ColorScheme colorScheme) {
-    return CustomScrollView(
-      controller: _scrollController,
-      slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            margin: const EdgeInsets.all(16),
+  /// The API is down: a glass panel with a warning well and a muted line.
+  Widget _buildApiDownNotice() {
+    final t = AppLocalizations.of(context);
+    final textTheme = context.textTheme;
+
+    return GlassPanel(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          _StateWell(
+            icon: Icons.cloud_off_rounded,
+            color: context.appColors.warning,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const WalletLevelsHeader(isLoading: true),
-                const SizedBox(height: 16),
-                const WalletLevelsQuickInfo(isLoading: true),
-                const SizedBox(height: 16),
-                _buildLoadingUserLevelCard(colorScheme),
+                Text(
+                  t.wallet_levels_api_down_title,
+                  style: textTheme.titleSmall?.copyWith(
+                    color: context.colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  t.wallet_levels_api_down_body,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
-        ),
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: CurrentLimitsCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingBody() {
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(_gutter, 24, _gutter, 32),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const WalletLevelsHeader(isLoading: true),
+                const SizedBox(height: 28),
+                const WalletLevelsQuickInfo(isLoading: true),
+                const SizedBox(height: 16),
+                _buildLoadingUserLevelCard(),
+                const SizedBox(height: 16),
+                const CurrentLimitsCard(),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildError(Object error, ColorScheme colorScheme) {
+  Widget _buildError(Object error) {
     final t = AppLocalizations.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = context.textTheme;
 
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(_gutter),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: colorScheme.errorContainer.withValues(alpha: 0.3),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.error_outline,
-                size: 64,
-                color: colorScheme.error,
-              ),
+            _StateWell(
+              icon: Icons.error_outline,
+              color: context.colors.negativeColor,
+              size: 64,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Text(
               t.wallet_levels_load_error_title,
               textAlign: TextAlign.center,
               style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+                color: context.colors.textPrimary,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               t.wallet_levels_load_error_body,
               textAlign: TextAlign.center,
-              style: textTheme.titleSmall?.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              style: textTheme.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
+                height: 1.5,
               ),
             ),
             const SizedBox(height: 32),
             SecondaryButton(
               text: t.common_retry,
+              height: 48,
               isLoading: _isRetrying,
               onPressed: () async {
                 setState(() {
@@ -311,7 +278,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     );
   }
 
-  Widget _buildUserLevelCard(ColorScheme colorScheme) {
+  Widget _buildUserLevelCard() {
     final levelsData = ref.watch(levelsProvider);
 
     return levelsData.when(
@@ -321,144 +288,72 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
           currentProgress: data.levelProgress,
         );
       },
-      loading: () => _buildLoadingUserLevelCard(colorScheme),
-      error:
-          (error, stack) => _buildErrorUserLevelCard(colorScheme: colorScheme),
+      loading: () => _buildLoadingUserLevelCard(),
+      error: (error, stack) => _buildErrorUserLevelCard(),
     );
   }
 
-  Widget _buildLoadingUserLevelCard(ColorScheme colorScheme) {
+  Widget _buildLoadingUserLevelCard() {
     final baseColor = context.colors.baseColor;
-    final highlightColor = context.colors.highlightColor;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Shimmer.fromColors(
-            baseColor: baseColor,
-            highlightColor: highlightColor,
-            child: Container(
-              height: 25,
-              decoration: BoxDecoration(
-                color: baseColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
+
+    Widget box({double? width, required double height}) {
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: baseColor,
+          borderRadius: BorderRadius.circular(height < 24 ? height / 2 : 12),
+        ),
+      );
+    }
+
+    return GlassPanel(
+      padding: const EdgeInsets.all(16),
+      child: Shimmer.fromColors(
+        baseColor: baseColor,
+        highlightColor: context.colors.highlightColor,
+        period: Motion.durationShimmer,
+        enabled: !Motion.isReduced(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            box(width: 160, height: 18),
+            const SizedBox(height: 16),
+            box(height: 70),
+            const SizedBox(height: 16),
+            box(width: 120, height: 14),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                box(width: 80, height: 10),
+                box(width: 80, height: 10),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          Shimmer.fromColors(
-            baseColor: baseColor,
-            highlightColor: highlightColor,
-            child: Container(
-              height: 70,
-              decoration: BoxDecoration(
-                color: baseColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Shimmer.fromColors(
-            baseColor: baseColor,
-            highlightColor: highlightColor,
-            child: Container(
-              width: 120,
-              height: 20,
-              decoration: BoxDecoration(
-                color: baseColor,
-                borderRadius: BorderRadius.circular(5),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Shimmer.fromColors(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                child: Container(
-                  width: 80,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: baseColor,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              Shimmer.fromColors(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                child: Container(
-                  width: 80,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: baseColor,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          Shimmer.fromColors(
-            baseColor: baseColor,
-            highlightColor: highlightColor,
-            child: Container(
-              height: 10,
-              decoration: BoxDecoration(
-                color: baseColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            box(height: 8),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildErrorUserLevelCard({required ColorScheme colorScheme}) {
+  Widget _buildErrorUserLevelCard() {
     final t = AppLocalizations.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = context.textTheme;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.error.withValues(alpha: 0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return GlassPanel(
+      padding: const EdgeInsets.all(16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorScheme.errorContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.error_outline,
-                  color: colorScheme.error,
-                  size: 28,
-                ),
+              _StateWell(
+                icon: Icons.error_outline,
+                color: context.colors.negativeColor,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,14 +362,14 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
                       t.level_load_error,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
+                        color: context.colors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       t.level_load_retry,
-                      style: textTheme.titleSmall?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.7),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -485,7 +380,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
           const SizedBox(height: 16),
           SecondaryButton(
             text: t.common_retry,
-            height: 45,
+            height: 48,
             isLoading: _isRetryingUserLevel,
             onPressed: () async {
               setState(() {
@@ -509,18 +404,62 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     );
   }
 
-  Widget _buildBackToTopButton(ColorScheme colorScheme) {
-    return FloatingActionButton(
-      onPressed: () {
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      },
-      backgroundColor: colorScheme.primary,
-      foregroundColor: colorScheme.onPrimary,
-      child: const Icon(Icons.keyboard_arrow_up),
+  /// A round glass button that scrolls the list back to the top.
+  Widget _buildBackToTopButton() {
+    const size = 48.0;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: LiquidGlass(
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () {
+              if (Motion.isReduced(context)) {
+                _scrollController.jumpTo(0);
+                return;
+              }
+              _scrollController.animateTo(
+                0,
+                duration: Motion.durationSlow,
+                curve: Motion.curveLargeMove,
+              );
+            },
+            child: Center(
+              child: Icon(
+                Icons.keyboard_arrow_up,
+                color: context.colors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A round well that marks a state, such as an error, with a light tint of
+/// [color].
+class _StateWell extends StatelessWidget {
+  const _StateWell({required this.icon, required this.color, this.size = 40});
+
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color.withValues(alpha: 0.14),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Icon(icon, size: size / 2, color: color),
     );
   }
 }
