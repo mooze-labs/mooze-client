@@ -6,10 +6,12 @@ import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_filter
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_filter.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_deposit_list.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/providers/pix_history_state_notifier.dart';
+import 'package:mooze_mobile/features/transaction_history/widgets/filter_glass_widgets.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
@@ -92,27 +94,22 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.tx_history_pix_title),
-        leading: IconButton(
-          onPressed: () {
-            context.pop();
-          },
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-        actions: [
-          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
-          IconButton(
-            icon: Icon(
-              Icons.filter_alt_outlined,
-              color: context.colors.primaryColor,
-            ),
-            onPressed: _openFilterSheet,
-            tooltip: t.tx_filter_title,
-          ),
-        ],
+    return BackdropPageScaffold(
+      title: t.tx_history_pix_title,
+      leading: BackButton(
+        onPressed: () {
+          context.pop();
+        },
       ),
+      actions: [
+        OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+        HistoryFilterButton(
+          active: _hasActiveFilters,
+          onPressed: _openFilterSheet,
+          tooltip: t.tx_filter_title,
+        ),
+        const SizedBox(width: 8),
+      ],
       body: RefreshIndicator(
         onRefresh: _refreshData,
         color: context.colors.primaryColor,
@@ -128,7 +125,12 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                   32,
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(
+                BackdropPageScaffold.gutter,
+                8,
+                BackdropPageScaffold.gutter,
+                0,
+              ),
               child: Consumer(
                 builder: (context, ref, _) {
                   final pixHistoryState = ref.watch(pixHistoryNotifierProvider);
@@ -142,89 +144,33 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
                         return Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (_hasActiveFilters) ...[
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                margin: const EdgeInsets.only(bottom: 16),
-                                decoration: BoxDecoration(
-                                  color: context.colors.primaryColor.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: context.colors.primaryColor.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.filter_alt, size: 20),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _getActiveFiltersDescription(context),
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: _clearFilters,
-                                      child: const Text('Limpar'),
-                                    ),
-                                  ],
-                                ),
+                            if (_hasActiveFilters)
+                              ActiveFiltersBar(
+                                text: _getActiveFiltersDescription(context),
+                                clearLabel: 'Limpar',
+                                onClear: _clearFilters,
                               ),
-                            ],
-                            Center(child: EmptyPixDepositList()),
-                            const SizedBox(height: 80),
+                            const EmptyPixDepositList(),
+                            SizedBox(height: _listBottomSpace(context)),
                           ],
                         );
                       }
 
                       return Column(
                         children: [
-                          if (_hasActiveFilters) ...[
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: context.colors.primaryColor.withValues(
-                                  alpha: 0.1,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: context.colors.primaryColor.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.filter_alt, size: 20),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _getActiveFiltersDescription(context),
-                                      style: TextStyle(fontSize: 14),
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed: _clearFilters,
-                                    child: const Text('Limpar'),
-                                  ),
-                                ],
-                              ),
+                          if (_hasActiveFilters)
+                            ActiveFiltersBar(
+                              text: _getActiveFiltersDescription(context),
+                              clearLabel: 'Limpar',
+                              onClear: _clearFilters,
                             ),
-                          ],
-                          ...filteredDeposits.map((deposit) {
-                            return PixDepositListItem(
-                              deposit: deposit,
-                              isVisible: isVisible,
-                            );
-                          }),
-                          const SizedBox(height: 80),
+                          // The layout of the transaction history: one
+                          // panel per day under a date header.
+                          PixDepositHistoryList(
+                            deposits: filteredDeposits,
+                            isVisible: isVisible,
+                          ),
+                          SizedBox(height: _listBottomSpace(context)),
                         ],
                       );
                     },
@@ -288,6 +234,11 @@ class _PixHistoryScreenState extends ConsumerState<PixHistoryScreen> {
 
     return descriptions.join(' • ');
   }
+
+  /// Space under the list, so its end clears the floating navigation
+  /// capsule that overlaps the page.
+  double _listBottomSpace(BuildContext context) =>
+      MediaQuery.paddingOf(context).bottom + 24;
 
   String _formatDate(DateTime date) {
     return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";

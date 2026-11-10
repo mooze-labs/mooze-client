@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,21 +13,28 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/bitcoin_price_provider.dart';
 import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
-import 'package:mooze_mobile/features/swap/presentation/widgets/swap_deal_card.dart';
-import 'package:mooze_mobile/features/transaction_history/presentation/widgets/transaction_indicator_badge.dart';
-import 'package:mooze_mobile/features/transaction_history/presentation/widgets/confirmation_banner.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/conversion_strip.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_detail_scaffold.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_meta_panel.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_status_panel.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail_row.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/hero_amount.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/in_card_action_button.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/info_banner.dart';
-import 'package:mooze_mobile/features/transaction_history/presentation/widgets/soft_card.dart';
-import 'package:mooze_mobile/features/transaction_history/presentation/widgets/swap_status_badge.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/utils/transaction_display_x.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/utils/transaction_fee_x.dart';
-import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
+/// Details of one wallet transaction.
+///
+/// The hero states what happened: the coin, the kind of transaction, and
+/// the amount at display size. The status panel follows: the status, the
+/// date, and a track of the steps the transaction went through. A swap then
+/// shows one strip with both sides and the rate. State notes come next, and
+/// one glass panel holds the metadata: a compact grid of short facts, the
+/// identifiers with copy, and the links that leave the app. The hero takes
+/// the free height of the screen, so the cards stack below it as one group.
 class TransactionDetailScreen extends ConsumerStatefulWidget {
   final Transaction transaction;
 
@@ -81,151 +89,265 @@ class _TransactionDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isReceive = widget.transaction.type == TransactionType.receive;
-    final currencySymbol = ref.watch(currencySymbolProvider);
-    final isSendOrReceive =
-        widget.transaction.type == TransactionType.send ||
-        widget.transaction.type == TransactionType.receive;
-
-    return PlatformSafeArea(
-      child: Scaffold(
-        backgroundColor: context.colors.backgroundColor,
-        appBar: AppBar(
-          elevation: 0,
-          title: Text(AppLocalizations.of(context).tx_detail_title),
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildTransactionHeader(isReceive, currencySymbol),
-              const SizedBox(height: 16),
-              if (isSendOrReceive)
-                _buildSendReceiveCard(context)
-              else
-                _buildDetailsCard(context),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // Header — a tinted directional medallion for send/receive, and the shared
-  // [SwapDealCard] for swap/refund so every surface reads as one system.
-  // ─────────────────────────────────────────────────────────────────────
-
-  Widget _buildTransactionHeader(bool isReceive, String currencySymbol) {
-    final isSwap =
-        widget.transaction.type == TransactionType.swap ||
-        widget.transaction.type == TransactionType.submarine;
-    final isRefundableOrFailed =
-        widget.transaction.status == TransactionStatus.refundable ||
-        widget.transaction.status == TransactionStatus.failed;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (isRefundableOrFailed && _hasSwapDetails())
-          _buildRefundableHeader()
-        else if (isSwap && _hasSwapDetails())
-          _buildSwapHeader()
-        else
-          _buildRegularHeader(isReceive, currencySymbol),
-      ],
-    );
-  }
-
-  Widget _buildRegularHeader(bool isReceive, String currencySymbol) {
-    final theme = Theme.of(context);
     final tx = widget.transaction;
-    final colors = context.colors;
+    final isSendOrReceive =
+        tx.type == TransactionType.send || tx.type == TransactionType.receive;
+    final details = isSendOrReceive ? _sendReceiveDetails() : _swapDetails();
 
-    return Column(
-      children: [
-        TransactionIndicatorBadge.direction(
-          context: context,
-          isReceive: isReceive,
-        ),
-        const SizedBox(height: 14),
-        Text(
-          tx.type.label(AppLocalizations.of(context)),
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: isReceive ? colors.positiveColor : colors.negativeColor,
-            letterSpacing: -0.2,
+    return TxDetailScaffold(
+      title: AppLocalizations.of(context).tx_detail_title,
+      entranceKey: 'tx-detail-${tx.id}',
+      hero: _buildHero(),
+      sections: [
+        _buildStatus(),
+        if (_usesSwapHero)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: _buildConversion(),
           ),
-        ),
-        const SizedBox(height: 20),
-        SoftCard(
-          padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              HeroAmount(
-                asset: tx.asset,
-                amountInSats: tx.amount,
-                isReceive: isReceive,
-                currencySymbol: currencySymbol,
-              ),
-              const SizedBox(height: 16),
-              Divider(height: 1, color: _heroDividerColor(theme)),
-              const SizedBox(height: 14),
-              HeroAssetRow(asset: tx.asset),
-            ],
+        for (final banner in details.banners)
+          Padding(padding: const EdgeInsets.only(top: 12), child: banner),
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: TxMetaPanel(
+            cells: details.cells,
+            ids: details.ids,
+            links: details.links,
           ),
         ),
       ],
     );
   }
 
-  Color _heroDividerColor(ThemeData theme) =>
-      theme.brightness == Brightness.dark
-          ? theme.colorScheme.outlineVariant.withValues(alpha: 0.35)
-          : theme.colorScheme.outline.withValues(alpha: 0.45);
+  // ─────────────────────────────────────────────────────────────────────
+  // Hero — what happened, at a glance: the coin(s), the kind, and the
+  // amount that matters most (the amount moved, or what a swap brought in).
+  // ─────────────────────────────────────────────────────────────────────
 
-  Widget _buildSendReceiveCard(BuildContext context) {
+  bool get _isRefundableOrFailed =>
+      widget.transaction.status == TransactionStatus.refundable ||
+      widget.transaction.status == TransactionStatus.failed;
+
+  /// Swaps and refunds with both sides known show the two coins and the
+  /// conversion strip; every other transaction shows one coin.
+  bool get _usesSwapHero {
+    final type = widget.transaction.type;
+    final isSwap =
+        type == TransactionType.swap || type == TransactionType.submarine;
+    return (_isRefundableOrFailed || isSwap) && _hasSwapDetails();
+  }
+
+  Widget _buildHero() {
     final t = AppLocalizations.of(context);
     final tx = widget.transaction;
-    final isLightning = tx.blockchain == Blockchain.lightning;
+    final currencySymbol = ref.watch(currencySymbolProvider);
+    final failed = tx.status == TransactionStatus.failed;
 
-    final banners = <Widget>[];
-    final rows = <Widget>[];
-
-    if (tx.blockchain == Blockchain.bitcoin &&
-        tx.status != TransactionStatus.confirmed) {
-      banners.add(ConfirmationBanner(confirmations: _getConfirmations()));
+    if (_usesSwapHero) {
+      // An unfinished or refunded swap never brought the amount in, so it
+      // is the expected amount: no sign, no green.
+      final settled = !_isRefundableOrFailed;
+      return Column(
+        children: [
+          HeroSwapIcon(
+            fromAsset: tx.fromAsset!,
+            toAsset: tx.toAsset!,
+            isRefund: _isRefundedSwap(),
+          ),
+          const SizedBox(height: 14),
+          _heroCaption(settled ? tx.type.label(t) : t.tx_detail_expected),
+          const SizedBox(height: 2),
+          HeroAmount(
+            asset: tx.toAsset!,
+            amountInSats: tx.receivedAmount!,
+            currencySymbol: currencySymbol,
+            sign: settled ? '+' : null,
+            isIncoming: settled,
+            struckThrough: failed,
+          ),
+        ],
+      );
     }
 
-    rows.add(_buildStatusRow());
-    rows.add(
-      DetailRow(
-        label: t.pix_deposit_date,
-        value: _formatLocalizedDateTime(tx.createdAt),
-      ),
+    final isReceive = tx.type == TransactionType.receive;
+    final isSend = tx.type == TransactionType.send;
+    final glyph = switch (tx.type) {
+      TransactionType.send => Icons.north_east,
+      TransactionType.receive => Icons.south_west,
+      TransactionType.redeposit => Icons.replay,
+      _ => null,
+    };
+    return Column(
+      children: [
+        HeroAssetIcon(asset: tx.asset, glyph: glyph),
+        const SizedBox(height: 14),
+        _heroCaption(tx.type.label(t)),
+        const SizedBox(height: 2),
+        HeroAmount(
+          asset: tx.asset,
+          amountInSats: tx.amount,
+          currencySymbol: currencySymbol,
+          // The sign carries the direction, so it never depends on color.
+          sign: isReceive ? '+' : (isSend ? '−' : null),
+          isIncoming: isReceive,
+          struckThrough: failed,
+        ),
+      ],
     );
-    rows.add(DetailAssetRow(asset: tx.asset));
-    rows.add(
-      DetailRow(
-        label: t.wallet_amount,
-        value:
-            '${(tx.amount.toDouble() / 100000000).toStringAsFixed(8)} ${tx.asset.ticker}',
-      ),
-    );
-    rows.add(
-      DetailRow(
-        label: t.tx_detail_blockchain,
-        value: tx.blockchain.networkLabel,
-      ),
-    );
+  }
 
-    _addFeeRow(rows, t);
+  /// The muted line above the hero amount: the kind of transaction, or
+  /// "Expected" for a swap that has not brought its amount in.
+  Widget _heroCaption(String text) => Text(
+    text,
+    style: context.textTheme.bodyMedium?.copyWith(
+      color: context.colors.textSecondary,
+      fontWeight: FontWeight.w500,
+    ),
+  );
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Status — the state as a title, the date and confirmations below it, and
+  // the track of steps the transaction went through.
+  // ─────────────────────────────────────────────────────────────────────
+
+  Widget _buildStatus() {
+    final t = AppLocalizations.of(context);
+    final tx = widget.transaction;
+    final isSwapLike =
+        _usesSwapHero ||
+        tx.type == TransactionType.swap ||
+        tx.type == TransactionType.submarine;
+
+    final details = [_formatLocalizedDateTime(tx.createdAt)];
+    // A Bitcoin transaction counts its confirmations until it settles.
+    if (tx.blockchain == Blockchain.bitcoin &&
+        tx.status != TransactionStatus.confirmed &&
+        !_isRefundableOrFailed) {
+      final confirmations = _getConfirmations();
+      details.add(
+        confirmations == null
+            ? t.common_verifying
+            : t.tx_detail_confirmations_progress(
+                confirmations.clamp(0, 6).toInt(),
+              ),
+      );
+    }
+
+    return TxStatusPanel(
+      icon: switch (tx.status) {
+        TransactionStatus.confirmed => Icons.check_rounded,
+        TransactionStatus.pending => Icons.schedule_rounded,
+        TransactionStatus.refundable => Icons.priority_high_rounded,
+        TransactionStatus.failed =>
+          isSwapLike ? Icons.undo_rounded : Icons.close_rounded,
+      },
+      title: isSwapLike ? tx.status.swapLabel(t) : tx.status.label(t),
+      color: tx.statusColor(context),
+      details: details,
+      steps: _statusSteps(t, isSwapLike),
+    );
+  }
+
+  /// Three steps: the start, the network or conversion step, and the end.
+  /// The middle step carries a failure or a refund.
+  List<TxStep> _statusSteps(AppLocalizations t, bool isSwapLike) {
+    final tx = widget.transaction;
+    final first = isSwapLike
+        ? t.tx_detail_sent
+        : tx.type == TransactionType.receive
+        ? t.tx_step_detected
+        : t.tx_step_created;
+    final middle = isSwapLike ? t.tx_step_converting : t.tx_step_on_network;
+    final last = isSwapLike ? t.tx_detail_received : t.tx_status_confirmed_fem;
+
+    return switch (tx.status) {
+      TransactionStatus.confirmed => [
+        TxStep(first, TxStepState.done),
+        TxStep(middle, TxStepState.done),
+        TxStep(last, TxStepState.done),
+      ],
+      TransactionStatus.pending => [
+        TxStep(first, TxStepState.done),
+        TxStep(middle, TxStepState.active),
+        TxStep(last, TxStepState.upcoming),
+      ],
+      TransactionStatus.refundable || TransactionStatus.failed => [
+        TxStep(first, TxStepState.done),
+        TxStep(
+          isSwapLike ? tx.status.swapLabel(t) : tx.status.label(t),
+          TxStepState.failed,
+        ),
+        TxStep(last, TxStepState.upcoming),
+      ],
+    };
+  }
+
+  /// Both sides of the swap and, for a finished swap, the rate it got.
+  Widget _buildConversion() {
+    final t = AppLocalizations.of(context);
+    final tx = widget.transaction;
+    final settled = !_isRefundableOrFailed;
+    return ConversionStrip(
+      from: ConversionLeg(
+        label: t.tx_detail_sent,
+        asset: tx.fromAsset!,
+        amountInSats: tx.sentAmount!,
+        fiat: _fiatEstimateFor(tx.fromAsset!, tx.sentAmount!),
+      ),
+      to: ConversionLeg(
+        label: settled ? t.tx_detail_received : t.tx_detail_expected,
+        asset: tx.toAsset!,
+        amountInSats: tx.receivedAmount!,
+        fiat: _fiatEstimateFor(tx.toAsset!, tx.receivedAmount!),
+      ),
+      rate: settled ? _rateLine() : null,
+    );
+  }
+
+  /// "1 DEPIX = 227 SATS": the received amount for one whole unit of the
+  /// sent asset. Null when the rate means nothing, such as a peg of one
+  /// asset to itself.
+  String? _rateLine() {
+    final tx = widget.transaction;
+    final sent = tx.sentAmount!;
+    final received = tx.receivedAmount!;
+    if (sent <= BigInt.zero ||
+        received <= BigInt.zero ||
+        tx.fromAsset == tx.toAsset) {
+      return null;
+    }
+    // Amounts are in base units (1e8 per whole unit) on both sides.
+    final perUnit = received.toDouble() * 100000000 / sent.toDouble();
+    final from = tx.fromAsset!;
+    final locale = Localizations.localeOf(context).toString();
+    return AppLocalizations.of(context).swap_rate_line(
+      // One whole unit of a BTC-like asset is one coin, not one sat.
+      from == Asset.btc || from == Asset.lbtc ? from.ticker : from.displayUnit,
+      tx.toAsset!.formatAmount(perUnit.round(), locale: locale),
+      conversionUnit(tx.toAsset!),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Details — state notes, the metadata grid, the identifiers, and the
+  // links, gathered per transaction kind.
+  // ─────────────────────────────────────────────────────────────────────
+
+  _Details _sendReceiveDetails() {
+    final t = AppLocalizations.of(context);
+    final tx = widget.transaction;
+    final banners = <Widget>[];
+    final ids = <Widget>[];
+
+    final cells = <MetaCell>[
+      MetaCell(t.tx_detail_blockchain, tx.blockchain.networkLabel),
+      _assetCell(tx.asset),
+      ?_feeCell(t),
+    ];
 
     if (tx.id.isNotEmpty) {
-      rows.add(
+      ids.add(
         DetailRow(
           label: t.tx_id,
           value: truncateHashId(tx.id),
@@ -234,270 +356,39 @@ class _TransactionDetailScreenState
         ),
       );
     }
+    _addLightningIds(ids, banners, t);
 
-    if (isLightning) {
-      if (tx.destination != null) {
-        rows.add(
-          DetailRow(
-            label: tx.type == TransactionType.send ? 'LNURL' : 'Invoice',
-            value: truncateHashId(tx.destination!),
-            copyable: true,
-            copyValue: tx.destination!,
-          ),
-        );
-      }
-      if (tx.preimage != null) {
-        rows.add(
-          DetailRow(
-            label: t.tx_detail_preimage_label,
-            value: truncateHashId(tx.preimage!),
-            copyable: true,
-            copyValue: tx.preimage!,
-          ),
-        );
-      } else if (tx.status == TransactionStatus.pending) {
-        banners.add(_buildPreimageWarning());
-      }
-    }
-
-    final actions = _buildSendReceiveActions(context);
-
-    return _assembleCard(banners: banners, rows: rows, actions: actions);
-  }
-
-  Widget _assembleCard({
-    required List<Widget> banners,
-    required List<Widget> rows,
-    required List<Widget> actions,
-  }) {
-    return SoftCard(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (banners.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            for (var i = 0; i < banners.length; i++) ...[
-              if (i > 0) const SizedBox(height: 10),
-              banners[i],
-            ],
-            const SizedBox(height: 4),
-          ],
-          for (final row in rows) row,
-          if (actions.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            for (var i = 0; i < actions.length; i++) ...[
-              if (i > 0) const SizedBox(height: 10),
-              actions[i],
-            ],
-            const SizedBox(height: 6),
-          ],
-        ],
-      ),
+    return (
+      banners: banners,
+      cells: cells,
+      ids: ids,
+      links: _buildSendReceiveActions(context),
     );
   }
 
-  void _addFeeRow(List<Widget> rows, AppLocalizations t) {
-    final feeSat = widget.transaction.totalFeeSat;
-    if (feeSat == null) return;
-    rows.add(
-      DetailRow(label: t.tx_detail_fee, value: _formatFeeSats(feeSat)),
-    );
-  }
-
-  String _formatFeeSats(BigInt feeSat) {
-    final unit = feeSat == BigInt.one ? 'sat' : 'sats';
-    return '${SatsInputFormatter.formatValue(feeSat.toInt())} $unit';
-  }
-
-  Widget _buildStatusRow() {
-    final tx = widget.transaction;
-    return DetailTrailingRow(
-      label: AppLocalizations.of(context).tx_filter_status,
-      trailing: StatusChip(
-        icon: tx.status.icon,
-        label: tx.status.label(AppLocalizations.of(context)),
-        color: tx.statusColor(context),
-      ),
-    );
-  }
-
-  List<Widget> _buildSendReceiveActions(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    final tx = widget.transaction;
-    final actions = <Widget>[];
-
-    actions.add(
-      InCardActionButton(
-        label: t.pix_deposit_view_explorer,
-        subtitle: t.pix_deposit_view_chain,
-        icon: Icons.open_in_new,
-        onPressed: _isExplorerEnabledFor() ? () => _openInExplorer() : null,
-      ),
-    );
-
-    if (tx.blockchain == Blockchain.lightning &&
-        tx.destination != null &&
-        tx.preimage != null) {
-      actions.add(
-        InCardActionButton(
-          label: t.tx_detail_validate_payment,
-          subtitle: t.tx_detail_verify_preimage,
-          icon: Icons.verified,
-          onPressed: () => _openValidationUrl(),
-        ),
-      );
-    }
-    return actions;
-  }
-
-  String _formatLocalizedDateTime(DateTime dateTime) {
-    final locale = ref.read(localeStringProvider);
-    final use24h = MediaQuery.of(context).alwaysUse24HourFormat;
-    final datePart = DateFormat.yMMMMd(locale).format(dateTime);
-    final timePart = (use24h ? DateFormat.Hm(locale) : DateFormat.jm(locale))
-        .format(dateTime);
-    return AppLocalizations.of(context).tx_detail_datetime(datePart, timePart);
-  }
-
-  Widget _buildRefundableHeader() {
-    final t = AppLocalizations.of(context);
-    final tx = widget.transaction;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cs = theme.colorScheme;
-    return Column(
-      children: [
-        _buildSwapStatusBadge(),
-        const SizedBox(height: 16),
-        SwapDealCard(
-          sendAsset: tx.fromAsset!,
-          sendAmountSats: tx.sentAmount!.toInt(),
-          receiveAsset: tx.toAsset!,
-          receiveAmountSats: tx.receivedAmount!.toInt(),
-          sendLabel: t.tx_detail_sent,
-          receiveLabel: t.tx_detail_expected,
-          sendFiat: _fiatEstimateFor(tx.fromAsset!, tx.sentAmount!),
-          receiveFiat: _fiatEstimateFor(tx.toAsset!, tx.receivedAmount!),
-          backgroundColor:
-              isDark
-                  ? cs.onSurface.withValues(alpha: 0.05)
-                  : cs.surfaceContainerHighest,
-          borderColor:
-              isDark
-                  ? cs.onSurface.withValues(alpha: 0.08)
-                  : cs.outline.withValues(alpha: 0.55),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSwapHeader() {
-    final t = AppLocalizations.of(context);
-    final tx = widget.transaction;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cs = theme.colorScheme;
-    return Column(
-      children: [
-        _buildSwapStatusBadge(),
-        const SizedBox(height: 16),
-        SwapDealCard(
-          sendAsset: tx.fromAsset!,
-          sendAmountSats: tx.sentAmount!.toInt(),
-          receiveAsset: tx.toAsset!,
-          receiveAmountSats: tx.receivedAmount!.toInt(),
-          sendLabel: t.tx_detail_sent,
-          receiveLabel: t.tx_detail_received,
-          sendFiat: _fiatEstimateFor(tx.fromAsset!, tx.sentAmount!),
-          receiveFiat: _fiatEstimateFor(tx.toAsset!, tx.receivedAmount!),
-          backgroundColor:
-              isDark
-                  ? cs.onSurface.withValues(alpha: 0.05)
-                  : cs.surfaceContainerHighest,
-          borderColor:
-              isDark
-                  ? cs.onSurface.withValues(alpha: 0.08)
-                  : cs.outline.withValues(alpha: 0.55),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSwapStatusBadge() {
-    final tx = widget.transaction;
-    return SwapStatusBadge(
-      icon: tx.status.swapIcon,
-      label: tx.status.swapLabel(AppLocalizations.of(context)),
-      color: tx.statusColor(context),
-    );
-  }
-
-  bool _hasSwapDetails() {
-    return widget.transaction.fromAsset != null &&
-        widget.transaction.toAsset != null &&
-        widget.transaction.sentAmount != null &&
-        widget.transaction.receivedAmount != null;
-  }
-
-  String? _fiatEstimateFor(Asset asset, BigInt amount) {
-    
-    final price = ref.watch(
-      priceQuotesProvider.select((quotes) => quotes.priceFor(asset)),
-    );
-    if (price == null || price <= 0) return null;
-    final symbol = ref.watch(currencySymbolProvider);
-    final formatter = NumberFormat('#,##0.00', ref.watch(localeStringProvider));
-    return '$symbol ${formatter.format(asset.toUsd(amount, price))}';
-  }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // Swap / refund details card — shares the exact layout vocabulary as the
-  // send/receive card (no title, no row icons, no dividers, copy-where-it-
-  // matters, actions folded in) so both surfaces read as one system.
-  // ─────────────────────────────────────────────────────────────────────
-
-  Widget _buildDetailsCard(BuildContext context) {
+  _Details _swapDetails() {
     final t = AppLocalizations.of(context);
     final tx = widget.transaction;
     final isSwap = tx.type == TransactionType.swap;
     final isSubmarineSwap = tx.type == TransactionType.submarine;
     final confirmed = tx.status == TransactionStatus.confirmed;
-    final isRefundableOrFailed =
-        tx.status == TransactionStatus.refundable ||
-        tx.status == TransactionStatus.failed;
 
-    final List<Widget> banners = [];
-    final List<Widget> rows = [];
+    final banners = <Widget>[];
+    final cells = <MetaCell>[
+      MetaCell(t.tx_detail_blockchain, tx.blockchain.networkLabel),
+    ];
+    final ids = <Widget>[];
 
-    if (isRefundableOrFailed) {
-      rows.add(_buildStatusRow());
-      rows.add(
-        DetailRow(
-          label: t.pix_deposit_date,
-          value: _formatLocalizedDateTime(tx.createdAt),
-        ),
-      );
-      if (_hasSwapDetails()) {
-        rows.add(DetailRow(label: t.tx_detail_sent, value: tx.fromAsset!.ticker));
-        rows.add(
-          DetailRow(label: t.tx_detail_expected, value: tx.toAsset!.ticker),
-        );
-      }
-      rows.add(
-        DetailRow(
-        label: t.tx_detail_blockchain,
-        value: tx.blockchain.networkLabel,
-      ),
-      );
-      _addFeeRow(rows, t);
+    if (_isRefundableOrFailed) {
+      // The conversion strip shows the sent and expected assets.
+      if (_feeCell(t) case final fee?) cells.add(fee);
       // Refunded peg (`{sendId}_{receiveId}_refund` synthetic id, NOT a chain
       // txid) → render the two real txids separately instead of leaking the
       // synthetic id to the user as if it were valid.
       if (_isRefundedSwap()) {
-        rows.addAll(_buildRefundedSwapIds());
+        ids.addAll(_buildRefundedSwapIds());
       } else if (tx.id.isNotEmpty) {
-        rows.add(
+        ids.add(
           DetailRow(
             label: t.tx_id,
             value: truncateHashId(tx.id),
@@ -511,45 +402,15 @@ class _TransactionDetailScreenState
         banners.add(_buildSubmarineSwapExplanation());
       }
 
-      if (tx.blockchain == Blockchain.bitcoin &&
-          tx.status != TransactionStatus.confirmed) {
-        banners.add(ConfirmationBanner(confirmations: _getConfirmations()));
-      }
-
-      rows.add(_buildStatusRow());
-      rows.add(
-        DetailRow(
-          label: t.pix_deposit_date,
-          value: _formatLocalizedDateTime(tx.createdAt),
-        ),
-      );
-
-      if (!(isSwap && _hasSwapDetails())) {
-        rows.add(DetailRow(label: t.tx_filter_currency, value: tx.asset.name));
-        rows.add(
-          DetailRow(
-            label: t.wallet_amount,
-            value:
-                '${(tx.amount.toDouble() / 100000000).toStringAsFixed(8)} ${tx.asset.ticker}',
-          ),
-        );
-      }
-
-      rows.add(
-        DetailRow(
-        label: t.tx_detail_blockchain,
-        value: tx.blockchain.networkLabel,
-      ),
-      );
-
-      _addFeeRow(rows, t);
+      if (!(isSwap && _hasSwapDetails())) cells.add(_assetCell(tx.asset));
+      if (_feeCell(t) case final fee?) cells.add(fee);
 
       if (isSwap && _isCrossChainSwap()) {
-        rows.addAll(_buildCrossChainSwapIds());
+        ids.addAll(_buildCrossChainSwapIds());
       } else if (isSwap && _isRefundedSwap()) {
-        rows.addAll(_buildRefundedSwapIds());
+        ids.addAll(_buildRefundedSwapIds());
       } else {
-        rows.add(
+        ids.add(
           DetailRow(
             label: t.tx_id,
             value: truncateHashId(tx.id),
@@ -558,38 +419,115 @@ class _TransactionDetailScreenState
           ),
         );
       }
-
-      if (tx.blockchain == Blockchain.lightning) {
-        if (tx.destination != null) {
-          rows.add(
-            DetailRow(
-              label: tx.type == TransactionType.send ? "LNURL" : "Invoice",
-              value: truncateHashId(tx.destination!),
-              copyable: true,
-              copyValue: tx.destination!,
-            ),
-          );
-        }
-        if (tx.preimage != null) {
-          rows.add(
-            DetailRow(
-              label: t.tx_detail_preimage_label,
-              value: truncateHashId(tx.preimage!),
-              copyable: true,
-              copyValue: tx.preimage!,
-            ),
-          );
-        } else if (tx.status == TransactionStatus.pending) {
-          banners.add(_buildPreimageWarning());
-        }
-      }
+      _addLightningIds(ids, banners, t);
     }
 
-    return _assembleCard(
+    return (
       banners: banners,
-      rows: rows,
-      actions: _buildSwapActions(context),
+      cells: cells,
+      ids: ids,
+      links: _buildSwapActions(context),
     );
+  }
+
+  /// The invoice or LNURL and the preimage of a Lightning payment. A
+  /// pending payment without a preimage gets a note instead.
+  void _addLightningIds(
+    List<Widget> ids,
+    List<Widget> banners,
+    AppLocalizations t,
+  ) {
+    final tx = widget.transaction;
+    if (tx.blockchain != Blockchain.lightning) return;
+    if (tx.destination != null) {
+      ids.add(
+        DetailRow(
+          label: tx.type == TransactionType.send ? 'LNURL' : 'Invoice',
+          value: truncateHashId(tx.destination!),
+          copyable: true,
+          copyValue: tx.destination!,
+        ),
+      );
+    }
+    if (tx.preimage != null) {
+      ids.add(
+        DetailRow(
+          label: t.tx_detail_preimage_label,
+          value: truncateHashId(tx.preimage!),
+          copyable: true,
+          copyValue: tx.preimage!,
+        ),
+      );
+    } else if (tx.status == TransactionStatus.pending) {
+      banners.add(_buildPreimageWarning());
+    }
+  }
+
+  MetaCell _assetCell(Asset asset) => MetaCell(
+    AppLocalizations.of(context).wallet_send_conversion_asset,
+    asset.name,
+    leading: SvgPicture.asset(asset.iconPath, width: 18, height: 18),
+  );
+
+  MetaCell? _feeCell(AppLocalizations t) {
+    final feeSat = widget.transaction.totalFeeSat;
+    if (feeSat == null) return null;
+    return MetaCell(t.tx_detail_fee, _formatFeeSats(feeSat));
+  }
+
+  String _formatFeeSats(BigInt feeSat) {
+    final unit = feeSat == BigInt.one ? 'sat' : 'sats';
+    final locale = ref.read(localeStringProvider);
+    return '${NumberFormat('#,##0', locale).format(feeSat.toInt())} $unit';
+  }
+
+  List<Widget> _buildSendReceiveActions(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final tx = widget.transaction;
+    return [
+      InCardActionButton(
+        label: t.pix_deposit_view_explorer,
+        subtitle: _effectiveExplorerBlockchain().networkLabel,
+        icon: Icons.travel_explore_rounded,
+        onPressed: _isExplorerEnabledFor() ? () => _openInExplorer() : null,
+      ),
+      if (tx.blockchain == Blockchain.lightning &&
+          tx.destination != null &&
+          tx.preimage != null)
+        InCardActionButton(
+          label: t.tx_detail_validate_payment,
+          subtitle: t.tx_detail_verify_preimage,
+          icon: Icons.verified_rounded,
+          onPressed: () => _openValidationUrl(),
+        ),
+    ];
+  }
+
+  /// The date in its short form, so it fits one line of the status panel.
+  String _formatLocalizedDateTime(DateTime dateTime) {
+    final locale = ref.read(localeStringProvider);
+    final use24h = MediaQuery.of(context).alwaysUse24HourFormat;
+    final datePart = DateFormat.yMMMd(locale).format(dateTime);
+    final timePart = (use24h ? DateFormat.Hm(locale) : DateFormat.jm(locale))
+        .format(dateTime);
+    return AppLocalizations.of(context).tx_detail_datetime(datePart, timePart);
+  }
+
+  bool _hasSwapDetails() {
+    return widget.transaction.fromAsset != null &&
+        widget.transaction.toAsset != null &&
+        widget.transaction.sentAmount != null &&
+        widget.transaction.receivedAmount != null;
+  }
+
+  String? _fiatEstimateFor(Asset asset, BigInt amount) {
+    final price = ref.watch(
+      priceQuotesProvider.select((quotes) => quotes.priceFor(asset)),
+    );
+    if (price == null || price <= 0) return null;
+    final symbol = ref.watch(currencySymbolProvider);
+    final formatter = NumberFormat('#,##0.00', ref.watch(localeStringProvider));
+    return '$symbol ${formatter.format(asset.toUsd(amount, price))}';
   }
 
   Widget _buildSubmarineSwapExplanation() {
@@ -632,12 +570,12 @@ class _TransactionDetailScreenState
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Action buttons — soft list-tile vocabulary matching the rest of the
-  // screen. Disabled buttons dim, enabled ones ripple.
+  // Links — rows of the links panel. Disabled links dim, enabled ones
+  // ripple.
   // ─────────────────────────────────────────────────────────────────────
 
-  /// Action buttons for the swap/refund card, rendered with the same in-card
-  /// vocabulary as the send/receive card so every CTA on the screen matches.
+  /// Links of the swap/refund details, in the same links panel as
+  /// send/receive.
   List<Widget> _buildSwapActions(BuildContext context) {
     final t = AppLocalizations.of(context);
     final tx = widget.transaction;
@@ -656,25 +594,23 @@ class _TransactionDetailScreenState
           label: t.tx_detail_view_send,
           subtitle: tx.sendBlockchain!.shortName,
           icon: Icons.call_made,
-          onPressed:
-              sendEnabled
-                  ? () => _openInExplorer(
-                    txId: tx.sendTxId,
-                    blockchain: tx.sendBlockchain,
-                  )
-                  : null,
+          onPressed: sendEnabled
+              ? () => _openInExplorer(
+                  txId: tx.sendTxId,
+                  blockchain: tx.sendBlockchain,
+                )
+              : null,
         ),
         InCardActionButton(
           label: t.tx_detail_view_receive,
           subtitle: tx.receiveBlockchain!.shortName,
           icon: Icons.call_received,
-          onPressed:
-              receiveEnabled
-                  ? () => _openInExplorer(
-                    txId: tx.receiveTxId,
-                    blockchain: tx.receiveBlockchain,
-                  )
-                  : null,
+          onPressed: receiveEnabled
+              ? () => _openInExplorer(
+                  txId: tx.receiveTxId,
+                  blockchain: tx.receiveBlockchain,
+                )
+              : null,
         ),
       ];
     }
@@ -698,25 +634,23 @@ class _TransactionDetailScreenState
           label: t.tx_detail_view_send_tx,
           subtitle: chainName,
           icon: Icons.call_made,
-          onPressed:
-              sendEnabled
-                  ? () => _openInExplorer(
-                    txId: tx.sendTxId,
-                    blockchain: tx.sendBlockchain,
-                  )
-                  : null,
+          onPressed: sendEnabled
+              ? () => _openInExplorer(
+                  txId: tx.sendTxId,
+                  blockchain: tx.sendBlockchain,
+                )
+              : null,
         ),
         InCardActionButton(
           label: t.tx_detail_view_refund_tx,
           subtitle: chainName,
           icon: Icons.call_received,
-          onPressed:
-              refundEnabled
-                  ? () => _openInExplorer(
-                    txId: tx.receiveTxId,
-                    blockchain: tx.receiveBlockchain,
-                  )
-                  : null,
+          onPressed: refundEnabled
+              ? () => _openInExplorer(
+                  txId: tx.receiveTxId,
+                  blockchain: tx.receiveBlockchain,
+                )
+              : null,
         ),
       ];
     }
@@ -724,8 +658,8 @@ class _TransactionDetailScreenState
     return [
       InCardActionButton(
         label: t.pix_deposit_view_explorer,
-        subtitle: t.pix_deposit_view_chain,
-        icon: Icons.open_in_new,
+        subtitle: _effectiveExplorerBlockchain().networkLabel,
+        icon: Icons.travel_explore_rounded,
         onPressed: _isExplorerEnabledFor() ? () => _openInExplorer() : null,
       ),
       if (tx.blockchain == Blockchain.lightning &&
@@ -734,7 +668,7 @@ class _TransactionDetailScreenState
         InCardActionButton(
           label: t.tx_detail_validate_payment,
           subtitle: t.tx_detail_verify_preimage,
-          icon: Icons.verified,
+          icon: Icons.verified_rounded,
           onPressed: () => _openValidationUrl(),
         ),
     ];
@@ -896,10 +830,9 @@ class _TransactionDetailScreenState
   /// not the swap's destination credit, it's the funds coming back.
   List<Widget> _buildRefundedSwapIds() {
     final t = AppLocalizations.of(context);
-    final chainSuffix =
-        widget.transaction.sendBlockchain == null
-            ? ''
-            : ' (${widget.transaction.sendBlockchain!.shortName})';
+    final chainSuffix = widget.transaction.sendBlockchain == null
+        ? ''
+        : ' (${widget.transaction.sendBlockchain!.shortName})';
     return [
       DetailRow(
         label: '${t.tx_detail_send_tx_id}$chainSuffix',
@@ -916,3 +849,11 @@ class _TransactionDetailScreenState
     ];
   }
 }
+
+/// The parts of the details area of one transaction.
+typedef _Details = ({
+  List<Widget> banners,
+  List<MetaCell> cells,
+  List<Widget> ids,
+  List<Widget> links,
+});

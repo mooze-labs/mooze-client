@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/features/transaction_history/widgets/filter_glass_widgets.dart';
 
 import 'asset_filter_entity.dart';
 
@@ -33,72 +33,30 @@ class _FilterByAssetState extends State<FilterByAsset> {
   }
 
   void _notifySelectionChange() {
-    final selectedIds =
-        _selectedAssets.entries
-            .where((entry) => entry.value)
-            .map((entry) => entry.key.id)
-            .toList();
+    final selectedIds = _selectedAssets.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key.id)
+        .toList();
     widget.onSelectionChanged(selectedIds);
   }
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children:
-          widget.assets.map((asset) {
-            final isSelected = _selectedAssets[asset] ?? false;
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedAssets[asset] = !isSelected;
-                });
-                _notifySelectionChange();
-              },
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double totalWidth = constraints.maxWidth;
-                  const double totalSpacing = 2 * 10;
-                  final double itemWidth = (totalWidth - totalSpacing) / 3;
-                  return Container(
-                    width: itemWidth,
-                    height: 47,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      color:
-                          isSelected
-                              ? context.colors.primaryColor.withValues(alpha: 0.3)
-                              : Colors.grey,
-                      border:
-                          isSelected
-                              ? Border.all(
-                                color: context.colors.primaryColor,
-                                width: 2,
-                              )
-                              : null,
-                    ),
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                        child: Text(
-                          asset.name,
-                          maxLines: 2,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            overflow: TextOverflow.ellipsis,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            );
-          }).toList(),
+      spacing: 8,
+      children: widget.assets.map((asset) {
+        final isSelected = _selectedAssets[asset] ?? false;
+        return FilterChipPill(
+          label: asset.name,
+          selected: isSelected,
+          onTap: () {
+            setState(() {
+              _selectedAssets[asset] = !isSelected;
+            });
+            _notifySelectionChange();
+          },
+        );
+      }).toList(),
     );
   }
 }

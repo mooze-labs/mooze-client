@@ -7,8 +7,9 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/home/transacti
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/asset_filter_entity.dart';
+import 'package:mooze_mobile/features/transaction_history/widgets/filter_glass_widgets.dart';
+import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
-import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
@@ -133,27 +134,22 @@ class _TransactionHistoryScreenState
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.tx_history_title),
-        leading: IconButton(
-          onPressed: () {
-            context.pop();
-          },
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-        actions: [
-          OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
-          IconButton(
-            icon: Icon(
-              Icons.filter_alt_outlined,
-              color: context.colors.primaryColor,
-            ),
-            onPressed: _openFilterSheet,
-            tooltip: t.tx_filter_title,
-          ),
-        ],
+    return BackdropPageScaffold(
+      title: t.tx_history_title,
+      leading: BackButton(
+        onPressed: () {
+          context.pop();
+        },
       ),
+      actions: [
+        OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
+        HistoryFilterButton(
+          active: _hasActiveFilters,
+          onPressed: _openFilterSheet,
+          tooltip: t.tx_filter_title,
+        ),
+        const SizedBox(width: 8),
+      ],
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(v2LegacyTransactionsProvider);
@@ -172,7 +168,12 @@ class _TransactionHistoryScreenState
                   32,
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(
+                BackdropPageScaffold.gutter,
+                8,
+                BackdropPageScaffold.gutter,
+                0,
+              ),
               child: Consumer(
                 builder: (context, ref, _) {
                   final transactionHistory = ref.watch(
@@ -188,101 +189,46 @@ class _TransactionHistoryScreenState
                             if (filteredTransactions.isEmpty) {
                               return Column(
                                 children: [
-                                  if (_hasActiveFilters) ...[
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(12),
-                                      margin: const EdgeInsets.only(bottom: 16),
-                                      decoration: BoxDecoration(
-                                        color: context.colors.primaryColor
-                                            .withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: context.colors.primaryColor
-                                              .withValues(alpha: 0.3),
-                                        ),
+                                  if (_hasActiveFilters)
+                                    ActiveFiltersBar(
+                                      icon: Icons.info_outline_rounded,
+                                      text: t.tx_history_filters_active(
+                                        _getActiveFiltersDescription(),
                                       ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.info_outline,
-                                            color: context.colors.primaryColor,
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              t.tx_history_filters_active(
-                                                _getActiveFiltersDescription(),
-                                              ),
-                                              style: TextStyle(fontSize: 12),
-                                            ),
-                                          ),
-                                          TextButton(
-                                            onPressed: _clearFilters,
-                                            child: Text(t.tx_history_clear),
-                                          ),
-                                        ],
-                                      ),
+                                      clearLabel: t.tx_history_clear,
+                                      onClear: _clearFilters,
                                     ),
-                                  ],
-                                  Center(child: EmptyTransactionList()),
-                                  const SizedBox(height: 80),
+                                  const EmptyTransactionList(glass: true),
+                                  SizedBox(height: _listBottomSpace(context)),
                                 ],
                               );
                             }
 
                             return Column(
                               children: [
-                                if (_hasActiveFilters) ...[
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(12),
-                                    margin: const EdgeInsets.only(bottom: 16),
-                                    decoration: BoxDecoration(
-                                      color: context.colors.primaryColor
-                                          .withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: context.colors.primaryColor
-                                            .withValues(alpha: 0.3),
-                                      ),
+                                if (_hasActiveFilters)
+                                  ActiveFiltersBar(
+                                    text: t.tx_history_filter_count(
+                                      filteredTransactions.length,
+                                      transactions.length,
+                                      _getActiveFiltersDescription().isNotEmpty
+                                          ? _getActiveFiltersDescription()
+                                          : t.tx_history_filter_default,
                                     ),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.filter_alt, size: 20),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            t.tx_history_filter_count(
-                                              filteredTransactions.length,
-                                              transactions.length,
-                                              _getActiveFiltersDescription()
-                                                      .isNotEmpty
-                                                  ? _getActiveFiltersDescription()
-                                                  : t.tx_history_filter_default,
-                                            ),
-                                            style: TextStyle(fontSize: 12),
-                                          ),
-                                        ),
-                                        TextButton(
-                                          onPressed: _clearFilters,
-                                          child: Text(t.tx_history_clear),
-                                        ),
-                                      ],
-                                    ),
+                                    clearLabel: t.tx_history_clear,
+                                    onClear: _clearFilters,
                                   ),
-                                ],
                                 SuccessfulTransactionList(
                                   transactions: filteredTransactions,
                                   isVisible: isVisible,
+                                  glass: true,
                                 ),
-                                const SizedBox(height: 80),
+                                SizedBox(height: _listBottomSpace(context)),
                               ],
                             );
                           },
                     error: (err, stackTrace) => ErrorTransactionList(),
-                    loading: () => LoadingTransactionList(),
+                    loading: () => const LoadingTransactionList(glass: true),
                   );
                 },
               ),
@@ -351,6 +297,11 @@ class _TransactionHistoryScreenState
 
     return descriptions.join(' • ');
   }
+
+  /// Space under the list, so its end clears the floating navigation
+  /// capsule that overlaps the page.
+  double _listBottomSpace(BuildContext context) =>
+      MediaQuery.paddingOf(context).bottom + 24;
 
   String _formatDate(DateTime date) {
     return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Soft list-tile action button matching the rest of the transaction detail
-/// screen. Disabled buttons (null [onPressed]) dim, enabled ones ripple.
+/// A link row of the transaction detail screen, for example "View in the
+/// explorer".
+///
+/// It sits inside a glass panel: an icon well on a neutral surface, a
+/// title, a subtitle, and an outward arrow at the end, because the link
+/// leaves the app. A row without [onPressed] is dimmed and takes no taps.
 class InCardActionButton extends StatelessWidget {
   final String label;
   final String subtitle;
   final IconData icon;
   final VoidCallback? onPressed;
-  final bool isPrimary;
 
   const InCardActionButton({
     super.key,
@@ -16,85 +19,77 @@ class InCardActionButton extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.onPressed,
-    this.isPrimary = false,
   });
+
+  /// Space between the panel edge and the row content.
+  static const double horizontalPadding = 16;
+
+  /// Diameter of the icon well.
+  static const double wellSize = 40;
+
+  /// Distance from the panel edge to the row text. Dividers start here.
+  static const double textInset = horizontalPadding + wellSize + 12;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     final enabled = onPressed != null;
-    final accent = cs.primary;
-
-    final body = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: isPrimary ? accent : accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+    final body = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 64),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: 12,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: wellSize,
+              height: wellSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: context.colors.actionButtonBackground,
+              ),
+              child: Icon(icon, size: 20, color: context.colors.textPrimary),
             ),
-            child: Icon(
-              icon,
-              size: 19,
-              color: isPrimary ? cs.onPrimary : accent,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.1,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: context.textTheme.bodyLarge?.copyWith(
+                      color: context.colors.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: context.colors.textSecondary,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: context.colors.textTertiary,
-          ),
-        ],
+            const SizedBox(width: 12),
+            Icon(
+              Icons.arrow_outward_rounded,
+              size: 18,
+              color: context.colors.textSecondary,
+            ),
+          ],
+        ),
       ),
     );
 
-    return Opacity(
-      opacity: enabled ? 1.0 : 0.45,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: accent.withValues(alpha: isPrimary ? 0.12 : 0.06),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: accent.withValues(alpha: isPrimary ? 0.30 : 0.16),
-          ),
-        ),
-        child:
-            enabled
-                ? Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(onTap: onPressed, child: body),
-                )
-                : body,
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.4,
+        child: InkWell(onTap: onPressed, child: body),
       ),
     );
   }

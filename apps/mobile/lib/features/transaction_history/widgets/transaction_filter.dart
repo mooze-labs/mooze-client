@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'package:mooze_mobile/features/transaction_history/widgets/asset_filter_entity.dart';
+import 'package:mooze_mobile/features/transaction_history/widgets/filter_glass_widgets.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_asset.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_order.dart';
 import 'package:mooze_mobile/features/transaction_history/widgets/transaction_filter_by_date.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/widgets/buttons.dart';
-import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
   required BuildContext contextFlow,
@@ -62,512 +61,193 @@ Future<TransactionFiltersEntity?> showTransactionFilterDraggableSheet({
     context: contextFlow,
     isScrollControlled: true,
     useRootNavigator: true,
+    backgroundColor: Colors.transparent,
     elevation: 0,
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
           final t = AppLocalizations.of(context);
-          return Container(
-            decoration: BoxDecoration(
-              color: context.colors.surfaceColor,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: DraggableScrollableSheet(
-              initialChildSize: 0.85,
-              minChildSize: 0.7,
-              maxChildSize: 0.95,
-              expand: false,
-              builder: (context, scrollController) {
-                return ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(24),
-                  ),
-                  child: SingleChildScrollView(
-                    controller: scrollController,
-                    child: Container(
-                      padding: EdgeInsets.only(
-                        left: 24,
-                        right: 24,
-                        top: 16,
-                        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 50,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[300],
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+          return FilterSheetFrame(
+            title: t.tx_filter_title,
+            actions: FilterSheetActions(
+              clearLabel: t.tx_filter_clear_filters,
+              onClear: () {
+                Navigator.of(context).pop(TransactionFiltersEntity());
+              },
+              applyLabel: t.tx_filter_apply,
+              onApply: () {
+                final filterMap = <String, dynamic>{};
+                filterMap['type'] = selectedType.name;
+                filterMap['status'] = selectedStatus.name;
+                if (selectedAssetIds.isNotEmpty) {
+                  filterMap['assets'] = selectedAssetIds;
+                }
 
-                          Row(
-                            children: [
-                              Text(
-                                t.tx_filter_title,
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 15),
-
-                          _buildFilterSection(
-                            title: t.tx_filter_sort_by,
-                            child: FilterOrderBy(
-                              isMostRecentSelected: isMostRecentSelected,
-                              onSelectionChanged: (isRecent) {
-                                setState(() {
-                                  isMostRecentSelected = isRecent;
-                                });
-                              },
-                            ),
-                            context: context,
-                          ),
-
-                          _buildFilterSection(
-                            title: t.tx_filter_type,
-                            child: Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children:
-                                  TransactionTypeEntity.values.map((type) {
-                                    final isSelected = selectedType == type;
-
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          selectedType = type;
-                                        });
-                                      },
-                                      child: LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          final double totalWidth =
-                                              constraints.maxWidth;
-                                          const double totalSpacing = 2 * 10;
-                                          final double itemWidth =
-                                              (totalWidth - totalSpacing) / 3;
-                                          return Container(
-                                            width: itemWidth,
-                                            height: 47,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(15),
-                                              color:
-                                                  isSelected
-                                                      ? context.colors.primaryColor
-                                                          .withValues(
-                                                            alpha: 0.3,
-                                                          )
-                                                      : Colors.grey,
-                                              border:
-                                                  isSelected
-                                                      ? Border.all(
-                                                        color:
-                                                            context.colors
-                                                                .primaryColor,
-                                                        width: 2,
-                                                      )
-                                                      : null,
-                                            ),
-                                            child: Center(
-                                              child: Padding(
-                                                padding:
-                                                    EdgeInsets.symmetric(
-                                                      horizontal: 5.0,
-                                                    ),
-                                                child: Text(
-                                                  _getTransactionTypeLabel(
-                                                    t,
-                                                    type,
-                                                  ),
-                                                  maxLines: 2,
-                                                  textAlign: TextAlign.center,
-                                                  style: const TextStyle(
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  }).toList(),
-                            ),
-                            context: context,
-                          ),
-
-                          _buildFilterSection(
-                            title: t.tx_filter_status,
-                            child: Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children:
-                                  TransactionStatusEntity.values.map((status) {
-                                    final isSelected = selectedStatus == status;
-
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          selectedStatus = status;
-                                        });
-                                      },
-                                      child: LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          final double totalWidth =
-                                              constraints.maxWidth;
-                                          const double totalSpacing = 2 * 10;
-                                          final double itemWidth =
-                                              (totalWidth - totalSpacing) / 3;
-                                          return Container(
-                                            width: itemWidth,
-                                            height: 47,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(15),
-                                              color:
-                                                  isSelected
-                                                      ? context.colors.primaryColor
-                                                          .withValues(
-                                                            alpha: 0.3,
-                                                          )
-                                                      : Colors.grey,
-                                              border:
-                                                  isSelected
-                                                      ? Border.all(
-                                                        color:
-                                                            context.colors
-                                                                .primaryColor,
-                                                        width: 2,
-                                                      )
-                                                      : null,
-                                            ),
-                                            child: Center(
-                                              child: Padding(
-                                                padding:
-                                                    EdgeInsets.symmetric(
-                                                      horizontal: 5.0,
-                                                    ),
-                                                child: Text(
-                                                  _getTransactionStatusLabel(
-                                                    t,
-                                                    status,
-                                                  ),
-                                                  maxLines: 2,
-                                                  textAlign: TextAlign.center,
-                                                  style: const TextStyle(
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  }).toList(),
-                            ),
-                            context: context,
-                          ),
-
-                          _buildFilterSection(
-                            title: t.tx_filter_currency,
-                            child: FilterByAsset(
-                              assets: assets,
-                              selectedAssetIds: selectedAssetIds,
-                              onSelectionChanged: (ids) {
-                                setState(() {
-                                  selectedAssetIds = ids;
-                                });
-                              },
-                            ),
-                            context: context,
-                          ),
-
-                          _buildFilterSection(
-                            title: t.tx_filter_period,
-                            child: StatefulBuilder(
-                              builder: (
-                                BuildContext context,
-                                StateSetter setDateState,
-                              ) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children:
-                                          dateRanges.map((days) {
-                                            final index = dateRanges.indexOf(
-                                              days,
-                                            );
-                                            final isSelected =
-                                                selectedDateRangeIndex == index;
-
-                                            return Expanded(
-                                              child: Padding(
-                                                padding: EdgeInsets.only(
-                                                  right:
-                                                      index <
-                                                              dateRanges
-                                                                      .length -
-                                                                  1
-                                                          ? 8
-                                                          : 0,
-                                                ),
-                                                child: GestureDetector(
-                                                  onTap: () {
-                                                    setDateState(() {
-                                                      if (selectedDateRangeIndex ==
-                                                          index) {
-                                                        selectedDateRangeIndex =
-                                                            null;
-                                                        startDate = null;
-                                                        endDate = null;
-                                                      } else {
-                                                        selectedDateRangeIndex =
-                                                            index;
-                                                        final dateRange =
-                                                            calculateDateRange(
-                                                              days: days,
-                                                            );
-                                                        startDate =
-                                                            dateRange.start;
-                                                        endDate = dateRange.end;
-                                                      }
-                                                    });
-                                                    setState(() {});
-                                                  },
-                                                  child: Container(
-                                                    height: 47,
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            15,
-                                                          ),
-                                                      color:
-                                                          isSelected
-                                                              ? context.colors
-                                                                  .primaryColor
-                                                                  .withValues(
-                                                                    alpha: 0.3,
-                                                                  )
-                                                              : Colors.grey,
-                                                      border:
-                                                          isSelected
-                                                              ? Border.all(
-                                                                color:
-                                                                    context.colors
-                                                                        .primaryColor,
-                                                                width: 2,
-                                                              )
-                                                              : null,
-                                                    ),
-                                                    child: Center(
-                                                      child: Text(
-                                                        '${days}D',
-                                                        style: const TextStyle(
-                                                          fontSize: 11,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                    ),
-
-                                    const SizedBox(height: 16),
-
-                                    GestureDetector(
-                                      onTap: () async {
-                                        final dateRange = await datapicker(
-                                          context,
-                                          initialStartDate: startDate,
-                                          initialEndDate: endDate,
-                                        );
-                                        if (dateRange != null) {
-                                          setDateState(() {
-                                            selectedDateRangeIndex = null;
-                                            startDate = dateRange.start;
-                                            endDate = dateRange.end;
-                                          });
-                                          setState(() {});
-                                        }
-                                      },
-                                      child: Container(
-                                        width: double.infinity,
-                                        height: 47,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            15,
-                                          ),
-                                          color:
-                                              startDate != null &&
-                                                      endDate != null &&
-                                                      selectedDateRangeIndex ==
-                                                          null
-                                                  ? context.colors.primaryColor
-                                                      .withValues(alpha: 0.3)
-                                                  : Colors.grey,
-                                          border:
-                                              startDate != null &&
-                                                      endDate != null &&
-                                                      selectedDateRangeIndex ==
-                                                          null
-                                                  ? Border.all(
-                                                    color:
-                                                        context.colors.primaryColor,
-                                                    width: 2,
-                                                  )
-                                                  : null,
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.calendar_today,
-                                              size: 20,
-                                              color: Colors.white,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              startDate != null &&
-                                                      endDate != null &&
-                                                      selectedDateRangeIndex ==
-                                                          null
-                                                  ? '${_formatDate(startDate!)} - ${_formatDate(endDate!)}'
-                                                  : t.tx_filter_period_custom,
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-
-                                    if (startDate != null ||
-                                        endDate != null) ...[
-                                      const SizedBox(height: 12),
-                                      Center(
-                                        child: TextButton.icon(
-                                          onPressed: () {
-                                            setDateState(() {
-                                              selectedDateRangeIndex = null;
-                                              startDate = null;
-                                              endDate = null;
-                                            });
-                                            setState(() {});
-                                          },
-                                          icon: Icon(
-                                            Icons.clear,
-                                            size: 18,
-                                            color: Colors.grey[600],
-                                          ),
-                                          label: Text(
-                                            t.tx_filter_clear_period,
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                );
-                              },
-                            ),
-                            context: context,
-                          ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: SecondaryButton(
-                                  text: t.tx_filter_clear_filters,
-                                  onPressed: () {
-                                    Navigator.of(
-                                      context,
-                                    ).pop(TransactionFiltersEntity());
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: PrimaryButton(
-                                  text: t.tx_filter_apply,
-                                  onPressed: () {
-                                    final filterMap = <String, dynamic>{};
-                                    filterMap['type'] = selectedType.name;
-                                    filterMap['status'] = selectedStatus.name;
-                                    if (selectedAssetIds.isNotEmpty) {
-                                      filterMap['assets'] = selectedAssetIds;
-                                    }
-
-                                    final result = TransactionFiltersEntity(
-                                      filter: filterMap,
-                                      orderByMostRecent: isMostRecentSelected,
-                                      startDate: startDate,
-                                      endDate: endDate,
-                                    );
-                                    Navigator.of(context).pop(result);
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 20),
-                        ],
-                      ),
-                    ),
-                  ),
+                final result = TransactionFiltersEntity(
+                  filter: filterMap,
+                  orderByMostRecent: isMostRecentSelected,
+                  startDate: startDate,
+                  endDate: endDate,
                 );
+                Navigator.of(context).pop(result);
               },
             ),
+            children: [
+              FilterSection(
+                title: t.tx_filter_sort_by,
+                child: FilterOrderBy(
+                  isMostRecentSelected: isMostRecentSelected,
+                  onSelectionChanged: (isRecent) {
+                    setState(() {
+                      isMostRecentSelected = isRecent;
+                    });
+                  },
+                ),
+              ),
+
+              FilterSection(
+                title: t.tx_filter_type,
+                child: Wrap(
+                  spacing: 8,
+                  children: TransactionTypeEntity.values.map((type) {
+                    return FilterChipPill(
+                      label: _getTransactionTypeLabel(t, type),
+                      selected: selectedType == type,
+                      onTap: () {
+                        setState(() {
+                          selectedType = type;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              FilterSection(
+                title: t.tx_filter_status,
+                child: Wrap(
+                  spacing: 8,
+                  children: TransactionStatusEntity.values.map((status) {
+                    return FilterChipPill(
+                      label: _getTransactionStatusLabel(t, status),
+                      selected: selectedStatus == status,
+                      onTap: () {
+                        setState(() {
+                          selectedStatus = status;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              FilterSection(
+                title: t.tx_filter_currency,
+                child: FilterByAsset(
+                  assets: assets,
+                  selectedAssetIds: selectedAssetIds,
+                  onSelectionChanged: (ids) {
+                    setState(() {
+                      selectedAssetIds = ids;
+                    });
+                  },
+                ),
+              ),
+
+              FilterSection(
+                title: t.tx_filter_period,
+                child: StatefulBuilder(
+                  builder: (BuildContext context, StateSetter setDateState) {
+                    final isCustomRange =
+                        startDate != null &&
+                        endDate != null &&
+                        selectedDateRangeIndex == null;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        FilterChipRow(
+                          children: dateRanges.map((days) {
+                            final index = dateRanges.indexOf(days);
+                            return FilterChipPill(
+                              label: '${days}D',
+                              expand: true,
+                              selected: selectedDateRangeIndex == index,
+                              onTap: () {
+                                setDateState(() {
+                                  if (selectedDateRangeIndex == index) {
+                                    selectedDateRangeIndex = null;
+                                    startDate = null;
+                                    endDate = null;
+                                  } else {
+                                    selectedDateRangeIndex = index;
+                                    final dateRange = calculateDateRange(
+                                      days: days,
+                                    );
+                                    startDate = dateRange.start;
+                                    endDate = dateRange.end;
+                                  }
+                                });
+                                setState(() {});
+                              },
+                            );
+                          }).toList(),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        GlassPickerField(
+                          leadingIcon: Icons.calendar_today_rounded,
+                          active: isCustomRange,
+                          placeholder: !isCustomRange,
+                          text: isCustomRange
+                              ? '${_formatDate(startDate!)} - ${_formatDate(endDate!)}'
+                              : t.tx_filter_period_custom,
+                          onTap: () async {
+                            final dateRange = await datapicker(
+                              context,
+                              initialStartDate: startDate,
+                              initialEndDate: endDate,
+                            );
+                            if (dateRange != null) {
+                              setDateState(() {
+                                selectedDateRangeIndex = null;
+                                startDate = dateRange.start;
+                                endDate = dateRange.end;
+                              });
+                              setState(() {});
+                            }
+                          },
+                        ),
+
+                        if (startDate != null || endDate != null) ...[
+                          const SizedBox(height: 4),
+                          Center(
+                            child: FilterTextAction(
+                              icon: Icons.close_rounded,
+                              label: t.tx_filter_clear_period,
+                              onPressed: () {
+                                setDateState(() {
+                                  selectedDateRangeIndex = null;
+                                  startDate = null;
+                                  endDate = null;
+                                });
+                                setState(() {});
+                              },
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
       );
     },
   );
   return result;
-}
-
-Widget _buildFilterSection({
-  required String title,
-  required Widget child,
-  required BuildContext context,
-}) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 15),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.bodyLarge),
-        const SizedBox(height: 16),
-        child,
-      ],
-    ),
-  );
 }
 
 DateTimeRange calculateDateRange({required int days}) {

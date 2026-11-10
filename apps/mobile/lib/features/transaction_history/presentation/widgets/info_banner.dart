@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Tinted informational banner — submarine notes, refund explanations and
-/// pending-preimage warnings all share this recipe so they read consistently.
+/// A note about the state of a transaction, such as a submarine swap
+/// explanation or a pending preimage.
+///
+/// The icon and a light tint carry [color]. The text keeps the primary text
+/// color, so it stays readable on any tint.
 class InfoBanner extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -16,13 +20,12 @@ class InfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,10 +35,9 @@ class InfoBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
-                height: 1.5,
-                letterSpacing: 0.2,
+              style: context.textTheme.bodySmall?.copyWith(
+                color: context.colors.textPrimary,
+                height: 1.45,
               ),
             ),
           ),

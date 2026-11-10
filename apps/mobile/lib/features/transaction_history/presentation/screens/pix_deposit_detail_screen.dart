@@ -1,16 +1,29 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_detail_scaffold.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_meta_panel.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_status_panel.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail_row.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/hero_amount.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/in_card_action_button.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
+/// Details of a Pix deposit, in the layout of the transaction detail.
+///
+/// From the top: the hero (the coin of the target asset, the kind, and the
+/// amount in reais), the status card with the steps of the deposit, and
+/// the details panel (facts, identifiers with copy, and the explorer
+/// link). While a deposit waits for its payment, the status card counts
+/// down the validity of the Pix.
 class PixDepositDetailScreen extends StatefulWidget {
   final PixDeposit deposit;
 
@@ -20,14 +33,30 @@ class PixDepositDetailScreen extends StatefulWidget {
   State<PixDepositDetailScreen> createState() => _PixDepositDetailScreenState();
 }
 
+/// Where a deposit is: done, failed, on its way, or unknown.
+enum _Stage { done, failed, inProgress, unknown }
+
 class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
   static const _pixValidityDuration = Duration(minutes: 20);
 
-  final Map<String, bool> _copiedFields = {};
   Timer? _countdownTimer;
   Duration _remaining = Duration.zero;
 
-  bool get _isPending => widget.deposit.status == DepositStatus.pending;
+  PixDeposit get _deposit => widget.deposit;
+
+  bool get _isPending => _deposit.status == DepositStatus.pending;
+
+  _Stage get _stage => switch (_deposit.status) {
+    DepositStatus.depixSent ||
+    DepositStatus.finished ||
+    DepositStatus.completed ||
+    DepositStatus.finishedRefund => _Stage.done,
+    DepositStatus.failed ||
+    DepositStatus.expired ||
+    DepositStatus.timeout => _Stage.failed,
+    DepositStatus.unknown => _Stage.unknown,
+    _ => _Stage.inProgress,
+  };
 
   @override
   void initState() {
@@ -38,7 +67,7 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
   }
 
   void _startCountdown() {
-    final expiresAt = widget.deposit.createdAt.add(_pixValidityDuration);
+    final expiresAt = _deposit.createdAt.add(_pixValidityDuration);
     _remaining = expiresAt.difference(DateTime.now());
     if (_remaining.isNegative) _remaining = Duration.zero;
 
@@ -63,478 +92,214 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return PlatformSafeArea(
-      child: Scaffold(
-        backgroundColor: context.colors.backgroundColor,
-        appBar: AppBar(
-          elevation: 0,
-          title: Text(
-            t.pix_deposit_title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          ),
+    return TxDetailScaffold(
+      title: t.pix_deposit_title,
+      entranceKey: 'pix-deposit-${_deposit.depositId}',
+      hero: _buildHero(t),
+      sections: [
+        _buildStatus(t),
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: _buildDetails(t),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDepositHeader(t),
-              const SizedBox(height: 20),
-              if (_isPending) ...[
-                _buildCountdownCard(t),
-                const SizedBox(height: 20),
-              ],
-              _buildDetailsCard(context, t),
-              const SizedBox(height: 20),
-              if (widget.deposit.blockchainTxid != null)
-                _buildActionButton(
-                  context: context,
-                  label: t.pix_deposit_view_explorer,
-                  subtitle: t.pix_deposit_view_chain,
-                  icon: Icons.open_in_new,
-                  onPressed: _openInExplorer,
-                ),
-            ],
-          ),
-        ),
-      ),
+      ],
     );
   }
 
-  Widget _buildDepositHeader(AppLocalizations t) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceLow,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.pix,
-              size: 36,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+  // ─────────────────────────────────────────────────────────────────────
+  // Hero — the coin of the target asset, the kind, and the amount.
+  // ─────────────────────────────────────────────────────────────────────
+
+  Widget _buildHero(AppLocalizations t) {
+    final stage = _stage;
+    final failed = stage == _Stage.failed;
+    final done = stage == _Stage.done;
+    final digitsStyle = context.textTheme.displaySmall?.copyWith(
+      // The money arrived: green. It never arrived: muted and struck.
+      color: failed
+          ? context.colors.textSecondary
+          : done
+          ? context.colors.positiveColor
+          : context.colors.textPrimary,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -1,
+      height: 1.1,
+      fontFeatures: const [FontFeature.tabularFigures()],
+      decoration: failed ? TextDecoration.lineThrough : null,
+    );
+    final digits = formatBrlCents(
+      _deposit.amountInCents,
+    ).replaceFirst(RegExp(r'^R\$\s*'), '');
+    final sign = done ? '+ ' : '';
+    // The currency symbol is smaller and muted, as the unit of the
+    // transaction hero.
+    final symbolStyle = context.textTheme.titleLarge?.copyWith(
+      color: context.colors.textSecondary,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0,
+      decoration: failed ? TextDecoration.lineThrough : null,
+    );
+
+    return Column(
+      children: [
+        HeroAssetIcon(asset: _deposit.asset, glyph: Icons.south_west),
+        const SizedBox(height: 14),
+        Text(
+          t.pix_deposit_label,
+          style: context.textTheme.bodyMedium?.copyWith(
+            color: context.colors.textSecondary,
+            fontWeight: FontWeight.w500,
           ),
-          const SizedBox(height: 16),
-          Text(
-            t.pix_deposit_label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.7),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          FittedBox(
+        ),
+        const SizedBox(height: 2),
+        // A long amount or a large text size scales the line down.
+        Semantics(
+          label: '${sign}R\$ $digits',
+          excludeSemantics: true,
+          child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(
-              amountStr,
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: context.colors.positiveColor,
-                letterSpacing: -0.5,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  if (sign.isNotEmpty) TextSpan(text: sign),
+                  TextSpan(text: 'R\$ ', style: symbolStyle),
+                  TextSpan(text: digits),
+                ],
               ),
+              maxLines: 1,
+              style: digitsStyle,
             ),
           ),
-          const SizedBox(height: 16),
-          _buildStatusBadge(),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildStatusBadge() {
-    final statusColor = widget.deposit.status.color;
+  // ─────────────────────────────────────────────────────────────────────
+  // Status — the state as a title, the date or the countdown below it, and
+  // the steps of the deposit.
+  // ─────────────────────────────────────────────────────────────────────
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+  Widget _buildStatus(AppLocalizations t) {
+    final stage = _stage;
+    final statusLabel = _deposit.status.localizedLabel(context);
+    final (icon, color) = switch (stage) {
+      _Stage.done => (Icons.check_rounded, context.colors.positiveColor),
+      _Stage.failed => (Icons.close_rounded, context.colors.negativeColor),
+      _Stage.inProgress => (Icons.schedule_rounded, context.appColors.warning),
+      _Stage.unknown => (
+        Icons.question_mark_rounded,
+        context.colors.textSecondary,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_getStatusIcon(), size: 16, color: statusColor),
-          const SizedBox(width: 6),
-          Text(
-            widget.deposit.status.localizedLabel(context),
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: statusColor,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    };
 
-  Widget _buildCountdownCard(AppLocalizations t) {
-    final isExpired = _remaining == Duration.zero;
-    final isUrgent = _remaining.inMinutes < 5;
-    final color =
-        isExpired
-            ? Theme.of(context).colorScheme.error
-            : isUrgent
-            ? context.appColors.warning
-            : Theme.of(context).colorScheme.primary;
-
-    final mm = _remaining.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final ss = _remaining.inSeconds.remainder(60).toString().padLeft(2, '0');
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isExpired ? Icons.timer_off : Icons.timer_outlined,
-              size: 22,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isExpired
-                      ? t.pix_deposit_expired
-                      : t.pix_deposit_time_remaining,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isExpired ? t.pix_deposit_invalid : '$mm:$ss',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: isExpired ? 0.2 : 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  IconData _getStatusIcon() {
-    switch (widget.deposit.status) {
-      case DepositStatus.finished:
-      case DepositStatus.completed:
-      case DepositStatus.refunded:
-        return Icons.check_circle;
-      case DepositStatus.failed:
-      case DepositStatus.expired:
-      case DepositStatus.timeout:
-        return Icons.cancel;
-      case DepositStatus.med:
-      case DepositStatus.unknown:
-        return Icons.info_outline;
-      case DepositStatus.processingRefund:
-      case DepositStatus.broadcastedRefund:
-        return Icons.refresh;
-      default:
-        return Icons.schedule;
+    final details = <String>[_formatDateTime(_deposit.createdAt)];
+    if (_isPending) {
+      if (_remaining == Duration.zero) {
+        details.add(t.pix_deposit_invalid);
+      } else {
+        final mm = _remaining.inMinutes
+            .remainder(60)
+            .toString()
+            .padLeft(2, '0');
+        final ss = _remaining.inSeconds
+            .remainder(60)
+            .toString()
+            .padLeft(2, '0');
+        details.add('${t.pix_deposit_time_remaining} $mm:$ss');
+      }
     }
-  }
 
-  Widget _buildDetailsCard(BuildContext context, AppLocalizations t) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceLow,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.pix_deposit_info,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildInfoRow(
-            icon: Icons.access_time,
-            label: t.pix_deposit_date,
-            value: _formatDateTime(widget.deposit.createdAt),
-          ),
-          _buildInfoRow(
-            icon: Icons.monetization_on,
-            label: t.pix_deposit_target_asset,
-            value: widget.deposit.asset.name,
-          ),
-          _buildInfoRow(
-            icon: Icons.account_balance_wallet,
-            label: t.pix_deposit_value,
-            value: amountStr,
-          ),
-          _buildInfoRow(
-            icon: Icons.key,
-            label: t.pix_deposit_pix_key,
-            value: truncateHashId(widget.deposit.pixKey),
-            copyable: true,
-            copyFieldId: 'pixKey',
-            copyValue: widget.deposit.pixKey,
-          ),
-          _buildInfoRow(
-            icon: Icons.tag,
-            label: t.pix_deposit_id,
-            value: truncateHashId(widget.deposit.depositId),
-            copyable: true,
-            copyFieldId: 'depositId',
-            copyValue: widget.deposit.depositId,
-          ),
-          if (widget.deposit.assetAmount != null &&
-              widget.deposit.status == DepositStatus.finished)
-            _buildInfoRow(
-              icon: Icons.arrow_downward,
-              label: t.pix_deposit_received_value,
-              value:
-                  widget.deposit.asset.formatAsSatoshis(widget.deposit.assetAmount!),
-            ),
-          if (widget.deposit.blockchainTxid != null)
-            _buildInfoRow(
-              icon: Icons.link,
-              label: t.pix_deposit_tx_id,
-              value: truncateHashId(widget.deposit.blockchainTxid!),
-              copyable: true,
-              copyFieldId: 'txId',
-              copyValue: widget.deposit.blockchainTxid!,
-            ),
-        ],
-      ),
+    // Created, then the step in progress, then the coins in the wallet.
+    // The middle step names the current status while the deposit is on its
+    // way.
+    final steps = switch (stage) {
+      _Stage.done => [
+        TxStep(t.tx_step_created, TxStepState.done),
+        TxStep(t.tx_step_converting, TxStepState.done),
+        TxStep(t.tx_detail_received, TxStepState.done),
+      ],
+      _Stage.failed => [
+        TxStep(t.tx_step_created, TxStepState.done),
+        TxStep(statusLabel, TxStepState.failed),
+        TxStep(t.tx_detail_received, TxStepState.upcoming),
+      ],
+      _Stage.inProgress => [
+        TxStep(t.tx_step_created, TxStepState.done),
+        TxStep(statusLabel, TxStepState.active),
+        TxStep(t.tx_detail_received, TxStepState.upcoming),
+      ],
+      _Stage.unknown => [
+        TxStep(t.tx_step_created, TxStepState.done),
+        TxStep(t.tx_step_converting, TxStepState.upcoming),
+        TxStep(t.tx_detail_received, TxStepState.upcoming),
+      ],
+    };
+
+    return TxStatusPanel(
+      icon: icon,
+      title: statusLabel,
+      color: color,
+      steps: steps,
+      details: details,
     );
   }
 
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    bool copyable = false,
-    String? copyFieldId,
-    String? copyValue,
-  }) {
-    final fieldId = copyFieldId ?? label;
-    final isCopied = _copiedFields[fieldId] ?? false;
-    final valueToCopy = copyValue ?? value;
+  // ─────────────────────────────────────────────────────────────────────
+  // Details — facts, identifiers with copy, and the explorer link.
+  // ─────────────────────────────────────────────────────────────────────
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.onSurface.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                size: 18,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.9),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (copyable) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => _copyToClipboard(valueToCopy, fieldId),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color:
-                        isCopied
-                            ? context.colors.positiveColor.withValues(
-                              alpha: 0.2,
-                            )
-                            : Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    isCopied ? Icons.check : Icons.copy,
-                    size: 16,
-                    color:
-                        isCopied
-                            ? context.colors.positiveColor
-                            : Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildDetails(AppLocalizations t) {
+    final asset = _deposit.asset;
+    final received =
+        _deposit.assetAmount != null &&
+        _deposit.status == DepositStatus.finished;
 
-  Widget _buildActionButton({
-    required BuildContext context,
-    required String label,
-    required String subtitle,
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+    return TxMetaPanel(
+      cells: [
+        MetaCell(
+          t.pix_deposit_target_asset,
+          asset.name,
+          leading: SvgPicture.asset(asset.iconPath, width: 18, height: 18),
+        ),
+        MetaCell(t.pix_deposit_value, formatBrlCents(_deposit.amountInCents)),
+        if (received)
+          MetaCell(
+            t.pix_deposit_received_value,
+            asset.formatAsSatoshis(_deposit.assetAmount!),
+            wide: true,
           ),
+      ],
+      ids: [
+        DetailRow(
+          label: t.pix_deposit_pix_key,
+          value: truncateHashId(_deposit.pixKey),
+          copyable: true,
+          copyValue: _deposit.pixKey,
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ],
+        DetailRow(
+          label: t.pix_deposit_id,
+          value: truncateHashId(_deposit.depositId),
+          copyable: true,
+          copyValue: _deposit.depositId,
         ),
-      ),
+        if (_deposit.blockchainTxid != null)
+          DetailRow(
+            label: t.pix_deposit_tx_id,
+            value: truncateHashId(_deposit.blockchainTxid!),
+            copyable: true,
+            copyValue: _deposit.blockchainTxid!,
+          ),
+      ],
+      links: [
+        if (_deposit.blockchainTxid != null)
+          InCardActionButton(
+            label: t.pix_deposit_view_explorer,
+            subtitle: t.pix_deposit_view_chain,
+            icon: Icons.open_in_new_rounded,
+            onPressed: _openInExplorer,
+          ),
+      ],
     );
   }
 
@@ -543,50 +308,21 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     return formatter.format(dateTime);
   }
 
-  String _formatAmount(int amountInCents) {
-    final amount = amountInCents / 100;
-    return NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: '',
-      decimalDigits: 2,
-    ).format(amount);
-  }
-
-  String get amountStr => 'R\$ ${_formatAmount(widget.deposit.amountInCents)}';
-
-  void _copyToClipboard(String text, String fieldId) {
-    Clipboard.setData(ClipboardData(text: text));
-
-    setState(() {
-      _copiedFields[fieldId] = true;
-    });
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _copiedFields[fieldId] = false;
-        });
-      }
-    });
-  }
-
   Future<void> _openInExplorer() async {
-    if (widget.deposit.blockchainTxid == null) return;
+    if (_deposit.blockchainTxid == null) return;
 
     String explorerUrl;
-    switch (widget.deposit.asset.id) {
+    switch (_deposit.asset.id) {
       case 'bitcoin':
-        explorerUrl =
-            'https://blockstream.info/tx/${widget.deposit.blockchainTxid}';
+        explorerUrl = 'https://blockstream.info/tx/${_deposit.blockchainTxid}';
         break;
       case 'tether':
       case 'depix':
         explorerUrl =
-            'https://blockstream.info/liquid/tx/${widget.deposit.blockchainTxid}';
+            'https://blockstream.info/liquid/tx/${_deposit.blockchainTxid}';
         break;
       default:
-        explorerUrl =
-            'https://blockstream.info/tx/${widget.deposit.blockchainTxid}';
+        explorerUrl = 'https://blockstream.info/tx/${_deposit.blockchainTxid}';
         break;
     }
 

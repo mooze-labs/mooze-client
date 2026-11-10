@@ -9,7 +9,7 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 import 'inline_copy_button.dart';
 
-/// A label/value detail row. When [copyable] is set it owns the brief
+/// A label/value detail row of the transaction details panel. When [copyable] is set it owns the brief
 /// "copied" feedback state itself, so the surrounding screen no longer has to
 /// track which field was last copied.
 class DetailRow extends StatefulWidget {
@@ -45,6 +45,7 @@ class _DetailRowState extends State<DetailRow> {
 
   void _copyToClipboard() {
     Clipboard.setData(ClipboardData(text: widget.copyValue ?? widget.value));
+    HapticFeedback.selectionClick();
 
     setState(() => _isCopied = true);
 
@@ -56,35 +57,38 @@ class _DetailRowState extends State<DetailRow> {
     });
   }
 
+  /// Flex shares of the label and the value.
+  static const int _labelFlex = 45;
+  static const int _valueFlex = 55;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
+    // A copyable row keeps the height of the copy button's touch target,
+    // so it gets less vertical padding than a plain row.
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 11),
+      padding: EdgeInsets.symmetric(vertical: widget.copyable ? 3 : 13),
+      // The label and the value split the row in fixed shares, and the
+      // value aligns to the end of its share, so every value and copy
+      // button ends at the right edge of the row.
       child: Row(
         children: [
-          Text(
-            widget.label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: context.colors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Expanded(flex: _labelFlex, child: DetailLabel(widget.label)),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              widget.value,
-              textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            flex: _valueFlex,
+            child: Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: Text(
+                widget.value,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: detailValueStyle(context),
               ),
             ),
           ),
           if (widget.copyable) ...[
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             InlineCopyButton(isCopied: _isCopied, onTap: _copyToClipboard),
           ],
         ],
@@ -107,18 +111,11 @@ class DetailTrailingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 11),
       child: Row(
         children: [
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: context.colors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Flexible(flex: 2, child: DetailLabel(label)),
           const SizedBox(width: 16),
           Expanded(
             child: Align(alignment: Alignment.centerRight, child: trailing),
@@ -138,22 +135,19 @@ class DetailAssetRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return DetailTrailingRow(
       label: AppLocalizations.of(context).wallet_send_conversion_asset,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SvgPicture.asset(asset.iconPath, width: 22, height: 22),
+          SvgPicture.asset(asset.iconPath, width: 20, height: 20),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
               asset.name,
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurface,
-              ),
+              style: detailValueStyle(context),
             ),
           ),
         ],
@@ -162,44 +156,27 @@ class DetailAssetRow extends StatelessWidget {
   }
 }
 
-/// Compact pill rendering a transaction status — an icon and label tinted by
-/// the supplied [color].
-class StatusChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
+/// Label of a detail row.
+class DetailLabel extends StatelessWidget {
+  final String text;
 
-  const StatusChip({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
+  const DetailLabel(this.text, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
+    return Text(
+      text,
+      style: context.textTheme.bodyMedium?.copyWith(
+        color: context.colors.textSecondary,
       ),
     );
   }
 }
+
+/// Style of the value of a detail row: tabular, so numbers line up.
+TextStyle? detailValueStyle(BuildContext context) =>
+    context.textTheme.bodyMedium?.copyWith(
+      color: context.colors.textPrimary,
+      fontWeight: FontWeight.w500,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
