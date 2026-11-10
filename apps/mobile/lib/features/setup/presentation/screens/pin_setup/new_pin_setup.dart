@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/themes/pin_theme.dart';
-import 'package:pinput/pinput.dart';
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_entry_view.dart';
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_screen_scaffold.dart';
 
 class NewPinSetupScreen extends ConsumerStatefulWidget {
   final bool isChangingPin;
@@ -18,7 +18,6 @@ class NewPinSetupScreen extends ConsumerStatefulWidget {
 
 class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
   final TextEditingController _pinController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
   bool isPinValid = false;
 
   @override
@@ -34,7 +33,6 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
   @override
   void dispose() {
     _pinController.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 
@@ -45,7 +43,9 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
     if (pin.length < 6) {
       AppSnackBar.warning(
         context,
-        widget.isChangingPin ? t.pin_change_min_length : t.pin_create_min_length,
+        widget.isChangingPin
+            ? t.pin_change_min_length
+            : t.pin_create_min_length,
       );
       return;
     }
@@ -66,84 +66,27 @@ class _NewPinSetupScreenState extends ConsumerState<NewPinSetupScreen> {
 
     final titleText = isChanging ? t.pin_change_title : t.pin_create_title;
     final yoursText = isChanging ? t.pin_change_yours : t.pin_create_yours;
-    final introPrefix =
-        isChanging ? t.pin_change_intro_prefix : t.pin_create_intro_prefix;
-    final introSuffix =
-        isChanging ? t.pin_change_intro_suffix : t.pin_create_intro_suffix;
+    final introPrefix = isChanging
+        ? t.pin_change_intro_prefix
+        : t.pin_create_intro_prefix;
+    final introSuffix = isChanging
+        ? t.pin_change_intro_suffix
+        : t.pin_create_intro_suffix;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(titleText),
-        leading: IconButton(
-          onPressed: () {
-            context.pop();
-          },
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
+    return PinScreenScaffold(
+      appBarTitle: titleText,
+      onBack: () => context.pop(),
+      child: PinEntryView(
+        controller: _pinController,
+        header: PinHeader(
+          title: yoursText,
+          highlight: t.pin_word,
+          subtitle: '$introPrefix${t.pin_word} $introSuffix',
         ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Título
-              RichText(
-                text: TextSpan(
-                  style: Theme.of(context).textTheme.headlineSmall,
-                  children: [
-                    TextSpan(text: yoursText),
-                    TextSpan(
-                      text: t.pin_word,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              RichText(
-                text: TextSpan(
-                  style: Theme.of(context).textTheme.bodyLarge,
-                  children: [
-                    TextSpan(text: introPrefix),
-                    TextSpan(
-                      text: '${t.pin_word} ',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextSpan(text: introSuffix),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 50),
-
-              Pinput(
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                length: 6,
-                obscureText: true,
-                controller: _pinController,
-                focusNode: _focusNode,
-                defaultPinTheme: PinThemes.focusedThemeOf(context),
-              ),
-
-              const SizedBox(height: 50),
-
-              PrimaryButton(
-                text: t.common_continue,
-                onPressed: _onContinuePressed,
-                isEnabled: isPinValid,
-              ),
-            ],
-          ),
+        action: PrimaryButton(
+          text: t.common_continue,
+          onPressed: _onContinuePressed,
+          isEnabled: isPinValid,
         ),
       ),
     );

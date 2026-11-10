@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/app/session/auth_prompt_controller.dart';
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/biometric_hero.dart';
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_entry_view.dart';
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_keypad.dart';
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_screen_scaffold.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/authentication/services/biometric_service.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
-import 'package:pinput/pinput.dart';
-import 'package:mooze_mobile/themes/pin_theme.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/themes/motion.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// What kind of UI is currently being shown. Splitting these out — instead of
 /// conditionally hiding pieces of a single scaffold — prevents the PIN Pinput
@@ -59,6 +63,9 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
   _AuthMode _mode = _AuthMode.loading;
   bool _isVerifying = false;
   bool _isPinValid = false;
+
+  /// Number of wrong PINs. Each rise shakes the PIN dots.
+  int _errorCount = 0;
 
   // Resolved once during _checkSession, then fixed for this screen instance.
   BiometricCapabilities _capabilities = BiometricCapabilities.none;
@@ -138,7 +145,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
         BootTracer.mark('pin.confirmed.manual');
         widget.onPinConfirmed();
       } else if (mounted) {
-        AppSnackBar.error(context, t.pin_incorrect);
+        setState(() => _errorCount++);
         _pinController.clear();
       }
     } catch (e) {
@@ -247,27 +254,25 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
 
     return PopScope(
       canPop: canGoBack,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(_mode == _AuthMode.pin
-              ? t.pin_validate_security
-              : t.pin_validate_title),
-          leading: canGoBack
-              ? IconButton(
-                  onPressed: () => context.pop(),
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                )
-              : null,
-          automaticallyImplyLeading: canGoBack,
-        ),
-        body: PlatformSafeArea(
-          child: switch (_mode) {
-            _AuthMode.loading => const Center(
-                child: CircularProgressIndicator(),
-              ),
-            _AuthMode.biometric => _buildBiometricView(context, t),
-            _AuthMode.pin => _buildPinView(context, t),
-          },
+      child: PinScreenScaffold(
+        appBarTitle: _mode == _AuthMode.pin
+            ? t.pin_validate_security
+            : t.pin_validate_title,
+        onBack: canGoBack ? () => context.pop() : null,
+        // Each mode change cross-fades, so the view never snaps from the
+        // loading state to the PIN or biometric view.
+        child: AnimatedSwitcher(
+          duration: Motion.of(context, Motion.durationBase),
+          switchInCurve: Motion.curveEnter,
+          switchOutCurve: Motion.curveExit,
+          child: KeyedSubtree(
+            key: ValueKey(_mode),
+            child: switch (_mode) {
+              _AuthMode.loading => const _DelayedProgress(),
+              _AuthMode.biometric => _buildBiometricView(context, t),
+              _AuthMode.pin => _buildPinView(context, t),
+            },
+          ),
         ),
       ),
     );
@@ -276,133 +281,133 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
   /// Lightweight splash shown while the native biometric prompt is up.
   /// Deliberately minimal so nothing flickers when the system dialog dismisses.
   Widget _buildBiometricView(BuildContext context, AppLocalizations t) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: colorScheme.primary.withValues(alpha: 0.12),
-            ),
-            child: Icon(
-              Icons.fingerprint,
-              size: 72,
-              color: colorScheme.primary,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Spacer(),
+        const Center(child: BiometricHero()),
+        const SizedBox(height: 8),
+        Text(
+          t.pin_biometric_access_reason,
+          textAlign: TextAlign.center,
+          style: context.textTheme.titleMedium?.copyWith(
+            color: context.colors.textPrimary,
+            fontWeight: FontWeight.w600,
+            height: 1.35,
           ),
-          const SizedBox(height: 32),
-          Text(
-            t.pin_biometric_access_reason,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 40),
-          PrimaryButton(
-            text: t.pin_use_biometric,
-            onPressed: () => _authWithBiometrics(),
-            isEnabled: !_isBiometricLoading,
-            isLoading: _isBiometricLoading,
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => setState(() => _mode = _AuthMode.pin),
-            child: Text(
-              t.pin_use_pin,
-              style: TextStyle(
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+        const Spacer(flex: 2),
+        const SizedBox(height: 32),
+        PrimaryButton(
+          text: t.pin_use_biometric,
+          onPressed: () => _authWithBiometrics(),
+          isEnabled: !_isBiometricLoading,
+          isLoading: _isBiometricLoading,
+        ),
+        const SizedBox(height: 4),
+        PinTextAction(
+          label: t.pin_use_pin,
+          onPressed: () => setState(() => _mode = _AuthMode.pin),
+        ),
+      ],
     );
   }
 
   Widget _buildPinView(BuildContext context, AppLocalizations t) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          RichText(
-            text: TextSpan(
-              style: Theme.of(context).textTheme.headlineSmall,
-              children: [
-                TextSpan(text: t.pin_validate_action),
-                TextSpan(
-                  text: t.pin_word,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              style: Theme.of(context).textTheme.bodyLarge,
-              text: t.pin_validate_body,
-            ),
-          ),
-          const SizedBox(height: 50),
-          Pinput(
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            length: 6,
-            obscureText: true,
-            controller: _pinController,
-            defaultPinTheme: PinThemes.focusedThemeOf(context),
-          ),
-          const SizedBox(height: 50),
-          PrimaryButton(
-            text: t.common_continue,
-            onPressed: _onContinuePressed,
-            isEnabled: _isPinValid && !_isVerifying,
-            isLoading: _isVerifying,
-          ),
-          const SizedBox(height: 20),
+    final canUseBiometric = _biometricEnabled && _capabilities.hasBiometrics;
 
-          if (_biometricEnabled && _capabilities.hasBiometrics) ...[
-            // Re-trigger the prompt, switching back to the biometric splash so
-            // the PIN form doesn't sit visible behind the native dialog.
-            TextButton.icon(
+    return PinEntryView(
+      controller: _pinController,
+      errorCount: _errorCount,
+      enabled: !_isVerifying,
+      header: PinHeader(
+        title: t.pin_validate_action,
+        highlight: t.pin_word,
+        subtitle: t.pin_validate_body,
+      ),
+      // Re-trigger the prompt, switching back to the biometric splash so
+      // the PIN form doesn't sit visible behind the native dialog.
+      leadingKey: canUseBiometric
+          ? PinKeypadKey.icon(
+              icon: Icons.fingerprint_rounded,
+              semanticLabel: t.pin_use_biometric,
               onPressed: _isBiometricLoading
                   ? null
                   : () {
                       setState(() => _mode = _AuthMode.biometric);
                       _authWithBiometrics();
                     },
-              icon: _isBiometricLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.fingerprint),
-              label: Text(t.pin_use_biometric),
-            ),
-          ] else ...[
-            // Emergency device-credential fallback for users who forgot their PIN.
-            Text(t.pin_forgot),
-            TextButton(
+            )
+          : null,
+      action: PrimaryButton(
+        text: t.common_continue,
+        onPressed: _onContinuePressed,
+        isEnabled: _isPinValid && !_isVerifying,
+        isLoading: _isVerifying,
+      ),
+      // Emergency device-credential fallback for users who forgot their PIN.
+      footer: canUseBiometric
+          ? null
+          : TextButton(
               onPressed: _authWithDeviceCredential,
-              child: Text(
-                t.pin_use_device_password,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+              ),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '${t.pin_forgot} ',
+                      style: TextStyle(color: context.colors.textSecondary),
+                    ),
+                    TextSpan(
+                      text: t.pin_use_device_password,
+                      style: TextStyle(
+                        color: context.colors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
+                textAlign: TextAlign.center,
+                style: context.textTheme.bodyMedium,
               ),
             ),
-          ],
-        ],
+    );
+  }
+}
+
+/// A progress indicator that shows only when the session check is slow.
+///
+/// The check usually ends within a few frames. An indicator that appears
+/// and goes at once reads as a flash, so it waits [Motion.durationSlow]
+/// and then fades in.
+class _DelayedProgress extends StatefulWidget {
+  const _DelayedProgress();
+
+  @override
+  State<_DelayedProgress> createState() => _DelayedProgressState();
+}
+
+class _DelayedProgressState extends State<_DelayedProgress> {
+  bool _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Motion.durationSlow, () {
+      if (mounted) setState(() => _visible = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: AnimatedOpacity(
+        opacity: _visible ? 1 : 0,
+        duration: Motion.of(context, Motion.durationBase),
+        curve: Motion.curveEnter,
+        child: const CircularProgressIndicator(),
       ),
     );
   }

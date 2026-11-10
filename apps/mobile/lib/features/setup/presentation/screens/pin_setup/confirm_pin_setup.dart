@@ -10,8 +10,8 @@ import 'package:mooze_mobile/shared/authentication/providers/biometric_service_p
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/shared/key_management/providers/has_pin_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/themes/pin_theme.dart';
-import 'package:pinput/pinput.dart';
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_entry_view.dart';
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_screen_scaffold.dart';
 
 import '../../../di/providers/pin_setup_repository_provider.dart';
 
@@ -31,8 +31,10 @@ class ConfirmPinSetupScreen extends ConsumerStatefulWidget {
 
 class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
   final TextEditingController _pinController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
   bool isPinValid = false;
+
+  /// Number of mismatched attempts. Each rise shakes the PIN dots.
+  int _errorCount = 0;
 
   @override
   void initState() {
@@ -47,7 +49,6 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
   @override
   void dispose() {
     _pinController.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 
@@ -57,6 +58,8 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
 
     if (inputPin != widget.pin) {
       AppSnackBar.error(context, t.pin_mismatch);
+      setState(() => _errorCount++);
+      _pinController.clear();
       return;
     }
 
@@ -65,128 +68,74 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
     final result = await pinSetupRepository.createPin(inputPin).run();
     BootTracer.mark('pin_confirm.create.end', {'ok': result.isRight()});
 
-    result.match(
-      (failure) => AppSnackBar.error(context, failure.toString()),
-      (_) async {
-        if (!widget.isChangingPin) {
-          final method = ref.read(analyticsSetupMethodProvider);
-          if (method != null) {
-            ref.read(analyticsProvider).track(
-              AnalyticsEvent('onboarding_completed', {'method': method}),
-            );
-            ref.read(analyticsSetupMethodProvider.notifier).state = null;
-          }
+    result.match((failure) => AppSnackBar.error(context, failure.toString()), (
+      _,
+    ) async {
+      if (!widget.isChangingPin) {
+        final method = ref.read(analyticsSetupMethodProvider);
+        if (method != null) {
+          ref
+              .read(analyticsProvider)
+              .track(
+                AnalyticsEvent('onboarding_completed', {'method': method}),
+              );
+          ref.read(analyticsSetupMethodProvider.notifier).state = null;
         }
-        // Invalidate hasPinProvider after PIN creation
-        BootTracer.mark('pin_confirm.invalidate.has_pin');
-        ref.invalidate(hasPinProvider);
+      }
+      // Invalidate hasPinProvider after PIN creation
+      BootTracer.mark('pin_confirm.invalidate.has_pin');
+      ref.invalidate(hasPinProvider);
 
-        // Always clear the session after a PIN save so the next app open
-        // requires the new PIN — whether this is initial setup or a change.
-        // Without this, the old session allows bypassing PIN entry entirely.
-        BootTracer.mark('pin_confirm.session_invalidate.begin');
-        await AuthenticationService().invalidateSession();
-        BootTracer.mark('pin_confirm.session_invalidate.end');
+      // Always clear the session after a PIN save so the next app open
+      // requires the new PIN — whether this is initial setup or a change.
+      // Without this, the old session allows bypassing PIN entry entirely.
+      BootTracer.mark('pin_confirm.session_invalidate.begin');
+      await AuthenticationService().invalidateSession();
+      BootTracer.mark('pin_confirm.session_invalidate.end');
+
+      if (!mounted) return;
+
+      if (widget.isChangingPin) {
+        context.pop();
+      } else {
+        // For new wallet setup, offer biometric opt-in if the device
+        // supports it. Otherwise go straight to the loading screen.
+        final biometricService = ref.read(biometricServiceProvider);
+        final isAvailable = await biometricService.isAvailable().run();
 
         if (!mounted) return;
 
-        if (widget.isChangingPin) {
-          context.pop();
+        if (isAvailable) {
+          BootTracer.mark('pin_confirm.nav.biometric');
+          context.go('/setup/biometric');
         } else {
-          // For new wallet setup, offer biometric opt-in if the device
-          // supports it. Otherwise go straight to the loading screen.
-          final biometricService = ref.read(biometricServiceProvider);
-          final isAvailable = await biometricService.isAvailable().run();
-
-          if (!mounted) return;
-
-          if (isAvailable) {
-            BootTracer.mark('pin_confirm.nav.biometric');
-            context.go('/setup/biometric');
-          } else {
-            BootTracer.mark('pin_confirm.nav.import_loading');
-            context.go('/setup/wallet-import-loading');
-          }
+          BootTracer.mark('pin_confirm.nav.import_loading');
+          context.go('/setup/wallet-import-loading');
         }
-      },
-    );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.pin_confirm_title),
-        leading: IconButton(
-          onPressed: () {
-            context.pop();
-          },
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
+    return PinScreenScaffold(
+      appBarTitle: t.pin_confirm_title,
+      onBack: () => context.pop(),
+      child: PinEntryView(
+        controller: _pinController,
+        errorCount: _errorCount,
+        header: PinHeader(
+          title: t.pin_confirm_yours,
+          highlight: t.pin_word,
+          subtitle:
+              '${t.pin_confirm_instruction_1}${t.pin_confirm_instruction_2}'
+              '${t.pin_confirm_instruction_3}',
         ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              RichText(
-                text: TextSpan(
-                  style: Theme.of(context).textTheme.headlineSmall,
-                  children: [
-                    TextSpan(text: t.pin_confirm_yours),
-                    TextSpan(
-                      text: t.pin_word,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              RichText(
-                text: TextSpan(
-                  style: Theme.of(context).textTheme.bodyLarge,
-                  children: [
-                    TextSpan(text: t.pin_confirm_instruction_1),
-                    TextSpan(
-                      text: t.pin_confirm_instruction_2,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextSpan(text: t.pin_confirm_instruction_3),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 50),
-
-              Pinput(
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                length: 6,
-                obscureText: true,
-                controller: _pinController,
-                focusNode: _focusNode,
-                defaultPinTheme: PinThemes.focusedThemeOf(context),
-              ),
-
-              const SizedBox(height: 50),
-
-              PrimaryButton(
-                text: t.common_confirm,
-                onPressed: _onConfirmPressed,
-                isEnabled: isPinValid,
-              ),
-            ],
-          ),
+        action: PrimaryButton(
+          text: t.common_confirm,
+          onPressed: _onConfirmPressed,
+          isEnabled: isPinValid,
         ),
       ),
     );

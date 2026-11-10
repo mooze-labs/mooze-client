@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/biometric_hero.dart';
+import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_screen_scaffold.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
-import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
 
 /// Shown immediately after initial PIN creation to let the user opt in to
 /// biometric authentication.
@@ -80,46 +80,32 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(automaticallyImplyLeading: false),
-      body: PlatformSafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.fingerprint, size: 80, color: colorScheme.primary),
-              const SizedBox(height: 32),
-              Text(
-                t.biometric_setup_enable_q,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                t.biometric_setup_explanation,
-                style: Theme.of(context).textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 50),
-              PrimaryButton(
-                text: t.biometric_setup_enable,
-                onPressed: _enableBiometrics,
-                isLoading: _isLoading,
-              ),
-              const SizedBox(height: 12),
-              SecondaryButton(
-                text: t.common_no_thanks,
-                onPressed: _proceed,
-                isEnabled: !_isLoading,
-              ),
-            ],
+    return PinScreenScaffold(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Spacer(),
+          const Center(child: BiometricHero()),
+          const SizedBox(height: 8),
+          PinHeader(
+            title: t.biometric_setup_enable_q,
+            subtitle: t.biometric_setup_explanation,
+            textAlign: TextAlign.center,
           ),
-        ),
+          const Spacer(flex: 2),
+          const SizedBox(height: 32),
+          PrimaryButton(
+            text: t.biometric_setup_enable,
+            onPressed: _enableBiometrics,
+            isLoading: _isLoading,
+          ),
+          const SizedBox(height: 4),
+          PinTextAction(
+            label: t.common_no_thanks,
+            onPressed: _isLoading ? null : _proceed,
+          ),
+        ],
       ),
     );
   }
