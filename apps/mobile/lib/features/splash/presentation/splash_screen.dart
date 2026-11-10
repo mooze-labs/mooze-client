@@ -6,12 +6,14 @@ import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/merchant/presentation/providers/usecase_providers.dart';
 import 'package:mooze_mobile/shared/utils/result.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import '../../../shared/key_management/providers/mnemonic_provider.dart';
 import '../../../shared/key_management/providers/has_pin_provider.dart';
 import '../../settings/presentation/actions/navigation_action.dart';
 import '../../setup/presentation/providers/onboarding_provider.dart';
 import '../../../routes.dart';
+import 'widgets/splash_background.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -88,8 +90,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     // Check if onboarding has been completed
     final onboardingService = ref.read(onboardingServiceProvider);
-    final hasCompletedOnboarding =
-        await onboardingService.isOnboardingCompleted();
+    final hasCompletedOnboarding = await onboardingService
+        .isOnboardingCompleted();
 
     // Check if was in merchant mode
     final checkMerchantModeUseCase = ref.read(checkMerchantModeUseCaseProvider);
@@ -119,22 +121,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (mounted) {
         mnemonic.fold(
           () {
-            // // No mnemonic found - check if needs onboarding
-            // if (!hasCompletedOnboarding) {
-            //   if (kDebugMode) {
-            //     debugPrint(
-            //       "[SplashScreen] First time user, redirecting to /setup/onboarding",
-            //     );
-            //   }
-            // context.go('/setup/onboarding');
-            // } else {
+            // No mnemonic found: a first launch shows the onboarding once.
+            if (!hasCompletedOnboarding) {
+              if (kDebugMode) {
+                debugPrint(
+                  "[SplashScreen] First time user, redirecting to /setup/onboarding",
+                );
+              }
+              context.go('/setup/onboarding');
+              return;
+            }
             if (kDebugMode) {
               debugPrint(
                 "[SplashScreen] No mnemonic found, redirecting to /setup/first-access",
               );
             }
             context.go('/setup/first-access');
-            // }
           },
           (mnemonicValue) {
             // Mnemonic exists - user already has wallet, mark onboarding as completed
@@ -288,15 +290,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Widget _buildScaffold() {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildLogoAnimation(),
-            SizedBox(height: _spacingBetweenElements),
-            _buildLoader(),
-          ],
-        ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const SplashBackground(),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildLogoAnimation(),
+                SizedBox(height: _spacingBetweenElements),
+                // _buildLoader(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -319,21 +327,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 
+  /// The loader keeps its slot from the first frame, so the logo never
+  /// moves when it shows. It only fades in, and the splash usually leaves
+  /// before it is fully visible.
   Widget _buildLoader() {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-      child:
-          _showLoader
-              ? SizedBox(
-                width: _loaderSize,
-                height: _loaderSize,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: Color(0xFFE91E63),
-                ),
-              )
-              : const SizedBox(height: 0),
+    return SizedBox.square(
+      dimension: _loaderSize,
+      child: AnimatedOpacity(
+        opacity: _showLoader ? 1 : 0,
+        duration: Motion.of(context, Motion.durationSlow),
+        curve: Motion.curveEnter,
+        child: CircularProgressIndicator(
+          strokeWidth: 3,
+          color: context.colorScheme.primary,
+        ),
+      ),
     );
   }
 }
