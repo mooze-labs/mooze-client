@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart' hide State;
+import 'package:go_router/go_router.dart';
 
+import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
+import 'package:mooze_mobile/features/swap/presentation/screens/swap_success_screen.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/user/providers/values_to_receive_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 
 /// Dev-only playground for driving the optimistic peg-in / peg-out
 /// row through every state without spending sats on a real Boltz
@@ -18,6 +26,11 @@ import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 ///     BTC receive for peg-out) into `reconcileWith` so you can verify
 ///     the optimistic row actually retires when the reconciler sees it.
 ///   - Clear individual rows or wipe the whole pending state.
+///
+/// It also opens the screens that only real events show, with sample
+/// data: the confirmation of a received transaction for each asset, a
+/// level up, a level down, and the pending DePix receipts of the holdings
+/// screen.
 ///
 /// Route: `/dev/swap-simulator` (registered in `walletRoutes`).
 class SwapSimulatorScreen extends ConsumerStatefulWidget {
@@ -49,6 +62,103 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _SectionHeader('Preview screens'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              // A new ID each time, so the entrance plays again.
+              for (final (asset, amount) in [
+                (Asset.btc, 25400),
+                (Asset.lbtc, 25400),
+                (Asset.depix, 15000000000),
+                (Asset.usdt, 2550000000),
+              ])
+                OutlinedButton.icon(
+                  onPressed: () => TransactionConfirmedScreen.show(
+                    context,
+                    asset: asset,
+                    amount: BigInt.from(amount),
+                    transactionId: _fakeLeg64(
+                      'c',
+                      DateTime.now().microsecondsSinceEpoch,
+                    ),
+                  ),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: Text('Received ${asset.ticker}'),
+                ),
+              // The end of a swap: the coin of the sent asset turns into
+              // the coin of the received one. Nothing is sent.
+              for (final (from, to, sent, received) in [
+                (Asset.depix, Asset.lbtc, 500.0, 0.001135),
+                (Asset.lbtc, Asset.usdt, 0.0005, 48.72),
+                (Asset.usdt, Asset.depix, 20.0, 108.4),
+                (Asset.btc, Asset.lbtc, 0.001, 0.000998),
+                (Asset.lbtc, Asset.btc, 0.001, 0.000995),
+              ])
+                OutlinedButton.icon(
+                  onPressed: () => SwapSuccessScreen.show(
+                    context,
+                    fromAsset: from,
+                    toAsset: to,
+                    amountSent: sent,
+                    amountReceived: received,
+                    txid: _fakeLeg64(
+                      's',
+                      DateTime.now().microsecondsSinceEpoch,
+                    ),
+                  ),
+                  icon: const Icon(Icons.swap_horiz),
+                  label: Text('Swap ${from.ticker} → ${to.ticker}'),
+                ),
+              // Every medal, up and down.
+              for (final (from, to) in [
+                (0, 1),
+                (1, 2),
+                (2, 3),
+                (3, 2),
+                (2, 1),
+                (1, 0),
+              ])
+                OutlinedButton.icon(
+                  onPressed: () => context.push(
+                    '/level-${to > from ? 'upgrade' : 'downgrade'}'
+                    '?oldLevel=$from&newLevel=$to',
+                  ),
+                  icon: Icon(
+                    to > from ? Icons.trending_up : Icons.trending_down,
+                  ),
+                  label: Text(
+                    'Level ${to > from ? 'up' : 'down'} → '
+                    '${const ['Bronze', 'Silver', 'Gold', 'Diamond'][to]}',
+                  ),
+                ),
+              // The preview closes at the end: it neither marks the
+              // onboarding as done nor opens the wallet setup.
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (route) => OnboardingScreen(
+                      onDone: () => Navigator.of(route).pop(),
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.auto_awesome_outlined),
+                label: const Text('Onboarding'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const _PendingReceiptsPreview(),
+                  ),
+                ),
+                icon: const Icon(Icons.hourglass_bottom),
+                label: const Text('Pending DePix receipts'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           _SectionHeader('Start a fake swap'),
           const SizedBox(height: 8),
           TextField(
@@ -192,6 +302,44 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
     // "looks like a real txid" check if/when you let it flow through.
     final body = (seed.abs().toRadixString(16) * 16).substring(0, 63);
     return (prefix + body).padRight(64, '0').substring(0, 64);
+  }
+}
+
+/// The pending DePix card of the holdings screen with two sample payments,
+/// on the app backdrop.
+class _PendingReceiptsPreview extends StatelessWidget {
+  const _PendingReceiptsPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return ProviderScope(
+      overrides: [
+        valuesToReceiveProvider.overrideWith(
+          (ref) async => right(const [
+            AssetToReceive(
+              asset: Asset.depix,
+              valueInCents: 5000,
+              formattedValue: 'R\$ 50,00',
+              displayValue: 50,
+            ),
+            AssetToReceive(
+              asset: Asset.depix,
+              valueInCents: 12990,
+              formattedValue: 'R\$ 129,90',
+              displayValue: 129.9,
+            ),
+          ]),
+        ),
+        totalValueToReceiveProvider.overrideWith((ref) async => 179.9),
+      ],
+      child: const BackdropPageScaffold(
+        title: 'Pending DePix receipts',
+        body: SingleChildScrollView(
+          padding: EdgeInsets.all(BackdropPageScaffold.gutter),
+          child: ValuesToReceiveCard(),
+        ),
+      ),
+    );
   }
 }
 

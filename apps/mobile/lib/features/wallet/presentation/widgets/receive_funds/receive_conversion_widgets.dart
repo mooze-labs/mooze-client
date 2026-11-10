@@ -7,15 +7,14 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
-import 'package:mooze_mobile/themes/app_surfaces.dart';
-import 'package:mooze_mobile/themes/motion.dart';
+import 'package:mooze_mobile/shared/widgets/glass/glass_segmented_control.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Segmented control that picks the unit of the amount field.
 ///
-/// The selected segment has a tinted capsule with a brand rim and bolder
-/// text, so the selection never depends on color alone. Each segment is
-/// at least 48 pt wide and the track is 48 pt high.
+/// A [GlassSegmentedControl]: the glass lens of the navigation bar marks
+/// the unit, and a drag sideways moves it. Each segment is at least 48 pt
+/// wide and the track is 48 pt high.
 class ReceiveConversionOptionsRow extends ConsumerWidget {
   final Asset? selectedAsset;
 
@@ -31,103 +30,19 @@ class ReceiveConversionOptionsRow extends ConsumerWidget {
 
     final hasSats = selectedAsset == Asset.btc || selectedAsset == Asset.lbtc;
 
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: GlassStyle.of(context).lensFill,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppSurfaces.hairline(context)),
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _SegmentPill(
-              label: selectedAsset!.ticker,
-              isSelected: conversionType == ReceiveConversionType.asset,
-              onTap: () => controller.changeConversionType(
-                ReceiveConversionType.asset,
-                selectedAsset!,
-              ),
-            ),
-            if (hasSats)
-              _SegmentPill(
-                label: 'sats',
-                isSelected: conversionType == ReceiveConversionType.sats,
-                onTap: () => controller.changeConversionType(
-                  ReceiveConversionType.sats,
-                  selectedAsset!,
-                ),
-              ),
-            _SegmentPill(
-              label: fiatCurrency,
-              isSelected: conversionType == ReceiveConversionType.fiat,
-              onTap: () => controller.changeConversionType(
-                ReceiveConversionType.fiat,
-                selectedAsset!,
-              ),
-            ),
-          ],
+    return GlassSegmentedControl<ReceiveConversionType>(
+      segments: [
+        GlassSegment(
+          value: ReceiveConversionType.asset,
+          label: selectedAsset!.ticker,
         ),
-      ),
-    );
-  }
-}
-
-class _SegmentPill extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _SegmentPill({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primary = context.colors.primaryColor;
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      inMutuallyExclusiveGroup: true,
-      label: label,
-      excludeSemantics: true,
-      onTap: onTap,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const StadiumBorder(),
-        child: AnimatedContainer(
-          duration: Motion.of(context, Motion.durationFast),
-          curve: Motion.curveMove,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 40),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? primary.withValues(alpha: 0.14)
-                : primary.withValues(alpha: 0),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: isSelected
-                  ? primary.withValues(alpha: 0.6)
-                  : primary.withValues(alpha: 0),
-              width: 1.2,
-            ),
-          ),
-          child: Text(
-            label,
-            style: context.textTheme.labelLarge?.copyWith(
-              color: isSelected
-                  ? context.colors.textPrimary
-                  : context.colors.textSecondary,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
+        if (hasSats)
+          const GlassSegment(value: ReceiveConversionType.sats, label: 'sats'),
+        GlassSegment(value: ReceiveConversionType.fiat, label: fiatCurrency),
+      ],
+      selected: conversionType,
+      onChanged: (type) =>
+          controller.changeConversionType(type, selectedAsset!),
     );
   }
 }
