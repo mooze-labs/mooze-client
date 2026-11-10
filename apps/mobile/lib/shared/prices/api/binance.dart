@@ -1,3 +1,4 @@
+import 'coingecko.dart' show priceRequestTimeout;
 import 'dart:convert';
 
 import 'package:fpdart/fpdart.dart';
@@ -109,7 +110,7 @@ class BinanceApi {
 
   TaskEither<String, http.Response> _get(Uri url) {
     return TaskEither.tryCatch(
-      () async => await http.get(url),
+      () async => await http.get(url).timeout(priceRequestTimeout),
       (err, stackTrace) => err.toString(),
     );
   }

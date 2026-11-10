@@ -36,7 +36,7 @@ final valuesToReceiveProvider =
     FutureProvider<Either<String, List<AssetToReceive>>>((ref) async {
   final userInfo = await ref.watch(userDataProvider.future);
   final currency = ref.watch(currencyControllerProvider);
-  final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
+  final currencyIcon = ref.watch(currencySymbolProvider);
   final formatter = NumberFormat('#,##0.00', ref.watch(localeStringProvider));
 
   double brlToUsdRate = 1.0;

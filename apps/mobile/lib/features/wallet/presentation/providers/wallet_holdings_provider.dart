@@ -97,7 +97,7 @@ final walletHoldingsProvider =
   final allAssets = ref.watch(allAssetsProvider);
   final allBalancesAsync = ref.watch(allBalancesProvider);
   final quotes = ref.watch(priceQuotesProvider);
-  final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
+  final currencyIcon = ref.watch(currencySymbolProvider);
   final locale = ref.watch(localeStringProvider);
   final zeroFiat = NumberFormat('#,##0.00', locale).format(0);
 

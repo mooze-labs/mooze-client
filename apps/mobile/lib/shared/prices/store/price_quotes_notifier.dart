@@ -72,21 +72,73 @@ class PriceQuotesNotifier extends StateNotifier<PriceQuotes> {
     unawaited(refresh());
   }
 
+  /// Switches the quotes to [next] without waiting for the network.
+  ///
+  /// In the same frame, the known prices are converted with the exchange
+  /// rate they carry (see [_convertQuotes]), so the portfolio shows the new
+  /// currency at once and never shows prices of the old currency under the
+  /// new symbol. Then the live prices are fetched, and the prices cached on
+  /// disk for [next] fill any gap meanwhile. A newer quote always wins.
   Future<void> _swapCurrency(Currency next) async {
     if (_disposed) return;
-    final source = _service is HybridPriceService
-        ? PriceSource.coingecko
-        : PriceSource.coingecko;
-    _service = HybridPriceService(next, source);
-
-    final disk = await _readAllFromCache(next);
-    if (_disposed) return;
+    _service = HybridPriceService(next, PriceSource.coingecko);
 
     state = state.copyWith(
       currency: next,
-      quotes: disk.isEmpty ? state.quotes : disk,
+      quotes: _convertQuotes(state.quotes, next),
     );
     unawaited(refresh());
+
+    final disk = await _readAllFromCache(next);
+    // A later switch owns the state now.
+    if (_disposed || state.currency != next) return;
+
+    final merged = Map<Asset, PriceQuote>.from(state.quotes);
+    disk.forEach((asset, cached) {
+      final current = merged[asset];
+      if (current == null || cached.fetchedAt.isAfter(current.fetchedAt)) {
+        merged[asset] = cached;
+      }
+    });
+    state = state.copyWith(quotes: merged);
+  }
+
+  /// Converts [quotes] to [next] with the exchange rate they carry.
+  ///
+  /// Each currency has an asset pegged to it: USDT to the dollar and DePix
+  /// to the real. The price of that asset in the old currency is the price
+  /// of one unit of [next], so every price divides by it. Without that
+  /// price, nothing converts and only the pegged asset is known.
+  static Map<Asset, PriceQuote> _convertQuotes(
+    Map<Asset, PriceQuote> quotes,
+    Currency next,
+  ) {
+    final pegged = switch (next) {
+      Currency.usd => Asset.usdt,
+      Currency.brl => Asset.depix,
+    };
+    final rate = quotes[pegged];
+    // Already in [next], for example after a switch back and forth.
+    if (rate != null && rate.currency == next) return Map.of(quotes);
+
+    final result = <Asset, PriceQuote>{};
+    if (rate != null && rate.price > 0) {
+      quotes.forEach((asset, quote) {
+        result[asset] = PriceQuote(
+          asset: asset,
+          currency: next,
+          price: quote.price / rate.price,
+          fetchedAt: quote.fetchedAt,
+        );
+      });
+    }
+    result[pegged] = PriceQuote(
+      asset: pegged,
+      currency: next,
+      price: 1,
+      fetchedAt: rate?.fetchedAt ?? DateTime.now(),
+    );
+    return result;
   }
 
   Future<Map<Asset, PriceQuote>> _readAllFromCache(Currency currency) async {

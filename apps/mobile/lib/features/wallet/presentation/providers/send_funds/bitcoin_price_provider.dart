@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/price_service_provider.dart';
-import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'selected_asset_provider.dart';
+
+// The symbol provider moved next to the currency controller. Callers that
+// import it from here keep working.
+export 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart'
+    show currencySymbolProvider;
 
 final bitcoinPriceProvider = FutureProvider<double>((ref) async {
   final priceServiceResult = await ref.read(priceServiceProvider).run();
@@ -49,7 +53,3 @@ final selectedAssetPriceProvider = FutureProvider<double>((ref) async {
   );
 });
 
-final currencySymbolProvider = Provider<String>((ref) {
-  ref.watch(currencyControllerProvider);
-  return ref.read(currencyControllerProvider.notifier).icon;
-});

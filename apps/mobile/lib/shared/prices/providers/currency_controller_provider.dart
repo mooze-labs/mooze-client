@@ -10,6 +10,14 @@ final currencyControllerProvider =
       return CurrencyNotifier(ref);
     });
 
+/// The symbol of the selected currency, such as R$. Widgets watch it, so
+/// they rebuild when the user switches the currency. Watching
+/// `currencyControllerProvider.notifier` does not rebuild them.
+final currencySymbolProvider = Provider<String>((ref) {
+  ref.watch(currencyControllerProvider);
+  return ref.read(currencyControllerProvider.notifier).icon;
+});
+
 class CurrencyItem {
   final String icon;
   final String code;
@@ -68,7 +76,6 @@ class CurrencyNotifier extends StateNotifier<Currency> {
   Future<void> setCurrency(Currency currency) async {
     if (state == currency) return;
 
-
     final previous = state;
     state = currency;
 
@@ -78,7 +85,6 @@ class CurrencyNotifier extends StateNotifier<Currency> {
         state = previous;
       },
       (_) {
-
         try {
           ref.invalidate(assetPriceHistoryCacheProvider);
         } catch (_) {}
