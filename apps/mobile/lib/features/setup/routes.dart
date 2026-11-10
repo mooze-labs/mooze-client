@@ -6,6 +6,7 @@ import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/verif
 import 'presentation/screens.dart';
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/shared/security/secure_screen.dart';
+import 'package:mooze_mobile/shared/widgets/motion/fade_through_page.dart';
 
 final setupRoutes = [
   GoRoute(
@@ -69,13 +70,27 @@ final setupRoutes = [
   ),
   GoRoute(
     path: "/setup/pin/verify",
-    builder: (context, state) {
+    pageBuilder: (context, state) {
       final args = state.extra as VerifyPinArgs?;
-      return VerifyPinScreen(
+      final canGoBack = args?.canGoBack ?? true;
+      final screen = VerifyPinScreen(
         onPinConfirmed: args?.onPinConfirmed ?? () {},
         forceAuth: args?.forceAuth ?? false,
         isAppResuming: args?.isAppResuming ?? false,
-        canGoBack: args?.canGoBack ?? true,
+        canGoBack: canGoBack,
+      );
+      // A PIN screen without a way back replaces the whole stack, as on
+      // launch from the splash. It fades in over the splash instead of
+      // sliding in. A PIN step pushed inside a flow keeps the platform
+      // transition.
+      if (!canGoBack) {
+        return fadeThroughPage(context: context, state: state, child: screen);
+      }
+      return MaterialPage(
+        key: state.pageKey,
+        name: state.name ?? state.path,
+        restorationId: state.pageKey.value,
+        child: screen,
       );
     },
   ),

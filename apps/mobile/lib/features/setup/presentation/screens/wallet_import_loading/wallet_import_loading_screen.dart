@@ -1,33 +1,109 @@
 import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/app/lifecycle/app_state.dart';
 import 'package:mooze_mobile/domain/entities/chain.dart';
+import 'package:mooze_mobile/domain/failures/failure.dart';
 import 'package:mooze_mobile/features/boot/domain/boot_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
-import 'package:go_router/go_router.dart';
-import 'dart:math' as math;
 
-class ImportMessage {
-  final String text;
-  final bool isCompleted;
-  final bool hasError;
-  final bool isRetry;
+import 'widgets/opening_scene.dart';
 
-  const ImportMessage({
-    required this.text,
-    this.isCompleted = false,
-    this.hasError = false,
-    this.isRetry = false,
-  });
+/// The steps of opening a wallet, as the screen shows them.
+enum OpeningStep {
+  /// The app reads the wallet: the platform, the storage, and the keys.
+  opening,
+
+  /// The wallet connects to the Bitcoin and Liquid networks.
+  connecting,
+
+  /// The wallet is open, and its balances arrive.
+  syncing,
+
+  /// Everything is ready: the home screen opens.
+  done,
 }
 
+/// Why a wallet did not open, as the screen tells it.
+enum OpeningFailure {
+  /// The networks did not answer: most of the time, the internet.
+  connection,
+
+  /// The recovery phrase is not on this device.
+  missingPhrase,
+
+  /// Anything else.
+  other;
+
+  /// The kind of [error], from its message.
+  static OpeningFailure of(Object error) {
+    final text = (error is Failure ? error.message : '$error').toLowerCase();
+    const network = [
+      'timeout',
+      'connect',
+      'network',
+      'socket',
+      'electrum',
+      'host',
+      'unreachable',
+      'offline',
+    ];
+    return network.any(text.contains) ? connection : other;
+  }
+}
+
+/// Opens the wallet after it is created or imported, then opens the home
+/// screen.
+///
+/// The steps show as art, not as text: the Mooze coin appears, an orbit
+/// ring turns as the wallet connects, and the coin of each asset flies
+/// into the orbit as its network syncs. A step track and one short
+/// caption follow along. Once Liquid has synced, the coins still out of
+/// the orbit land one after another, a burst plays, "All set" stays for a
+/// beat, and the home screen opens. The ending always plays in full, and
+/// the screen shows for at least [minimumShow], so a fast opening does not
+/// cut it short.
+///
+/// A failed start retries by itself, up to [maxAttempts] in all, and the
+/// caption says so. Then a glass panel explains what happened and offers
+/// to try again; a missing recovery phrase sends the user back to import
+/// it. If the balances take longer than [syncPatience], the home screen
+/// opens anyway and they arrive there.
 class WalletImportLoadingScreen extends ConsumerStatefulWidget {
   const WalletImportLoadingScreen({super.key});
+
+  /// Starts before the screen asks the user: the first one and two
+  /// automatic retries.
+  static const int maxAttempts = 3;
+
+  /// Wait before an automatic retry, times the number of the attempt.
+  static const Duration retryDelay = Duration(seconds: 2);
+
+  /// Longest wait for the first sync once the wallet is open.
+  static const Duration syncPatience = Duration(seconds: 45);
+
+  /// Wait before the caption says that the first time takes longer.
+  static const Duration slowAfter = Duration(seconds: 12);
+
+  /// The least time the screen shows before the home screen opens.
+  static const Duration minimumShow = Duration(milliseconds: 3500);
+
+  /// How long "All set" stays after the burst.
+  static const Duration doneHold = Duration(milliseconds: 600);
 
   @override
   ConsumerState<WalletImportLoadingScreen> createState() =>
@@ -37,902 +113,607 @@ class WalletImportLoadingScreen extends ConsumerStatefulWidget {
 class _WalletImportLoadingScreenState
     extends ConsumerState<WalletImportLoadingScreen>
     with TickerProviderStateMixin {
-  final List<ImportMessage> _messages = [];
-  int _currentMessageIndex = -1;
-  bool _isCompleted = false;
-  bool _hasError = false;
-  String? _errorMessage;
-  bool _hasInitialized = false;
-  bool _isHandlingSuccess = false;
+  /// The slow cycle of the scene while the wallet opens.
+  late final AnimationController _spin = AnimationController(
+    vsync: this,
+    duration: Motion.durationAmbient * 3,
+  );
+  late final AnimationController _ring = AnimationController(
+    vsync: this,
+    duration: Motion.durationSlow,
+  );
+  late final AnimationController _finale = AnimationController(
+    vsync: this,
+    duration: Motion.durationCelebrate,
+  );
+  late final Map<Asset, AnimationController> _arrivals = {
+    for (final asset in Asset.values)
+      asset: AnimationController(
+        vsync: this,
+        duration: Motion.durationSlow * 2,
+      ),
+  };
 
-  // Phase 2.3.3: V2 boot/sync state tracking. The legacy
-  // per-datasource completion set is gone — V2 has one merged
-  // `AppPhase.ready` signal that covers boot + first sync. We still
-  // track per-chain sync transitions to render the same "synced X"
-  // messages users expect.
-  //
-  // `_shownBootPhases` is the boot-phase analogue of `_completedChains`:
-  // the boot orchestrator emits each `BootPhase` exactly once on the
-  // forward path, but `bootStateProvider` re-delivers the same state to
-  // late subscribers. Guarding by phase prevents a duplicate "Loading
-  // credentials..." line when the listener attaches mid-boot.
-  final _completedChains = <String>{};
-  final _shownBootPhases = <BootPhase>{};
-  bool _bootStartTriggered = false;
-
-  late AnimationController _checkBounceController;
-  late AnimationController _pulseController;
-  late AnimationController _rotationController;
-  late AnimationController _orbitalController;
-  late AnimationController _progressController;
-  late AnimationController _glowController;
+  OpeningStep _step = OpeningStep.opening;
+  OpeningFailure? _failure;
+  bool _retrying = false;
+  bool _slow = false;
+  bool _still = false;
+  bool _started = false;
+  int _attempts = 0;
+  Timer? _retryTimer;
+  Timer? _slowTimer;
+  Timer? _minimumTimer;
+  final Completer<void> _minimumShown = Completer();
+  Timer? _patienceTimer;
 
   @override
-  void initState() {
-    super.initState();
-
-    _checkBounceController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _still = Motion.isReduced(context);
+    if (_started) return;
+    _started = true;
+    if (!_still) _spin.repeat();
+    _minimumTimer = Timer(
+      WalletImportLoadingScreen.minimumShow,
+      _minimumShown.complete,
     );
-
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _rotationController = AnimationController(
-      duration: const Duration(seconds: 4),
-      vsync: this,
-    )..repeat();
-
-    _orbitalController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat();
-
-    _progressController = AnimationController(
-      duration: const Duration(seconds: 20),
-      vsync: this,
-    );
-
-    _glowController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startImportProcess();
+    _slowTimer = Timer(WalletImportLoadingScreen.slowAfter, () {
+      if (mounted) setState(() => _slow = true);
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
   }
 
   @override
   void dispose() {
-    _checkBounceController.dispose();
-    _pulseController.dispose();
-    _rotationController.dispose();
-    _orbitalController.dispose();
-    _progressController.dispose();
-    _glowController.dispose();
+    _retryTimer?.cancel();
+    _slowTimer?.cancel();
+    _minimumTimer?.cancel();
+    _patienceTimer?.cancel();
+    _spin.dispose();
+    _ring.dispose();
+    _finale.dispose();
+    for (final arrival in _arrivals.values) {
+      arrival.dispose();
+    }
     super.dispose();
   }
 
-  /// Render a one-line message for the current `BootPhase`. The boot
-  /// orchestrator walks linearly through the forward phases — every
-  /// transition is interesting to the user, especially on first import
-  /// where each phase can take seconds (FFI init, Electrum connect,
-  /// Breez authentication). Renders one message per distinct phase
-  /// seen; idempotent across re-emits.
-  void _trackBootPhase(BootState state) {
-    final phase = state.phase;
-    if (_shownBootPhases.contains(phase)) return;
-    _shownBootPhases.add(phase);
-
-    final t = AppLocalizations.of(context);
-    final String? label = switch (phase) {
-      BootPhase.initializingPlatform => t.wallet_import_phase_platform,
-      BootPhase.initializingDatabase => t.wallet_import_phase_database,
-      BootPhase.loadingCredentials => t.wallet_import_phase_credentials,
-      BootPhase.connectingServices => t.wallet_import_phase_connecting,
-      BootPhase.authenticatingSession => t.wallet_import_phase_authenticating,
-      // ready / needsSetup / error / idle don't get their own line —
-      // the post-boot sequence (`_handleAllSyncsCompleted`) and the
-      // error-state listener cover those terminal transitions.
-      _ => null,
-    };
-    if (label == null) return;
-    // ignore: unawaited_futures
-    _showMessage(label);
-  }
-
-  /// Per-chain sync progress messaging (2026-05-24 redesign).
-  ///
-  /// Previously this method watched `state.perChain[chain] ==
-  /// ServiceLifecycle.connected`, but that lifecycle flips to
-  /// `connected` during BOOT — the moment each SDK handle is alive,
-  /// well before its first network sync returns. The visible
-  /// consequence was all three "synced X" lines firing simultaneously
-  /// the instant boot finished, so the user perceived the loading
-  /// screen as "going too fast" without actually reflecting the
-  /// per-chain network work.
-  ///
-  /// The orchestrator now exposes a separate signal,
-  /// `SyncState.firstSyncedChains`, which is populated as each chain
-  /// finishes its first sync cycle (success OR failure). Iterating
-  /// THIS set gives one message per chain at the moment that chain
-  /// actually has fresh data sitting in the store.
-  ///
-  /// Idempotent — `_completedChains` guards against duplicate emits
-  /// when `syncStateProvider` re-emits the same state on subsequent
-  /// periodic ticks.
-  void _trackChainSyncProgress(SyncState state) {
-    final t = AppLocalizations.of(context);
-    for (final chain in state.firstSyncedChains) {
-      if (_completedChains.contains(chain.name)) continue;
-      _completedChains.add(chain.name);
-      // ignore: unawaited_futures
-      _showMessage(
-        t.wallet_import_msg_synced(_getChainName(chain.name)),
-      );
-    }
-
-    // Import-screen navigation gate. The cold-start path bypasses this
-    // screen entirely (SplashScreen routes straight to /home on
-    // AppPhase.ready), so the gate here only affects the import flow:
-    // we hold the splash + animations until the chain whose data the
-    // user is most likely to look for first has settled.
-    //
-    // Gate condition: wait specifically for Liquid (LWK). Rationale: LWK
-    // is the source of Liquid assets and swaps, which is the data the
-    // user typically wants to see immediately after importing — Bitcoin
-    // (BDK) txs surface fine via progressive hydration once the home
-    // mounts. If Liquid fails, its entry still lands in
-    // `firstSyncedChains` (the orchestrator counts a failure as "we got
-    // an answer"), so the gate releases.
-    //
-    // Belt-and-suspenders: also release on `phase == cooling`
-    // (everything settled) or `lastError` (all chains hard-failed) so
-    // we never strand the user if Liquid hangs in a non-timeout state.
-    final appState = ref.read(appStateProvider).valueOrNull;
-    final liquidSettled = state.firstSyncedChains.contains(ChainId.liquid);
-    final allSettled = state.phase == SyncPhase.cooling &&
-        (state.lastSuccessAt != null || state.lastError != null);
-    final firstSyncCycleDone =
-        liquidSettled || allSettled || state.lastError != null;
-    if (appState?.phase == AppPhase.ready &&
-        firstSyncCycleDone &&
-        !_isHandlingSuccess &&
-        !_isCompleted) {
-      _handleAllSyncsCompleted();
-    }
-  }
-
-  String _getChainName(String chain) {
-    final t = AppLocalizations.of(context);
-    switch (chain) {
-      case 'liquid':
-        return t.wallet_import_datasource_liquid;
-      case 'bitcoin':
-      case 'bdk':
-        return t.wallet_import_datasource_bitcoin;
-      case 'lightning':
-      case 'breez':
-        return t.wallet_import_datasource_lightning;
-      default:
-        return chain;
-    }
-  }
-
-  /// Progressive hydration: navigate to home as soon as
-  /// `AppLifecycleController` emits `AppPhase.ready`. Boot now reaches
-  /// ready right after services are operational (no longer blocking on
-  /// the full first-sync cycle), and balances / transactions stream
-  /// into the home screen progressively via `watchBalanceFor` /
-  /// `watchTransactions`.
-  ///
-  /// Removed from the blocking gate:
-  /// - Explicit `_refreshBalances()` call — `SyncOrchestrator.start()`
-  ///   already runs an immediate light refresh; the eager `await` here
-  ///   was redundant work that just delayed the splash exit.
-  /// - Awaited `markExistingTransactionsAsKnown()` — kept as a fire-
-  ///   and-forget so new-tx popup dedup still seeds, without gating UI.
-  Future<void> _handleAllSyncsCompleted() async {
-    if (_isCompleted || _isHandlingSuccess) return;
-
-    setState(() => _isHandlingSuccess = true);
-
+  /// Starts the app lifecycle controller: boot, then the first sync. The
+  /// controller is single-flighted, so a start already running joins it.
+  Future<void> _start() async {
     if (!mounted) return;
-    final t = AppLocalizations.of(context);
-
-    // Notification suppression during the import burst used to be a
-    // manual `setImportInProgress(true/false)` flip here. With the
-    // persisted dedup ledger + baseline-absorb pass inside the V2
-    // notifier (2026-05-12 redesign), the notifier handles this
-    // intrinsically: every tx the orchestrator persists during this
-    // window is silently registered without emitting until the user
-    // reaches `/home` (HomeScreen calls `notifier.setHomeReached()`).
-    // No manual UI-driven coordination needed here anymore.
-
-    await _showMessage(t.wallet_import_msg_completed, isCompleted: true);
-    await _checkBounceController.forward();
-
-    setState(() => _isCompleted = true);
-
-    if (mounted) {
-      context.go("/home");
-    }
-  }
-
-  /// Phase 2.3.3: kick the V2 `AppLifecycleController.start()` once.
-  /// The controller drives `BootOrchestrator.start()` then
-  /// `SyncOrchestrator.start()`. Boot phase transitions surface in
-  /// `bootStateProvider`; per-chain sync transitions surface in
-  /// `syncStateProvider`. Both are watched via `ref.listen` in
-  /// `build()` to drive the message stream — no need to chain `await`
-  /// calls here.
-  Future<void> _startImportProcess() async {
-    if (_bootStartTriggered) return;
-    _bootStartTriggered = true;
+    _attempts++;
+    setState(() {
+      _retrying = false;
+      _failure = null;
+    });
     try {
-      _progressController.forward();
-
-      // (Removed: `notifier.setImportInProgress(true)` — the V2
-      // notifier now uses persisted dedup + an internal baseline phase
-      // that is sticky until the user reaches `/home`. See the comment
-      // in `_handleAllSyncsCompleted`.)
-
-      if (!mounted) return;
-
-      // Mark `_hasInitialized` immediately so the error listener in
-      // `build()` arms (it gates on this flag to avoid surfacing
-      // pre-start `AppPhase.error` from a previous run). We no longer
-      // pre-emit hardcoded "processing/verifying/initializing" lines —
-      // every progress message now reflects an actual orchestrator
-      // transition driven by `bootStateProvider` / `syncStateProvider`.
-      setState(() => _hasInitialized = true);
-
-      // The lifecycle controller is single-flighted — concurrent
-      // `start()` calls coalesce into one boot. We don't await the
-      // result here because the message stream is event-driven via
-      // `ref.listen`; the `start()` call returns when boot completes
-      // (or fails), at which point `appStateProvider` already emitted
-      // `AppPhase.ready` (or `AppPhase.error`).
       BootTracer.mark('import_loading.controller.resolve.begin');
-      final controller =
-          await ref.read(appLifecycleControllerProvider.future);
+      final controller = await ref.read(appLifecycleControllerProvider.future);
       BootTracer.mark('import_loading.controller.resolve.end');
       BootTracer.mark('import_loading.controller.start.begin');
-      await controller.start();
+      final result = await controller.start();
       BootTracer.mark('import_loading.controller.start.end');
-    } catch (e) {
       if (!mounted) return;
-      final errorMsg = _getErrorMessage(e);
-      await _showMessage(errorMsg, hasError: true);
-      setState(() {
-        _hasError = true;
-        _errorMessage = errorMsg;
+      result.match(_onFailed, (state) {
+        if (state.phase == AppPhase.needsSetup) {
+          _fail(OpeningFailure.missingPhrase);
+        } else if (state.phase == AppPhase.ready) {
+          _onOpen();
+        }
       });
+    } catch (error) {
+      if (mounted) _onFailed(error);
     }
   }
 
-  Future<void> _showMessage(
-    String text, {
-    bool isCompleted = false,
-    bool hasError = false,
-    bool isRetry = false,
-  }) async {
-    if (_currentMessageIndex >= 0 && _currentMessageIndex < _messages.length) {
-      setState(() {
-        _messages[_currentMessageIndex] = ImportMessage(
-          text: _messages[_currentMessageIndex].text,
-          isCompleted: true,
-          hasError: _messages[_currentMessageIndex].hasError,
-          isRetry: _messages[_currentMessageIndex].isRetry,
-        );
-      });
-    }
-
-    setState(() {
-      _messages.add(
-        ImportMessage(
-          text: text,
-          isCompleted: isCompleted,
-          hasError: hasError,
-          isRetry: isRetry,
-        ),
+  void _onFailed(Object error) {
+    if (_attempts < WalletImportLoadingScreen.maxAttempts) {
+      setState(() => _retrying = true);
+      _retryTimer = Timer(
+        WalletImportLoadingScreen.retryDelay * _attempts,
+        _start,
       );
-      _currentMessageIndex = _messages.length - 1;
-    });
-
-  }
-
-  String _getErrorMessage(dynamic error) {
-    final t = AppLocalizations.of(context);
-    final errorStr = error.toString().toLowerCase();
-
-    if (errorStr.contains('tentando reconectar') ||
-        errorStr.contains('tentativas')) {
-      return t.wallet_import_error_reconnecting;
-    } else if (errorStr.contains('mnemonic')) {
-      return t.wallet_import_error_load_data;
-    } else if (errorStr.contains('network') ||
-        errorStr.contains('connection')) {
-      return t.wallet_import_error_connection;
-    } else if (errorStr.contains('datasource')) {
-      return t.wallet_import_error_servers;
-    } else if (errorStr.contains('nenhum datasource')) {
-      return t.wallet_import_error_servers_unavailable;
+    } else {
+      _fail(OpeningFailure.of(error));
     }
-
-    return t.wallet_import_error_generic;
   }
 
-  String _getUserFriendlyErrorMessage(String? errorMessage) {
-    final t = AppLocalizations.of(context);
-    if (errorMessage == null) return t.wallet_import_error_occurred;
-
-    final errorStr = errorMessage.toLowerCase();
-
-    if (errorStr.contains('tentando reconectar') ||
-        errorStr.contains('tentativas')) {
-      final match = RegExp(r'\((\d+)/(\d+)\)').firstMatch(errorMessage);
-      if (match != null) {
-        return t.wallet_import_error_reconnecting_count(
-          match.group(1) ?? '',
-          match.group(2) ?? '',
-        );
-      }
-      return t.wallet_import_error_reconnecting_servers;
-    } else if (errorStr.contains('nenhum datasource')) {
-      return t.wallet_import_error_no_connection;
-    } else if (errorStr.contains('datasource')) {
-      return t.wallet_import_error_servers_long;
-    } else if (errorStr.contains('network') ||
-        errorStr.contains('connection')) {
-      return t.wallet_import_error_internet;
-    } else if (errorStr.contains('mnemonic')) {
-      return t.wallet_import_error_wallet_data;
-    }
-
-    return errorMessage;
-  }
-
-  void _retry() {
+  void _fail(OpeningFailure failure) {
+    _spin.stop();
+    _patienceTimer?.cancel();
     setState(() {
-      _messages.clear();
-      _currentMessageIndex = -1;
-      _hasError = false;
-      _errorMessage = null;
-      _isCompleted = false;
-      _hasInitialized = false;
-      _isHandlingSuccess = false;
+      _retrying = false;
+      _failure = failure;
     });
-    _progressController.reset();
-    _startImportProcess();
+  }
+
+  /// A new round of attempts, from the panel.
+  void _tryAgain() {
+    _attempts = 0;
+    if (!_still) _spin.repeat();
+    _start();
+  }
+
+  void _onBoot(BootState state) {
+    final step = switch (state.phase) {
+      BootPhase.connectingServices ||
+      BootPhase.authenticatingSession => OpeningStep.connecting,
+      _ => OpeningStep.opening,
+    };
+    if (step == OpeningStep.connecting) _showRing();
+    // A retry boots again: the track does not step back.
+    if (step.index > _step.index) setState(() => _step = step);
+  }
+
+  void _onOpen() {
+    if (_step.index >= OpeningStep.syncing.index) return;
+    _showRing();
+    setState(() => _step = OpeningStep.syncing);
+    _patienceTimer ??= Timer(WalletImportLoadingScreen.syncPatience, _finish);
+    _onSync(ref.read(syncStateProvider).valueOrNull);
+  }
+
+  void _showRing() => _still ? _ring.value = 1 : _ring.forward();
+
+  /// The coins of a chain fly in as it syncs. The home screen waits for
+  /// Liquid, the source of the assets and swaps the user looks for first;
+  /// a failed sync, or a settled cycle, also lets it open, so a stuck
+  /// network never strands the user.
+  void _onSync(SyncState? state) {
+    if (state == null) return;
+    for (final chain in state.firstSyncedChains) {
+      _arrive(chain);
+    }
+    if (_step != OpeningStep.syncing) return;
+    final liquidSettled = state.firstSyncedChains.contains(ChainId.liquid);
+    final allSettled =
+        state.phase == SyncPhase.cooling &&
+        (state.lastSuccessAt != null || state.lastError != null);
+    if (liquidSettled || allSettled || state.lastError != null) _finish();
+  }
+
+  void _arrive(ChainId chain) => _fly(switch (chain) {
+    ChainId.bitcoin => const [Asset.btc],
+    ChainId.liquid => const [Asset.lbtc, Asset.depix, Asset.usdt],
+    _ => const <Asset>[],
+  });
+
+  /// Flies the coins of [assets] still out of the orbit into it, one after
+  /// another.
+  void _fly(Iterable<Asset> assets) {
+    final waiting = [
+      for (final asset in assets)
+        if (_arrivals[asset]!.isDismissed) _arrivals[asset]!,
+    ];
+    for (final (i, arrival) in waiting.indexed) {
+      if (_still) {
+        arrival.value = 1;
+      } else {
+        Future.delayed(Motion.staggerStep * 3 * i, () {
+          if (mounted && arrival.isDismissed) arrival.forward();
+        });
+      }
+    }
+  }
+
+  /// Completes once [arrival] has landed.
+  Future<void> _landed(AnimationController arrival) {
+    if (arrival.isCompleted) return Future.value();
+    final landed = Completer<void>();
+    void onStatus(AnimationStatus status) {
+      if (status != AnimationStatus.completed) return;
+      arrival.removeStatusListener(onStatus);
+      landed.complete();
+    }
+
+    arrival.addStatusListener(onStatus);
+    return landed.future;
+  }
+
+  /// The ending: the coins still out of the orbit land, the burst plays,
+  /// and "All set" stays for a beat, then the home screen opens, once the
+  /// screen has shown for [WalletImportLoadingScreen.minimumShow]. Under
+  /// reduced motion, the home screen opens at once.
+  Future<void> _finish() async {
+    if (_step == OpeningStep.done || _failure != null) return;
+    _patienceTimer?.cancel();
+    _slowTimer?.cancel();
+    setState(() => _step = OpeningStep.done);
+    _fly(Asset.values);
+    if (!_still) {
+      await Future.wait([
+        for (final arrival in _arrivals.values) _landed(arrival),
+      ]);
+      if (!mounted) return;
+      // The picture rests as the burst plays.
+      _spin.stop();
+      HapticFeedback.lightImpact();
+      await _finale.forward();
+      await Future.wait([
+        Future<void>.delayed(WalletImportLoadingScreen.doneHold),
+        _minimumShown.future,
+      ]);
+    } else {
+      HapticFeedback.lightImpact();
+    }
+    if (mounted) context.go('/home');
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
-
-    // Phase 2.3.3: error tracking via V2 `appStateProvider`. Boot
-    // failures surface as `AppPhase.error` with `state.failure`
-    // populated; UI shows a retry-capable error card.
-    ref.listen<AsyncValue<AppState>>(appStateProvider, (previous, next) async {
+    ref.listen<AsyncValue<AppState>>(appStateProvider, (_, next) {
+      if (next.valueOrNull?.phase == AppPhase.ready) _onOpen();
+    });
+    ref.listen<AsyncValue<BootState>>(bootStateProvider, (_, next) {
       final state = next.valueOrNull;
-      if (state == null) return;
-      if (state.phase == AppPhase.error &&
-          _hasInitialized &&
-          !_hasError &&
-          !_isCompleted) {
-        final errorMsg =
-            state.failure?.message ?? t.wallet_import_error_unknown;
-        await _showMessage(_getErrorMessage(errorMsg), hasError: true);
-        setState(() {
-          _hasError = true;
-          _errorMessage = _getUserFriendlyErrorMessage(errorMsg);
-        });
-      }
+      if (state != null) _onBoot(state);
     });
+    ref.listen<AsyncValue<SyncState>>(
+      syncStateProvider,
+      (_, next) => _onSync(next.valueOrNull),
+    );
 
-    // Phase 2.3.3: granular boot-phase progress. The boot orchestrator
-    // emits a distinct `BootPhase` for each step
-    // (initializingPlatform → initializingDatabase → loadingCredentials
-    // → connectingServices → authenticatingSession → ready). Surfacing
-    // each phase to the user matters most on first import where each
-    // step can take seconds (FFI init, Electrum connect, Breez auth).
-    ref.listen<AsyncValue<BootState>>(bootStateProvider, (previous, next) {
-      final bootState = next.valueOrNull;
-      if (bootState == null) return;
-      _trackBootPhase(bootState);
-    });
-
-    // Phase 2.3.3: per-chain "synced X" messages from V2
-    // `syncStateProvider`. When all three operational chains report
-    // `connected` AND the orchestrator is in `cooling`/`idle` (sync
-    // tick has completed at least once), trigger the post-sync
-    // sequence.
-    ref.listen<AsyncValue<SyncState>>(syncStateProvider, (previous, next) {
-      final syncState = next.valueOrNull;
-      if (syncState == null) return;
-      _trackChainSyncProgress(syncState);
-    });
-
-    // Navigation to /home is driven by the sync-completion gate inside
-    // `_trackChainSyncProgress` (called from the syncStateProvider
-    // listener above). We deliberately do NOT auto-fire on
-    // `AppPhase.ready` here — that arrives at boot+~500ms before any
-    // chain has finished its first sync, and navigating then would put
-    // the freshly-imported user on /home with empty balances. The
-    // appStateProvider listener earlier in this `build()` still arms
-    // the error path; navigation itself waits for sync completion.
-
-    return AnimatedOpacity(
-      opacity: _isCompleted ? 0.0 : 1.0,
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.easeOut,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        body: Stack(
-          children: [
-            ...List.generate(20, (index) => _buildParticle(index)),
-
-            if (!_hasError) _buildOrbitalAnimation(),
-
-            if (!_hasError) _buildProgressBar(),
-
-            Positioned(
-              left: 24,
-              bottom: 60,
+    final failure = _failure;
+    return Scaffold(
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackdrop()),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: _buildVisibleMessages(),
-              ),
-            ),
-
-            if (_hasError)
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 32),
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
-                      width: 1.5,
+                children: [
+                  Expanded(
+                    child: AnimatedOpacity(
+                      opacity: failure == null ? 1 : 0.35,
+                      duration: Motion.of(context, Motion.durationBase),
+                      curve: Motion.curveMove,
+                      child: AnimatedBuilder(
+                        animation: Listenable.merge([
+                          _spin,
+                          _ring,
+                          _finale,
+                          ..._arrivals.values,
+                        ]),
+                        builder: (context, _) => OpeningScene(
+                          motion: OpeningMotion(
+                            spin: _spin.value,
+                            ring: _ring.value,
+                            arrivals: {
+                              for (final MapEntry(:key, :value)
+                                  in _arrivals.entries)
+                                key: value.value,
+                            },
+                            finale: _finale.value,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.4),
-                            width: 2,
+                  AnimatedSwitcher(
+                    duration: Motion.of(context, Motion.durationBase),
+                    switchInCurve: Motion.curveEnter,
+                    switchOutCurve: Motion.curveExit,
+                    child: failure == null
+                        ? _Progress(
+                            key: const ValueKey('progress'),
+                            step: _step,
+                            retrying: _retrying,
+                            slow: _slow,
+                            pulse: _spin,
+                          )
+                        : _FailurePanel(
+                            key: ValueKey(failure),
+                            failure: failure,
+                            onRetry: _tryAgain,
+                            onImportAgain: () =>
+                                context.go('/setup/first-access'),
                           ),
-                        ),
-                        child: Icon(
-                          Icons.cloud_off_outlined,
-                          color: Theme.of(context).colorScheme.error,
-                          size: 40,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        _errorMessage ?? t.wallet_import_error_occurred,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        child: TextButton(
-                          onPressed: _retry,
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: Theme.of(context).colorScheme.onSurface,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            t.common_retry,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.surface,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The caption of the step and the step track.
+class _Progress extends StatelessWidget {
+  const _Progress({
+    super.key,
+    required this.step,
+    required this.retrying,
+    required this.slow,
+    required this.pulse,
+  });
+
+  final OpeningStep step;
+  final bool retrying;
+  final bool slow;
+  final Animation<double> pulse;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final title = switch (step) {
+      OpeningStep.opening => t.wallet_open_step_opening,
+      OpeningStep.connecting => t.wallet_open_step_connecting,
+      OpeningStep.syncing => t.wallet_open_step_syncing,
+      OpeningStep.done => t.wallet_open_step_done,
+    };
+    final hint = retrying
+        ? t.wallet_open_retrying
+        : slow
+        ? t.wallet_open_hint_slow
+        : t.wallet_open_hint;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedSwitcher(
+          duration: Motion.of(context, Motion.durationBase),
+          switchInCurve: Motion.curveEnter,
+          switchOutCurve: Motion.curveExit,
+          child: Column(
+            key: ValueKey('$title|$hint'),
+            children: [
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.headlineSmall?.copyWith(
+                    color: context.colors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+              // The hint keeps its height once everything is ready, so the
+              // track does not move.
+              Visibility.maintain(
+                visible: step != OpeningStep.done,
+                child: Text(
+                  hint,
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: context.colors.textSecondary,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        _StepTrack(step: step, pulse: pulse),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+/// Three nodes, one per step: the keys, the networks, and the coins. A
+/// step done fills with the brand color, the step in progress glows, and
+/// the next ones wait in gray.
+class _StepTrack extends StatelessWidget {
+  const _StepTrack({required this.step, required this.pulse});
+
+  final OpeningStep step;
+  final Animation<double> pulse;
+
+  static const _icons = [
+    Icons.key_rounded,
+    Icons.lan_rounded,
+    Icons.toll_rounded,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (i, icon) in _icons.indexed) ...[
+            if (i > 0) _Connector(filled: step.index >= i),
+            _StepNode(
+              icon: icon,
+              state: step == OpeningStep.done || step.index > i
+                  ? _NodeState.done
+                  : step.index == i
+                  ? _NodeState.active
+                  : _NodeState.waiting,
+              pulse: pulse,
+            ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+enum _NodeState { waiting, active, done }
+
+class _StepNode extends StatelessWidget {
+  const _StepNode({
+    required this.icon,
+    required this.state,
+    required this.pulse,
+  });
+
+  final IconData icon;
+  final _NodeState state;
+  final Animation<double> pulse;
+
+  static const double _size = 44;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.colors.primaryColor;
+    final duration = Motion.of(context, Motion.durationBase);
+    final (fill, border, ink) = switch (state) {
+      _NodeState.done => (brand, brand, context.colors.onPrimaryColor),
+      _NodeState.active => (brand.withValues(alpha: 0.14), brand, brand),
+      _NodeState.waiting => (
+        context.colors.textPrimary.withValues(alpha: 0.05),
+        AppSurfaces.hairline(context),
+        context.colors.textSecondary,
+      ),
+    };
+    return AnimatedBuilder(
+      animation: pulse,
+      builder: (context, child) {
+        // The step in progress breathes with the scene.
+        final glow = state == _NodeState.active
+            ? 0.18 + 0.14 * math.sin(6 * math.pi * pulse.value)
+            : 0.0;
+        return AnimatedContainer(
+          duration: duration,
+          curve: Motion.curveMove,
+          width: _size,
+          height: _size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: fill,
+            border: Border.all(color: border, width: 1.5),
+            boxShadow: [
+              if (glow > 0)
+                BoxShadow(
+                  color: brand.withValues(alpha: glow),
+                  blurRadius: 16,
+                  spreadRadius: 1,
+                ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: TweenAnimationBuilder<Color?>(
+        tween: ColorTween(end: ink),
+        duration: duration,
+        builder: (context, color, _) => Icon(icon, size: 22, color: color),
+      ),
+    );
+  }
+}
+
+/// The line between two nodes. It fills as the step before it is done.
+class _Connector extends StatelessWidget {
+  const _Connector({required this.filled});
+
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: context.colors.textPrimary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(1),
+      ),
+      alignment: Alignment.centerLeft,
+      child: AnimatedFractionallySizedBox(
+        duration: Motion.of(context, Motion.durationEmphasis),
+        curve: Motion.curveMove,
+        widthFactor: filled ? 1 : 0,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: context.colors.primaryColor,
+            borderRadius: BorderRadius.circular(1),
+          ),
+          child: const SizedBox.expand(),
         ),
       ),
     );
   }
+}
 
-  Widget _buildProgressBar() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: AnimatedBuilder(
-        animation: _progressController,
-        builder: (context, child) {
-          return Container(
-            height: 3,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
-                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
-                  Colors.transparent,
-                ],
-                stops: [0.0, 0.4, 0.5, 0.6, 1.0],
-                begin: Alignment(-1.0 + (_progressController.value * 2), 0),
-                end: Alignment(1.0 + (_progressController.value * 2), 0),
-              ),
-            ),
-          );
-        },
+/// What went wrong, in a glass panel, with the way forward: try again,
+/// or import the wallet again when its phrase is missing.
+class _FailurePanel extends StatelessWidget {
+  const _FailurePanel({
+    super.key,
+    required this.failure,
+    required this.onRetry,
+    required this.onImportAgain,
+  });
+
+  final OpeningFailure failure;
+  final VoidCallback onRetry;
+  final VoidCallback onImportAgain;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final (icon, message) = switch (failure) {
+      OpeningFailure.connection => (
+        Icons.wifi_off_rounded,
+        t.wallet_open_error_connection,
       ),
-    );
-  }
-
-  Widget _buildOrbitalAnimation() {
-    return Center(
-      child: AnimatedBuilder(
-        animation: Listenable.merge([
-          _orbitalController,
-          _pulseController,
-          _glowController,
-        ]),
-        builder: (context, child) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 200 + (_glowController.value * 20),
-                height: 200 + (_glowController.value * 20),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(
-                        alpha: 0.1 * _glowController.value,
-                      ),
-                      blurRadius: 60,
-                      spreadRadius: 10,
-                    ),
-                  ],
-                ),
-              ),
-              Transform.rotate(
-                angle: _orbitalController.value * 2 * math.pi,
-                child: Container(
-                  width: 160,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Transform.rotate(
-                angle: -_orbitalController.value * 2 * math.pi * 1.5,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                                  blurRadius: 6,
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                width: 40 + (_pulseController.value * 10),
-                height: 40 + (_pulseController.value * 10),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(
-                    alpha: 0.15 + (_pulseController.value * 0.1),
-                  ),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(
-                      alpha: 0.4 + (_pulseController.value * 0.2),
-                    ),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(
-                        alpha: 0.2 * _pulseController.value,
-                      ),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
+      OpeningFailure.missingPhrase => (
+        Icons.key_off_rounded,
+        t.wallet_open_error_missing,
       ),
-    );
-  }
-
-  Widget _buildParticle(int index) {
-    final random = math.Random(index);
-    final startX = random.nextDouble();
-    final startY = random.nextDouble();
-    final duration = 3000 + random.nextInt(4000);
-    final size = 2.0 + random.nextDouble() * 3;
-
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: Duration(milliseconds: duration),
-      builder: (context, double value, child) {
-        return Positioned(
-          left: MediaQuery.of(context).size.width * startX,
-          top: MediaQuery.of(context).size.height * (startY - value * 0.3) % 1,
-          child: Opacity(
-            opacity: (0.3 + (math.sin(value * math.pi * 2) * 0.3)).clamp(
-              0.0,
-              0.6,
-            ),
+      OpeningFailure.other => (
+        Icons.error_outline_rounded,
+        t.wallet_open_error_generic,
+      ),
+    };
+    final missing = failure == OpeningFailure.missingPhrase;
+    return GlassPanel(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
             child: Container(
-              width: size,
-              height: size,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurface,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
-                    blurRadius: 4,
-                  ),
-                ],
+                color: context.colors.textPrimary.withValues(alpha: 0.06),
+                border: Border.all(color: AppSurfaces.hairline(context)),
+              ),
+              child: Icon(icon, size: 26, color: context.colors.textSecondary),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Semantics(
+            liveRegion: true,
+            header: true,
+            child: Text(
+              t.wallet_open_error_title,
+              textAlign: TextAlign.center,
+              style: context.textTheme.titleLarge?.copyWith(
+                color: context.colors.textPrimary,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-        );
-      },
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: context.colors.textSecondary,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 20),
+          PrimaryButton(
+            text: missing ? t.wallet_open_import_again : t.common_retry,
+            onPressed: missing ? onImportAgain : onRetry,
+          ),
+        ],
+      ),
     );
   }
-
-  static const int _maxVisibleMessages = 4;
-
-  double _opacityForDepth(int depthFromNewest) {
-    const opacities = <double>[1.0, 0.55, 0.3, 0.12];
-    if (depthFromNewest < 0) return opacities.first;
-    if (depthFromNewest >= opacities.length) return 0.0;
-    return opacities[depthFromNewest];
-  }
-
-  List<Widget> _buildVisibleMessages() {
-    final total = _messages.length;
-    final start = math.max(0, total - _maxVisibleMessages);
-    return [
-      for (int i = start; i < total; i++)
-        _buildMessageItem(_messages[i], i, (total - 1) - i),
-    ];
-  }
-
-  Widget _buildMessageItem(
-    ImportMessage message,
-    int globalIndex,
-    int depthFromNewest,
-  ) {
-    final isRetryMessage = message.isRetry;
-    final depthOpacity =
-        message.hasError ? 1.0 : _opacityForDepth(depthFromNewest);
-
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('import_msg_$globalIndex'),
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeOutCubic,
-      builder: (context, entry, child) {
-        return Opacity(
-          opacity: entry,
-          child: ClipRect(
-            child: Align(
-              alignment: Alignment.topLeft,
-              heightFactor: entry,
-              child: Transform.translate(
-                offset: Offset((entry - 1) * 24, 0),
-                child: child,
-              ),
-            ),
-          ),
-        );
-      },
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
-        opacity: depthOpacity,
-        child: IntrinsicWidth(
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color:
-                      message.hasError
-                          ? Theme.of(context).colorScheme.error.withValues(alpha: 0.1)
-                          : isRetryMessage
-                          ? context.appColors.warning.withValues(alpha: 0.1)
-                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color:
-                        message.hasError
-                            ? Theme.of(context).colorScheme.error.withValues(alpha: 0.3)
-                            : isRetryMessage
-                            ? context.appColors.warning.withValues(alpha: 0.3)
-                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (message.isCompleted && !message.hasError) ...[
-                      TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.elasticOut,
-                        builder: (context, value, child) {
-                          return Transform.scale(
-                            scale: value,
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              margin: const EdgeInsets.only(right: 12),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(
-                                      alpha: 0.3 * value,
-                                    ),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.check,
-                                color: Theme.of(context).colorScheme.surface,
-                                size: 18,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ] else if (isRetryMessage) ...[
-                      Container(
-                        width: 28,
-                        height: 28,
-                        margin: const EdgeInsets.only(right: 12),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            context.appColors.warning.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ),
-                    ] else if (!message.hasError) ...[
-                      Container(
-                        width: 28,
-                        height: 28,
-                        margin: const EdgeInsets.only(right: 12),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ),
-                    ],
-                    Flexible(
-                      child: Text(
-                        message.text,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color:
-                              message.hasError
-                                  ? Theme.of(context).colorScheme.error
-                                  : isRetryMessage
-                                  ? context.appColors.warning
-                                  : Theme.of(context).colorScheme.onSurface,
-                          fontWeight:
-                              message.isCompleted
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      }
 }
