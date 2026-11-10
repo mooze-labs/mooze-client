@@ -442,6 +442,66 @@ abstract class AppLocalizations {
   /// **'AJUDA'**
   String get settings_section_help;
 
+  /// No description provided for @settings_section_advanced.
+  ///
+  /// In pt, this message translates to:
+  /// **'AVANÇADO'**
+  String get settings_section_advanced;
+
+  /// No description provided for @settings_low_fee.
+  ///
+  /// In pt, this message translates to:
+  /// **'Taxa econômica'**
+  String get settings_low_fee;
+
+  /// No description provided for @settings_fees.
+  ///
+  /// In pt, this message translates to:
+  /// **'Taxas'**
+  String get settings_fees;
+
+  /// No description provided for @low_fee_toggle_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Permitir taxa econômica'**
+  String get low_fee_toggle_title;
+
+  /// No description provided for @low_fee_toggle_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostra a velocidade Econômica ao confirmar um swap entre ativos'**
+  String get low_fee_toggle_subtitle;
+
+  /// No description provided for @custom_fee_toggle_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Permitir taxa personalizada'**
+  String get custom_fee_toggle_title;
+
+  /// No description provided for @custom_fee_toggle_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostra a opção Personalizada na velocidade de um envio em Bitcoin on-chain'**
+  String get custom_fee_toggle_subtitle;
+
+  /// No description provided for @low_fee_warning_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativar taxa econômica?'**
+  String get low_fee_warning_title;
+
+  /// No description provided for @low_fee_warning_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Com a taxa econômica, a transação Bitcoin pode levar horas ou até dias para confirmar, e o swap só termina depois disso. Se a rede descartar a transação antes de confirmar, o valor é devolvido para a sua carteira e você precisa fazer o swap de novo.'**
+  String get low_fee_warning_message;
+
+  /// No description provided for @low_fee_warning_confirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativar'**
+  String get low_fee_warning_confirm;
+
   /// No description provided for @settings_view_recovery_phrase.
   ///
   /// In pt, this message translates to:
@@ -643,7 +703,7 @@ abstract class AppLocalizations {
   /// No description provided for @node_config_mode_default_subtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Usa os servidores recomendados pelo sistema, com fallback automático entre Bitcoin, Liquid e Lightning.'**
+  /// **'Usa os servidores recomendados pelo sistema, com fallback automático entre Bitcoin e Liquid.'**
   String get node_config_mode_default_subtitle;
 
   /// No description provided for @node_config_mode_custom_title.
@@ -699,12 +759,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Formato: host:porta. O LWK usa TLS automaticamente. Deixe vazio para usar o node padrão.'**
   String get node_config_liquid_helper;
-
-  /// No description provided for @node_config_lightning_note.
-  ///
-  /// In pt, this message translates to:
-  /// **'O node Lightning é gerenciado automaticamente pelo Breez SDK e não pode ser personalizado.'**
-  String get node_config_lightning_note;
 
   /// No description provided for @node_config_fallback_toggle_title.
   ///
@@ -1089,6 +1143,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Use sua biometria ou senha do dispositivo para redefinir o PIN'**
   String get pin_reset_biometric_reason;
+
+  /// No description provided for @pin_digits_entered.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} de {total} dígitos digitados'**
+  String pin_digits_entered(int count, int total);
 
   /// No description provided for @theme_system.
   ///
@@ -2599,7 +2659,7 @@ abstract class AppLocalizations {
   /// No description provided for @receive_info_step2_desc.
   ///
   /// In pt, this message translates to:
-  /// **'Bitcoin (on-chain), Lightning ou Liquid'**
+  /// **'Bitcoin (on-chain) ou Liquid'**
   String get receive_info_step2_desc;
 
   /// No description provided for @receive_info_step3_title.
@@ -2707,7 +2767,7 @@ abstract class AppLocalizations {
   /// No description provided for @receive_asset_hint_lbtc.
   ///
   /// In pt, this message translates to:
-  /// **'Bitcoin L2 suporta Lightning e Liquid'**
+  /// **'L-BTC é o Bitcoin da rede Liquid'**
   String get receive_asset_hint_lbtc;
 
   /// No description provided for @receive_asset_hint_liquid_only.
@@ -3159,6 +3219,60 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'~10 min'**
   String get wallet_fee_fast_eta;
+
+  /// No description provided for @wallet_fee_custom.
+  ///
+  /// In pt, this message translates to:
+  /// **'Personalizada'**
+  String get wallet_fee_custom;
+
+  /// No description provided for @wallet_fee_custom_choose.
+  ///
+  /// In pt, this message translates to:
+  /// **'Definir taxa'**
+  String get wallet_fee_custom_choose;
+
+  /// No description provided for @wallet_fee_custom_rate_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Taxa em sat/vB'**
+  String get wallet_fee_custom_rate_label;
+
+  /// No description provided for @wallet_fee_custom_decrease.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diminuir taxa'**
+  String get wallet_fee_custom_decrease;
+
+  /// No description provided for @wallet_fee_custom_increase.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aumentar taxa'**
+  String get wallet_fee_custom_increase;
+
+  /// No description provided for @wallet_fee_custom_eta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmação estimada: {eta}'**
+  String wallet_fee_custom_eta(String eta);
+
+  /// No description provided for @wallet_fee_custom_below_relay.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abaixo de 1 sat/vB, nem todos os nós repassam a transação. O envio pode ser recusado ou demorar muito para confirmar.'**
+  String get wallet_fee_custom_below_relay;
+
+  /// No description provided for @wallet_fee_custom_below_low.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abaixo da Econômica ({rate} sat/vB). A confirmação pode levar horas ou dias.'**
+  String wallet_fee_custom_below_low(int rate);
+
+  /// No description provided for @wallet_fee_custom_above_fast.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bem acima da Rápida ({rate} sat/vB). Você pode pagar mais do que precisa.'**
+  String wallet_fee_custom_above_fast(int rate);
 
   /// No description provided for @tx_confirmed_title.
   ///
@@ -3619,7 +3733,7 @@ abstract class AppLocalizations {
   /// No description provided for @pix_floating_rate_body.
   ///
   /// In pt, this message translates to:
-  /// **'Importante: o LBTC tem variação de preço.\nPor isso, o valor em reais que você recebe pode ser diferente do valor esperado.\nA conversão para reais usa a cotação do momento da finalização.'**
+  /// **'Importante: o L-BTC tem variação de preço.\nPor isso, o valor em reais que você recebe pode ser diferente do valor esperado.\nA conversão para reais usa a cotação do momento da finalização.'**
   String get pix_floating_rate_body;
 
   /// No description provided for @pix_dont_show_again.
@@ -4423,7 +4537,7 @@ abstract class AppLocalizations {
   /// No description provided for @refund_test_real_tx_type.
   ///
   /// In pt, this message translates to:
-  /// **'🔹 Tipo: Peg In (BTC → LBTC)'**
+  /// **'🔹 Tipo: Peg In (BTC → L-BTC)'**
   String get refund_test_real_tx_type;
 
   /// No description provided for @refund_test_real_tx_id.
@@ -4441,7 +4555,7 @@ abstract class AppLocalizations {
   /// No description provided for @refund_test_real_tx_expected.
   ///
   /// In pt, this message translates to:
-  /// **'🔹 Valor esperado: 52172 sats (LBTC)'**
+  /// **'🔹 Valor esperado: 52172 sats (L-BTC)'**
   String get refund_test_real_tx_expected;
 
   /// No description provided for @refund_test_real_tx_date.
@@ -4549,13 +4663,13 @@ abstract class AppLocalizations {
   /// No description provided for @qr_validation_lightning_unsupported_symbols.
   ///
   /// In pt, this message translates to:
-  /// **'Lightning com símbolos especiais (₿, #, \$) não é suportado'**
+  /// **'Lightning não é suportado. Use um endereço Bitcoin ou Liquid.'**
   String get qr_validation_lightning_unsupported_symbols;
 
   /// No description provided for @qr_validation_lnurl_bip353_unsupported.
   ///
   /// In pt, this message translates to:
-  /// **'Formato LNURL BIP 353 não é suportado no momento. Use um endereço Lightning válido ou LNURL de walletofsatoshi.com'**
+  /// **'Endereços Lightning e LNURL não são suportados. Use um endereço Bitcoin ou Liquid.'**
   String get qr_validation_lnurl_bip353_unsupported;
 
   /// No description provided for @qr_validation_boltz_invalid.
@@ -4597,13 +4711,13 @@ abstract class AppLocalizations {
   /// No description provided for @qr_validation_lightning_unsupported.
   ///
   /// In pt, this message translates to:
-  /// **'Lightning não é suportado para envio'**
+  /// **'Lightning não é suportado para envio. Use um endereço Bitcoin ou Liquid.'**
   String get qr_validation_lightning_unsupported;
 
   /// No description provided for @qr_validation_lnurl_unsupported.
   ///
   /// In pt, this message translates to:
-  /// **'LNURL não suportado. Use walletofsatoshi.com ou outro provedor compatível'**
+  /// **'LNURL não é suportado. Use um endereço Bitcoin ou Liquid.'**
   String get qr_validation_lnurl_unsupported;
 
   /// No description provided for @qr_validation_invalid_default.
@@ -4681,7 +4795,7 @@ abstract class AppLocalizations {
   /// No description provided for @setup_seed_12_desc.
   ///
   /// In pt, this message translates to:
-  /// **'Mais prática e rápida de configurar. Recomendada\npara iniciantes ou quem prefere simplicidade sem\nabrir mão da segurança.'**
+  /// **'Mais prática e rápida de configurar. Recomendada para iniciantes ou quem prefere simplicidade sem abrir mão da segurança.'**
   String get setup_seed_12_desc;
 
   /// No description provided for @setup_seed_24_title.
@@ -4693,7 +4807,7 @@ abstract class AppLocalizations {
   /// No description provided for @setup_seed_24_desc.
   ///
   /// In pt, this message translates to:
-  /// **'Proporciona mais segurança. Recomendada para\nquem deseja proteger valores maiores ou busca o\nmáximo de segurança.'**
+  /// **'Proporciona mais segurança. Recomendada para quem deseja proteger valores maiores ou busca o máximo de segurança.'**
   String get setup_seed_24_desc;
 
   /// No description provided for @setup_generate_seed_button.
@@ -4759,25 +4873,25 @@ abstract class AppLocalizations {
   /// No description provided for @setup_import_instruction_body.
   ///
   /// In pt, this message translates to:
-  /// **'Digite cada palavra da sua seed phrase (12 ou 24 palavras). O sistema oferecerá sugestões BIP39 conforme você digita. Pressione espaço ou clique para confirmar cada palavra.'**
+  /// **'As 12 ou 24 palavras, na ordem em que você anotou. As sugestões aparecem enquanto você digita.'**
   String get setup_import_instruction_body;
 
   /// No description provided for @setup_import_seed_valid.
   ///
   /// In pt, this message translates to:
-  /// **'Seed phrase válida! Pronta para importar.'**
+  /// **'Frase válida! Pronta para importar.'**
   String get setup_import_seed_valid;
 
   /// No description provided for @setup_import_checksum_invalid.
   ///
   /// In pt, this message translates to:
-  /// **'Checksum inválido. Verifique as palavras.'**
+  /// **'Alguma palavra não confere. Revise a ordem e a grafia.'**
   String get setup_import_checksum_invalid;
 
   /// No description provided for @setup_import_tip.
   ///
   /// In pt, this message translates to:
-  /// **'Dica: Pressione espaço para confirmar a primeira sugestão rapidamente'**
+  /// **'Dica: toque em espaço para aceitar a primeira sugestão.'**
   String get setup_import_tip;
 
   /// No description provided for @setup_import_button.
@@ -4825,7 +4939,7 @@ abstract class AppLocalizations {
   /// No description provided for @setup_input_hint_default.
   ///
   /// In pt, this message translates to:
-  /// **'Digite uma palavra BIP39...'**
+  /// **'Digite uma palavra…'**
   String get setup_input_hint_default;
 
   /// No description provided for @setup_progress_label.
@@ -5049,6 +5163,78 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Erro desconhecido'**
   String get wallet_import_error_unknown;
+
+  /// No description provided for @wallet_open_step_opening.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrindo sua carteira'**
+  String get wallet_open_step_opening;
+
+  /// No description provided for @wallet_open_step_connecting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conectando com segurança'**
+  String get wallet_open_step_connecting;
+
+  /// No description provided for @wallet_open_step_syncing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscando seus saldos'**
+  String get wallet_open_step_syncing;
+
+  /// No description provided for @wallet_open_step_done.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tudo pronto!'**
+  String get wallet_open_step_done;
+
+  /// No description provided for @wallet_open_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Isso leva só alguns instantes.'**
+  String get wallet_open_hint;
+
+  /// No description provided for @wallet_open_hint_slow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Na primeira vez pode demorar um pouco mais.'**
+  String get wallet_open_hint_slow;
+
+  /// No description provided for @wallet_open_retrying.
+  ///
+  /// In pt, this message translates to:
+  /// **'A conexão oscilou. Tentando de novo…'**
+  String get wallet_open_retrying;
+
+  /// No description provided for @wallet_open_error_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não conseguimos abrir sua carteira'**
+  String get wallet_open_error_title;
+
+  /// No description provided for @wallet_open_error_connection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Verifique sua conexão com a internet e tente novamente.'**
+  String get wallet_open_error_connection;
+
+  /// No description provided for @wallet_open_error_generic.
+  ///
+  /// In pt, this message translates to:
+  /// **'Algo deu errado ao abrir sua carteira. Tente novamente em instantes.'**
+  String get wallet_open_error_generic;
+
+  /// No description provided for @wallet_open_error_missing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não encontramos sua frase de recuperação neste aparelho. Importe sua carteira de novo para continuar.'**
+  String get wallet_open_error_missing;
+
+  /// No description provided for @wallet_open_import_again.
+  ///
+  /// In pt, this message translates to:
+  /// **'Importar de novo'**
+  String get wallet_open_import_again;
 
   /// No description provided for @send_pix_appbar.
   ///
@@ -5296,11 +5482,65 @@ abstract class AppLocalizations {
   /// **'Ações'**
   String get cpf_favorites_actions;
 
+  /// No description provided for @cpf_favorites_own_badge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meu usuário'**
+  String get cpf_favorites_own_badge;
+
+  /// No description provided for @cpf_favorites_own_mark.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar como meu usuário'**
+  String get cpf_favorites_own_mark;
+
+  /// No description provided for @cpf_favorites_own_unmark.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desmarcar meu usuário'**
+  String get cpf_favorites_own_unmark;
+
+  /// No description provided for @cpf_favorites_own_marked.
+  ///
+  /// In pt, this message translates to:
+  /// **'{name} agora é o seu usuário nos depósitos.'**
+  String cpf_favorites_own_marked(String name);
+
+  /// No description provided for @cpf_favorites_own_unmarked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem um pagador marcado como \"Meu usuário\", não é possível depositar.'**
+  String get cpf_favorites_own_unmarked;
+
+  /// No description provided for @cpf_favorites_own_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marque como \"Meu usuário\" o titular da conta bancária que paga os seus depósitos. Os depósitos usam o CPF/CNPJ dele e só começam com um pagador marcado.'**
+  String get cpf_favorites_own_hint;
+
+  /// No description provided for @cpf_favorites_own_check_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este pagador sou eu'**
+  String get cpf_favorites_own_check_title;
+
+  /// No description provided for @cpf_favorites_own_check_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marca como \"Meu usuário\": os seus depósitos passam a usar este CPF/CNPJ.'**
+  String get cpf_favorites_own_check_subtitle;
+
   /// No description provided for @cpf_favorites_error.
   ///
   /// In pt, this message translates to:
   /// **'Não foi possível carregar os pagadores'**
   String get cpf_favorites_error;
+
+  /// No description provided for @cpf_favorites_save_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível salvar o pagador. Tente novamente.'**
+  String get cpf_favorites_save_error;
 
   /// No description provided for @cpf_favorites_removed.
   ///
@@ -5707,13 +5947,13 @@ abstract class AppLocalizations {
   /// No description provided for @pix_info_lbtc_variation_title.
   ///
   /// In pt, this message translates to:
-  /// **'Variação de câmbio (LBTC)'**
+  /// **'Variação de câmbio (L-BTC)'**
   String get pix_info_lbtc_variation_title;
 
   /// No description provided for @pix_info_lbtc_variation_body.
   ///
   /// In pt, this message translates to:
-  /// **'Ao escolher receber em LBTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.'**
+  /// **'Ao escolher receber em L-BTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.'**
   String get pix_info_lbtc_variation_body;
 
   /// No description provided for @pix_info_fees_title.
@@ -5913,138 +6153,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Agora você já sabe usar todas as funcionalidades do Modo Comerciante. Pronto para começar?'**
   String get merchant_tutorial_done_body;
-
-  /// No description provided for @pix_tutorial_step1_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'Receba pagamentos com PIX'**
-  String get pix_tutorial_step1_title;
-
-  /// No description provided for @pix_tutorial_step1_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Toque aqui para acessar a área PIX e começar a receber pagamentos rapidamente.'**
-  String get pix_tutorial_step1_body;
-
-  /// No description provided for @pix_tutorial_step2_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'Acesso rápido'**
-  String get pix_tutorial_step2_title;
-
-  /// No description provided for @pix_tutorial_step2_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Você também pode acessar a área PIX por este atalho disponível em todo o aplicativo.'**
-  String get pix_tutorial_step2_body;
-
-  /// No description provided for @pix_tutorial_step3_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'Como você recebe pagamentos'**
-  String get pix_tutorial_step3_title;
-
-  /// No description provided for @pix_tutorial_step3_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Por padrão, os pagamentos são recebidos em DEPIX, um ativo digital atrelado 1:1 ao Real. Cada 1 DEPIX equivale a R\$1,00.'**
-  String get pix_tutorial_step3_body;
-
-  /// No description provided for @pix_tutorial_step4_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'Escolha outro ativo'**
-  String get pix_tutorial_step4_title;
-
-  /// No description provided for @pix_tutorial_step4_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Se preferir, você pode alterar o ativo de recebimento e receber pagamentos diretamente em Liquid Bitcoin (L-BTC).'**
-  String get pix_tutorial_step4_body;
-
-  /// No description provided for @pix_tutorial_step5_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'Converta quando quiser'**
-  String get pix_tutorial_step5_title;
-
-  /// No description provided for @pix_tutorial_step5_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Mesmo recebendo pagamentos em DEPIX, você pode converter seu saldo para L-BTC ou USDT depois, usando a tela de Swap.'**
-  String get pix_tutorial_step5_body;
-
-  /// No description provided for @pix_tutorial_step6_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'Seu limite de recebimento'**
-  String get pix_tutorial_step6_title;
-
-  /// No description provided for @pix_tutorial_step6_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Confira seus limites mínimos, máximos e o limite diário. Seus limites podem aumentar conforme o uso do aplicativo.'**
-  String get pix_tutorial_step6_body;
-
-  /// No description provided for @pix_tutorial_step7_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'Informe o valor'**
-  String get pix_tutorial_step7_title;
-
-  /// No description provided for @pix_tutorial_step7_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Escolha o valor que deseja receber. Para este tutorial, usaremos R\$50,00 como exemplo.'**
-  String get pix_tutorial_step7_body;
-
-  /// No description provided for @pix_tutorial_step8_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'Gere uma cobrança PIX'**
-  String get pix_tutorial_step8_title;
-
-  /// No description provided for @pix_tutorial_step8_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Depois de informar um valor, basta arrastar este botão até o fim para criar uma solicitação de pagamento PIX.'**
-  String get pix_tutorial_step8_body;
-
-  /// No description provided for @pix_tutorial_step9_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'QR Code pronto'**
-  String get pix_tutorial_step9_title;
-
-  /// No description provided for @pix_tutorial_step9_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Após arrastar o botão, um QR Code PIX será gerado.'**
-  String get pix_tutorial_step9_body;
-
-  /// No description provided for @pix_tutorial_done_title.
-  ///
-  /// In pt, this message translates to:
-  /// **'Tutorial concluído'**
-  String get pix_tutorial_done_title;
-
-  /// No description provided for @pix_tutorial_done_body.
-  ///
-  /// In pt, this message translates to:
-  /// **'Agora você sabe como receber pagamentos com PIX, escolher seu ativo de recebimento, entender os limites e gerar QR Codes de pagamento.'**
-  String get pix_tutorial_done_body;
-
-  /// No description provided for @pix_tutorial_restart.
-  ///
-  /// In pt, this message translates to:
-  /// **'Reiniciar tutorial'**
-  String get pix_tutorial_restart;
-
-  /// No description provided for @pix_tutorial_settings_replay.
-  ///
-  /// In pt, this message translates to:
-  /// **'Rever tutorial do PIX'**
-  String get pix_tutorial_settings_replay;
 
   /// No description provided for @merchant_default_product_name.
   ///
@@ -6736,6 +6844,30 @@ abstract class AppLocalizations {
   /// **'Esperado'**
   String get tx_detail_expected;
 
+  /// No description provided for @tx_step_created.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criada'**
+  String get tx_step_created;
+
+  /// No description provided for @tx_step_detected.
+  ///
+  /// In pt, this message translates to:
+  /// **'Detectada'**
+  String get tx_step_detected;
+
+  /// No description provided for @tx_step_on_network.
+  ///
+  /// In pt, this message translates to:
+  /// **'Na rede'**
+  String get tx_step_on_network;
+
+  /// No description provided for @tx_step_converting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convertendo'**
+  String get tx_step_converting;
+
   /// No description provided for @tx_type_redeposit.
   ///
   /// In pt, this message translates to:
@@ -6970,41 +7102,107 @@ abstract class AppLocalizations {
   /// **'Suporte'**
   String get main_settings_support;
 
+  /// No description provided for @onboarding_1_eyebrow.
+  ///
+  /// In pt, this message translates to:
+  /// **'BITCOIN E LIQUID'**
+  String get onboarding_1_eyebrow;
+
   /// No description provided for @onboarding_1_title.
   ///
   /// In pt, this message translates to:
-  /// **'Seu dinheiro, sob seu controle'**
+  /// **'Uma carteira só sua'**
   String get onboarding_1_title;
+
+  /// No description provided for @onboarding_1_highlight.
+  ///
+  /// In pt, this message translates to:
+  /// **'só sua'**
+  String get onboarding_1_highlight;
 
   /// No description provided for @onboarding_1_body.
   ///
   /// In pt, this message translates to:
-  /// **'Receba, envie e gerencie Bitcoin com privacidade real. Uma carteira feita pra quem valoriza liberdade.'**
+  /// **'Guarde Bitcoin, L-BTC, DePix e USDt em um único lugar. Ninguém além de você tem acesso.'**
   String get onboarding_1_body;
+
+  /// No description provided for @onboarding_2_eyebrow.
+  ///
+  /// In pt, this message translates to:
+  /// **'PIX'**
+  String get onboarding_2_eyebrow;
 
   /// No description provided for @onboarding_2_title.
   ///
   /// In pt, this message translates to:
-  /// **'Segurança em primeiro lugar'**
+  /// **'O Pix agora fala Bitcoin'**
   String get onboarding_2_title;
+
+  /// No description provided for @onboarding_2_highlight.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bitcoin'**
+  String get onboarding_2_highlight;
 
   /// No description provided for @onboarding_2_body.
   ///
   /// In pt, this message translates to:
-  /// **'Sua chave, sua responsabilidade. Proteja seu patrimônio com criptografia e backups locais.'**
+  /// **'Compre com Pix, pague qualquer chave ou QR Code com seu saldo e crie links de cobrança.'**
   String get onboarding_2_body;
+
+  /// No description provided for @onboarding_3_eyebrow.
+  ///
+  /// In pt, this message translates to:
+  /// **'SWAP'**
+  String get onboarding_3_eyebrow;
 
   /// No description provided for @onboarding_3_title.
   ///
   /// In pt, this message translates to:
-  /// **'Pronto para começar?'**
+  /// **'Seu dinheiro, em diferentes moedas'**
   String get onboarding_3_title;
+
+  /// No description provided for @onboarding_3_highlight.
+  ///
+  /// In pt, this message translates to:
+  /// **'diferentes moedas'**
+  String get onboarding_3_highlight;
 
   /// No description provided for @onboarding_3_body.
   ///
   /// In pt, this message translates to:
-  /// **'Crie ou importe sua carteira em segundos e assuma o controle do seu Bitcoin.'**
+  /// **'Troque entre Bitcoin, L-BTC, DePix e USDt diretamente pelo app, sem precisar usar várias plataformas.'**
   String get onboarding_3_body;
+
+  /// No description provided for @onboarding_4_eyebrow.
+  ///
+  /// In pt, this message translates to:
+  /// **'SEGURANÇA'**
+  String get onboarding_4_eyebrow;
+
+  /// No description provided for @onboarding_4_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só você tem a chave'**
+  String get onboarding_4_title;
+
+  /// No description provided for @onboarding_4_highlight.
+  ///
+  /// In pt, this message translates to:
+  /// **'você'**
+  String get onboarding_4_highlight;
+
+  /// No description provided for @onboarding_4_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suas palavras de recuperação ficam só com você. Guarde-as bem: com elas você recupera tudo em qualquer celular.'**
+  String get onboarding_4_body;
+
+  /// No description provided for @onboarding_skip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pular'**
+  String get onboarding_skip;
 
   /// No description provided for @first_access_create_wallet.
   ///
@@ -7077,6 +7275,72 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nível de usuário'**
   String get level_user_label;
+
+  /// No description provided for @level_name_bronze.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bronze'**
+  String get level_name_bronze;
+
+  /// No description provided for @level_name_silver.
+  ///
+  /// In pt, this message translates to:
+  /// **'Prata'**
+  String get level_name_silver;
+
+  /// No description provided for @level_name_gold.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ouro'**
+  String get level_name_gold;
+
+  /// No description provided for @level_name_diamond.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diamante'**
+  String get level_name_diamond;
+
+  /// No description provided for @level_up_badge.
+  ///
+  /// In pt, this message translates to:
+  /// **'SUBIU DE NÍVEL!'**
+  String get level_up_badge;
+
+  /// No description provided for @level_up_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você subiu de nível!'**
+  String get level_up_title;
+
+  /// No description provided for @level_up_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Continue assim para desbloquear ainda mais benefícios!'**
+  String get level_up_message;
+
+  /// No description provided for @level_down_badge.
+  ///
+  /// In pt, this message translates to:
+  /// **'NÍVEL REDUZIDO'**
+  String get level_down_badge;
+
+  /// No description provided for @level_down_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu nível foi reduzido'**
+  String get level_down_title;
+
+  /// No description provided for @level_down_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Isso acontece quando a carteira fica inativa por um tempo. Mas não se preocupe — você pode recuperar o nível usando o app.'**
+  String get level_down_message;
+
+  /// No description provided for @level_down_tip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dica: use a carteira regularmente para recuperar seus benefícios e subir de nível novamente.'**
+  String get level_down_tip;
 
   /// No description provided for @level_desc_bronze.
   ///
@@ -7359,6 +7623,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Operação não autorizada'**
   String get sync_error_warning;
+
+  /// No description provided for @status_banner_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para ver detalhes'**
+  String get status_banner_hint;
+
+  /// No description provided for @status_island_sync.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sync'**
+  String get status_island_sync;
+
+  /// No description provided for @status_island_sync_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro'**
+  String get status_island_sync_error;
 
   /// No description provided for @pin_create_title.
   ///
@@ -7765,7 +8047,7 @@ abstract class AppLocalizations {
   /// No description provided for @wallet_send_lbtc_disclaimer_body.
   ///
   /// In pt, this message translates to:
-  /// **'Para enviar ativos (Bitcoin L2, DePIX ou USDT), você precisa manter um saldo de Bitcoin L2 na sua carteira.'**
+  /// **'Para enviar ativos (L-BTC, DePIX ou USDT), você precisa manter um saldo de L-BTC na sua carteira.'**
   String get wallet_send_lbtc_disclaimer_body;
 
   /// No description provided for @wallet_send_lbtc_network_fees_title.
@@ -7777,31 +8059,31 @@ abstract class AppLocalizations {
   /// No description provided for @wallet_send_lbtc_network_fees_desc.
   ///
   /// In pt, this message translates to:
-  /// **'O saldo de Bitcoin L2 é usado para pagar as taxas dos mineradores da rede Liquid.'**
+  /// **'O saldo de L-BTC é usado para pagar as taxas dos mineradores da rede Liquid.'**
   String get wallet_send_lbtc_network_fees_desc;
 
   /// No description provided for @wallet_send_lbtc_obtain_title.
   ///
   /// In pt, this message translates to:
-  /// **'Como obter Bitcoin L2'**
+  /// **'Como obter L-BTC'**
   String get wallet_send_lbtc_obtain_title;
 
   /// No description provided for @wallet_send_lbtc_obtain_desc_disclaimer.
   ///
   /// In pt, this message translates to:
-  /// **'Use a função SWAP ou receba Bitcoin via Lightning ou Liquid.'**
+  /// **'Use a função SWAP ou receba L-BTC pela rede Liquid.'**
   String get wallet_send_lbtc_obtain_desc_disclaimer;
 
   /// No description provided for @wallet_send_lbtc_obtain_desc_info.
   ///
   /// In pt, this message translates to:
-  /// **'Use a função SWAP para converter Bitcoin (Lightning ou on-chain) em Bitcoin L2 diretamente no aplicativo.'**
+  /// **'Use a função SWAP para converter Bitcoin on-chain em L-BTC diretamente no aplicativo.'**
   String get wallet_send_lbtc_obtain_desc_info;
 
   /// No description provided for @wallet_send_lbtc_disclaimer_tip.
   ///
   /// In pt, this message translates to:
-  /// **'Mantenha um pequeno saldo de Bitcoin L2 para garantir que suas transações sejam processadas.'**
+  /// **'Mantenha um pequeno saldo de L-BTC para garantir que suas transações sejam processadas.'**
   String get wallet_send_lbtc_disclaimer_tip;
 
   /// No description provided for @wallet_send_lbtc_disclaimer_understood_countdown.
@@ -7819,25 +8101,25 @@ abstract class AppLocalizations {
   /// No description provided for @wallet_send_lbtc_info_step1_title.
   ///
   /// In pt, this message translates to:
-  /// **'Bitcoin L2 para taxas de rede'**
+  /// **'L-BTC para taxas de rede'**
   String get wallet_send_lbtc_info_step1_title;
 
   /// No description provided for @wallet_send_lbtc_info_step1_desc.
   ///
   /// In pt, this message translates to:
-  /// **'Para enviar DePIX, USDT ou qualquer ativo da rede Liquid, você precisa ter Bitcoin L2 (Liquid Bitcoin) na carteira. Ele é usado para pagar os mineradores da rede.'**
+  /// **'Para enviar DePIX, USDT ou qualquer ativo da rede Liquid, você precisa ter L-BTC (Liquid Bitcoin) na carteira. Ele é usado para pagar os mineradores da rede.'**
   String get wallet_send_lbtc_info_step1_desc;
 
   /// No description provided for @wallet_send_lbtc_info_step3_title.
   ///
   /// In pt, this message translates to:
-  /// **'Receba via Lightning ou Liquid'**
+  /// **'Receba via Liquid'**
   String get wallet_send_lbtc_info_step3_title;
 
   /// No description provided for @wallet_send_lbtc_info_step3_desc.
   ///
   /// In pt, this message translates to:
-  /// **'Receba Bitcoin via Lightning Network ou Liquid para obter Bitcoin L2 na sua carteira sem usar o SWAP.'**
+  /// **'Receba L-BTC diretamente pela rede Liquid, sem usar o SWAP.'**
   String get wallet_send_lbtc_info_step3_desc;
 
   /// No description provided for @wallet_send_lbtc_go_swap.
@@ -7846,16 +8128,46 @@ abstract class AppLocalizations {
   /// **'Ir para SWAP'**
   String get wallet_send_lbtc_go_swap;
 
+  /// No description provided for @wallet_send_custom_fee_info_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Taxa personalizada no Bitcoin'**
+  String get wallet_send_custom_fee_info_title;
+
+  /// No description provided for @wallet_send_custom_fee_info_off_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em envios de Bitcoin on-chain, você pode definir a taxa em sat/vB em vez de escolher uma velocidade. Ative a opção nas configurações de taxas.'**
+  String get wallet_send_custom_fee_info_off_desc;
+
+  /// No description provided for @wallet_send_custom_fee_info_on_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em envios de Bitcoin on-chain, toque em Personalizada, abaixo das velocidades, para definir a taxa em sat/vB.'**
+  String get wallet_send_custom_fee_info_on_desc;
+
+  /// No description provided for @wallet_send_custom_fee_turn_on.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativar taxa personalizada'**
+  String get wallet_send_custom_fee_turn_on;
+
+  /// No description provided for @wallet_send_custom_fee_configure.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configurar taxa personalizada'**
+  String get wallet_send_custom_fee_configure;
+
   /// No description provided for @wallet_send_lbtc_insufficient_title.
   ///
   /// In pt, this message translates to:
-  /// **'Bitcoin L2 insuficiente'**
+  /// **'L-BTC insuficiente'**
   String get wallet_send_lbtc_insufficient_title;
 
   /// No description provided for @wallet_send_lbtc_insufficient_body.
   ///
   /// In pt, this message translates to:
-  /// **'Você precisa de Bitcoin L2 para pagar as taxas dos mineradores ao enviar {asset}:'**
+  /// **'Você precisa de L-BTC para pagar as taxas dos mineradores ao enviar {asset}:'**
   String wallet_send_lbtc_insufficient_body(String asset);
 
   /// No description provided for @wallet_send_lbtc_insufficient_swap_prefix.
@@ -7867,25 +8179,25 @@ abstract class AppLocalizations {
   /// No description provided for @wallet_send_lbtc_insufficient_swap_suffix.
   ///
   /// In pt, this message translates to:
-  /// **' para obter Bitcoin L2'**
+  /// **' para obter L-BTC'**
   String get wallet_send_lbtc_insufficient_swap_suffix;
 
-  /// No description provided for @wallet_send_lbtc_insufficient_lightning.
+  /// No description provided for @wallet_send_lbtc_insufficient_receive.
   ///
   /// In pt, this message translates to:
-  /// **'Receba Bitcoin via Lightning ou Liquid para obter Bitcoin L2'**
-  String get wallet_send_lbtc_insufficient_lightning;
+  /// **'Receba L-BTC diretamente pela rede Liquid'**
+  String get wallet_send_lbtc_insufficient_receive;
 
   /// No description provided for @wallet_send_lbtc_banner_title.
   ///
   /// In pt, this message translates to:
-  /// **'Bitcoin L2 necessário para taxas'**
+  /// **'L-BTC necessário para taxas'**
   String get wallet_send_lbtc_banner_title;
 
   /// No description provided for @wallet_send_lbtc_banner_body.
   ///
   /// In pt, this message translates to:
-  /// **'Para enviar DePIX ou USDT, você precisa ter Bitcoin L2 na carteira para pagar as taxas da rede.'**
+  /// **'Para enviar DePIX ou USDT, você precisa ter L-BTC na carteira para pagar as taxas da rede.'**
   String get wallet_send_lbtc_banner_body;
 
   /// No description provided for @wallet_send_lbtc_banner_action.
@@ -7963,7 +8275,7 @@ abstract class AppLocalizations {
   /// No description provided for @wallet_send_review_lbtc_insufficient_error.
   ///
   /// In pt, this message translates to:
-  /// **'Saldo de Bitcoin L2 insuficiente para taxas.\n\nPara enviar {asset}, você precisa de Bitcoin L2 para pagar os mineradores da rede. Use a função SWAP ou receba Bitcoin via Lightning ou Liquid.'**
+  /// **'Saldo de L-BTC insuficiente para taxas.\n\nPara enviar {asset}, você precisa de L-BTC para pagar os mineradores da rede. Use a função SWAP ou receba L-BTC pela rede Liquid.'**
   String wallet_send_review_lbtc_insufficient_error(String asset);
 
   /// No description provided for @wallet_send_review_insufficient_error.
@@ -8023,13 +8335,13 @@ abstract class AppLocalizations {
   /// No description provided for @wallet_send_error_asset_liquid_only.
   ///
   /// In pt, this message translates to:
-  /// **'{asset} só pode ser enviado pela rede Liquid ou Lightning'**
+  /// **'{asset} só pode ser enviado pela rede Liquid'**
   String wallet_send_error_asset_liquid_only(String asset);
 
   /// No description provided for @wallet_send_error_liquid_only.
   ///
   /// In pt, this message translates to:
-  /// **'Para enviar ativos Liquid use Bitcoin L2, Depix ou USDT'**
+  /// **'Para enviar ativos Liquid use L-BTC, Depix ou USDT'**
   String get wallet_send_error_liquid_only;
 
   /// No description provided for @wallet_send_error_amount_positive.
@@ -8302,17 +8614,35 @@ abstract class AppLocalizations {
   /// **'{count}/2 selecionados'**
   String wallet_all_assets_favorite_count(int count);
 
-  /// No description provided for @wallet_asset_chart_title.
+  /// No description provided for @wallet_all_assets_pinned.
   ///
   /// In pt, this message translates to:
-  /// **'Gráfico - {period}'**
-  String wallet_asset_chart_title(String period);
+  /// **'Na tela inicial'**
+  String get wallet_all_assets_pinned;
 
-  /// No description provided for @wallet_asset_chart_unavailable.
+  /// No description provided for @wallet_all_assets_others.
   ///
   /// In pt, this message translates to:
-  /// **'Gráfico Indisponível'**
-  String get wallet_asset_chart_unavailable;
+  /// **'Mais ativos'**
+  String get wallet_all_assets_others;
+
+  /// No description provided for @wallet_all_assets_pin_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marque até 2 ativos com a estrela para vê-los na tela inicial.'**
+  String get wallet_all_assets_pin_hint;
+
+  /// No description provided for @wallet_all_assets_pin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostrar na tela inicial'**
+  String get wallet_all_assets_pin;
+
+  /// No description provided for @wallet_all_assets_unpin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover da tela inicial'**
+  String get wallet_all_assets_unpin;
 
   /// No description provided for @wallet_asset_chart_load_error.
   ///
@@ -8332,11 +8662,161 @@ abstract class AppLocalizations {
   /// **'Mínima'**
   String get wallet_asset_stats_low;
 
-  /// No description provided for @wallet_asset_stats_current.
+  /// No description provided for @wallet_portfolio_history_title.
   ///
   /// In pt, this message translates to:
-  /// **'Atual'**
-  String get wallet_asset_stats_current;
+  /// **'Histórico da carteira'**
+  String get wallet_portfolio_history_title;
+
+  /// No description provided for @wallet_portfolio_history_note.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor dos seus ativos atuais ao longo do período, aos preços de cada momento.'**
+  String get wallet_portfolio_history_note;
+
+  /// No description provided for @wallet_asset_stats_open.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abertura'**
+  String get wallet_asset_stats_open;
+
+  /// No description provided for @wallet_asset_offline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dados offline'**
+  String get wallet_asset_offline;
+
+  /// No description provided for @offline_price_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'App offline'**
+  String get offline_price_title;
+
+  /// No description provided for @offline_price_saved.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preços salvos'**
+  String get offline_price_saved;
+
+  /// No description provided for @offline_price_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum preço salvo disponível'**
+  String get offline_price_empty;
+
+  /// No description provided for @offline_price_load_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar informações de cache'**
+  String get offline_price_load_error;
+
+  /// No description provided for @offline_price_no_cache.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem cache'**
+  String get offline_price_no_cache;
+
+  /// No description provided for @offline_price_age_unknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem dados'**
+  String get offline_price_age_unknown;
+
+  /// No description provided for @offline_price_fresh.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recente'**
+  String get offline_price_fresh;
+
+  /// No description provided for @offline_price_old.
+  ///
+  /// In pt, this message translates to:
+  /// **'Antigo'**
+  String get offline_price_old;
+
+  /// No description provided for @offline_price_very_old.
+  ///
+  /// In pt, this message translates to:
+  /// **'Muito antigo'**
+  String get offline_price_very_old;
+
+  /// No description provided for @offline_price_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os preços serão atualizados automaticamente quando a conexão for restaurada'**
+  String get offline_price_hint;
+
+  /// No description provided for @wallet_asset_period_day.
+  ///
+  /// In pt, this message translates to:
+  /// **'24 horas'**
+  String get wallet_asset_period_day;
+
+  /// No description provided for @wallet_asset_period_week.
+  ///
+  /// In pt, this message translates to:
+  /// **'7 dias'**
+  String get wallet_asset_period_week;
+
+  /// No description provided for @wallet_asset_period_month.
+  ///
+  /// In pt, this message translates to:
+  /// **'30 dias'**
+  String get wallet_asset_period_month;
+
+  /// No description provided for @wallet_asset_chart_semantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preço de {asset} em {period}: de {from} para {to}, {change}'**
+  String wallet_asset_chart_semantics(
+    String asset,
+    String period,
+    String from,
+    String to,
+    String change,
+  );
+
+  /// No description provided for @wallet_asset_chart_range_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque e segure para medir um intervalo'**
+  String get wallet_asset_chart_range_hint;
+
+  /// No description provided for @wallet_asset_range_start.
+  ///
+  /// In pt, this message translates to:
+  /// **'Início'**
+  String get wallet_asset_range_start;
+
+  /// No description provided for @wallet_asset_range_end.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fim'**
+  String get wallet_asset_range_end;
+
+  /// No description provided for @wallet_asset_range_clear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar intervalo'**
+  String get wallet_asset_range_clear;
+
+  /// No description provided for @wallet_asset_range_hours.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 hora} other{{count} horas}}'**
+  String wallet_asset_range_hours(int count);
+
+  /// No description provided for @wallet_asset_range_days.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 dia} other{{count} dias}}'**
+  String wallet_asset_range_days(int count);
+
+  /// No description provided for @wallet_asset_range_days_hours.
+  ///
+  /// In pt, this message translates to:
+  /// **'{days} d {hours} h'**
+  String wallet_asset_range_days_hours(int days, int hours);
 
   /// No description provided for @wallet_holding_appbar_title.
   ///
@@ -8437,13 +8917,13 @@ abstract class AppLocalizations {
   /// No description provided for @pix_receive_info_step2_title.
   ///
   /// In pt, this message translates to:
-  /// **'Variação de câmbio (LBTC)'**
+  /// **'Variação de câmbio (L-BTC)'**
   String get pix_receive_info_step2_title;
 
   /// No description provided for @pix_receive_info_step2_desc.
   ///
   /// In pt, this message translates to:
-  /// **'Ao escolher receber em LBTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.'**
+  /// **'Ao escolher receber em L-BTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.'**
   String get pix_receive_info_step2_desc;
 
   /// No description provided for @pix_receive_info_step3_title.
@@ -9199,13 +9679,13 @@ abstract class AppLocalizations {
   /// No description provided for @converting_details_direction_peg_in.
   ///
   /// In pt, this message translates to:
-  /// **'Peg-in (BTC on-chain → LBTC)'**
+  /// **'Peg-in (BTC on-chain → L-BTC)'**
   String get converting_details_direction_peg_in;
 
   /// No description provided for @converting_details_direction_peg_out.
   ///
   /// In pt, this message translates to:
-  /// **'Peg-out (LBTC → BTC on-chain)'**
+  /// **'Peg-out (L-BTC → BTC on-chain)'**
   String get converting_details_direction_peg_out;
 
   /// No description provided for @converting_details_sent.
@@ -9283,13 +9763,13 @@ abstract class AppLocalizations {
   /// No description provided for @converting_details_explanation_broadcasted_peg_in.
   ///
   /// In pt, this message translates to:
-  /// **'Seu bloqueio de Bitcoin foi transmitido. Assim que confirmar, o serviço de chain-swap irá reivindicá-lo e enviar LBTC para sua carteira.'**
+  /// **'Seu bloqueio de Bitcoin foi transmitido. Assim que confirmar, o serviço de chain-swap irá reivindicá-lo e enviar L-BTC para sua carteira.'**
   String get converting_details_explanation_broadcasted_peg_in;
 
   /// No description provided for @converting_details_explanation_broadcasted_peg_out.
   ///
   /// In pt, this message translates to:
-  /// **'Seu LBTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.'**
+  /// **'Seu L-BTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.'**
   String get converting_details_explanation_broadcasted_peg_out;
 
   /// No description provided for @converting_details_explanation_failed.
@@ -9397,7 +9877,7 @@ abstract class AppLocalizations {
   /// No description provided for @swap_btc_lbtc_warning_intro.
   ///
   /// In pt, this message translates to:
-  /// **'Informações importantes sobre o swap BTC para LBTC:'**
+  /// **'Informações importantes sobre o swap BTC para L-BTC:'**
   String get swap_btc_lbtc_warning_intro;
 
   /// No description provided for @swap_btc_lbtc_warning_cross_chain.
@@ -10234,6 +10714,18 @@ abstract class AppLocalizations {
   /// **'Receber de outra pessoa'**
   String get pix_hub_receive_from_others;
 
+  /// No description provided for @pix_hub_receive_qr.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cobrar com QR Code'**
+  String get pix_hub_receive_qr;
+
+  /// No description provided for @pix_hub_receive_qr_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informe o valor e o CPF/CNPJ de quem paga para gerar o QR Code.'**
+  String get pix_hub_receive_qr_subtitle;
+
   /// No description provided for @pix_hub_receive_create_charge.
   ///
   /// In pt, this message translates to:
@@ -10492,10 +10984,64 @@ abstract class AppLocalizations {
   /// **'Expirado'**
   String get pix_hub_link_status_expired;
 
+  /// No description provided for @pix_hub_link_status_revoked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desativado'**
+  String get pix_hub_link_status_revoked;
+
+  /// No description provided for @pix_hub_link_no_reference.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link de pagamento'**
+  String get pix_hub_link_no_reference;
+
+  /// No description provided for @pix_hub_link_asset_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receber em'**
+  String get pix_hub_link_asset_title;
+
+  /// No description provided for @pix_hub_link_asset_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebe em'**
+  String get pix_hub_link_asset_label;
+
+  /// No description provided for @pix_hub_link_revoke.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desativar link'**
+  String get pix_hub_link_revoke;
+
+  /// No description provided for @pix_hub_link_revoke_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desativar este link?'**
+  String get pix_hub_link_revoke_title;
+
+  /// No description provided for @pix_hub_link_revoke_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ninguém mais poderá pagar por este link. Pagamentos já iniciados continuam.'**
+  String get pix_hub_link_revoke_body;
+
+  /// No description provided for @pix_hub_link_revoke_confirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desativar'**
+  String get pix_hub_link_revoke_confirm;
+
+  /// No description provided for @pix_hub_link_revoked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link desativado.'**
+  String get pix_hub_link_revoked;
+
   /// No description provided for @pix_hub_link_disclaimer.
   ///
   /// In pt, this message translates to:
-  /// **'O endereço é fictício e não abre uma página de pagamento real.'**
+  /// **'Quem abre o link paga com Pix, e o valor chega na sua carteira no ativo escolhido.'**
   String get pix_hub_link_disclaimer;
 
   /// No description provided for @pix_hub_history_filter_all.
@@ -10819,7 +11365,7 @@ abstract class AppLocalizations {
   /// No description provided for @pix_hub_deposit_gate_subtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Informe o CPF da conta bancária que vai pagar e confirme o aviso abaixo.'**
+  /// **'Os depósitos usam o CPF/CNPJ do pagador marcado como \"Meu usuário\". Confira-o e confirme o aviso abaixo.'**
   String get pix_hub_deposit_gate_subtitle;
 
   /// No description provided for @pix_hub_deposit_cpf_hint.
@@ -10855,20 +11401,62 @@ abstract class AppLocalizations {
   /// No description provided for @pix_hub_deposit_cpf_stored_label.
   ///
   /// In pt, this message translates to:
-  /// **'CPF informado'**
+  /// **'CPF/CNPJ do pagador'**
   String get pix_hub_deposit_cpf_stored_label;
 
   /// No description provided for @pix_hub_deposit_cpf_missing.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhum CPF informado.'**
+  /// **'Nenhum pagador marcado como \"Meu usuário\".'**
   String get pix_hub_deposit_cpf_missing;
 
   /// No description provided for @pix_hub_deposit_change_cpf.
   ///
   /// In pt, this message translates to:
-  /// **'Alterar CPF'**
+  /// **'Alterar pagador'**
   String get pix_hub_deposit_change_cpf;
+
+  /// No description provided for @pix_deposit_own_payer_required_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastre seu CPF/CNPJ'**
+  String get pix_deposit_own_payer_required_title;
+
+  /// No description provided for @pix_deposit_own_payer_required_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para depositar, cadastre em Pagadores favoritos o CPF/CNPJ do titular da conta que paga os seus depósitos e marque-o como \"Meu usuário\".'**
+  String get pix_deposit_own_payer_required_body;
+
+  /// No description provided for @pix_deposit_own_payer_required_action.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir para Pagadores favoritos'**
+  String get pix_deposit_own_payer_required_action;
+
+  /// No description provided for @pix_deposit_own_payer_step_add_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastre o titular da conta'**
+  String get pix_deposit_own_payer_step_add_title;
+
+  /// No description provided for @pix_deposit_own_payer_step_add_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em Pagadores favoritos, adicione o CPF/CNPJ do titular da conta bancária que paga os seus depósitos.'**
+  String get pix_deposit_own_payer_step_add_body;
+
+  /// No description provided for @pix_deposit_own_payer_step_mark_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marque como \"Meu usuário\"'**
+  String get pix_deposit_own_payer_step_mark_title;
+
+  /// No description provided for @pix_deposit_own_payer_step_mark_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'No menu desse pagador, toque em \"Marcar como meu usuário\". Os depósitos passam a usar o documento dele.'**
+  String get pix_deposit_own_payer_step_mark_body;
 
   /// No description provided for @pix_hub_pending_deposits.
   ///
@@ -11025,6 +11613,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'O provedor Pix recusou o envio. Confira se a chave pertence ao CPF/CNPJ informado.'**
   String get pix_hub_failure_provider_refused;
+
+  /// No description provided for @pix_hub_failure_provider_refused_reason.
+  ///
+  /// In pt, this message translates to:
+  /// **'O provedor Pix recusou o envio. Nenhum valor saiu da sua carteira. Motivo informado pelo provedor: {reason}'**
+  String pix_hub_failure_provider_refused_reason(String reason);
+
+  /// No description provided for @pix_hub_failure_daily_limit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este envio passa do limite diário de {limit} que o provedor Pix aceita para esta chave. Nenhum valor saiu da sua carteira. Tente um valor menor ou envie amanhã.'**
+  String pix_hub_failure_daily_limit(String limit);
+
+  /// No description provided for @pix_hub_failure_daily_limit_no_amount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este envio passa do limite diário que o provedor Pix aceita para esta chave. Nenhum valor saiu da sua carteira. Tente um valor menor ou envie amanhã.'**
+  String get pix_hub_failure_daily_limit_no_amount;
 
   /// No description provided for @pix_hub_failure_outcome_unknown.
   ///
@@ -11451,6 +12057,48 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Documento válido'**
   String get pix_hub_tax_id_valid;
+
+  /// No description provided for @pix_deposits_empty_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum depósito PIX encontrado'**
+  String get pix_deposits_empty_title;
+
+  /// No description provided for @pix_deposits_empty_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seus depósitos PIX aparecerão aqui'**
+  String get pix_deposits_empty_message;
+
+  /// No description provided for @pix_deposits_load_error_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao carregar depósitos PIX'**
+  String get pix_deposits_load_error_title;
+
+  /// No description provided for @pix_deposits_load_error_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tente novamente mais tarde'**
+  String get pix_deposits_load_error_message;
+
+  /// No description provided for @offline_indicator_tooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'App está offline - usando preços em cache'**
+  String get offline_indicator_tooltip;
+
+  /// No description provided for @update_version_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Versão {version}'**
+  String update_version_label(String version);
+
+  /// No description provided for @human_verification_payment_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagamento de verificação'**
+  String get human_verification_payment_label;
 }
 
 class _AppLocalizationsDelegate

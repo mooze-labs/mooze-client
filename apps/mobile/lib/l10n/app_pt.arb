@@ -71,6 +71,16 @@
   "settings_section_legal": "LEGAL",
   "settings_section_developer": "DESENVOLVEDOR",
   "settings_section_help": "AJUDA",
+  "settings_section_advanced": "AVANÇADO",
+  "settings_low_fee": "Taxa econômica",
+  "settings_fees": "Taxas",
+  "low_fee_toggle_title": "Permitir taxa econômica",
+  "low_fee_toggle_subtitle": "Mostra a velocidade Econômica ao confirmar um swap entre ativos",
+  "custom_fee_toggle_title": "Permitir taxa personalizada",
+  "custom_fee_toggle_subtitle": "Mostra a opção Personalizada na velocidade de um envio em Bitcoin on-chain",
+  "low_fee_warning_title": "Ativar taxa econômica?",
+  "low_fee_warning_message": "Com a taxa econômica, a transação Bitcoin pode levar horas ou até dias para confirmar, e o swap só termina depois disso. Se a rede descartar a transação antes de confirmar, o valor é devolvido para a sua carteira e você precisa fazer o swap de novo.",
+  "low_fee_warning_confirm": "Ativar",
   "settings_view_recovery_phrase": "Ver frase de recuperação",
   "settings_change_pin": "Mudar PIN",
   "settings_biometric_auth": "Autenticação biométrica",
@@ -104,7 +114,7 @@
   "node_config_section_custom": "ENDPOINTS",
   "node_config_section_advanced": "AVANÇADO",
   "node_config_mode_default_title": "Modo padrão",
-  "node_config_mode_default_subtitle": "Usa os servidores recomendados pelo sistema, com fallback automático entre Bitcoin, Liquid e Lightning.",
+  "node_config_mode_default_subtitle": "Usa os servidores recomendados pelo sistema, com fallback automático entre Bitcoin e Liquid.",
   "node_config_mode_custom_title": "Modo personalizado",
   "node_config_mode_custom_subtitle": "Avançado — conecte-se aos seus próprios servidores Electrum.",
   "node_config_advanced_warning": "Configure apenas se você sabe o que está fazendo. URLs inválidas podem impedir o app de sincronizar.",
@@ -114,7 +124,6 @@
   "node_config_liquid_label": "Endpoint Liquid Network",
   "node_config_liquid_hint": "seu-node.tld:50002",
   "node_config_liquid_helper": "Formato: host:porta. O LWK usa TLS automaticamente. Deixe vazio para usar o node padrão.",
-  "node_config_lightning_note": "O node Lightning é gerenciado automaticamente pelo Breez SDK e não pode ser personalizado.",
   "node_config_fallback_toggle_title": "Permitir fallback automático",
   "node_config_fallback_toggle_subtitle": "Se o seu node falhar, o app tenta automaticamente os servidores padrão.",
   "node_config_save": "Salvar configurações",
@@ -207,6 +216,17 @@
   "pin_biometric_unavailable": "Biometria ou senha do sistema não disponível.",
   "pin_biometric_access_reason": "Use sua biometria para acessar sua carteira",
   "pin_reset_biometric_reason": "Use sua biometria ou senha do dispositivo para redefinir o PIN",
+  "pin_digits_entered": "{count} de {total} dígitos digitados",
+  "@pin_digits_entered": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "theme_system": "Sistema",
   "theme_light": "Claro",
   "theme_dark": "Escuro",
@@ -556,7 +576,7 @@
   "receive_info_step1_title": "Selecione o ativo",
   "receive_info_step1_desc": "Escolha qual criptomoeda você deseja receber",
   "receive_info_step2_title": "Escolha a rede",
-  "receive_info_step2_desc": "Bitcoin (on-chain), Lightning ou Liquid",
+  "receive_info_step2_desc": "Bitcoin (on-chain) ou Liquid",
   "receive_info_step3_title": "Gere o QR code",
   "receive_info_step3_desc": "Compartilhe com quem vai enviar o pagamento",
   "receive_info_close_hint": "Toque fora desta área para fechar",
@@ -581,7 +601,7 @@
   "receive_select_asset": "Selecione um ativo",
   "receive_select_network": "Selecione a rede",
   "receive_asset_hint_btc": "Bitcoin on-chain é a única rede disponível para BTC",
-  "receive_asset_hint_lbtc": "Bitcoin L2 suporta Lightning e Liquid",
+  "receive_asset_hint_lbtc": "L-BTC é o Bitcoin da rede Liquid",
   "receive_asset_hint_liquid_only": "{name} suporta apenas rede Liquid",
   "@receive_asset_hint_liquid_only": {
     "placeholders": {
@@ -692,6 +712,36 @@
   "wallet_fee_normal_eta": "~30 min",
   "wallet_fee_fast": "Rápida",
   "wallet_fee_fast_eta": "~10 min",
+  "wallet_fee_custom": "Personalizada",
+  "wallet_fee_custom_choose": "Definir taxa",
+  "wallet_fee_custom_rate_label": "Taxa em sat/vB",
+  "wallet_fee_custom_decrease": "Diminuir taxa",
+  "wallet_fee_custom_increase": "Aumentar taxa",
+  "wallet_fee_custom_eta": "Confirmação estimada: {eta}",
+  "@wallet_fee_custom_eta": {
+    "placeholders": {
+      "eta": {
+        "type": "String"
+      }
+    }
+  },
+  "wallet_fee_custom_below_relay": "Abaixo de 1 sat/vB, nem todos os nós repassam a transação. O envio pode ser recusado ou demorar muito para confirmar.",
+  "wallet_fee_custom_below_low": "Abaixo da Econômica ({rate} sat/vB). A confirmação pode levar horas ou dias.",
+  "@wallet_fee_custom_below_low": {
+    "placeholders": {
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
+  "wallet_fee_custom_above_fast": "Bem acima da Rápida ({rate} sat/vB). Você pode pagar mais do que precisa.",
+  "@wallet_fee_custom_above_fast": {
+    "placeholders": {
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
   "tx_confirmed_title": "Transação Confirmada!",
   "tx_received_asset": "Você recebeu {ticker}",
   "@tx_received_asset": {
@@ -823,7 +873,7 @@
   "pix_processing_unavailable": "Não é possível processar transações PIX no momento. Por favor, tente novamente mais tarde.",
   "pix_select_asset": "Selecione um ativo",
   "pix_floating_rate_title": "Câmbio Flutuante",
-  "pix_floating_rate_body": "Importante: o LBTC tem variação de preço.\nPor isso, o valor em reais que você recebe pode ser diferente do valor esperado.\nA conversão para reais usa a cotação do momento da finalização.",
+  "pix_floating_rate_body": "Importante: o L-BTC tem variação de preço.\nPor isso, o valor em reais que você recebe pode ser diferente do valor esperado.\nA conversão para reais usa a cotação do momento da finalização.",
   "pix_dont_show_again": "Não exibir novamente",
   "pix_disclaimer_header": "Para uma melhor experiência PIX:",
   "pix_disclaimer_max_consecutive": "Máx. 3 PIX consecutivos do mesmo titular em 30 min.",
@@ -1023,10 +1073,10 @@
   },
   "refund_test_flow_button": "Testar Fluxo de Refund (Mock SDK)",
   "refund_test_real_tx_title": "Sobre a Transação Real",
-  "refund_test_real_tx_type": "🔹 Tipo: Peg In (BTC → LBTC)",
+  "refund_test_real_tx_type": "🔹 Tipo: Peg In (BTC → L-BTC)",
   "refund_test_real_tx_id": "🔹 TX ID: 5e2159e9b5fbf7023b2800...",
   "refund_test_real_tx_sent": "🔹 Valor enviado: 52574 sats (402 sats de taxa)",
-  "refund_test_real_tx_expected": "🔹 Valor esperado: 52172 sats (LBTC)",
+  "refund_test_real_tx_expected": "🔹 Valor esperado: 52172 sats (L-BTC)",
   "refund_test_real_tx_date": "🔹 Data: 04/02/2026 às 00:17:10",
   "refund_test_real_tx_lockup": "🔹 Lockup TX: 2622dd4f5a1c69f7cea5...",
   "refund_test_real_tx_address": "🔹 Endereço: bc1p62e2r4jnr3v985uqk...",
@@ -1065,16 +1115,16 @@
   "qr_scanner_camera_label": "Câmera",
   "qr_validation_empty": "QR code vazio",
   "qr_validation_unrecognized": "Formato de QR code não reconhecido",
-  "qr_validation_lightning_unsupported_symbols": "Lightning com símbolos especiais (₿, #, $) não é suportado",
-  "qr_validation_lnurl_bip353_unsupported": "Formato LNURL BIP 353 não é suportado no momento. Use um endereço Lightning válido ou LNURL de walletofsatoshi.com",
+  "qr_validation_lightning_unsupported_symbols": "Lightning não é suportado. Use um endereço Bitcoin ou Liquid.",
+  "qr_validation_lnurl_bip353_unsupported": "Endereços Lightning e LNURL não são suportados. Use um endereço Bitcoin ou Liquid.",
   "qr_validation_boltz_invalid": "Invoice BOLTZ inválido",
   "qr_validation_boltz_no_amount": "Invoice BOLTZ sem valor não é suportado. Por favor, gere um invoice com valor definido",
   "qr_validation_liquid_invalid": "Endereço Liquid inválido no QR code",
   "qr_validation_liquid_format_error": "Erro ao processar QR Liquid: formato inválido",
   "qr_validation_bitcoin_invalid": "Endereço Bitcoin inválido no QR code",
   "qr_validation_bitcoin_format_error": "Erro ao processar QR Bitcoin: formato inválido",
-  "qr_validation_lightning_unsupported": "Lightning não é suportado para envio",
-  "qr_validation_lnurl_unsupported": "LNURL não suportado. Use walletofsatoshi.com ou outro provedor compatível",
+  "qr_validation_lightning_unsupported": "Lightning não é suportado para envio. Use um endereço Bitcoin ou Liquid.",
+  "qr_validation_lnurl_unsupported": "LNURL não é suportado. Use um endereço Bitcoin ou Liquid.",
   "qr_validation_invalid_default": "QR code inválido",
   "tx_sent_title": "Transação Enviada!",
   "tx_sent_subtitle": "Seu {ticker} foi enviado com sucesso",
@@ -1094,9 +1144,9 @@
   "setup_seed_length_highlight": "frase-semente",
   "setup_seed_length_subtitle": "Você pode criar sua carteira com 12 ou 24 palavras. Ambas são seguras, mas cada opção tem seu nível de praticidade e proteção.",
   "setup_seed_12_title": "12 Palavras",
-  "setup_seed_12_desc": "Mais prática e rápida de configurar. Recomendada\npara iniciantes ou quem prefere simplicidade sem\nabrir mão da segurança.",
+  "setup_seed_12_desc": "Mais prática e rápida de configurar. Recomendada para iniciantes ou quem prefere simplicidade sem abrir mão da segurança.",
   "setup_seed_24_title": "24 Palavras (recomendado)",
-  "setup_seed_24_desc": "Proporciona mais segurança. Recomendada para\nquem deseja proteger valores maiores ou busca o\nmáximo de segurança.",
+  "setup_seed_24_desc": "Proporciona mais segurança. Recomendada para quem deseja proteger valores maiores ou busca o máximo de segurança.",
   "setup_generate_seed_button": "Gerar frase de recuperação",
   "setup_confirm_seed_appbar": "Confirme sua frase",
   "setup_confirm_seed_title": "Confirmação de ",
@@ -1114,10 +1164,10 @@
   "setup_import_appbar": "Importar Carteira",
   "setup_import_restart_tooltip": "Recomeçar",
   "setup_import_instruction_title": "Digite sua frase de recuperação",
-  "setup_import_instruction_body": "Digite cada palavra da sua seed phrase (12 ou 24 palavras). O sistema oferecerá sugestões BIP39 conforme você digita. Pressione espaço ou clique para confirmar cada palavra.",
-  "setup_import_seed_valid": "Seed phrase válida! Pronta para importar.",
-  "setup_import_checksum_invalid": "Checksum inválido. Verifique as palavras.",
-  "setup_import_tip": "Dica: Pressione espaço para confirmar a primeira sugestão rapidamente",
+  "setup_import_instruction_body": "As 12 ou 24 palavras, na ordem em que você anotou. As sugestões aparecem enquanto você digita.",
+  "setup_import_seed_valid": "Frase válida! Pronta para importar.",
+  "setup_import_checksum_invalid": "Alguma palavra não confere. Revise a ordem e a grafia.",
+  "setup_import_tip": "Dica: toque em espaço para aceitar a primeira sugestão.",
   "setup_import_button": "Importar Carteira",
   "setup_import_cleanup_warning": "Aviso: Alguns arquivos antigos não puderam ser removidos. O app pode precisar ser reiniciado.",
   "setup_clipboard_detected_title": "Frase semente detectada",
@@ -1132,7 +1182,7 @@
       }
     }
   },
-  "setup_input_hint_default": "Digite uma palavra BIP39...",
+  "setup_input_hint_default": "Digite uma palavra…",
   "setup_progress_label": "Progresso",
   "setup_progress_count": "{count}/{target} palavras",
   "@setup_progress_count": {
@@ -1225,6 +1275,18 @@
   "wallet_import_error_internet": "Erro de conexão.\nVerifique sua internet.",
   "wallet_import_error_wallet_data": "Erro ao carregar dados da carteira.",
   "wallet_import_error_unknown": "Erro desconhecido",
+  "wallet_open_step_opening": "Abrindo sua carteira",
+  "wallet_open_step_connecting": "Conectando com segurança",
+  "wallet_open_step_syncing": "Buscando seus saldos",
+  "wallet_open_step_done": "Tudo pronto!",
+  "wallet_open_hint": "Isso leva só alguns instantes.",
+  "wallet_open_hint_slow": "Na primeira vez pode demorar um pouco mais.",
+  "wallet_open_retrying": "A conexão oscilou. Tentando de novo…",
+  "wallet_open_error_title": "Não conseguimos abrir sua carteira",
+  "wallet_open_error_connection": "Verifique sua conexão com a internet e tente novamente.",
+  "wallet_open_error_generic": "Algo deu errado ao abrir sua carteira. Tente novamente em instantes.",
+  "wallet_open_error_missing": "Não encontramos sua frase de recuperação neste aparelho. Importe sua carteira de novo para continuar.",
+  "wallet_open_import_again": "Importar de novo",
   "send_pix_appbar": "Enviar PIX",
   "send_pix_qr_title": "Escanear QR Code PIX",
   "send_pix_empty_key_error": "Digite ou escaneie uma chave PIX",
@@ -1266,7 +1328,23 @@
   "cpf_favorites_search_empty": "Nenhum pagador encontrado",
   "cpf_favorites_edit": "Editar",
   "cpf_favorites_actions": "Ações",
+  "cpf_favorites_own_badge": "Meu usuário",
+  "cpf_favorites_own_mark": "Marcar como meu usuário",
+  "cpf_favorites_own_unmark": "Desmarcar meu usuário",
+  "cpf_favorites_own_marked": "{name} agora é o seu usuário nos depósitos.",
+  "@cpf_favorites_own_marked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cpf_favorites_own_unmarked": "Sem um pagador marcado como \"Meu usuário\", não é possível depositar.",
+  "cpf_favorites_own_hint": "Marque como \"Meu usuário\" o titular da conta bancária que paga os seus depósitos. Os depósitos usam o CPF/CNPJ dele e só começam com um pagador marcado.",
+  "cpf_favorites_own_check_title": "Este pagador sou eu",
+  "cpf_favorites_own_check_subtitle": "Marca como \"Meu usuário\": os seus depósitos passam a usar este CPF/CNPJ.",
   "cpf_favorites_error": "Não foi possível carregar os pagadores",
+  "cpf_favorites_save_error": "Não foi possível salvar o pagador. Tente novamente.",
   "cpf_favorites_removed": "Pagador removido",
   "cpf_favorites_delete_title": "Remover pagador?",
   "cpf_favorites_delete_body": "Remover {label} dos pagadores favoritos?",
@@ -1358,8 +1436,8 @@
   "pix_info_title": "Informações sobre PIX",
   "pix_info_processing_title": "Prazo de processamento",
   "pix_info_processing_body": "Pagamentos via PIX podem ser processados em até 72 horas úteis após a confirmação.",
-  "pix_info_lbtc_variation_title": "Variação de câmbio (LBTC)",
-  "pix_info_lbtc_variation_body": "Ao escolher receber em LBTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.",
+  "pix_info_lbtc_variation_title": "Variação de câmbio (L-BTC)",
+  "pix_info_lbtc_variation_body": "Ao escolher receber em L-BTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.",
   "pix_info_fees_title": "Sobre as taxas",
   "pix_info_fees_body": "As taxas variam conforme o valor da transação. Valores menores têm taxas fixas, valores maiores têm taxas percentuais decrescentes.",
   "pix_info_fees_button": "Ver detalhes das taxas",
@@ -1400,28 +1478,6 @@
   "merchant_step_clear_cart_body": "Se quiser começar do zero, toque aqui para limpar todos os itens do carrinho.",
   "merchant_tutorial_done_title": "Tutorial Concluído!",
   "merchant_tutorial_done_body": "Agora você já sabe usar todas as funcionalidades do Modo Comerciante. Pronto para começar?",
-  "pix_tutorial_step1_title": "Receba pagamentos com PIX",
-  "pix_tutorial_step1_body": "Toque aqui para acessar a área PIX e começar a receber pagamentos rapidamente.",
-  "pix_tutorial_step2_title": "Acesso rápido",
-  "pix_tutorial_step2_body": "Você também pode acessar a área PIX por este atalho disponível em todo o aplicativo.",
-  "pix_tutorial_step3_title": "Como você recebe pagamentos",
-  "pix_tutorial_step3_body": "Por padrão, os pagamentos são recebidos em DEPIX, um ativo digital atrelado 1:1 ao Real. Cada 1 DEPIX equivale a R$1,00.",
-  "pix_tutorial_step4_title": "Escolha outro ativo",
-  "pix_tutorial_step4_body": "Se preferir, você pode alterar o ativo de recebimento e receber pagamentos diretamente em Liquid Bitcoin (L-BTC).",
-  "pix_tutorial_step5_title": "Converta quando quiser",
-  "pix_tutorial_step5_body": "Mesmo recebendo pagamentos em DEPIX, você pode converter seu saldo para L-BTC ou USDT depois, usando a tela de Swap.",
-  "pix_tutorial_step6_title": "Seu limite de recebimento",
-  "pix_tutorial_step6_body": "Confira seus limites mínimos, máximos e o limite diário. Seus limites podem aumentar conforme o uso do aplicativo.",
-  "pix_tutorial_step7_title": "Informe o valor",
-  "pix_tutorial_step7_body": "Escolha o valor que deseja receber. Para este tutorial, usaremos R$50,00 como exemplo.",
-  "pix_tutorial_step8_title": "Gere uma cobrança PIX",
-  "pix_tutorial_step8_body": "Depois de informar um valor, basta arrastar este botão até o fim para criar uma solicitação de pagamento PIX.",
-  "pix_tutorial_step9_title": "QR Code pronto",
-  "pix_tutorial_step9_body": "Após arrastar o botão, um QR Code PIX será gerado.",
-  "pix_tutorial_done_title": "Tutorial concluído",
-  "pix_tutorial_done_body": "Agora você sabe como receber pagamentos com PIX, escolher seu ativo de recebimento, entender os limites e gerar QR Codes de pagamento.",
-  "pix_tutorial_restart": "Reiniciar tutorial",
-  "pix_tutorial_settings_replay": "Rever tutorial do PIX",
   "merchant_default_product_name": "Produto 01",
   "merchant_loose_value": "Valor Avulso",
   "merchant_add_item_first": "Adicione itens ao carrinho antes de finalizar a venda",
@@ -1661,6 +1717,10 @@
   "tx_detail_sent": "Enviado",
   "tx_detail_received": "Recebido",
   "tx_detail_expected": "Esperado",
+  "tx_step_created": "Criada",
+  "tx_step_detected": "Detectada",
+  "tx_step_on_network": "Na rede",
+  "tx_step_converting": "Convertendo",
   "tx_type_redeposit": "Auto-redepósito",
   "tx_type_unknown": "Desconhecido",
   "tx_status_failed_processed": "Reembolso Processado",
@@ -1741,12 +1801,23 @@
   "main_settings_pix_fees": "Taxas do PIX",
   "main_settings_btc_services": "Serviços via Bitcoin",
   "main_settings_support": "Suporte",
-  "onboarding_1_title": "Seu dinheiro, sob seu controle",
-  "onboarding_1_body": "Receba, envie e gerencie Bitcoin com privacidade real. Uma carteira feita pra quem valoriza liberdade.",
-  "onboarding_2_title": "Segurança em primeiro lugar",
-  "onboarding_2_body": "Sua chave, sua responsabilidade. Proteja seu patrimônio com criptografia e backups locais.",
-  "onboarding_3_title": "Pronto para começar?",
-  "onboarding_3_body": "Crie ou importe sua carteira em segundos e assuma o controle do seu Bitcoin.",
+  "onboarding_1_eyebrow": "BITCOIN E LIQUID",
+  "onboarding_1_title": "Uma carteira só sua",
+  "onboarding_1_highlight": "só sua",
+  "onboarding_1_body": "Guarde Bitcoin, L-BTC, DePix e USDt em um único lugar. Ninguém além de você tem acesso.",
+  "onboarding_2_eyebrow": "PIX",
+  "onboarding_2_title": "O Pix agora fala Bitcoin",
+  "onboarding_2_highlight": "Bitcoin",
+  "onboarding_2_body": "Compre com Pix, pague qualquer chave ou QR Code com seu saldo e crie links de cobrança.",
+  "onboarding_3_eyebrow": "SWAP",
+  "onboarding_3_title": "Seu dinheiro, em diferentes moedas",
+  "onboarding_3_highlight": "diferentes moedas",
+  "onboarding_3_body": "Troque entre Bitcoin, L-BTC, DePix e USDt diretamente pelo app, sem precisar usar várias plataformas.",
+  "onboarding_4_eyebrow": "SEGURANÇA",
+  "onboarding_4_title": "Só você tem a chave",
+  "onboarding_4_highlight": "você",
+  "onboarding_4_body": "Suas palavras de recuperação ficam só com você. Guarde-as bem: com elas você recupera tudo em qualquer celular.",
+  "onboarding_skip": "Pular",
   "first_access_create_wallet": "Criar Carteira",
   "first_access_import_wallet": "Importar carteira",
   "first_access_terms_prefix": "Eu li e concordo com os ",
@@ -1780,6 +1851,17 @@
   "level_load_error": "Erro ao carregar nível",
   "level_load_retry": "Tente novamente mais tarde.",
   "level_user_label": "Nível de usuário",
+  "level_name_bronze": "Bronze",
+  "level_name_silver": "Prata",
+  "level_name_gold": "Ouro",
+  "level_name_diamond": "Diamante",
+  "level_up_badge": "SUBIU DE NÍVEL!",
+  "level_up_title": "Você subiu de nível!",
+  "level_up_message": "Continue assim para desbloquear ainda mais benefícios!",
+  "level_down_badge": "NÍVEL REDUZIDO",
+  "level_down_title": "Seu nível foi reduzido",
+  "level_down_message": "Isso acontece quando a carteira fica inativa por um tempo. Mas não se preocupe — você pode recuperar o nível usando o app.",
+  "level_down_tip": "Dica: use a carteira regularmente para recuperar seus benefícios e subir de nível novamente.",
   "level_desc_bronze": "Comece movimentando pequenos valores e desbloqueie os primeiros benefícios.",
   "level_desc_silver": "Quanto mais você gasta, mais sobe de nível. Alcance o nível Prata.",
   "level_desc_gold": "Nível Gold com limites aumentados para movimentações maiores.",
@@ -1841,6 +1923,9 @@
   "sync_error_dialog_title": "Erro de Sincronização",
   "sync_error_dialog_body": "Não foi possível sincronizar os serviços Mooze.",
   "sync_error_warning": "Operação não autorizada",
+  "status_banner_hint": "Toque para ver detalhes",
+  "status_island_sync": "Sync",
+  "status_island_sync_error": "Erro",
   "pin_create_title": "Criar PIN",
   "pin_create_min_length": "PIN deve ter pelo menos 6 caracteres",
   "pin_create_yours": "Crie seu ",
@@ -1922,13 +2007,13 @@
   "wallet_send_fee_calc_error": "Erro ao calcular taxa",
   "wallet_send_fee_free": "Gratuito",
   "wallet_send_lbtc_disclaimer_title": "Como funciona o envio de ativos",
-  "wallet_send_lbtc_disclaimer_body": "Para enviar ativos (Bitcoin L2, DePIX ou USDT), você precisa manter um saldo de Bitcoin L2 na sua carteira.",
+  "wallet_send_lbtc_disclaimer_body": "Para enviar ativos (L-BTC, DePIX ou USDT), você precisa manter um saldo de L-BTC na sua carteira.",
   "wallet_send_lbtc_network_fees_title": "Taxas de rede",
-  "wallet_send_lbtc_network_fees_desc": "O saldo de Bitcoin L2 é usado para pagar as taxas dos mineradores da rede Liquid.",
-  "wallet_send_lbtc_obtain_title": "Como obter Bitcoin L2",
-  "wallet_send_lbtc_obtain_desc_disclaimer": "Use a função SWAP ou receba Bitcoin via Lightning ou Liquid.",
-  "wallet_send_lbtc_obtain_desc_info": "Use a função SWAP para converter Bitcoin (Lightning ou on-chain) em Bitcoin L2 diretamente no aplicativo.",
-  "wallet_send_lbtc_disclaimer_tip": "Mantenha um pequeno saldo de Bitcoin L2 para garantir que suas transações sejam processadas.",
+  "wallet_send_lbtc_network_fees_desc": "O saldo de L-BTC é usado para pagar as taxas dos mineradores da rede Liquid.",
+  "wallet_send_lbtc_obtain_title": "Como obter L-BTC",
+  "wallet_send_lbtc_obtain_desc_disclaimer": "Use a função SWAP ou receba L-BTC pela rede Liquid.",
+  "wallet_send_lbtc_obtain_desc_info": "Use a função SWAP para converter Bitcoin on-chain em L-BTC diretamente no aplicativo.",
+  "wallet_send_lbtc_disclaimer_tip": "Mantenha um pequeno saldo de L-BTC para garantir que suas transações sejam processadas.",
   "wallet_send_lbtc_disclaimer_understood_countdown": "Entendi ({seconds})",
   "@wallet_send_lbtc_disclaimer_understood_countdown": {
     "placeholders": {
@@ -1938,13 +2023,18 @@
     }
   },
   "wallet_send_lbtc_info_title": "Informações sobre taxas",
-  "wallet_send_lbtc_info_step1_title": "Bitcoin L2 para taxas de rede",
-  "wallet_send_lbtc_info_step1_desc": "Para enviar DePIX, USDT ou qualquer ativo da rede Liquid, você precisa ter Bitcoin L2 (Liquid Bitcoin) na carteira. Ele é usado para pagar os mineradores da rede.",
-  "wallet_send_lbtc_info_step3_title": "Receba via Lightning ou Liquid",
-  "wallet_send_lbtc_info_step3_desc": "Receba Bitcoin via Lightning Network ou Liquid para obter Bitcoin L2 na sua carteira sem usar o SWAP.",
+  "wallet_send_lbtc_info_step1_title": "L-BTC para taxas de rede",
+  "wallet_send_lbtc_info_step1_desc": "Para enviar DePIX, USDT ou qualquer ativo da rede Liquid, você precisa ter L-BTC (Liquid Bitcoin) na carteira. Ele é usado para pagar os mineradores da rede.",
+  "wallet_send_lbtc_info_step3_title": "Receba via Liquid",
+  "wallet_send_lbtc_info_step3_desc": "Receba L-BTC diretamente pela rede Liquid, sem usar o SWAP.",
   "wallet_send_lbtc_go_swap": "Ir para SWAP",
-  "wallet_send_lbtc_insufficient_title": "Bitcoin L2 insuficiente",
-  "wallet_send_lbtc_insufficient_body": "Você precisa de Bitcoin L2 para pagar as taxas dos mineradores ao enviar {asset}:",
+  "wallet_send_custom_fee_info_title": "Taxa personalizada no Bitcoin",
+  "wallet_send_custom_fee_info_off_desc": "Em envios de Bitcoin on-chain, você pode definir a taxa em sat/vB em vez de escolher uma velocidade. Ative a opção nas configurações de taxas.",
+  "wallet_send_custom_fee_info_on_desc": "Em envios de Bitcoin on-chain, toque em Personalizada, abaixo das velocidades, para definir a taxa em sat/vB.",
+  "wallet_send_custom_fee_turn_on": "Ativar taxa personalizada",
+  "wallet_send_custom_fee_configure": "Configurar taxa personalizada",
+  "wallet_send_lbtc_insufficient_title": "L-BTC insuficiente",
+  "wallet_send_lbtc_insufficient_body": "Você precisa de L-BTC para pagar as taxas dos mineradores ao enviar {asset}:",
   "@wallet_send_lbtc_insufficient_body": {
     "placeholders": {
       "asset": {
@@ -1953,10 +2043,10 @@
     }
   },
   "wallet_send_lbtc_insufficient_swap_prefix": "Use a função ",
-  "wallet_send_lbtc_insufficient_swap_suffix": " para obter Bitcoin L2",
-  "wallet_send_lbtc_insufficient_lightning": "Receba Bitcoin via Lightning ou Liquid para obter Bitcoin L2",
-  "wallet_send_lbtc_banner_title": "Bitcoin L2 necessário para taxas",
-  "wallet_send_lbtc_banner_body": "Para enviar DePIX ou USDT, você precisa ter Bitcoin L2 na carteira para pagar as taxas da rede.",
+  "wallet_send_lbtc_insufficient_swap_suffix": " para obter L-BTC",
+  "wallet_send_lbtc_insufficient_receive": "Receba L-BTC diretamente pela rede Liquid",
+  "wallet_send_lbtc_banner_title": "L-BTC necessário para taxas",
+  "wallet_send_lbtc_banner_body": "Para enviar DePIX ou USDT, você precisa ter L-BTC na carteira para pagar as taxas da rede.",
   "wallet_send_lbtc_banner_action": "Obter via SWAP",
   "wallet_send_network_unidentified": "Rede não identificada",
   "wallet_send_network_bitcoin": "Bitcoin On-chain",
@@ -1983,7 +2073,7 @@
   "wallet_send_review_preparing": "Preparando...",
   "wallet_send_review_drain": "Revisar Envio Total",
   "wallet_send_review_transaction": "Revisar Transação",
-  "wallet_send_review_lbtc_insufficient_error": "Saldo de Bitcoin L2 insuficiente para taxas.\n\nPara enviar {asset}, você precisa de Bitcoin L2 para pagar os mineradores da rede. Use a função SWAP ou receba Bitcoin via Lightning ou Liquid.",
+  "wallet_send_review_lbtc_insufficient_error": "Saldo de L-BTC insuficiente para taxas.\n\nPara enviar {asset}, você precisa de L-BTC para pagar os mineradores da rede. Use a função SWAP ou receba L-BTC pela rede Liquid.",
   "@wallet_send_review_lbtc_insufficient_error": {
     "placeholders": {
       "asset": {
@@ -2000,7 +2090,7 @@
   "wallet_send_validation_help": "As validações são verificadas automaticamente conforme você digita.",
   "wallet_send_error_address_required": "Endereço é obrigatório",
   "wallet_send_error_address_invalid": "Endereço inválido ou não suportado",
-  "wallet_send_error_asset_liquid_only": "{asset} só pode ser enviado pela rede Liquid ou Lightning",
+  "wallet_send_error_asset_liquid_only": "{asset} só pode ser enviado pela rede Liquid",
   "@wallet_send_error_asset_liquid_only": {
     "placeholders": {
       "asset": {
@@ -2008,7 +2098,7 @@
       }
     }
   },
-  "wallet_send_error_liquid_only": "Para enviar ativos Liquid use Bitcoin L2, Depix ou USDT",
+  "wallet_send_error_liquid_only": "Para enviar ativos Liquid use L-BTC, Depix ou USDT",
   "wallet_send_error_amount_positive": "Valor deve ser maior que zero",
   "wallet_send_error_balance_check": "Erro ao verificar saldo disponível",
   "wallet_send_error_insufficient_balance": "Saldo insuficiente",
@@ -2138,19 +2228,82 @@
       }
     }
   },
-  "wallet_asset_chart_title": "Gráfico - {period}",
-  "@wallet_asset_chart_title": {
+  "wallet_all_assets_pinned": "Na tela inicial",
+  "wallet_all_assets_others": "Mais ativos",
+  "wallet_all_assets_pin_hint": "Marque até 2 ativos com a estrela para vê-los na tela inicial.",
+  "wallet_all_assets_pin": "Mostrar na tela inicial",
+  "wallet_all_assets_unpin": "Remover da tela inicial",
+  "wallet_asset_chart_load_error": "Não foi possível carregar o gráfico",
+  "wallet_asset_stats_high": "Máxima",
+  "wallet_asset_stats_low": "Mínima",
+  "wallet_portfolio_history_title": "Histórico da carteira",
+  "wallet_portfolio_history_note": "Valor dos seus ativos atuais ao longo do período, aos preços de cada momento.",
+  "wallet_asset_stats_open": "Abertura",
+  "wallet_asset_offline": "Dados offline",
+  "offline_price_title": "App offline",
+  "offline_price_saved": "Preços salvos",
+  "offline_price_empty": "Nenhum preço salvo disponível",
+  "offline_price_load_error": "Erro ao carregar informações de cache",
+  "offline_price_no_cache": "Sem cache",
+  "offline_price_age_unknown": "Sem dados",
+  "offline_price_fresh": "Recente",
+  "offline_price_old": "Antigo",
+  "offline_price_very_old": "Muito antigo",
+  "offline_price_hint": "Os preços serão atualizados automaticamente quando a conexão for restaurada",
+  "wallet_asset_period_day": "24 horas",
+  "wallet_asset_period_week": "7 dias",
+  "wallet_asset_period_month": "30 dias",
+  "wallet_asset_chart_semantics": "Preço de {asset} em {period}: de {from} para {to}, {change}",
+  "@wallet_asset_chart_semantics": {
     "placeholders": {
+      "asset": {
+        "type": "String"
+      },
       "period": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "change": {
         "type": "String"
       }
     }
   },
-  "wallet_asset_chart_unavailable": "Gráfico Indisponível",
-  "wallet_asset_chart_load_error": "Não foi possível carregar o gráfico",
-  "wallet_asset_stats_high": "Máxima",
-  "wallet_asset_stats_low": "Mínima",
-  "wallet_asset_stats_current": "Atual",
+  "wallet_asset_chart_range_hint": "Toque e segure para medir um intervalo",
+  "wallet_asset_range_start": "Início",
+  "wallet_asset_range_end": "Fim",
+  "wallet_asset_range_clear": "Limpar intervalo",
+  "wallet_asset_range_hours": "{count, plural, =1{1 hora} other{{count} horas}}",
+  "wallet_asset_range_days": "{count, plural, =1{1 dia} other{{count} dias}}",
+  "wallet_asset_range_days_hours": "{days} d {hours} h",
+  "@wallet_asset_range_hours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@wallet_asset_range_days": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@wallet_asset_range_days_hours": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "wallet_holding_appbar_title": "Ativos",
   "wallet_holding_action_send": "Enviar",
   "wallet_holding_action_receive": "Receber",
@@ -2184,8 +2337,8 @@
   "pix_receive_info_title": "Informações sobre PIX",
   "pix_receive_info_step1_title": "Prazo de processamento",
   "pix_receive_info_step1_desc": "Pagamentos via PIX podem ser processados em até 72 horas úteis após a confirmação.",
-  "pix_receive_info_step2_title": "Variação de câmbio (LBTC)",
-  "pix_receive_info_step2_desc": "Ao escolher receber em LBTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.",
+  "pix_receive_info_step2_title": "Variação de câmbio (L-BTC)",
+  "pix_receive_info_step2_desc": "Ao escolher receber em L-BTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.",
   "pix_receive_info_step3_title": "Sobre as taxas",
   "pix_receive_info_step3_desc": "As taxas variam conforme o valor da transação. Valores menores têm taxas fixas, valores maiores têm taxas percentuais decrescentes.",
   "pix_receive_info_see_fees": "Ver detalhes das taxas",
@@ -2472,8 +2625,8 @@
   "converting_details_phase_failed": "Falhou",
   "converting_details_phase_refundable": "Reembolsável",
   "converting_details_direction": "Direção",
-  "converting_details_direction_peg_in": "Peg-in (BTC on-chain → LBTC)",
-  "converting_details_direction_peg_out": "Peg-out (LBTC → BTC on-chain)",
+  "converting_details_direction_peg_in": "Peg-in (BTC on-chain → L-BTC)",
+  "converting_details_direction_peg_out": "Peg-out (L-BTC → BTC on-chain)",
   "converting_details_sent": "Enviado",
   "converting_details_estimated_receive": "Recebimento estimado",
   "converting_details_started": "Iniciado",
@@ -2486,8 +2639,8 @@
   "converting_details_explanation_preparing": "Construindo a transação de bloqueio e reservando o swap com o serviço de chain-swap.",
   "converting_details_explanation_broadcasting_bitcoin": "Assinando e transmitindo a transação de bloqueio para a rede Bitcoin.",
   "converting_details_explanation_broadcasting_liquid": "Assinando e transmitindo a transação de bloqueio para a rede Liquid.",
-  "converting_details_explanation_broadcasted_peg_in": "Seu bloqueio de Bitcoin foi transmitido. Assim que confirmar, o serviço de chain-swap irá reivindicá-lo e enviar LBTC para sua carteira.",
-  "converting_details_explanation_broadcasted_peg_out": "Seu LBTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.",
+  "converting_details_explanation_broadcasted_peg_in": "Seu bloqueio de Bitcoin foi transmitido. Assim que confirmar, o serviço de chain-swap irá reivindicá-lo e enviar L-BTC para sua carteira.",
+  "converting_details_explanation_broadcasted_peg_out": "Seu L-BTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.",
   "converting_details_explanation_failed": "O swap não pôde ser concluído. Quaisquer fundos reservados para o swap serão reembolsados automaticamente.",
   "converting_details_explanation_refundable": "A Boltz sinalizou o swap como reembolsável. Toque em \"Obter reembolso\" para enviar os fundos bloqueados de volta para sua carteira.",
   "pending_swap_refund_available": "Reembolso de swap disponível",
@@ -2519,7 +2672,7 @@
     }
   },
   "swap_btc_lbtc_warning_title": "Atenção: Swap entre Redes",
-  "swap_btc_lbtc_warning_intro": "Informações importantes sobre o swap BTC para LBTC:",
+  "swap_btc_lbtc_warning_intro": "Informações importantes sobre o swap BTC para L-BTC:",
   "swap_btc_lbtc_warning_cross_chain": "Este é um swap entre diferentes blockchains (Bitcoin e Liquid Network).",
   "swap_btc_lbtc_warning_confirmations": "O swap depende de confirmações em ambas as blockchains, o que pode levar algum tempo.",
   "swap_btc_lbtc_warning_fee_changes": "Em casos de mudanças nas taxas da rede, a Breez pode deixar o ativo como \"estorno\" (reembolso).",
@@ -2687,6 +2840,8 @@
   "pix_hub_method_recent": "Contato recente",
   "pix_hub_receive_title": "Receber Pix",
   "pix_hub_receive_from_others": "Receber de outra pessoa",
+  "pix_hub_receive_qr": "Cobrar com QR Code",
+  "pix_hub_receive_qr_subtitle": "Informe o valor e o CPF/CNPJ de quem paga para gerar o QR Code.",
   "pix_hub_receive_create_charge": "Criar cobrança",
   "pix_hub_receive_create_charge_subtitle": "Gere um QR Code e um código Copia e Cola.",
   "pix_hub_receive_own_wallet": "Adicionar saldo na sua carteira",
@@ -2768,7 +2923,16 @@
   "pix_hub_link_status_pending": "Pendente",
   "pix_hub_link_status_paid": "Pago",
   "pix_hub_link_status_expired": "Expirado",
-  "pix_hub_link_disclaimer": "O endereço é fictício e não abre uma página de pagamento real.",
+  "pix_hub_link_status_revoked": "Desativado",
+  "pix_hub_link_no_reference": "Link de pagamento",
+  "pix_hub_link_asset_title": "Receber em",
+  "pix_hub_link_asset_label": "Recebe em",
+  "pix_hub_link_revoke": "Desativar link",
+  "pix_hub_link_revoke_title": "Desativar este link?",
+  "pix_hub_link_revoke_body": "Ninguém mais poderá pagar por este link. Pagamentos já iniciados continuam.",
+  "pix_hub_link_revoke_confirm": "Desativar",
+  "pix_hub_link_revoked": "Link desativado.",
+  "pix_hub_link_disclaimer": "Quem abre o link paga com Pix, e o valor chega na sua carteira no ativo escolhido.",
   "pix_hub_history_filter_all": "Tudo",
   "pix_hub_history_filter_sent": "Enviados",
   "pix_hub_history_filter_received": "Recebidos",
@@ -2836,15 +3000,22 @@
   "pix_hub_result_datetime": "Data e hora",
   "pix_hub_result_details": "Ver detalhes",
   "pix_hub_deposit_gate_title": "Antes de depositar",
-  "pix_hub_deposit_gate_subtitle": "Informe o CPF da conta bancária que vai pagar e confirme o aviso abaixo.",
+  "pix_hub_deposit_gate_subtitle": "Os depósitos usam o CPF/CNPJ do pagador marcado como \"Meu usuário\". Confira-o e confirme o aviso abaixo.",
   "pix_hub_deposit_cpf_hint": "A Mooze confere o formato e os dígitos verificadores. O aplicativo não confirma quem é o titular da conta bancária.",
   "pix_hub_deposit_notice_title": "Importante",
   "pix_hub_deposit_notice_body": "Para fazer depósitos via Pix, você precisa usar uma conta bancária em seu próprio nome, registrada sob o mesmo CPF cadastrado na Mooze. Não use contas bancárias de terceiros.",
   "pix_hub_deposit_notice_ack": "Li e entendi o aviso.",
   "pix_hub_deposit_notice_screen_title": "Aviso sobre depósitos",
-  "pix_hub_deposit_cpf_stored_label": "CPF informado",
-  "pix_hub_deposit_cpf_missing": "Nenhum CPF informado.",
-  "pix_hub_deposit_change_cpf": "Alterar CPF",
+  "pix_hub_deposit_cpf_stored_label": "CPF/CNPJ do pagador",
+  "pix_hub_deposit_cpf_missing": "Nenhum pagador marcado como \"Meu usuário\".",
+  "pix_hub_deposit_change_cpf": "Alterar pagador",
+  "pix_deposit_own_payer_required_title": "Cadastre seu CPF/CNPJ",
+  "pix_deposit_own_payer_required_body": "Para depositar, cadastre em Pagadores favoritos o CPF/CNPJ do titular da conta que paga os seus depósitos e marque-o como \"Meu usuário\".",
+  "pix_deposit_own_payer_required_action": "Ir para Pagadores favoritos",
+  "pix_deposit_own_payer_step_add_title": "Cadastre o titular da conta",
+  "pix_deposit_own_payer_step_add_body": "Em Pagadores favoritos, adicione o CPF/CNPJ do titular da conta bancária que paga os seus depósitos.",
+  "pix_deposit_own_payer_step_mark_title": "Marque como \"Meu usuário\"",
+  "pix_deposit_own_payer_step_mark_body": "No menu desse pagador, toque em \"Marcar como meu usuário\". Os depósitos passam a usar o documento dele.",
   "pix_hub_pending_deposits": "Depósitos em andamento",
   "pix_hub_pending_deposits_empty_title": "Nenhum depósito em andamento",
   "pix_hub_pending_deposits_empty_body": "Os depósitos que aguardam pagamento aparecem aqui.",
@@ -2878,6 +3049,23 @@
   "pix_hub_failure_invalid_request": "O servidor recusou os dados. Confira a chave, o CPF/CNPJ e o valor.",
   "pix_hub_failure_limit_exceeded": "O valor passa do seu limite atual, ou sua conta ainda não pode enviar Pix.",
   "pix_hub_failure_provider_refused": "O provedor Pix recusou o envio. Confira se a chave pertence ao CPF/CNPJ informado.",
+  "pix_hub_failure_provider_refused_reason": "O provedor Pix recusou o envio. Nenhum valor saiu da sua carteira. Motivo informado pelo provedor: {reason}",
+  "@pix_hub_failure_provider_refused_reason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_failure_daily_limit": "Este envio passa do limite diário de {limit} que o provedor Pix aceita para esta chave. Nenhum valor saiu da sua carteira. Tente um valor menor ou envie amanhã.",
+  "@pix_hub_failure_daily_limit": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_failure_daily_limit_no_amount": "Este envio passa do limite diário que o provedor Pix aceita para esta chave. Nenhum valor saiu da sua carteira. Tente um valor menor ou envie amanhã.",
   "pix_hub_failure_outcome_unknown": "O serviço não confirmou o pedido. Nenhum valor saiu da sua carteira. Tente de novo em alguns minutos.",
   "pix_hub_failure_quote_mismatch": "A cotação recebida não confere com o pedido. Nenhum valor foi enviado. Tente de novo.",
   "pix_hub_failure_quote_expired": "O prazo da cotação acabou. Peça uma nova cotação para continuar.",
@@ -2993,5 +3181,19 @@
   "pix_hub_send_key_code_detected": "Código Pix Copia e Cola reconhecido.",
   "pix_hub_send_key_ambiguous": "Este número é um CPF ou um celular?",
   "pix_hub_amount_question": "Quanto você quer transferir?",
-  "pix_hub_tax_id_valid": "Documento válido"
+  "pix_hub_tax_id_valid": "Documento válido",
+  "pix_deposits_empty_title": "Nenhum depósito PIX encontrado",
+  "pix_deposits_empty_message": "Seus depósitos PIX aparecerão aqui",
+  "pix_deposits_load_error_title": "Erro ao carregar depósitos PIX",
+  "pix_deposits_load_error_message": "Tente novamente mais tarde",
+  "offline_indicator_tooltip": "App está offline - usando preços em cache",
+  "update_version_label": "Versão {version}",
+  "@update_version_label": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "human_verification_payment_label": "Pagamento de verificação"
 }

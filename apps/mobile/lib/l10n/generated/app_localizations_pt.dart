@@ -189,6 +189,39 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settings_section_help => 'AJUDA';
 
   @override
+  String get settings_section_advanced => 'AVANÇADO';
+
+  @override
+  String get settings_low_fee => 'Taxa econômica';
+
+  @override
+  String get settings_fees => 'Taxas';
+
+  @override
+  String get low_fee_toggle_title => 'Permitir taxa econômica';
+
+  @override
+  String get low_fee_toggle_subtitle =>
+      'Mostra a velocidade Econômica ao confirmar um swap entre ativos';
+
+  @override
+  String get custom_fee_toggle_title => 'Permitir taxa personalizada';
+
+  @override
+  String get custom_fee_toggle_subtitle =>
+      'Mostra a opção Personalizada na velocidade de um envio em Bitcoin on-chain';
+
+  @override
+  String get low_fee_warning_title => 'Ativar taxa econômica?';
+
+  @override
+  String get low_fee_warning_message =>
+      'Com a taxa econômica, a transação Bitcoin pode levar horas ou até dias para confirmar, e o swap só termina depois disso. Se a rede descartar a transação antes de confirmar, o valor é devolvido para a sua carteira e você precisa fazer o swap de novo.';
+
+  @override
+  String get low_fee_warning_confirm => 'Ativar';
+
+  @override
   String get settings_view_recovery_phrase => 'Ver frase de recuperação';
 
   @override
@@ -291,7 +324,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get node_config_mode_default_subtitle =>
-      'Usa os servidores recomendados pelo sistema, com fallback automático entre Bitcoin, Liquid e Lightning.';
+      'Usa os servidores recomendados pelo sistema, com fallback automático entre Bitcoin e Liquid.';
 
   @override
   String get node_config_mode_custom_title => 'Modo personalizado';
@@ -323,10 +356,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get node_config_liquid_helper =>
       'Formato: host:porta. O LWK usa TLS automaticamente. Deixe vazio para usar o node padrão.';
-
-  @override
-  String get node_config_lightning_note =>
-      'O node Lightning é gerenciado automaticamente pelo Breez SDK e não pode ser personalizado.';
 
   @override
   String get node_config_fallback_toggle_title =>
@@ -545,6 +574,11 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get pin_reset_biometric_reason =>
       'Use sua biometria ou senha do dispositivo para redefinir o PIN';
+
+  @override
+  String pin_digits_entered(int count, int total) {
+    return '$count de $total dígitos digitados';
+  }
 
   @override
   String get theme_system => 'Sistema';
@@ -1411,8 +1445,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get receive_info_step2_title => 'Escolha a rede';
 
   @override
-  String get receive_info_step2_desc =>
-      'Bitcoin (on-chain), Lightning ou Liquid';
+  String get receive_info_step2_desc => 'Bitcoin (on-chain) ou Liquid';
 
   @override
   String get receive_info_step3_title => 'Gere o QR code';
@@ -1471,7 +1504,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Bitcoin on-chain é a única rede disponível para BTC';
 
   @override
-  String get receive_asset_hint_lbtc => 'Bitcoin L2 suporta Lightning e Liquid';
+  String get receive_asset_hint_lbtc => 'L-BTC é o Bitcoin da rede Liquid';
 
   @override
   String receive_asset_hint_liquid_only(String name) {
@@ -1716,6 +1749,40 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get wallet_fee_fast_eta => '~10 min';
+
+  @override
+  String get wallet_fee_custom => 'Personalizada';
+
+  @override
+  String get wallet_fee_custom_choose => 'Definir taxa';
+
+  @override
+  String get wallet_fee_custom_rate_label => 'Taxa em sat/vB';
+
+  @override
+  String get wallet_fee_custom_decrease => 'Diminuir taxa';
+
+  @override
+  String get wallet_fee_custom_increase => 'Aumentar taxa';
+
+  @override
+  String wallet_fee_custom_eta(String eta) {
+    return 'Confirmação estimada: $eta';
+  }
+
+  @override
+  String get wallet_fee_custom_below_relay =>
+      'Abaixo de 1 sat/vB, nem todos os nós repassam a transação. O envio pode ser recusado ou demorar muito para confirmar.';
+
+  @override
+  String wallet_fee_custom_below_low(int rate) {
+    return 'Abaixo da Econômica ($rate sat/vB). A confirmação pode levar horas ou dias.';
+  }
+
+  @override
+  String wallet_fee_custom_above_fast(int rate) {
+    return 'Bem acima da Rápida ($rate sat/vB). Você pode pagar mais do que precisa.';
+  }
 
   @override
   String get tx_confirmed_title => 'Transação Confirmada!';
@@ -1971,7 +2038,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pix_floating_rate_body =>
-      'Importante: o LBTC tem variação de preço.\nPor isso, o valor em reais que você recebe pode ser diferente do valor esperado.\nA conversão para reais usa a cotação do momento da finalização.';
+      'Importante: o L-BTC tem variação de preço.\nPor isso, o valor em reais que você recebe pode ser diferente do valor esperado.\nA conversão para reais usa a cotação do momento da finalização.';
 
   @override
   String get pix_dont_show_again => 'Não exibir novamente';
@@ -2419,7 +2486,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get refund_test_real_tx_title => 'Sobre a Transação Real';
 
   @override
-  String get refund_test_real_tx_type => '🔹 Tipo: Peg In (BTC → LBTC)';
+  String get refund_test_real_tx_type => '🔹 Tipo: Peg In (BTC → L-BTC)';
 
   @override
   String get refund_test_real_tx_id => '🔹 TX ID: 5e2159e9b5fbf7023b2800...';
@@ -2430,7 +2497,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get refund_test_real_tx_expected =>
-      '🔹 Valor esperado: 52172 sats (LBTC)';
+      '🔹 Valor esperado: 52172 sats (L-BTC)';
 
   @override
   String get refund_test_real_tx_date => '🔹 Data: 04/02/2026 às 00:17:10';
@@ -2495,11 +2562,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get qr_validation_lightning_unsupported_symbols =>
-      'Lightning com símbolos especiais (₿, #, \$) não é suportado';
+      'Lightning não é suportado. Use um endereço Bitcoin ou Liquid.';
 
   @override
   String get qr_validation_lnurl_bip353_unsupported =>
-      'Formato LNURL BIP 353 não é suportado no momento. Use um endereço Lightning válido ou LNURL de walletofsatoshi.com';
+      'Endereços Lightning e LNURL não são suportados. Use um endereço Bitcoin ou Liquid.';
 
   @override
   String get qr_validation_boltz_invalid => 'Invoice BOLTZ inválido';
@@ -2526,11 +2593,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get qr_validation_lightning_unsupported =>
-      'Lightning não é suportado para envio';
+      'Lightning não é suportado para envio. Use um endereço Bitcoin ou Liquid.';
 
   @override
   String get qr_validation_lnurl_unsupported =>
-      'LNURL não suportado. Use walletofsatoshi.com ou outro provedor compatível';
+      'LNURL não é suportado. Use um endereço Bitcoin ou Liquid.';
 
   @override
   String get qr_validation_invalid_default => 'QR code inválido';
@@ -2575,14 +2642,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get setup_seed_12_desc =>
-      'Mais prática e rápida de configurar. Recomendada\npara iniciantes ou quem prefere simplicidade sem\nabrir mão da segurança.';
+      'Mais prática e rápida de configurar. Recomendada para iniciantes ou quem prefere simplicidade sem abrir mão da segurança.';
 
   @override
   String get setup_seed_24_title => '24 Palavras (recomendado)';
 
   @override
   String get setup_seed_24_desc =>
-      'Proporciona mais segurança. Recomendada para\nquem deseja proteger valores maiores ou busca o\nmáximo de segurança.';
+      'Proporciona mais segurança. Recomendada para quem deseja proteger valores maiores ou busca o máximo de segurança.';
 
   @override
   String get setup_generate_seed_button => 'Gerar frase de recuperação';
@@ -2621,19 +2688,18 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get setup_import_instruction_body =>
-      'Digite cada palavra da sua seed phrase (12 ou 24 palavras). O sistema oferecerá sugestões BIP39 conforme você digita. Pressione espaço ou clique para confirmar cada palavra.';
+      'As 12 ou 24 palavras, na ordem em que você anotou. As sugestões aparecem enquanto você digita.';
 
   @override
-  String get setup_import_seed_valid =>
-      'Seed phrase válida! Pronta para importar.';
+  String get setup_import_seed_valid => 'Frase válida! Pronta para importar.';
 
   @override
   String get setup_import_checksum_invalid =>
-      'Checksum inválido. Verifique as palavras.';
+      'Alguma palavra não confere. Revise a ordem e a grafia.';
 
   @override
   String get setup_import_tip =>
-      'Dica: Pressione espaço para confirmar a primeira sugestão rapidamente';
+      'Dica: toque em espaço para aceitar a primeira sugestão.';
 
   @override
   String get setup_import_button => 'Importar Carteira';
@@ -2661,7 +2727,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get setup_input_hint_default => 'Digite uma palavra BIP39...';
+  String get setup_input_hint_default => 'Digite uma palavra…';
 
   @override
   String get setup_progress_label => 'Progresso';
@@ -2797,6 +2863,46 @@ class AppLocalizationsPt extends AppLocalizations {
   String get wallet_import_error_unknown => 'Erro desconhecido';
 
   @override
+  String get wallet_open_step_opening => 'Abrindo sua carteira';
+
+  @override
+  String get wallet_open_step_connecting => 'Conectando com segurança';
+
+  @override
+  String get wallet_open_step_syncing => 'Buscando seus saldos';
+
+  @override
+  String get wallet_open_step_done => 'Tudo pronto!';
+
+  @override
+  String get wallet_open_hint => 'Isso leva só alguns instantes.';
+
+  @override
+  String get wallet_open_hint_slow =>
+      'Na primeira vez pode demorar um pouco mais.';
+
+  @override
+  String get wallet_open_retrying => 'A conexão oscilou. Tentando de novo…';
+
+  @override
+  String get wallet_open_error_title => 'Não conseguimos abrir sua carteira';
+
+  @override
+  String get wallet_open_error_connection =>
+      'Verifique sua conexão com a internet e tente novamente.';
+
+  @override
+  String get wallet_open_error_generic =>
+      'Algo deu errado ao abrir sua carteira. Tente novamente em instantes.';
+
+  @override
+  String get wallet_open_error_missing =>
+      'Não encontramos sua frase de recuperação neste aparelho. Importe sua carteira de novo para continuar.';
+
+  @override
+  String get wallet_open_import_again => 'Importar de novo';
+
+  @override
   String get send_pix_appbar => 'Enviar PIX';
 
   @override
@@ -2922,7 +3028,40 @@ class AppLocalizationsPt extends AppLocalizations {
   String get cpf_favorites_actions => 'Ações';
 
   @override
+  String get cpf_favorites_own_badge => 'Meu usuário';
+
+  @override
+  String get cpf_favorites_own_mark => 'Marcar como meu usuário';
+
+  @override
+  String get cpf_favorites_own_unmark => 'Desmarcar meu usuário';
+
+  @override
+  String cpf_favorites_own_marked(String name) {
+    return '$name agora é o seu usuário nos depósitos.';
+  }
+
+  @override
+  String get cpf_favorites_own_unmarked =>
+      'Sem um pagador marcado como \"Meu usuário\", não é possível depositar.';
+
+  @override
+  String get cpf_favorites_own_hint =>
+      'Marque como \"Meu usuário\" o titular da conta bancária que paga os seus depósitos. Os depósitos usam o CPF/CNPJ dele e só começam com um pagador marcado.';
+
+  @override
+  String get cpf_favorites_own_check_title => 'Este pagador sou eu';
+
+  @override
+  String get cpf_favorites_own_check_subtitle =>
+      'Marca como \"Meu usuário\": os seus depósitos passam a usar este CPF/CNPJ.';
+
+  @override
   String get cpf_favorites_error => 'Não foi possível carregar os pagadores';
+
+  @override
+  String get cpf_favorites_save_error =>
+      'Não foi possível salvar o pagador. Tente novamente.';
 
   @override
   String get cpf_favorites_removed => 'Pagador removido';
@@ -3148,11 +3287,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Pagamentos via PIX podem ser processados em até 72 horas úteis após a confirmação.';
 
   @override
-  String get pix_info_lbtc_variation_title => 'Variação de câmbio (LBTC)';
+  String get pix_info_lbtc_variation_title => 'Variação de câmbio (L-BTC)';
 
   @override
   String get pix_info_lbtc_variation_body =>
-      'Ao escolher receber em LBTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.';
+      'Ao escolher receber em L-BTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.';
 
   @override
   String get pix_info_fees_title => 'Sobre as taxas';
@@ -3268,82 +3407,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get merchant_tutorial_done_body =>
       'Agora você já sabe usar todas as funcionalidades do Modo Comerciante. Pronto para começar?';
-
-  @override
-  String get pix_tutorial_step1_title => 'Receba pagamentos com PIX';
-
-  @override
-  String get pix_tutorial_step1_body =>
-      'Toque aqui para acessar a área PIX e começar a receber pagamentos rapidamente.';
-
-  @override
-  String get pix_tutorial_step2_title => 'Acesso rápido';
-
-  @override
-  String get pix_tutorial_step2_body =>
-      'Você também pode acessar a área PIX por este atalho disponível em todo o aplicativo.';
-
-  @override
-  String get pix_tutorial_step3_title => 'Como você recebe pagamentos';
-
-  @override
-  String get pix_tutorial_step3_body =>
-      'Por padrão, os pagamentos são recebidos em DEPIX, um ativo digital atrelado 1:1 ao Real. Cada 1 DEPIX equivale a R\$1,00.';
-
-  @override
-  String get pix_tutorial_step4_title => 'Escolha outro ativo';
-
-  @override
-  String get pix_tutorial_step4_body =>
-      'Se preferir, você pode alterar o ativo de recebimento e receber pagamentos diretamente em Liquid Bitcoin (L-BTC).';
-
-  @override
-  String get pix_tutorial_step5_title => 'Converta quando quiser';
-
-  @override
-  String get pix_tutorial_step5_body =>
-      'Mesmo recebendo pagamentos em DEPIX, você pode converter seu saldo para L-BTC ou USDT depois, usando a tela de Swap.';
-
-  @override
-  String get pix_tutorial_step6_title => 'Seu limite de recebimento';
-
-  @override
-  String get pix_tutorial_step6_body =>
-      'Confira seus limites mínimos, máximos e o limite diário. Seus limites podem aumentar conforme o uso do aplicativo.';
-
-  @override
-  String get pix_tutorial_step7_title => 'Informe o valor';
-
-  @override
-  String get pix_tutorial_step7_body =>
-      'Escolha o valor que deseja receber. Para este tutorial, usaremos R\$50,00 como exemplo.';
-
-  @override
-  String get pix_tutorial_step8_title => 'Gere uma cobrança PIX';
-
-  @override
-  String get pix_tutorial_step8_body =>
-      'Depois de informar um valor, basta arrastar este botão até o fim para criar uma solicitação de pagamento PIX.';
-
-  @override
-  String get pix_tutorial_step9_title => 'QR Code pronto';
-
-  @override
-  String get pix_tutorial_step9_body =>
-      'Após arrastar o botão, um QR Code PIX será gerado.';
-
-  @override
-  String get pix_tutorial_done_title => 'Tutorial concluído';
-
-  @override
-  String get pix_tutorial_done_body =>
-      'Agora você sabe como receber pagamentos com PIX, escolher seu ativo de recebimento, entender os limites e gerar QR Codes de pagamento.';
-
-  @override
-  String get pix_tutorial_restart => 'Reiniciar tutorial';
-
-  @override
-  String get pix_tutorial_settings_replay => 'Rever tutorial do PIX';
 
   @override
   String get merchant_default_product_name => 'Produto 01';
@@ -3746,6 +3809,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get tx_detail_expected => 'Esperado';
 
   @override
+  String get tx_step_created => 'Criada';
+
+  @override
+  String get tx_step_detected => 'Detectada';
+
+  @override
+  String get tx_step_on_network => 'Na rede';
+
+  @override
+  String get tx_step_converting => 'Convertendo';
+
+  @override
   String get tx_type_redeposit => 'Auto-redepósito';
 
   @override
@@ -3876,25 +3951,59 @@ class AppLocalizationsPt extends AppLocalizations {
   String get main_settings_support => 'Suporte';
 
   @override
-  String get onboarding_1_title => 'Seu dinheiro, sob seu controle';
+  String get onboarding_1_eyebrow => 'BITCOIN E LIQUID';
+
+  @override
+  String get onboarding_1_title => 'Uma carteira só sua';
+
+  @override
+  String get onboarding_1_highlight => 'só sua';
 
   @override
   String get onboarding_1_body =>
-      'Receba, envie e gerencie Bitcoin com privacidade real. Uma carteira feita pra quem valoriza liberdade.';
+      'Guarde Bitcoin, L-BTC, DePix e USDt em um único lugar. Ninguém além de você tem acesso.';
 
   @override
-  String get onboarding_2_title => 'Segurança em primeiro lugar';
+  String get onboarding_2_eyebrow => 'PIX';
+
+  @override
+  String get onboarding_2_title => 'O Pix agora fala Bitcoin';
+
+  @override
+  String get onboarding_2_highlight => 'Bitcoin';
 
   @override
   String get onboarding_2_body =>
-      'Sua chave, sua responsabilidade. Proteja seu patrimônio com criptografia e backups locais.';
+      'Compre com Pix, pague qualquer chave ou QR Code com seu saldo e crie links de cobrança.';
 
   @override
-  String get onboarding_3_title => 'Pronto para começar?';
+  String get onboarding_3_eyebrow => 'SWAP';
+
+  @override
+  String get onboarding_3_title => 'Seu dinheiro, em diferentes moedas';
+
+  @override
+  String get onboarding_3_highlight => 'diferentes moedas';
 
   @override
   String get onboarding_3_body =>
-      'Crie ou importe sua carteira em segundos e assuma o controle do seu Bitcoin.';
+      'Troque entre Bitcoin, L-BTC, DePix e USDt diretamente pelo app, sem precisar usar várias plataformas.';
+
+  @override
+  String get onboarding_4_eyebrow => 'SEGURANÇA';
+
+  @override
+  String get onboarding_4_title => 'Só você tem a chave';
+
+  @override
+  String get onboarding_4_highlight => 'você';
+
+  @override
+  String get onboarding_4_body =>
+      'Suas palavras de recuperação ficam só com você. Guarde-as bem: com elas você recupera tudo em qualquer celular.';
+
+  @override
+  String get onboarding_skip => 'Pular';
 
   @override
   String get first_access_create_wallet => 'Criar Carteira';
@@ -3937,6 +4046,42 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get level_user_label => 'Nível de usuário';
+
+  @override
+  String get level_name_bronze => 'Bronze';
+
+  @override
+  String get level_name_silver => 'Prata';
+
+  @override
+  String get level_name_gold => 'Ouro';
+
+  @override
+  String get level_name_diamond => 'Diamante';
+
+  @override
+  String get level_up_badge => 'SUBIU DE NÍVEL!';
+
+  @override
+  String get level_up_title => 'Você subiu de nível!';
+
+  @override
+  String get level_up_message =>
+      'Continue assim para desbloquear ainda mais benefícios!';
+
+  @override
+  String get level_down_badge => 'NÍVEL REDUZIDO';
+
+  @override
+  String get level_down_title => 'Seu nível foi reduzido';
+
+  @override
+  String get level_down_message =>
+      'Isso acontece quando a carteira fica inativa por um tempo. Mas não se preocupe — você pode recuperar o nível usando o app.';
+
+  @override
+  String get level_down_tip =>
+      'Dica: use a carteira regularmente para recuperar seus benefícios e subir de nível novamente.';
 
   @override
   String get level_desc_bronze =>
@@ -4101,6 +4246,15 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get sync_error_warning => 'Operação não autorizada';
+
+  @override
+  String get status_banner_hint => 'Toque para ver detalhes';
+
+  @override
+  String get status_island_sync => 'Sync';
+
+  @override
+  String get status_island_sync_error => 'Erro';
 
   @override
   String get pin_create_title => 'Criar PIN';
@@ -4320,29 +4474,29 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get wallet_send_lbtc_disclaimer_body =>
-      'Para enviar ativos (Bitcoin L2, DePIX ou USDT), você precisa manter um saldo de Bitcoin L2 na sua carteira.';
+      'Para enviar ativos (L-BTC, DePIX ou USDT), você precisa manter um saldo de L-BTC na sua carteira.';
 
   @override
   String get wallet_send_lbtc_network_fees_title => 'Taxas de rede';
 
   @override
   String get wallet_send_lbtc_network_fees_desc =>
-      'O saldo de Bitcoin L2 é usado para pagar as taxas dos mineradores da rede Liquid.';
+      'O saldo de L-BTC é usado para pagar as taxas dos mineradores da rede Liquid.';
 
   @override
-  String get wallet_send_lbtc_obtain_title => 'Como obter Bitcoin L2';
+  String get wallet_send_lbtc_obtain_title => 'Como obter L-BTC';
 
   @override
   String get wallet_send_lbtc_obtain_desc_disclaimer =>
-      'Use a função SWAP ou receba Bitcoin via Lightning ou Liquid.';
+      'Use a função SWAP ou receba L-BTC pela rede Liquid.';
 
   @override
   String get wallet_send_lbtc_obtain_desc_info =>
-      'Use a função SWAP para converter Bitcoin (Lightning ou on-chain) em Bitcoin L2 diretamente no aplicativo.';
+      'Use a função SWAP para converter Bitcoin on-chain em L-BTC diretamente no aplicativo.';
 
   @override
   String get wallet_send_lbtc_disclaimer_tip =>
-      'Mantenha um pequeno saldo de Bitcoin L2 para garantir que suas transações sejam processadas.';
+      'Mantenha um pequeno saldo de L-BTC para garantir que suas transações sejam processadas.';
 
   @override
   String wallet_send_lbtc_disclaimer_understood_countdown(int seconds) {
@@ -4353,50 +4507,65 @@ class AppLocalizationsPt extends AppLocalizations {
   String get wallet_send_lbtc_info_title => 'Informações sobre taxas';
 
   @override
-  String get wallet_send_lbtc_info_step1_title =>
-      'Bitcoin L2 para taxas de rede';
+  String get wallet_send_lbtc_info_step1_title => 'L-BTC para taxas de rede';
 
   @override
   String get wallet_send_lbtc_info_step1_desc =>
-      'Para enviar DePIX, USDT ou qualquer ativo da rede Liquid, você precisa ter Bitcoin L2 (Liquid Bitcoin) na carteira. Ele é usado para pagar os mineradores da rede.';
+      'Para enviar DePIX, USDT ou qualquer ativo da rede Liquid, você precisa ter L-BTC (Liquid Bitcoin) na carteira. Ele é usado para pagar os mineradores da rede.';
 
   @override
-  String get wallet_send_lbtc_info_step3_title =>
-      'Receba via Lightning ou Liquid';
+  String get wallet_send_lbtc_info_step3_title => 'Receba via Liquid';
 
   @override
   String get wallet_send_lbtc_info_step3_desc =>
-      'Receba Bitcoin via Lightning Network ou Liquid para obter Bitcoin L2 na sua carteira sem usar o SWAP.';
+      'Receba L-BTC diretamente pela rede Liquid, sem usar o SWAP.';
 
   @override
   String get wallet_send_lbtc_go_swap => 'Ir para SWAP';
 
   @override
-  String get wallet_send_lbtc_insufficient_title => 'Bitcoin L2 insuficiente';
+  String get wallet_send_custom_fee_info_title =>
+      'Taxa personalizada no Bitcoin';
+
+  @override
+  String get wallet_send_custom_fee_info_off_desc =>
+      'Em envios de Bitcoin on-chain, você pode definir a taxa em sat/vB em vez de escolher uma velocidade. Ative a opção nas configurações de taxas.';
+
+  @override
+  String get wallet_send_custom_fee_info_on_desc =>
+      'Em envios de Bitcoin on-chain, toque em Personalizada, abaixo das velocidades, para definir a taxa em sat/vB.';
+
+  @override
+  String get wallet_send_custom_fee_turn_on => 'Ativar taxa personalizada';
+
+  @override
+  String get wallet_send_custom_fee_configure =>
+      'Configurar taxa personalizada';
+
+  @override
+  String get wallet_send_lbtc_insufficient_title => 'L-BTC insuficiente';
 
   @override
   String wallet_send_lbtc_insufficient_body(String asset) {
-    return 'Você precisa de Bitcoin L2 para pagar as taxas dos mineradores ao enviar $asset:';
+    return 'Você precisa de L-BTC para pagar as taxas dos mineradores ao enviar $asset:';
   }
 
   @override
   String get wallet_send_lbtc_insufficient_swap_prefix => 'Use a função ';
 
   @override
-  String get wallet_send_lbtc_insufficient_swap_suffix =>
-      ' para obter Bitcoin L2';
+  String get wallet_send_lbtc_insufficient_swap_suffix => ' para obter L-BTC';
 
   @override
-  String get wallet_send_lbtc_insufficient_lightning =>
-      'Receba Bitcoin via Lightning ou Liquid para obter Bitcoin L2';
+  String get wallet_send_lbtc_insufficient_receive =>
+      'Receba L-BTC diretamente pela rede Liquid';
 
   @override
-  String get wallet_send_lbtc_banner_title =>
-      'Bitcoin L2 necessário para taxas';
+  String get wallet_send_lbtc_banner_title => 'L-BTC necessário para taxas';
 
   @override
   String get wallet_send_lbtc_banner_body =>
-      'Para enviar DePIX ou USDT, você precisa ter Bitcoin L2 na carteira para pagar as taxas da rede.';
+      'Para enviar DePIX ou USDT, você precisa ter L-BTC na carteira para pagar as taxas da rede.';
 
   @override
   String get wallet_send_lbtc_banner_action => 'Obter via SWAP';
@@ -4441,7 +4610,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String wallet_send_review_lbtc_insufficient_error(String asset) {
-    return 'Saldo de Bitcoin L2 insuficiente para taxas.\n\nPara enviar $asset, você precisa de Bitcoin L2 para pagar os mineradores da rede. Use a função SWAP ou receba Bitcoin via Lightning ou Liquid.';
+    return 'Saldo de L-BTC insuficiente para taxas.\n\nPara enviar $asset, você precisa de L-BTC para pagar os mineradores da rede. Use a função SWAP ou receba L-BTC pela rede Liquid.';
   }
 
   @override
@@ -4477,12 +4646,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String wallet_send_error_asset_liquid_only(String asset) {
-    return '$asset só pode ser enviado pela rede Liquid ou Lightning';
+    return '$asset só pode ser enviado pela rede Liquid';
   }
 
   @override
   String get wallet_send_error_liquid_only =>
-      'Para enviar ativos Liquid use Bitcoin L2, Depix ou USDT';
+      'Para enviar ativos Liquid use L-BTC, Depix ou USDT';
 
   @override
   String get wallet_send_error_amount_positive =>
@@ -4654,12 +4823,20 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String wallet_asset_chart_title(String period) {
-    return 'Gráfico - $period';
-  }
+  String get wallet_all_assets_pinned => 'Na tela inicial';
 
   @override
-  String get wallet_asset_chart_unavailable => 'Gráfico Indisponível';
+  String get wallet_all_assets_others => 'Mais ativos';
+
+  @override
+  String get wallet_all_assets_pin_hint =>
+      'Marque até 2 ativos com a estrela para vê-los na tela inicial.';
+
+  @override
+  String get wallet_all_assets_pin => 'Mostrar na tela inicial';
+
+  @override
+  String get wallet_all_assets_unpin => 'Remover da tela inicial';
 
   @override
   String get wallet_asset_chart_load_error =>
@@ -4672,7 +4849,109 @@ class AppLocalizationsPt extends AppLocalizations {
   String get wallet_asset_stats_low => 'Mínima';
 
   @override
-  String get wallet_asset_stats_current => 'Atual';
+  String get wallet_portfolio_history_title => 'Histórico da carteira';
+
+  @override
+  String get wallet_portfolio_history_note =>
+      'Valor dos seus ativos atuais ao longo do período, aos preços de cada momento.';
+
+  @override
+  String get wallet_asset_stats_open => 'Abertura';
+
+  @override
+  String get wallet_asset_offline => 'Dados offline';
+
+  @override
+  String get offline_price_title => 'App offline';
+
+  @override
+  String get offline_price_saved => 'Preços salvos';
+
+  @override
+  String get offline_price_empty => 'Nenhum preço salvo disponível';
+
+  @override
+  String get offline_price_load_error =>
+      'Erro ao carregar informações de cache';
+
+  @override
+  String get offline_price_no_cache => 'Sem cache';
+
+  @override
+  String get offline_price_age_unknown => 'Sem dados';
+
+  @override
+  String get offline_price_fresh => 'Recente';
+
+  @override
+  String get offline_price_old => 'Antigo';
+
+  @override
+  String get offline_price_very_old => 'Muito antigo';
+
+  @override
+  String get offline_price_hint =>
+      'Os preços serão atualizados automaticamente quando a conexão for restaurada';
+
+  @override
+  String get wallet_asset_period_day => '24 horas';
+
+  @override
+  String get wallet_asset_period_week => '7 dias';
+
+  @override
+  String get wallet_asset_period_month => '30 dias';
+
+  @override
+  String wallet_asset_chart_semantics(
+    String asset,
+    String period,
+    String from,
+    String to,
+    String change,
+  ) {
+    return 'Preço de $asset em $period: de $from para $to, $change';
+  }
+
+  @override
+  String get wallet_asset_chart_range_hint =>
+      'Toque e segure para medir um intervalo';
+
+  @override
+  String get wallet_asset_range_start => 'Início';
+
+  @override
+  String get wallet_asset_range_end => 'Fim';
+
+  @override
+  String get wallet_asset_range_clear => 'Limpar intervalo';
+
+  @override
+  String wallet_asset_range_hours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count horas',
+      one: '1 hora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String wallet_asset_range_days(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dias',
+      one: '1 dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String wallet_asset_range_days_hours(int days, int hours) {
+    return '$days d $hours h';
+  }
 
   @override
   String get wallet_holding_appbar_title => 'Ativos';
@@ -4729,11 +5008,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Pagamentos via PIX podem ser processados em até 72 horas úteis após a confirmação.';
 
   @override
-  String get pix_receive_info_step2_title => 'Variação de câmbio (LBTC)';
+  String get pix_receive_info_step2_title => 'Variação de câmbio (L-BTC)';
 
   @override
   String get pix_receive_info_step2_desc =>
-      'Ao escolher receber em LBTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.';
+      'Ao escolher receber em L-BTC, o valor final pode variar devido à cotação do momento da conversão. Você pode receber mais ou menos que o calculado.';
 
   @override
   String get pix_receive_info_step3_title => 'Sobre as taxas';
@@ -5189,11 +5468,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get converting_details_direction_peg_in =>
-      'Peg-in (BTC on-chain → LBTC)';
+      'Peg-in (BTC on-chain → L-BTC)';
 
   @override
   String get converting_details_direction_peg_out =>
-      'Peg-out (LBTC → BTC on-chain)';
+      'Peg-out (L-BTC → BTC on-chain)';
 
   @override
   String get converting_details_sent => 'Enviado';
@@ -5237,11 +5516,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get converting_details_explanation_broadcasted_peg_in =>
-      'Seu bloqueio de Bitcoin foi transmitido. Assim que confirmar, o serviço de chain-swap irá reivindicá-lo e enviar LBTC para sua carteira.';
+      'Seu bloqueio de Bitcoin foi transmitido. Assim que confirmar, o serviço de chain-swap irá reivindicá-lo e enviar L-BTC para sua carteira.';
 
   @override
   String get converting_details_explanation_broadcasted_peg_out =>
-      'Seu LBTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.';
+      'Seu L-BTC foi enviado para o serviço de chain-swap. Assim que for processado, você receberá BTC na rede Bitcoin.';
 
   @override
   String get converting_details_explanation_failed =>
@@ -5306,7 +5585,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get swap_btc_lbtc_warning_intro =>
-      'Informações importantes sobre o swap BTC para LBTC:';
+      'Informações importantes sobre o swap BTC para L-BTC:';
 
   @override
   String get swap_btc_lbtc_warning_cross_chain =>
@@ -5766,6 +6045,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pix_hub_receive_from_others => 'Receber de outra pessoa';
 
   @override
+  String get pix_hub_receive_qr => 'Cobrar com QR Code';
+
+  @override
+  String get pix_hub_receive_qr_subtitle =>
+      'Informe o valor e o CPF/CNPJ de quem paga para gerar o QR Code.';
+
+  @override
   String get pix_hub_receive_create_charge => 'Criar cobrança';
 
   @override
@@ -5913,8 +6199,36 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pix_hub_link_status_expired => 'Expirado';
 
   @override
+  String get pix_hub_link_status_revoked => 'Desativado';
+
+  @override
+  String get pix_hub_link_no_reference => 'Link de pagamento';
+
+  @override
+  String get pix_hub_link_asset_title => 'Receber em';
+
+  @override
+  String get pix_hub_link_asset_label => 'Recebe em';
+
+  @override
+  String get pix_hub_link_revoke => 'Desativar link';
+
+  @override
+  String get pix_hub_link_revoke_title => 'Desativar este link?';
+
+  @override
+  String get pix_hub_link_revoke_body =>
+      'Ninguém mais poderá pagar por este link. Pagamentos já iniciados continuam.';
+
+  @override
+  String get pix_hub_link_revoke_confirm => 'Desativar';
+
+  @override
+  String get pix_hub_link_revoked => 'Link desativado.';
+
+  @override
   String get pix_hub_link_disclaimer =>
-      'O endereço é fictício e não abre uma página de pagamento real.';
+      'Quem abre o link paga com Pix, e o valor chega na sua carteira no ativo escolhido.';
 
   @override
   String get pix_hub_history_filter_all => 'Tudo';
@@ -6099,7 +6413,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pix_hub_deposit_gate_subtitle =>
-      'Informe o CPF da conta bancária que vai pagar e confirme o aviso abaixo.';
+      'Os depósitos usam o CPF/CNPJ do pagador marcado como \"Meu usuário\". Confira-o e confirme o aviso abaixo.';
 
   @override
   String get pix_hub_deposit_cpf_hint =>
@@ -6119,13 +6433,41 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pix_hub_deposit_notice_screen_title => 'Aviso sobre depósitos';
 
   @override
-  String get pix_hub_deposit_cpf_stored_label => 'CPF informado';
+  String get pix_hub_deposit_cpf_stored_label => 'CPF/CNPJ do pagador';
 
   @override
-  String get pix_hub_deposit_cpf_missing => 'Nenhum CPF informado.';
+  String get pix_hub_deposit_cpf_missing =>
+      'Nenhum pagador marcado como \"Meu usuário\".';
 
   @override
-  String get pix_hub_deposit_change_cpf => 'Alterar CPF';
+  String get pix_hub_deposit_change_cpf => 'Alterar pagador';
+
+  @override
+  String get pix_deposit_own_payer_required_title => 'Cadastre seu CPF/CNPJ';
+
+  @override
+  String get pix_deposit_own_payer_required_body =>
+      'Para depositar, cadastre em Pagadores favoritos o CPF/CNPJ do titular da conta que paga os seus depósitos e marque-o como \"Meu usuário\".';
+
+  @override
+  String get pix_deposit_own_payer_required_action =>
+      'Ir para Pagadores favoritos';
+
+  @override
+  String get pix_deposit_own_payer_step_add_title =>
+      'Cadastre o titular da conta';
+
+  @override
+  String get pix_deposit_own_payer_step_add_body =>
+      'Em Pagadores favoritos, adicione o CPF/CNPJ do titular da conta bancária que paga os seus depósitos.';
+
+  @override
+  String get pix_deposit_own_payer_step_mark_title =>
+      'Marque como \"Meu usuário\"';
+
+  @override
+  String get pix_deposit_own_payer_step_mark_body =>
+      'No menu desse pagador, toque em \"Marcar como meu usuário\". Os depósitos passam a usar o documento dele.';
 
   @override
   String get pix_hub_pending_deposits => 'Depósitos em andamento';
@@ -6218,6 +6560,20 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get pix_hub_failure_provider_refused =>
       'O provedor Pix recusou o envio. Confira se a chave pertence ao CPF/CNPJ informado.';
+
+  @override
+  String pix_hub_failure_provider_refused_reason(String reason) {
+    return 'O provedor Pix recusou o envio. Nenhum valor saiu da sua carteira. Motivo informado pelo provedor: $reason';
+  }
+
+  @override
+  String pix_hub_failure_daily_limit(String limit) {
+    return 'Este envio passa do limite diário de $limit que o provedor Pix aceita para esta chave. Nenhum valor saiu da sua carteira. Tente um valor menor ou envie amanhã.';
+  }
+
+  @override
+  String get pix_hub_failure_daily_limit_no_amount =>
+      'Este envio passa do limite diário que o provedor Pix aceita para esta chave. Nenhum valor saiu da sua carteira. Tente um valor menor ou envie amanhã.';
 
   @override
   String get pix_hub_failure_outcome_unknown =>
@@ -6462,4 +6818,28 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pix_hub_tax_id_valid => 'Documento válido';
+
+  @override
+  String get pix_deposits_empty_title => 'Nenhum depósito PIX encontrado';
+
+  @override
+  String get pix_deposits_empty_message => 'Seus depósitos PIX aparecerão aqui';
+
+  @override
+  String get pix_deposits_load_error_title => 'Erro ao carregar depósitos PIX';
+
+  @override
+  String get pix_deposits_load_error_message => 'Tente novamente mais tarde';
+
+  @override
+  String get offline_indicator_tooltip =>
+      'App está offline - usando preços em cache';
+
+  @override
+  String update_version_label(String version) {
+    return 'Versão $version';
+  }
+
+  @override
+  String get human_verification_payment_label => 'Pagamento de verificação';
 }

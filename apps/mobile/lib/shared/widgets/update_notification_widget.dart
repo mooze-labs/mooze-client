@@ -165,7 +165,9 @@ class _UpdateNotificationWidgetState
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Versão ${updateState.newVersion}',
+                            t.update_version_label(
+                              updateState.newVersion ?? '',
+                            ),
                             style: TextStyle(
                               color: context.colors.textSecondary,
                               fontSize: 14,
