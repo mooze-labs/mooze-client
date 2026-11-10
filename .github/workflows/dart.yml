@@ -35,6 +35,9 @@ jobs:
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
 
+      - name: Test
+        run: flutter test
+
       - name: Build APK
         run: flutter build apk --dart-define-from-file=config/posthog.production.json
 
