@@ -6,7 +6,6 @@ import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_key.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_send_method.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_transaction.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_amount_field.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_demo_badge.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_deposit_ownership_notice.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_header.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_operation_list.dart';
@@ -52,14 +51,6 @@ Finder _findPixIcon(PixIconData icon) => find.byWidgetPredicate(
 void main() {
   for (final brightness in Brightness.values) {
     group('Pix hub widgets in the ${brightness.name} theme', () {
-      testWidgets('the demonstration badge is readable', (tester) async {
-        await tester.pumpWidget(
-          host(const PixDemoBadge(), brightness: brightness),
-        );
-
-        expect(find.text('Demonstração'), findsOneWidget);
-      });
-
       testWidgets('a sent movement shows a negative amount', (tester) async {
         final transaction = PixTransaction(
           id: 'tx',

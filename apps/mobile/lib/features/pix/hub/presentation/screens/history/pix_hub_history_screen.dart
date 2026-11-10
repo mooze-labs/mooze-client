@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_transaction.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_hub_providers.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_receive_providers.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_send_providers.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_action_tile.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_empty_state.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
@@ -21,10 +23,11 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// Which movements the history shows.
 enum PixHistoryFilter { all, sent, received }
 
-/// History of the Pix movements.
+/// History of the Pix movements: the sends and the deposits.
 ///
 /// The list holds Pix records only. Bitcoin, L-BTC, USDT and DePix movements
-/// stay in the wallet history.
+/// stay in the wallet history. The backend lists neither, so the sends come
+/// from the records of the device and the deposits from mooze-core.
 ///
 /// A glass segmented control picks the filter. The movements share one
 /// glass panel, split by inset hairlines. A change of filter or of loading
@@ -54,6 +57,23 @@ class _PixHubHistoryScreenState extends ConsumerState<PixHubHistoryScreen> {
     };
   }
 
+  /// Opens the screen that follows the movement: the send result, which
+  /// reads the status again, or the deposit details.
+  void _open(PixTransaction transaction) {
+    if (transaction.kind != PixTransactionKind.sent) {
+      context.push('/pix/payment/${transaction.id}');
+      return;
+    }
+    final record = ref
+        .read(pixWithdrawalRecordStoreProvider)
+        .load()
+        .where((r) => r.id == transaction.id)
+        .firstOrNull;
+    if (record == null) return;
+    ref.read(pixSendControllerProvider.notifier).resume(record);
+    context.push('/pix/send/result');
+  }
+
   String _label(AppLocalizations t, PixHistoryFilter filter) {
     return switch (filter) {
       PixHistoryFilter.all => t.pix_hub_history_filter_all,
@@ -70,7 +90,10 @@ class _PixHubHistoryScreenState extends ConsumerState<PixHubHistoryScreen> {
     return PixScreenScaffold(
       title: t.pix_hub_action_history,
       subtitle: t.pix_hub_action_history_subtitle,
-      onRefresh: () async => ref.invalidate(pixHubTransactionsProvider),
+      onRefresh: () async {
+        ref.invalidate(pixDepositHistoryProvider);
+        ref.invalidate(pixPendingWithdrawalSyncProvider);
+      },
       children: [
         _FilterBar(
           selected: _filter,
@@ -87,7 +110,7 @@ class _PixHubHistoryScreenState extends ConsumerState<PixHubHistoryScreen> {
               title: t.pix_hub_error_title,
               message: t.pix_hub_error_body,
               actionLabel: t.common_retry,
-              onAction: () => ref.invalidate(pixHubTransactionsProvider),
+              onAction: () => ref.invalidate(pixDepositHistoryProvider),
             ),
             data: (all) {
               final list = _apply(all);
@@ -114,10 +137,7 @@ class _PixHubHistoryScreenState extends ConsumerState<PixHubHistoryScreen> {
                               ),
                             PixTransactionTile(
                               transaction: transaction,
-                              onTap: () => context.push(
-                                '/pix/history/detail',
-                                extra: transaction,
-                              ),
+                              onTap: () => _open(transaction),
                             ),
                           ],
                         ],

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_hub_providers.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_link_revoke.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_empty_state.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_labels.dart';
@@ -13,7 +14,6 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_c
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_receive_providers.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Charges that are still waiting for a payment.
@@ -22,8 +22,8 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// endpoint that cancels a deposit, so those rows only open the charge; they
 /// close by themselves when the charge expires.
 ///
-/// The second section lists the demonstration payment links, which live on the
-/// device and can be removed from the list.
+/// The second section lists the payment links that still take a payment. The
+/// owner can turn one off.
 class PixPendingRequestsScreen extends ConsumerWidget {
   const PixPendingRequestsScreen({super.key});
 
@@ -34,48 +34,6 @@ class PixPendingRequestsScreen extends ConsumerWidget {
     DepositStatus.processing,
     DepositStatus.fundsPrepared,
   };
-
-  Future<void> _removeLink(
-    BuildContext context,
-    WidgetRef ref,
-    PixPaymentLink link,
-  ) async {
-    final t = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(t.pix_hub_pending_remove_title),
-        content: Text(t.pix_hub_pending_remove_body(link.reference)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(t.common_cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(t.pix_hub_pending_remove_confirm),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    final result = await ref
-        .read(pixHubRepositoryProvider)
-        .deletePaymentLink(link.id)
-        .run();
-
-    if (!context.mounted) return;
-    result.fold(
-      (failure) => AppSnackBar.error(context, pixHubFailureMessage(t, failure)),
-      (_) {
-        ref.invalidate(pixHubPaymentLinksProvider);
-        ref.invalidate(pixHubOverviewProvider);
-        AppSnackBar.success(context, t.pix_hub_pending_removed);
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -173,7 +131,8 @@ class PixPendingRequestsScreen extends ConsumerWidget {
                   for (final link in pending)
                     _LinkRow(
                       link: link,
-                      onRemove: () => _removeLink(context, ref, link),
+                      onRemove: () =>
+                          confirmAndRevokePaymentLink(context, ref, link),
                     ),
                 ],
               );
@@ -246,7 +205,7 @@ class _DepositRow extends StatelessWidget {
   }
 }
 
-/// A demonstration payment link that can be removed from the list.
+/// A payment link that still takes a payment. The owner can turn it off.
 class _LinkRow extends StatelessWidget {
   final PixPaymentLink link;
   final VoidCallback onRemove;
@@ -280,7 +239,7 @@ class _LinkRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    link.reference,
+                    pixPaymentLinkTitle(t, link),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.textTheme.bodyLarge?.copyWith(
@@ -301,10 +260,10 @@ class _LinkRow extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: t.pix_hub_pending_remove_confirm,
+              tooltip: t.pix_hub_link_revoke,
               onPressed: onRemove,
               icon: Icon(
-                Icons.delete_outline_rounded,
+                Icons.link_off_rounded,
                 size: 20,
                 color: context.colors.negativeColor,
               ),

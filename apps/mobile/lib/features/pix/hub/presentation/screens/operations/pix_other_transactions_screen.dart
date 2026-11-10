@@ -2,7 +2,6 @@ import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_action_tile.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_demo_badge.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_section_header.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_card.dart';
@@ -37,7 +36,6 @@ class PixOtherTransactionsScreen extends StatelessWidget {
                 icon: PixIcons.history,
                 title: t.pix_hub_action_history,
                 subtitle: t.pix_hub_action_history_subtitle,
-                trailing: const PixDemoBadge(),
                 onTap: () => context.push('/pix/history'),
               ),
             ],
@@ -53,7 +51,6 @@ class PixOtherTransactionsScreen extends StatelessWidget {
                 icon: PixIcons.link,
                 title: t.pix_hub_action_links,
                 subtitle: t.pix_hub_action_links_subtitle,
-                trailing: const PixDemoBadge(),
                 onTap: () => context.push('/pix/links'),
               ),
               PixActionTile(

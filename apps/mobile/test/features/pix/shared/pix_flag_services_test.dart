@@ -4,7 +4,6 @@ import 'package:mooze_core_bridge/mooze_core_bridge.dart';
 
 import 'package:mooze_mobile/features/pix/receive_pix/data/services/lbtc_warning_service.dart';
 import 'package:mooze_mobile/features/pix/shared/data/services/pix_onboarding_service.dart';
-import 'package:mooze_mobile/features/pix/shared/data/services/pix_tutorial_service.dart';
 
 class _MockCore extends Mock implements MoozeCore {}
 
@@ -46,16 +45,6 @@ void main() {
     expect(flags, {PixFlagDto.merchantFirstTimeDialogShown});
     await service.resetMerchantFirstTimeDialog();
     expect(flags, isEmpty);
-  });
-
-  test('PixTutorialService uses the tutorial flag', () async {
-    final service = PixTutorialService(Future.value(core));
-
-    expect(await service.isTutorialShown(), isFalse);
-    await service.setTutorialShown();
-    expect(flags, {PixFlagDto.tutorialShown});
-    await service.resetTutorial();
-    expect(await service.isTutorialShown(), isFalse);
   });
 
   test('LbtcWarningService uses the L-BTC warning flag', () async {

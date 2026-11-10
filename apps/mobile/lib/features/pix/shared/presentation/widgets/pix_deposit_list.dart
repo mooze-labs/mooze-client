@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/providers/pix_history_state_notifier.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/providers/pix_history_state_notifier.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/home/transaction_list.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 class PixDepositList extends ConsumerWidget {
@@ -31,16 +33,12 @@ class PixDepositList extends ConsumerWidget {
         final deposits = filterClosure(asyncData.value.items);
         return RefreshIndicator(
           onRefresh: () async => onRefresh?.call(),
-          child: ListView.builder(
+          child: ListView(
             controller: scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: deposits.length,
-            itemBuilder: (context, index) {
-              return PixDepositListItem(
-                deposit: deposits[index],
-                isVisible: isVisible,
-              );
-            },
+            children: [
+              PixDepositHistoryList(deposits: deposits, isVisible: isVisible),
+            ],
           ),
         );
       },
@@ -50,234 +48,154 @@ class PixDepositList extends ConsumerWidget {
   }
 }
 
+/// The Pix deposits in the layout of the transaction history: grouped by
+/// day under a date header, one glass panel per day, rows split by
+/// hairlines.
+///
+/// Each row is a [HomeTransactionItem], as in the transaction history: the
+/// coin of the target asset, the asset name, the status and the time, and
+/// the amount. The order of [deposits] stays the same.
+class PixDepositHistoryList extends StatelessWidget {
+  const PixDepositHistoryList({
+    super.key,
+    required this.deposits,
+    required this.isVisible,
+  });
+
+  final List<PixDeposit> deposits;
+
+  /// True when the balance is hidden.
+  final bool isVisible;
+
+  @override
+  Widget build(BuildContext context) {
+    final dates = TransactionDates(context, AppLocalizations.of(context));
+    final groups = _groupByDay(deposits);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var g = 0; g < groups.length; g++) ...[
+          TransactionDateHeader(
+            label: dates.day(groups[g].first.createdAt),
+            isFirst: g == 0,
+          ),
+          GlassPanel(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              children: [
+                for (var i = 0; i < groups[g].length; i++) ...[
+                  if (i > 0)
+                    const PanelDivider(indent: HomeTransactionItem.textInset),
+                  PixDepositListItem(
+                    deposit: groups[g][i],
+                    isVisible: isVisible,
+                    time: dates.time(groups[g][i].createdAt),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Splits [source] into runs of deposits from the same day.
+  static List<List<PixDeposit>> _groupByDay(List<PixDeposit> source) {
+    final groups = <List<PixDeposit>>[];
+    for (final deposit in source) {
+      final day = DateUtils.dateOnly(deposit.createdAt);
+      if (groups.isNotEmpty &&
+          DateUtils.dateOnly(groups.last.first.createdAt) == day) {
+        groups.last.add(deposit);
+      } else {
+        groups.add([deposit]);
+      }
+    }
+    return groups;
+  }
+}
+
+/// One Pix deposit as a row of the transaction history.
+///
+/// The status reads in the line under the asset name, before the time, as
+/// in the transaction history. [time] defaults to the day and the time,
+/// for a list without date headers.
 class PixDepositListItem extends StatelessWidget {
   final PixDeposit deposit;
+
+  /// True when the balance is hidden.
   final bool isVisible;
+
+  final String? time;
 
   const PixDepositListItem({
     super.key,
     required this.deposit,
     required this.isVisible,
+    this.time,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        context.push('/depix/transactions/details', extra: deposit);
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            SvgPicture.asset(deposit.asset.iconPath, width: 50, height: 50),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    deposit.asset.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _getPixDepositSubtitle(context),
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  isVisible
-                      ? '•••••••'
-                      : deposit.status == DepositStatus.finished
-                      ? '+R\$ ${_formatAmount(deposit.amountInCents)}'
-                      : 'R\$ ${_formatAmount(deposit.amountInCents)}',
-                  style: TextStyle(
-                    color: isVisible ? null : _getStatusColor(),
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    decoration:
-                        deposit.status == DepositStatus.finished ||
-                            deposit.status == DepositStatus.expired &&
-                                !isVisible
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatTime(deposit.createdAt),
-                  style: TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-          ],
+    return MergeSemantics(
+      child: InkWell(
+        onTap: () {
+          context.push('/depix/transactions/details', extra: deposit);
+        },
+        child: HomeTransactionItem(
+          icon: deposit.asset.iconPath,
+          title: deposit.asset.name,
+          subtitle: deposit.status.localizedLabel(context),
+          value: '+${formatBrlCents(deposit.amountInCents)}',
+          time:
+              time ??
+              TransactionDates(
+                context,
+                AppLocalizations.of(context),
+              ).dayAndTime(deposit.createdAt),
+          isVisible: isVisible,
+          // The money of an expired or failed deposit never arrived, so
+          // its amount is struck through.
+          amountStruck: switch (deposit.status) {
+            DepositStatus.expired ||
+            DepositStatus.failed ||
+            DepositStatus.timeout => true,
+            _ => false,
+          },
         ),
       ),
     );
   }
-
-  String _getPixDepositSubtitle(BuildContext context) {
-    return deposit.status.localizedLabel(context);
-  }
-
-  String _formatTime(DateTime dateTime) {
-    final formatter = DateFormat('dd/MM/yyyy HH:mm');
-    return formatter.format(dateTime);
-  }
-
-  String _formatAmount(int amountInCents) {
-    final amount = amountInCents / 100;
-    return NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: '',
-      decimalDigits: 2,
-    ).format(amount);
-  }
-
-  Color _getStatusColor() {
-    return deposit.status.color;
-  }
 }
 
+/// No Pix deposit yet, in the panel of the transaction history's empty
+/// state.
 class EmptyPixDepositList extends StatelessWidget {
   const EmptyPixDepositList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.pix, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(
-            'Nenhum depósito PIX encontrado',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Seus depósitos PIX aparecerão aqui',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-          ),
-        ],
-      ),
+    final t = AppLocalizations.of(context);
+    return _PixDepositState(
+      icon: Icons.pix_rounded,
+      title: t.pix_deposits_empty_title,
+      message: t.pix_deposits_empty_message,
     );
   }
 }
 
+/// Placeholder rows while the history loads, as in the transaction history.
 class LoadingPixDepositList extends StatelessWidget {
   const LoadingPixDepositList({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final baseColor = context.colors.baseColor;
-    final highlightColor = context.colors.highlightColor;
-
-    return Column(
-      children: List.generate(
-        3,
-        (index) => Container(
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          child: Row(
-            children: [
-              Shimmer.fromColors(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: baseColor,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Shimmer.fromColors(
-                      baseColor: baseColor,
-                      highlightColor: highlightColor,
-                      child: Container(
-                        width: 120,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: baseColor,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Shimmer.fromColors(
-                      baseColor: baseColor,
-                      highlightColor: highlightColor,
-                      child: Container(
-                        width: 80,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: baseColor,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Shimmer.fromColors(
-                    baseColor: baseColor,
-                    highlightColor: highlightColor,
-                    child: Container(
-                      width: 60,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: baseColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Shimmer.fromColors(
-                    baseColor: baseColor,
-                    highlightColor: highlightColor,
-                    child: Container(
-                      width: 40,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: baseColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const LoadingTransactionList(glass: true);
 }
 
+/// The history failed to load, in the panel of the empty state, with a
+/// retry button when [onRetry] is set.
 class ErrorPixDepositList extends StatelessWidget {
   final VoidCallback? onRetry;
 
@@ -285,22 +203,70 @@ class ErrorPixDepositList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(16),
+    final t = AppLocalizations.of(context);
+    return _PixDepositState(
+      icon: Icons.error_outline_rounded,
+      title: t.pix_deposits_load_error_title,
+      message: t.pix_deposits_load_error_message,
+      onRetry: onRetry,
+    );
+  }
+}
+
+/// A state of the history in a glass panel: an icon, a title, a message,
+/// and an optional retry button. It has the layout of the transaction
+/// history's empty state.
+class _PixDepositState extends StatelessWidget {
+  const _PixDepositState({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.onRetry,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassPanel(
+      padding: const EdgeInsets.all(24),
+      child: SizedBox(
+        width: double.infinity,
         child: Column(
           children: [
-            const Icon(Icons.error_outline, color: Colors.grey, size: 48),
-            const SizedBox(height: 12),
-            const Text(
-              "Erro ao carregar depósitos PIX",
-              style: TextStyle(color: Colors.grey, fontSize: 16),
+            Icon(icon, color: context.colors.textSecondary, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: context.textTheme.bodyLarge?.copyWith(
+                color: context.colors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              "Tente novamente mais tarde",
-              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+              message,
+              textAlign: TextAlign.center,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
+              ),
             ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: onRetry,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                  foregroundColor: context.colors.textPrimary,
+                ),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
           ],
         ),
       ),

@@ -1,19 +1,13 @@
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
-import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_request.dart';
-import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_transaction.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/deposit/pix_deposit_gate_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/history/pix_hub_history_screen.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/screens/history/pix_transaction_detail_screen.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/screens/keys/pix_keys_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_link_create_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_link_detail_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_links_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/operations/pix_limits_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/operations/pix_other_transactions_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/operations/pix_pending_requests_screen.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/screens/receive/pix_payment_request_detail_screen.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/screens/receive/pix_payment_request_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/receive/pix_receive_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/send/pix_send_amount_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/send/pix_send_copy_paste_screen.dart';
@@ -61,20 +55,6 @@ final pixHubRoutes = [
     builder: (context, state) => const PixReceiveScreen(),
   ),
   GoRoute(
-    path: '/pix/receive/request',
-    builder: (context, state) => const PixPaymentRequestScreen(),
-  ),
-  GoRoute(
-    path: '/pix/receive/request/detail',
-    builder: (context, state) => PixPaymentRequestDetailScreen(
-      request: state.extra as PixPaymentRequest,
-    ),
-  ),
-  GoRoute(
-    path: '/pix/keys',
-    builder: (context, state) => const PixKeysScreen(),
-  ),
-  GoRoute(
     path: '/pix/limits',
     builder: (context, state) => const PixLimitsScreen(),
   ),
@@ -110,10 +90,5 @@ final pixHubRoutes = [
   GoRoute(
     path: '/pix/history',
     builder: (context, state) => const PixHubHistoryScreen(),
-  ),
-  GoRoute(
-    path: '/pix/history/detail',
-    builder: (context, state) =>
-        PixTransactionDetailScreen(transaction: state.extra as PixTransaction),
   ),
 ];

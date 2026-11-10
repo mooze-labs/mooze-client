@@ -6,16 +6,17 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_withdrawal_record.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_hub_providers.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_send_providers.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/screens/deposit/pix_deposit_entry.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_header.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_operation_list.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_primary_action_cards.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_section_header.dart';
-import 'package:mooze_mobile/features/pix/shared/di/providers/pix_deposit_profile_service_provider.dart';
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
@@ -92,13 +93,7 @@ class _PixHubScreenState extends ConsumerState<PixHubScreen> {
     if (mounted) await PixLimitsInfoDialog.show(context);
   }
 
-  /// Opens the deposit flow, after the CPF and the ownership notice.
-  void _openDeposit() {
-    final profile = ref.read(pixDepositProfileServiceProvider);
-    context.push(
-      profile.isReadyToDeposit() ? '/pix/deposit' : '/pix/deposit/cpf',
-    );
-  }
+  void _openDeposit() => openOwnPixDeposit(context, ref);
 
   void _startSend(String route) {
     ref.read(pixSendControllerProvider.notifier).reset();
@@ -106,47 +101,22 @@ class _PixHubScreenState extends ConsumerState<PixHubScreen> {
   }
 
   /// Guidance about how Pix works, including the deposit notice.
+  ///
+  /// It opens in the floating glass sheet of the other info buttons.
   void _showPixInfo() {
     final t = AppLocalizations.of(context);
-    InfoOverlay.show(
+    showGlassInfoSheet(
       context,
       title: t.pix_hub_info_title,
       steps: [
-        InfoStep(
-          icon: Icons.bolt_rounded,
-          title: t.pix_hub_info_send_title,
-          description: t.pix_hub_info_send_body,
-        ),
-        InfoStep(
-          icon: Icons.account_balance_wallet_outlined,
-          title: t.pix_hub_info_deposit_title,
-          description: t.pix_hub_info_deposit_body,
-        ),
-        InfoStep(
-          icon: Icons.warning_amber_rounded,
-          title: t.pix_hub_deposit_notice_title,
-          description: t.pix_hub_deposit_notice_body,
-        ),
+        (t.pix_hub_info_send_title, t.pix_hub_info_send_body),
+        (t.pix_hub_info_deposit_title, t.pix_hub_info_deposit_body),
+        (t.pix_hub_deposit_notice_title, t.pix_hub_deposit_notice_body),
       ],
-      footerBuilder: (closeOverlay) => Column(
-        children: [
-          SecondaryButton(
-            text: t.pix_hub_deposit_notice_screen_title,
-            onPressed: () {
-              closeOverlay();
-              context.push('/pix/deposit/notice');
-            },
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () {
-              closeOverlay();
-              context.push('/pix/fees');
-            },
-            child: Text(t.pix_hub_menu_fees),
-          ),
-        ],
-      ),
+      actionLabel: t.pix_hub_deposit_notice_screen_title,
+      onAction: () => context.push('/pix/deposit/notice'),
+      secondaryActionLabel: t.pix_hub_menu_fees,
+      onSecondaryAction: () => context.push('/pix/fees'),
     );
   }
 
@@ -185,7 +155,7 @@ class _PixHubScreenState extends ConsumerState<PixHubScreen> {
                 RefreshIndicator(
                   onRefresh: () async {
                     refreshPixHub(ref);
-                    ref.invalidate(pixPendingWithdrawalsProvider);
+                    ref.invalidate(pixPendingWithdrawalSyncProvider);
                   },
                   displacement: PixHubHeader.height + 16,
                   child: ListView(
@@ -367,7 +337,8 @@ class _PrimaryActions extends StatelessWidget {
 /// Withdrawals whose DePix may have left the wallet without a final status.
 ///
 /// The list comes from the local records, so a payment interrupted by a
-/// restart stays visible. A tap opens the result screen, which reads the
+/// restart stays visible. The hub reads their backend status when it opens
+/// and on each refresh. A tap opens the result screen, which polls the
 /// status again.
 ///
 /// The section grows and fades in when the first record appears, and

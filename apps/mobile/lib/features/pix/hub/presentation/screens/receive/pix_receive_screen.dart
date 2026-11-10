@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/pix_charge_payer.dart';
 import 'package:mooze_mobile/features/favorite_payers/domain/entities/favorite_payer.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
+import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/own_payer_controller.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/screens/deposit/pix_deposit_entry.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_action_tile.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_empty_state.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_section_header.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_card.dart';
-import 'package:mooze_mobile/features/pix/shared/di/providers/pix_deposit_profile_service_provider.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
@@ -27,14 +29,6 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 class PixReceiveScreen extends ConsumerWidget {
   const PixReceiveScreen({super.key});
 
-  /// Opens the deposit flow, after the CPF and the ownership notice.
-  void _openDeposit(BuildContext context, WidgetRef ref) {
-    final profile = ref.read(pixDepositProfileServiceProvider);
-    context.push(
-      profile.isReadyToDeposit() ? '/pix/deposit' : '/pix/deposit/cpf',
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
@@ -46,14 +40,18 @@ class PixReceiveScreen extends ConsumerWidget {
       children: [
         PixSectionHeader(title: t.pix_hub_receive_from_others),
         const SizedBox(height: 8),
+        // Mooze holds no Pix key of the user, so another person pays a QR
+        // Code made for their document, or a payment link.
         PixSurfaceCard(
           child: Column(
             children: [
               PixActionTile(
                 icon: PixIcons.qrCode,
-                title: t.pix_hub_receive_create_charge,
-                subtitle: t.pix_hub_receive_create_charge_subtitle,
-                onTap: () => context.push('/pix/receive/request'),
+                title: t.pix_hub_receive_qr,
+                subtitle: t.pix_hub_receive_qr_subtitle,
+                onTap: () => context.push(
+                  '/pix/deposit${PixChargePayer.someoneElse.query}',
+                ),
               ),
               const _RowDivider(),
               PixActionTile(
@@ -73,7 +71,7 @@ class PixReceiveScreen extends ConsumerWidget {
             icon: PixIcons.deposit,
             title: t.pix_hub_shortcut_deposit,
             subtitle: t.pix_hub_receive_deposit_subtitle,
-            onTap: () => _openDeposit(context, ref),
+            onTap: () => openOwnPixDeposit(context, ref),
           ),
         ),
         const SizedBox(height: 10),
@@ -102,7 +100,8 @@ class _FavoritePayersSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final payers = ref.watch(favoritePayersControllerProvider);
+    final payers = ref.watch(orderedFavoritePayersProvider);
+    final ownId = ref.watch(ownPayerIdProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +144,10 @@ class _FavoritePayersSection extends ConsumerWidget {
                         for (final (index, payer)
                             in list.take(_maxVisible).indexed) ...[
                           if (index > 0) const _RowDivider(),
-                          _FavoritePayerRow(payer: payer),
+                          _FavoritePayerRow(
+                            payer: payer,
+                            isOwn: payer.id == ownId,
+                          ),
                         ],
                         if (list.length > _maxVisible) ...[
                           const _RowDivider(),
@@ -168,21 +170,27 @@ class _FavoritePayersSection extends ConsumerWidget {
 /// One saved payer: the label chosen by the user and the masked document.
 ///
 /// The row has the shape of a [PixActionTile]: a neutral well, two lines of
-/// text, and a chevron.
+/// text, and a chevron. The payer marked as "my user" says so after the
+/// document.
 class _FavoritePayerRow extends StatelessWidget {
   final FavoritePayer payer;
+  final bool isOwn;
 
-  const _FavoritePayerRow({required this.payer});
+  const _FavoritePayerRow({required this.payer, required this.isOwn});
 
   @override
   Widget build(BuildContext context) {
     void open() => context.push('/favorite-payers');
+    final document = isOwn
+        ? '${payer.maskedCpf} · '
+              '${AppLocalizations.of(context).cpf_favorites_own_badge}'
+        : payer.maskedCpf;
 
     // `excludeSemantics` drops the semantics of the ink well below, so the
     // node carries the tap action itself.
     return Semantics(
       button: true,
-      label: '${payer.label}, ${payer.maskedCpf}',
+      label: '${payer.label}, $document',
       excludeSemantics: true,
       onTap: open,
       child: InkWell(
@@ -208,7 +216,9 @@ class _FavoritePayerRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      payer.maskedCpf,
+                      document,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: context.textTheme.bodySmall?.copyWith(
                         color: context.colors.textSecondary,
                         fontFeatures: const [FontFeature.tabularFigures()],

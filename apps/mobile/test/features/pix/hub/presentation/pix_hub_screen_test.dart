@@ -9,6 +9,7 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_forma
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_primary_action_cards.dart';
 import 'package:mooze_mobile/features/pix/shared/data/services/pix_onboarding_service.dart';
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 
@@ -25,11 +26,23 @@ class _SeenOnboarding implements PixOnboardingService {
 }
 
 /// Renders the hub as the shell does: the body extends under the bar.
-Widget host({List<PixWithdrawalRecord> pending = const []}) {
+///
+/// As in the app, the pending list waits for the status read of the pending
+/// Pix sends. [onStatusRead] runs on each read.
+Widget host({
+  List<PixWithdrawalRecord> pending = const [],
+  void Function()? onStatusRead,
+}) {
   return ProviderScope(
     overrides: [
       pixOnboardingServiceProvider.overrideWithValue(_SeenOnboarding()),
-      pixPendingWithdrawalsProvider.overrideWith((ref) => pending),
+      pixPendingWithdrawalSyncProvider.overrideWith(
+        (ref) async => onStatusRead?.call(),
+      ),
+      pixPendingWithdrawalsProvider.overrideWith((ref) {
+        ref.watch(pixPendingWithdrawalSyncProvider);
+        return pending;
+      }),
     ],
     child: MaterialApp(
       localizationsDelegates: const [
@@ -113,5 +126,31 @@ void main() {
     await tester.pump();
 
     expect(find.text('Pix em andamento'), findsNothing);
+  });
+
+  testWidgets('the info opens in the floating glass sheet', (tester) async {
+    await tester.pumpWidget(host());
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Como o Pix funciona'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GlassInfoSheet), findsOneWidget);
+    expect(find.text('Aviso sobre depósitos'), findsOneWidget);
+    expect(find.text('Ver taxas'), findsOneWidget);
+  });
+
+  testWidgets('a pull on the hub reads the status of the pending sends', (
+    tester,
+  ) async {
+    var reads = 0;
+    await tester.pumpWidget(host(onStatusRead: () => reads++));
+    await tester.pump();
+    expect(reads, 1);
+
+    await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
+
+    expect(reads, 2);
   });
 }

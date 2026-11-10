@@ -43,8 +43,7 @@ class PixTransaction {
   /// How the payment was started, for records the user created.
   final PixSendMethod? method;
 
-  /// Reference shown in the details screen. Demonstration records carry a
-  /// `DEMO-` prefix so no screen can pass as an official receipt.
+  /// Id of the source record: the withdrawal or the deposit.
   final String reference;
 
   const PixTransaction({

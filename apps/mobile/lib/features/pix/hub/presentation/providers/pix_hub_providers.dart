@@ -1,33 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:mooze_mobile/features/pix/hub/data/datasources/pix_demo_store.dart';
+import 'package:mooze_mobile/app/di/v2_providers.dart'
+    show liquidWalletServiceProvider;
+import 'package:mooze_mobile/features/pix/hub/data/datasources/pix_payment_link_reference_store.dart';
 import 'package:mooze_mobile/features/pix/hub/data/pix_api_log.dart';
 import 'package:mooze_mobile/features/pix/hub/data/repositories/api_pix_payment_link_repository.dart';
-import 'package:mooze_mobile/features/pix/hub/data/repositories/demo_pix_hub_repository.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_hub_failure.dart';
-import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_hub_overview.dart';
-import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_key.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
-import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_recipient.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_transaction.dart';
-import 'package:mooze_mobile/features/pix/hub/domain/repositories/pix_hub_repository.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/repositories/pix_payment_link_repository.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_api_log_sink.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_history_entries.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_receive_providers.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_send_providers.dart';
 import 'package:mooze_mobile/shared/authentication/providers/session_manager_service_provider.dart';
-
-/// Holds the demonstration records for the whole session.
-///
-/// The store lives outside the screens so a payment created in one flow shows
-/// up in the history of another.
-final pixDemoStoreProvider = Provider<PixDemoStore>((ref) => PixDemoStore());
-
-/// The repository behind every Pix hub screen.
-///
-/// Replace this single line once Mooze has real Pix services; the screens read
-/// the [PixHubRepository] contract only.
-final pixHubRepositoryProvider = Provider<PixHubRepository>(
-  (ref) => DemoPixHubRepository(ref.watch(pixDemoStoreProvider)),
-);
+import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 
 /// The real payment-link API. The session token comes from mooze-core.
 ///
@@ -40,58 +27,109 @@ final pixPaymentLinkRepositoryProvider = Provider<PixPaymentLinkRepository>(
   ),
 );
 
-/// True while the hub answers with empty lists, so the empty states of every
-/// screen can be reviewed without changing the dataset.
-final pixHubEmptyPreviewProvider = StateProvider<bool>((ref) => false);
+/// References of the payment links, kept on the device.
+final pixPaymentLinkReferenceStoreProvider =
+    Provider<PixPaymentLinkReferenceStore>(
+      (ref) =>
+          PixPaymentLinkReferenceStore(ref.watch(sharedPreferencesProvider)),
+    );
 
-/// Sections of the hub home screen.
-final pixHubOverviewProvider = FutureProvider.autoDispose<PixHubOverview>((
-  ref,
-) async {
-  final repository = ref.watch(pixHubRepositoryProvider);
-  ref.watch(pixHubEmptyPreviewProvider);
-  return _unwrap(await repository.loadOverview().run());
-});
-
-/// Pix keys presented as the user's own.
-final pixHubKeysProvider = FutureProvider.autoDispose<List<PixKey>>((
-  ref,
-) async {
-  final repository = ref.watch(pixHubRepositoryProvider);
-  ref.watch(pixHubEmptyPreviewProvider);
-  return _unwrap(await repository.listKeys().run());
-});
-
-/// Recipients paid recently.
-final pixHubRecipientsProvider = FutureProvider.autoDispose<List<PixRecipient>>(
-  (ref) async {
-    final repository = ref.watch(pixHubRepositoryProvider);
-    ref.watch(pixHubEmptyPreviewProvider);
-    return _unwrap(await repository.listRecentRecipients().run());
-  },
-);
+/// Reads a new receive address of the Liquid wallet.
+///
+/// The address is bare: the payment-link API expects an Elements address,
+/// not a `liquidnetwork:` URI.
+final pixReceiveAddressProvider =
+    Provider<Future<Either<String, String>> Function()>((ref) {
+      final wallet = ref.read(liquidWalletServiceProvider);
+      return () async {
+        // No asset id: the service returns a bare address.
+        final result = await wallet.nextReceiveAddress();
+        return result.fold((failure) => Left(failure.message), (receive) {
+          final address = receive.address;
+          return address == null || address.isEmpty
+              ? const Left('empty receive address')
+              : Right(address);
+        });
+      };
+    });
 
 /// Every Pix movement, newest first.
+///
+/// The backend lists neither the withdrawals nor the deposits of a user, so
+/// the sends come from the records of the device and the deposits from the
+/// deposit store of mooze-core. The list reads the records again when the
+/// status read of the pending sends ends.
 final pixHubTransactionsProvider =
     FutureProvider.autoDispose<List<PixTransaction>>((ref) async {
-      final repository = ref.watch(pixHubRepositoryProvider);
-      ref.watch(pixHubEmptyPreviewProvider);
-      return _unwrap(await repository.listTransactions().run());
+      ref.watch(pixPendingWithdrawalSyncProvider);
+      final records = ref.watch(pixWithdrawalRecordStoreProvider).load();
+      final deposits = await ref.watch(pixDepositHistoryProvider.future);
+      final received = deposits.getOrElse(
+        (message) => throw PixHubFailure(
+          PixHubErrorCode.loadFailed,
+          rawMessage: message,
+        ),
+      );
+      return [
+        ...records.map(pixTransactionFromWithdrawal).nonNulls,
+        ...received.map(pixTransactionFromDeposit),
+      ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     });
 
-/// Payment links owned by the user.
+/// Payment links owned by the user, with the references of the device.
+class PixPaymentLinksController
+    extends AutoDisposeAsyncNotifier<List<PixPaymentLink>> {
+  @override
+  Future<List<PixPaymentLink>> build() async {
+    final repository = ref.watch(pixPaymentLinkRepositoryProvider);
+    final links = _unwrap(await repository.listLinks().run());
+    final references = ref.watch(pixPaymentLinkReferenceStoreProvider).load();
+    return [
+      for (final link in links) link.withReference(references[link.id] ?? ''),
+    ];
+  }
+
+  /// Turns the link [id] off.
+  ///
+  /// Once the API confirms, the link shows as revoked at once: a full list
+  /// read can take several pages. The list then reloads, after a failure
+  /// too, so it ends with what the API holds.
+  Future<Either<PixHubFailure, Unit>> revoke(String id) async {
+    // The screen that asked can close during the request. The list must
+    // still take the result.
+    final keepAlive = ref.keepAlive();
+    try {
+      final result = await ref
+          .read(pixPaymentLinkRepositoryProvider)
+          .revokeLink(id)
+          .run();
+      final links = state.valueOrNull;
+      if (result.isRight() && links != null) {
+        state = AsyncData([
+          for (final link in links)
+            // The API keeps a paid link paid after a revoke.
+            link.id == id && link.isActive
+                ? link.withStatus(PixPaymentLinkStatus.revoked)
+                : link,
+        ]);
+      }
+      ref.invalidateSelf();
+      return result;
+    } finally {
+      keepAlive.close();
+    }
+  }
+}
+
 final pixHubPaymentLinksProvider =
-    FutureProvider.autoDispose<List<PixPaymentLink>>((ref) async {
-      final repository = ref.watch(pixHubRepositoryProvider);
-      ref.watch(pixHubEmptyPreviewProvider);
-      return _unwrap(await repository.listPaymentLinks().run());
-    });
+    AsyncNotifierProvider.autoDispose<
+      PixPaymentLinksController,
+      List<PixPaymentLink>
+    >(PixPaymentLinksController.new);
 
 /// Rebuilds every hub list after a flow records a new movement.
 void refreshPixHub(WidgetRef ref) {
-  ref.invalidate(pixHubOverviewProvider);
   ref.invalidate(pixHubTransactionsProvider);
-  ref.invalidate(pixHubRecipientsProvider);
   ref.invalidate(pixHubPaymentLinksProvider);
 }
 
