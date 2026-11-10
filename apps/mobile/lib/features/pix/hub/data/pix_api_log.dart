@@ -11,9 +11,13 @@ const String paymentLinkLogKey = 'MOOZE_PAYMENT_LINK';
 /// Key of the Pix withdrawal calls (`/withdraw`).
 const String withdrawalLogKey = 'MOOZE_PIX_WITHDRAWAL';
 
-/// Hides emails and runs of 4 or more digits, so a server text that echoes a
-/// Pix key or a tax ID does not reach the logs.
+/// Hides quoted values, emails and runs of 4 or more digits, so a server text
+/// that echoes a Pix key or a tax ID does not reach the logs.
+///
+/// The provider quotes the Pix key in its refusals, and a random key mixes
+/// letters with short digit runs, so the quotes go first.
 String redactForLog(String text) => text
+    .replaceAll(RegExp(r"'[^'\s]+'"), "'***'")
     .replaceAll(RegExp(r'\S+@\S+'), '***@***')
     .replaceAll(RegExp(r'\d{4,}'), '****');
 

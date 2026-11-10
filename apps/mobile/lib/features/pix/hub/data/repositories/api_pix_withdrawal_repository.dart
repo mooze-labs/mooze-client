@@ -249,11 +249,51 @@ class ApiPixWithdrawalRepository implements PixWithdrawalRepository {
       '${json == null ? 'not json' : 'json'}, '
       'server ${response.headers.value('server') ?? '-'}: ${redactForLog(text)}',
     );
+    final code = _errorCode(status, isJson: json != null, isCreate: isCreate);
+    final rawMessage = 'http $status $text';
+    return code == PixHubErrorCode.providerRefused
+        ? _refusal(text, rawMessage: rawMessage)
+        : PixHubFailure(code, rawMessage: rawMessage);
+  }
+
+  /// Reads a provider refusal of the engine:
+  /// `Withdrawal rejected by the provider (<code>): <message>`.
+  ///
+  /// The engine passes the code and the message of the provider through, and
+  /// its documentation asks the client to show the message. A daily limit
+  /// gets its own code, so the screen can name the limit in the user's
+  /// language.
+  static PixHubFailure _refusal(String text, {required String rawMessage}) {
+    final reason = _refusalPattern.firstMatch(text)?.group(1)?.trim() ?? '';
+    if (_dailyLimitPattern.hasMatch(reason)) {
+      final limit = _limitPattern.firstMatch(reason)?.group(1);
+      return PixHubFailure(
+        PixHubErrorCode.dailyLimitExceeded,
+        rawMessage: rawMessage,
+        limitInCents: limit == null ? null : int.tryParse(limit),
+      );
+    }
     return PixHubFailure(
-      _errorCode(status, isJson: json != null, isCreate: isCreate),
-      rawMessage: 'http $status $text',
+      PixHubErrorCode.providerRefused,
+      rawMessage: rawMessage,
+      providerReason: reason.isEmpty ? null : reason,
     );
   }
+
+  static final RegExp _refusalPattern = RegExp(
+    r'^Withdrawal rejected by the provider \([^)]*\): (.+)$',
+    dotAll: true,
+  );
+
+  static final RegExp _dailyLimitPattern = RegExp(
+    'daily withdrawal limit exceeded',
+    caseSensitive: false,
+  );
+
+  static final RegExp _limitPattern = RegExp(
+    r'withdrawal limit in cents:\s*(\d+)',
+    caseSensitive: false,
+  );
 
   /// Maps an HTTP failure to a hub error code.
   ///
@@ -277,8 +317,14 @@ class ApiPixWithdrawalRepository implements PixWithdrawalRepository {
             : PixHubErrorCode.serviceUnavailable;
       case 404:
         return PixHubErrorCode.serviceUnavailable;
+      // A 422 without the JSON envelope comes from the body extractor of the
+      // API, before the handler runs: the request does not fit
+      // `NewWithdrawRequest`. Only the handler refuses for the provider, and
+      // [_refusal] reads its reason.
       case 422:
-        return PixHubErrorCode.providerRefused;
+        return isJson
+            ? PixHubErrorCode.providerRefused
+            : PixHubErrorCode.invalidRequest;
       case 429:
         return PixHubErrorCode.rateLimited;
       // The contract states that a 503 on create means an unknown outcome.

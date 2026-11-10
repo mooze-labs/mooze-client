@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_send_draft.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_withdrawal.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/controllers/pix_send_controller.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_send_providers.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_amount_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_flow_expired_scaffold.dart';
@@ -11,6 +12,7 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_label
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_send_key_card.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_underline_field.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_warning_banner.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/domain/cpf_validator.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/presentation/cpf_cnpj_input_formatter.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
@@ -114,16 +116,9 @@ class _PixSendAmountScreenState extends ConsumerState<PixSendAmountScreen> {
     controller.setAmount(_amountInCents);
     FocusScope.of(context).unfocus();
 
+    // A failure shows in the warning above the button, from the state.
     final ready = await controller.requestQuote();
-    if (!mounted) return;
-    if (ready) {
-      context.push('/pix/send/review');
-      return;
-    }
-    final failure = ref.read(pixSendControllerProvider).failure;
-    if (failure != null) {
-      AppSnackBar.error(context, pixHubFailureMessage(t, failure));
-    }
+    if (ready && mounted) context.push('/pix/send/review');
   }
 
   @override
@@ -140,15 +135,30 @@ class _PixSendAmountScreenState extends ConsumerState<PixSendAmountScreen> {
     final isBusy = state.isBusy;
     final taxIdValid =
         draft.asksForTaxId && CpfValidator.isValid(_taxIdController.text);
+    // Only a failed quote leaves the flow in editing with a failure. The
+    // warning stays until the next continue, so the user can fix the amount
+    // or the document while reading it.
+    final failure = state.phase == PixSendPhase.editing ? state.failure : null;
 
     return PixScreenScaffold(
       appBarTitle: t.pix_hub_send_title,
       title: t.pix_hub_amount_question,
-      bottomAction: PrimaryButton(
-        text: t.common_continue,
-        isEnabled: _amountInCents > 0,
-        isLoading: isBusy,
-        onPressed: () => _continue(draft, balanceSats),
+      // The warning sits on the button it explains, which stays above the
+      // keyboard, so a scrolled list cannot hide it.
+      bottomAction: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (failure != null) ...[
+            PixWarningBanner(message: pixHubFailureMessage(t, failure)),
+            const SizedBox(height: 12),
+          ],
+          PrimaryButton(
+            text: t.common_continue,
+            isEnabled: _amountInCents > 0,
+            isLoading: isBusy,
+            onPressed: () => _continue(draft, balanceSats),
+          ),
+        ],
       ),
       children: [
         PixAmountField(

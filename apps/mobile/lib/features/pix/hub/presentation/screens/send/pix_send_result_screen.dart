@@ -38,7 +38,7 @@ class PixSendResultScreen extends ConsumerWidget {
   static const double _gutter = 20;
 
   void _close(BuildContext context, WidgetRef ref) {
-    ref.invalidate(pixPendingWithdrawalsProvider);
+    ref.invalidate(pixPendingWithdrawalSyncProvider);
     context.go('/pix');
   }
 

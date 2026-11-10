@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/hub/data/datasources/pix_withdrawal_record_store.dart';
+import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_hub_failure.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_key.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_withdrawal.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/repositories/pix_withdrawal_wallet.dart';
@@ -435,6 +436,38 @@ void main() {
 
       expect(repository.creates.single['payout'], 4590);
       expect(find.text('Review payment'), findsOneWidget);
+    });
+
+    testWidgets('a refusal of the provider stays on the amount step', (
+      tester,
+    ) async {
+      useTallView(tester);
+      repository.onCreate = (_) => const Left(
+        PixHubFailure(PixHubErrorCode.dailyLimitExceeded, limitInCents: 600000),
+      );
+      controller.startFromKey(PixKeyType.cpf, _cpf);
+      await tester.pumpWidget(host(initial: '/pix/send/amount'));
+      await settle(tester);
+
+      await tester.enterText(amountField(), '4590');
+      await tester.pump();
+      await tester.tap(find.text('Continue'));
+      await settle(tester);
+
+      final warning = find.text(
+        'This transfer goes over the daily limit of '
+        '${formatBrlCents(600000)} that the Pix provider accepts for this '
+        'key. No funds left your wallet. Try a lower amount or send it '
+        'tomorrow.',
+      );
+      expect(warning, findsOneWidget);
+      expect(find.text('Review payment'), findsNothing);
+
+      // The warning outlasts a snack bar, so the user can lower the amount
+      // while reading it. The frames after the wait let a snack bar leave.
+      await tester.pump(const Duration(seconds: 10));
+      await settle(tester);
+      expect(warning, findsOneWidget);
     });
   });
 

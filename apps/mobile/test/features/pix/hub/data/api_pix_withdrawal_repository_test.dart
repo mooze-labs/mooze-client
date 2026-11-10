@@ -254,6 +254,16 @@ void main() {
               _json(422, envelope('pix key does not belong to tax id')),
               PixHubErrorCode.providerRefused,
             ),
+            // The body extractor of the API answers a body that does not fit
+            // `NewWithdrawRequest` with a plain-text 422.
+            '422 body rejected by the API': (
+              _text(
+                422,
+                'Failed to deserialize the JSON body into the target type: '
+                'unknown field `metrics`',
+              ),
+              PixHubErrorCode.invalidRequest,
+            ),
             '429 open withdrawals': (
               _json(429, envelope('too many open withdrawals')),
               PixHubErrorCode.rateLimited,
@@ -275,6 +285,21 @@ void main() {
         });
       });
     });
+
+    test(
+      'a 500 is not sent again, because each request can open an order',
+      () async {
+        final adapter = _QueueAdapter([
+          _json(500, {'data': null, 'error': 'Internal server error'}),
+        ]);
+
+        final result = await create(repositoryWith(adapter));
+
+        expect(failureCode(result), PixHubErrorCode.serviceUnavailable);
+        expect(adapter.requests, hasLength(1));
+        expect(session.refreshCalls, 0);
+      },
+    );
 
     test('logs the HTTP status of a failure, without personal data', () async {
       final logs = <String>[];
@@ -305,6 +330,84 @@ void main() {
       ]) {
         expect(logs.single, isNot(contains(secret)));
       }
+    });
+
+    // The engine passes the provider code and message through:
+    // `Withdrawal rejected by the provider (<code>): <message>`.
+    group('reads the refusal of the provider', () {
+      Map<String, Object?> refusal(String code, String message) => {
+        'data': null,
+        'error': 'Withdrawal rejected by the provider ($code): $message',
+      };
+      const dailyLimit =
+          "Daily withdrawal limit exceeded for pix key 'ana@exemplo.com.br'. "
+          'Daily volume in cents: 598000. Withdrawal limit in cents: 600000.';
+
+      Future<PixHubFailure> refused(
+        Map<String, Object?> body, {
+        void Function(String)? log,
+      }) async {
+        final dio = ApiPixWithdrawalRepository.createDio(
+          baseUrl: 'https://api.test',
+        )..httpClientAdapter = _QueueAdapter([_json(422, body)]);
+        final repository = ApiPixWithdrawalRepository(
+          dio: dio,
+          session: session,
+          log: log,
+        );
+        return (await create(repository)).getLeft().toNullable()!;
+      }
+
+      test('a daily limit of the Pix key keeps the limit', () async {
+        final failure = await refused(refusal('REJECTED', dailyLimit));
+
+        expect(failure.code, PixHubErrorCode.dailyLimitExceeded);
+        expect(failure.limitInCents, 600000);
+      });
+
+      test('a daily limit without the amount has no limit', () async {
+        final failure = await refused(
+          refusal('REJECTED', 'Daily withdrawal limit exceeded.'),
+        );
+
+        expect(failure.code, PixHubErrorCode.dailyLimitExceeded);
+        expect(failure.limitInCents, isNull);
+      });
+
+      test('another refusal keeps the reason of the provider', () async {
+        final failure = await refused(
+          refusal('INVALID_PARAMETER', 'Invalid tax-number: 123.'),
+        );
+
+        expect(failure.code, PixHubErrorCode.providerRefused);
+        expect(failure.providerReason, 'Invalid tax-number: 123.');
+      });
+
+      test('a 422 in another shape has no reason', () async {
+        final failure = await refused({
+          'data': null,
+          'error': 'pix key does not belong to tax id',
+        });
+
+        expect(failure.code, PixHubErrorCode.providerRefused);
+        expect(failure.providerReason, isNull);
+      });
+
+      test('the log of a refusal hides the Pix key', () async {
+        const randomKey = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
+        final logs = <String>[];
+
+        await refused(
+          refusal(
+            'REJECTED',
+            "Daily withdrawal limit exceeded for pix key '$randomKey'.",
+          ),
+          log: logs.add,
+        );
+
+        expect(logs.single, contains("for pix key '***'"));
+        expect(logs.single, isNot(contains('f47ac10b')));
+      });
     });
 
     test('a timeout is a network failure', () async {

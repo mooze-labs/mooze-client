@@ -6,6 +6,7 @@ import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_hub_failure.da
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_withdrawal.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/validation/pix_br_code.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/validation/pix_key_validator.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 /// Translations of the Pix hub enums.
@@ -59,8 +60,14 @@ String pixPaymentLinkStatusLabel(
     PixPaymentLinkStatus.pending => t.pix_hub_link_status_pending,
     PixPaymentLinkStatus.paid => t.pix_hub_link_status_paid,
     PixPaymentLinkStatus.expired => t.pix_hub_link_status_expired,
+    PixPaymentLinkStatus.revoked => t.pix_hub_link_status_revoked,
   };
 }
+
+/// The reference of the link, or a generic name for a link without one: a
+/// link created elsewhere, or a reference lost with a reinstall.
+String pixPaymentLinkTitle(AppLocalizations t, PixPaymentLink link) =>
+    link.reference.isEmpty ? t.pix_hub_link_no_reference : link.reference;
 
 String pixKeyValidationMessage(
   AppLocalizations t,
@@ -101,7 +108,14 @@ String pixHubFailureMessage(AppLocalizations t, PixHubFailure failure) {
     PixHubErrorCode.walletUnavailable => t.pix_hub_failure_wallet,
     PixHubErrorCode.invalidRequest => t.pix_hub_failure_invalid_request,
     PixHubErrorCode.limitExceeded => t.pix_hub_failure_limit_exceeded,
-    PixHubErrorCode.providerRefused => t.pix_hub_failure_provider_refused,
+    PixHubErrorCode.providerRefused => switch (failure.providerReason) {
+      final reason? => t.pix_hub_failure_provider_refused_reason(reason),
+      null => t.pix_hub_failure_provider_refused,
+    },
+    PixHubErrorCode.dailyLimitExceeded => switch (failure.limitInCents) {
+      final limit? => t.pix_hub_failure_daily_limit(formatBrlCents(limit)),
+      null => t.pix_hub_failure_daily_limit_no_amount,
+    },
     PixHubErrorCode.outcomeUnknown => t.pix_hub_failure_outcome_unknown,
     PixHubErrorCode.quoteMismatch => t.pix_hub_failure_quote_mismatch,
     PixHubErrorCode.quoteExpired => t.pix_hub_failure_quote_expired,

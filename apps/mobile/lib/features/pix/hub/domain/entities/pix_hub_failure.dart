@@ -44,6 +44,10 @@ enum PixHubErrorCode {
   /// does not belong to the tax ID (HTTP 422).
   providerRefused,
 
+  /// The payout passes the daily amount that the Pix provider accepts for
+  /// the recipient key (HTTP 422). The provider created no order.
+  dailyLimitExceeded,
+
   /// The backend does not know if the provider created the withdrawal
   /// (HTTP 503). No funds left the wallet.
   outcomeUnknown,
@@ -77,7 +81,22 @@ class PixHubFailure {
   /// Original message, kept for logs. Screens show a translated text instead.
   final String? rawMessage;
 
-  const PixHubFailure(this.code, {this.rawMessage});
+  /// Daily cap of the recipient key, in BRL cents, for
+  /// [PixHubErrorCode.dailyLimitExceeded]. Null when the provider omits it.
+  final int? limitInCents;
+
+  /// Why the provider refused, in its own words, for
+  /// [PixHubErrorCode.providerRefused]. The screen shows it, because the
+  /// provider reasons are not a closed list. It can name the Pix key, so it
+  /// stays out of the logs.
+  final String? providerReason;
+
+  const PixHubFailure(
+    this.code, {
+    this.rawMessage,
+    this.limitInCents,
+    this.providerReason,
+  });
 
   @override
   String toString() => 'PixHubFailure(${code.name}, $rawMessage)';

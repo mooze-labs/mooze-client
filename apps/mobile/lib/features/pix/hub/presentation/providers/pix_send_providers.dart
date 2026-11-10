@@ -67,9 +67,43 @@ final pixDepixBalanceProvider = FutureProvider.autoDispose<int>((ref) async {
 
 /// Withdrawals whose funds may have left the wallet without a final status.
 ///
-/// The result screen and the hub refresh invalidate it, so the list reads the
-/// store again after a flow.
+/// The list reads the store again when the status read of
+/// [pixPendingWithdrawalSyncProvider] ends, and when the send flow stores a
+/// new status: the flow keeps polling after the user leaves its screens.
 final pixPendingWithdrawalsProvider =
-    Provider.autoDispose<List<PixWithdrawalRecord>>(
-      (ref) => ref.watch(pixWithdrawalRecordStoreProvider).pending(),
-    );
+    Provider.autoDispose<List<PixWithdrawalRecord>>((ref) {
+      ref.watch(pixPendingWithdrawalSyncProvider);
+      ref.watch(pixSendControllerProvider.select((s) => s.record?.lastStatus));
+      return ref.watch(pixWithdrawalRecordStoreProvider).pending();
+    });
+
+/// Reads the backend status of the pending withdrawals and stores it.
+///
+/// The send flow stops polling after a few minutes, and the provider can pay
+/// later. Without this read, a paid withdrawal stays pending in the hub. The
+/// hub refresh and the end of a send flow invalidate it.
+///
+/// A failed read keeps the stored statuses, so the list shows the last known
+/// state.
+final pixPendingWithdrawalSyncProvider = FutureProvider.autoDispose<void>((
+  ref,
+) async {
+  final store = ref.read(pixWithdrawalRecordStoreProvider);
+  final pending = store.pending();
+  if (pending.isEmpty) return;
+
+  final result = await ref.read(pixWithdrawalRepositoryProvider).statuses([
+    for (final record in pending) record.id,
+  ]).run();
+  for (final details in result.getOrElse((_) => const [])) {
+    // The send flow may store a newer status during the read. A final status
+    // does not change, so this read never replaces it.
+    final current = store.load().where((r) => r.id == details.id).firstOrNull;
+    if (current == null ||
+        current.lastStatus == details.status ||
+        (current.lastStatus?.isFinal ?? false)) {
+      continue;
+    }
+    await store.save(current.copyWith(lastStatus: details.status));
+  }
+});

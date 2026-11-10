@@ -176,7 +176,7 @@ class PixSendController extends StateNotifier<PixSendState> {
 
   /// Status poll interval. The value follows `WITHDRAW_POLL_INTERVAL_MS` of
   /// mooze-core.
-  static const Duration defaultPollInterval = Duration(seconds: 3);
+  static const Duration defaultPollInterval = Duration(seconds: 20);
 
   /// Automatic status polls. The value follows `WITHDRAW_POLL_MAX_ATTEMPTS` of
   /// mooze-core.

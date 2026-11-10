@@ -14,6 +14,7 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_label
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_send_key_card.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_card.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_warning_banner.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -150,7 +151,7 @@ class _PixSendReviewScreenState extends ConsumerState<PixSendReviewScreen> {
         children: [
           // The blocker explains the disabled confirm button, so it leads.
           if (quote.fundingBlocker != null) ...[
-            _WarningBanner(
+            PixWarningBanner(
               message: pixHubFailureMessage(t, quote.fundingBlocker!),
             ),
             const SizedBox(height: 20),
@@ -287,47 +288,6 @@ class _DeadlineRow extends StatelessWidget {
     return d.inHours > 0
         ? '${d.inHours}:$minutes:$seconds'
         : '$minutes:$seconds';
-  }
-}
-
-/// Explains why the wallet cannot fund the withdrawal.
-///
-/// It sits on the page, not in a glass panel: a tinted banner with an alert
-/// icon, so the warning never depends on color alone.
-class _WarningBanner extends StatelessWidget {
-  final String message;
-
-  const _WarningBanner({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = context.appColors.warning;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.32)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PixIcon(PixIcons.warning, size: 20, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: context.textTheme.bodySmall?.copyWith(
-                color: context.colors.textPrimary,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
