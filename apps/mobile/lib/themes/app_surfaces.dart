@@ -162,9 +162,12 @@ class GlassStyle {
     required this.rim,
     required this.edgeGlow,
     required this.shadows,
+    required this.controlShadows,
     required this.lensFill,
     required this.lensRim,
     required this.lensShadows,
+    required this.groove,
+    required this.knobFill,
   });
 
   /// Blur of the content behind the glass.
@@ -187,6 +190,10 @@ class GlassStyle {
 
   final List<BoxShadow> shadows;
 
+  /// Shadows of a small glass control in a bar, such as the back button.
+  /// They stay within a few points of the control, where the bar clips.
+  final List<BoxShadow> controlShadows;
+
   /// Fill of the selected-item lens inside the glass.
   final Color lensFill;
 
@@ -194,6 +201,14 @@ class GlassStyle {
   final List<Color> lensRim;
 
   final List<BoxShadow> lensShadows;
+
+  /// Fill of a groove cut into the glass, such as the track of a slider or
+  /// the well of a number.
+  final Color groove;
+
+  /// Fill of a knob that slides on the glass, such as the thumb of a
+  /// slider.
+  final Color knobFill;
 
   /// Returns the glass of the active theme.
   static GlassStyle of(BuildContext context) {
@@ -228,9 +243,18 @@ class GlassStyle {
             offset: const Offset(0, 2),
           ),
         ],
+        controlShadows: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.30),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
         lensFill: white.withValues(alpha: 0.11),
         lensRim: [white.withValues(alpha: 0.28), white.withValues(alpha: 0.06)],
         lensShadows: const [],
+        groove: colorScheme.shadow.withValues(alpha: 0.32),
+        knobFill: white,
       );
     }
     const white = Colors.white;
@@ -261,6 +285,13 @@ class GlassStyle {
           offset: const Offset(0, 2),
         ),
       ],
+      controlShadows: [
+        BoxShadow(
+          color: colorScheme.shadow.withValues(alpha: 0.08),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
       lensFill: white.withValues(alpha: 0.92),
       lensRim: [white, colorScheme.outlineVariant],
       lensShadows: [
@@ -270,6 +301,8 @@ class GlassStyle {
           offset: const Offset(0, 3),
         ),
       ],
+      groove: colorScheme.shadow.withValues(alpha: 0.07),
+      knobFill: white,
     );
   }
 }

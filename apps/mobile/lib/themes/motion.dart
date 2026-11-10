@@ -48,12 +48,34 @@ abstract final class Motion {
   /// Full success sequence (800 ms).
   static const durationCelebrate = Durations.extralong2;
 
+  /// Entrance of a received payment: the shockwave, the coin, and the
+  /// orbiting rings, until the scene rests (1.6 s).
+  static const durationReceive = Duration(milliseconds: 1600);
+
+  /// Entrance of a level change: the medal of the old level turns to the
+  /// new one, until the scene rests (1.8 s).
+  static const durationLevelChange = Duration(milliseconds: 1800);
+
+  /// Entrance of a finished swap: the coin of the sent asset spins up and
+  /// turns into the coin of the received asset, until the scene rests
+  /// (1.8 s).
+  static const durationSwap = Duration(milliseconds: 1800);
+
+  /// Entrance of an onboarding scene: its art takes its place the first
+  /// time its page shows (1.2 s). A slow drift follows, within
+  /// [durationAmbient] forward and back.
+  static const durationOnboardingScene = Duration(milliseconds: 1200);
+
   /// Count-up of a balance from 0 to its value after a tap (700 ms). Use it
   /// only for a figure the user asked to see, never on screen open.
   static const durationCountUp = Duration(milliseconds: 700);
 
   /// Fill time of a hold-to-confirm control.
   static const durationHoldConfirm = Duration(milliseconds: 900);
+
+  /// One half cycle of a slow ambient drift on hero screens (splash,
+  /// onboarding). Run it forward and back once, so the loop stops after 5 s.
+  static const durationAmbient = Duration(milliseconds: 2500);
 
   /// One skeleton shimmer cycle.
   static const durationShimmer = Duration(milliseconds: 1200);
@@ -97,6 +119,13 @@ abstract final class Motion {
   /// Press release on buttons only. Never use it for numbers.
   static final springPress = SpringDescription.withDurationAndBounce(
     duration: Durations.medium1,
+    bounce: 0.15,
+  );
+
+  /// Shape morphs, such as the status island that splits in two. The light
+  /// bounce makes the glass feel elastic. Never use it for numbers.
+  static final springMorph = SpringDescription.withDurationAndBounce(
+    duration: Durations.long1,
     bounce: 0.15,
   );
 
