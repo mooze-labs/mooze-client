@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/motion.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 
+/// The support code of the user, in a glass panel, with a copy button.
+///
+/// The muted label sits above the code. After a copy, the copy icon turns
+/// into a check in the positive color for a moment.
 class UserIdContainerWidget extends StatefulWidget {
   final String userId;
   final bool hasError;
@@ -22,110 +29,78 @@ class UserIdContainerWidget extends StatefulWidget {
 class _UserIdContainerWidgetState extends State<UserIdContainerWidget> {
   bool _codeCopied = false;
 
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.userId));
+    setState(() {
+      _codeCopied = true;
+    });
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      setState(() {
+        _codeCopied = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      decoration: BoxDecoration(
-        color:
-            widget.hasError
-                ? widget.colorScheme.errorContainer.withValues(alpha: 0.1)
-                : _codeCopied
-                ? widget.colorScheme.primaryContainer.withValues(alpha: 0.3)
-                : widget.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color:
-              widget.hasError
-                  ? widget.colorScheme.error.withValues(alpha: 0.3)
-                  : _codeCopied
-                  ? widget.colorScheme.primary.withValues(alpha: 0.3)
-                  : widget.colorScheme.outline.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: widget.colorScheme.shadow.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    final hasError = widget.hasError;
+    final negative = context.colors.negativeColor;
+
+    return GlassPanel(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+        padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(
-                  widget.hasError
-                      ? Icons.error_rounded
-                      : Icons.fingerprint_rounded,
-                  color:
-                      widget.hasError
-                          ? widget.colorScheme.error
-                          : widget.colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.hasError
+            Icon(
+              hasError ? Icons.error_rounded : Icons.fingerprint_rounded,
+              color: hasError ? negative : context.colors.textSecondary,
+              size: 20,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasError
                         ? t.support_user_code_load_error_inline
                         : t.support_user_code_unique,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color:
-                          widget.hasError
-                              ? widget.colorScheme.error
-                              : widget.colorScheme.onSurface,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: hasError ? negative : context.colors.textSecondary,
                     ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    truncateHashId(widget.userId, length: 10),
+                    style: context.textTheme.titleMedium?.copyWith(
+                      color: hasError ? negative : context.colors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!hasError)
+              IconButton(
+                onPressed: _copy,
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                icon: AnimatedSwitcher(
+                  duration: Motion.of(context, Motion.durationFast),
+                  switchInCurve: Motion.curveEnter,
+                  switchOutCurve: Motion.curveExit,
+                  child: Icon(
+                    _codeCopied ? Icons.check_rounded : Icons.copy_rounded,
+                    key: ValueKey(_codeCopied),
+                    color: _codeCopied
+                        ? context.colors.positiveColor
+                        : context.colors.textSecondary,
+                    size: 20,
                   ),
                 ),
-                if (!widget.hasError)
-                  IconButton(
-                    onPressed: () async {
-                      await Clipboard.setData(
-                        ClipboardData(text: widget.userId),
-                      );
-                      setState(() {
-                        _codeCopied = true;
-                      });
-                      await Future.delayed(const Duration(seconds: 2));
-                      if (mounted) {
-                        setState(() {
-                          _codeCopied = false;
-                        });
-                      }
-                    },
-                    icon: Icon(
-                      _codeCopied ? Icons.check_rounded : Icons.copy_rounded,
-                      color:
-                          _codeCopied
-                              ? widget.colorScheme.primary
-                              : widget.colorScheme.onSurface.withValues(
-                                alpha: 0.5,
-                              ),
-                      size: 20,
-                    ),
-                  ),
-              ],
-            ),
-            Text(
-              truncateHashId(widget.userId, length: 10),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color:
-                    widget.hasError
-                        ? widget.colorScheme.error
-                        : widget.colorScheme.onSurface.withValues(alpha: 0.7),
-                height: 1.5,
               ),
-              textAlign: TextAlign.center,
-            ),
           ],
         ),
       ),
