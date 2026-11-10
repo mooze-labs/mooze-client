@@ -5,6 +5,7 @@ import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/verif
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 
 import '../auth_prompt_controller.dart';
 import 'privacy_shield_overlay.dart';
@@ -136,33 +137,95 @@ class _LockedViewState extends ConsumerState<_LockedView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_showPin) {
-      // Wrapped in its own [Overlay]: this layer lives above the Navigator, so
-      // there is no ambient Overlay, and the PIN field's EditableText needs an
-      // Overlay ancestor for text selection.
-      return SizedBox.expand(
-        child: Overlay(
-          initialEntries: [
-            OverlayEntry(
-              maintainState: true,
-              builder: (context) => VerifyPinScreen(
-                forceAuth: true,
-                canGoBack: false,
-                isAppResuming: true,
-                startInPinMode: true,
-                onPinConfirmed: widget.onAuthenticated,
-              ),
+    // The shield stays painted, fully opaque, under the PIN layer while the
+    // layer fades in. A cross-fade of the two would let the wallet behind
+    // the overlay show through halfway. Once the PIN layer is up, the
+    // shield takes no taps and is hidden from screen readers.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        IgnorePointer(
+          ignoring: _showPin,
+          child: ExcludeSemantics(
+            excluding: _showPin,
+            child: PrivacyShieldOverlay(
+              onUseBiometric: (_initialized && _biometricAvailable)
+                  ? _attemptBiometric
+                  : null,
+              onUsePin: _initialized
+                  ? () => setState(() => _showPin = true)
+                  : null,
+              isBiometricLoading: _biometricLoading,
             ),
-          ],
+          ),
         ),
-      );
-    }
-
-    return PrivacyShieldOverlay(
-      onUseBiometric:
-          (_initialized && _biometricAvailable) ? _attemptBiometric : null,
-      onUsePin: _initialized ? () => setState(() => _showPin = true) : null,
-      isBiometricLoading: _biometricLoading,
+        if (_showPin)
+          // Wrapped in its own [Overlay]: this layer lives above the
+          // Navigator, so there is no ambient Overlay, and the PIN screen
+          // needs an Overlay ancestor for tooltips and text selection.
+          _FadeIn(
+            child: Overlay(
+              initialEntries: [
+                OverlayEntry(
+                  maintainState: true,
+                  builder: (context) => VerifyPinScreen(
+                    forceAuth: true,
+                    canGoBack: false,
+                    isAppResuming: true,
+                    startInPinMode: true,
+                    onPinConfirmed: widget.onAuthenticated,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
+  }
+}
+
+/// Fades [child] in once, over [Motion.durationSlow] with
+/// [Motion.curveEnter], the same as the PIN page after the splash. With
+/// reduced motion it appears at once.
+class _FadeIn extends StatefulWidget {
+  const _FadeIn({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_FadeIn> createState() => _FadeInState();
+}
+
+class _FadeInState extends State<_FadeIn> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: Motion.durationSlow,
+  );
+  late final Animation<double> _animation = CurvedAnimation(
+    parent: _controller,
+    curve: Motion.curveEnter,
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller.isDismissed) {
+      if (Motion.isReduced(context)) {
+        _controller.value = 1;
+      } else {
+        _controller.forward();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(opacity: _animation, child: widget.child);
   }
 }
