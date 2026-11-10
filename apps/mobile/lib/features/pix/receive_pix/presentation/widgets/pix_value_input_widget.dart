@@ -25,28 +25,16 @@ import 'account_limits_display_widget.dart';
 class PixValueInputWidget extends ConsumerWidget {
   final VoidCallback onContinue;
 
-  /// Optional onboarding-tutorial target keys (steps 6 & 7).
-  final Key? amountKey;
-  final Key? limitsKey;
-
-  const PixValueInputWidget({
-    super.key,
-    required this.onContinue,
-    this.amountKey,
-    this.limitsKey,
-  });
+  const PixValueInputWidget({super.key, required this.onContinue});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        KeyedSubtree(key: amountKey, child: const PixDepositAmountInput()),
+        const PixDepositAmountInput(),
         const SizedBox(height: 32),
-        KeyedSubtree(
-          key: limitsKey,
-          child: const AccountLimitsDisplay(footer: _LevelRow()),
-        ),
+        const AccountLimitsDisplay(footer: _LevelRow()),
       ],
     );
   }

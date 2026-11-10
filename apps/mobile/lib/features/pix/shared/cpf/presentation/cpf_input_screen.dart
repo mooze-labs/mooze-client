@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/favorite_payers/domain/entities/favorite_payer.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
+import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/own_payer_controller.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/widgets/favorite_payer_picker_sheet.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_section_header.dart';
@@ -31,14 +32,11 @@ const EdgeInsets _kPagePadding = EdgeInsets.symmetric(
 /// a large title, and the main action pinned at the bottom, above the
 /// keyboard. Saved payers run edge to edge in a chip row, so the screen does
 /// not use [PixScreenScaffold], which pads all content.
+///
+/// The field always opens empty. The screen asks for another person's
+/// document, and the user's own deposits take it from "my user" instead.
 class CpfInputScreen extends ConsumerStatefulWidget {
-  /// Taxpayer id digits used to prefill the field.
-  ///
-  /// The Pix deposit flow passes the CPF the user already informed, so the
-  /// screen opens filled and the user only confirms it.
-  final String? initialTaxId;
-
-  const CpfInputScreen({super.key, this.initialTaxId});
+  const CpfInputScreen({super.key});
 
   @override
   ConsumerState<CpfInputScreen> createState() => _CpfInputScreenState();
@@ -63,10 +61,6 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
   @override
   void initState() {
     super.initState();
-    final initial = widget.initialTaxId;
-    if (initial != null && initial.isNotEmpty) {
-      _controller.text = formatCpfCnpj(CpfValidator.strip(initial));
-    }
     _controller.addListener(() {
       setState(() {
         if (_touched) _error = CpfValidator.validate(_controller.text);
@@ -148,7 +142,7 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final favorites =
-        ref.watch(favoritePayersControllerProvider).valueOrNull ??
+        ref.watch(orderedFavoritePayersProvider).valueOrNull ??
         const <FavoritePayer>[];
     final hasFavorites = favorites.isNotEmpty;
     final alreadyFavorite =

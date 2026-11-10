@@ -6,7 +6,9 @@ import 'package:mooze_mobile/features/favorite_payers/domain/repositories/favori
 import 'package:mooze_mobile/features/favorite_payers/presentation/providers/favorite_payers_providers.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/presentation/cpf_input_screen.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 import 'package:mooze_mobile/themes/app_extra_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../shared/fake_core_sync_helpers.dart';
 
@@ -26,9 +28,13 @@ class _FakeRepo implements FavoritePayersRepository {
   Future<void> clearAll() async {}
 }
 
+/// Holds the "my user" mark, which orders the chips.
+late SharedPreferences _prefs;
+
 Widget _app(List<FavoritePayer> favorites) => ProviderScope(
   overrides: [
     favoritePayersRepositoryProvider.overrideWithValue(_FakeRepo(favorites)),
+    sharedPreferencesProvider.overrideWithValue(_prefs),
   ],
   child: MaterialApp(
     theme: ThemeData.dark().copyWith(extensions: const [AppExtraColors.dark]),
@@ -59,6 +65,22 @@ void main() {
   useCoreSyncHelpers();
 
   const cristian = FavoritePayer(id: 1, label: 'Cristian', cpf: '52998224725');
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+  });
+
+  testWidgets('my user is the first chip', (tester) async {
+    await _prefs.setInt('favorite_payer_own_id', 2);
+    await tester.pumpWidget(_app(manyPayers(3)));
+    await _settle(tester);
+
+    double left(String label) =>
+        tester.getTopLeft(find.widgetWithText(ChoiceChip, label)).dx;
+    expect(left('Payer 1'), lessThan(left('Payer 0')));
+    expect(left('Payer 0'), lessThan(left('Payer 2')));
+  });
 
   testWidgets('renders saved payers as selectable chips', (tester) async {
     await tester.pumpWidget(_app(const [cristian]));

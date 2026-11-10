@@ -6,5 +6,6 @@ final pixDepositProfileServiceProvider = Provider<PixDepositProfileService>((
   ref,
 ) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return PixDepositProfileService(prefs);
+  // The first read of the service deletes the CPF copy of older versions.
+  return PixDepositProfileService(prefs)..forgetLegacyTaxId();
 });
