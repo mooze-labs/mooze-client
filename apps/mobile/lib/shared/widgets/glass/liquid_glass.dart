@@ -30,10 +30,33 @@ class LiquidGlass extends StatelessWidget {
     this.borderRadius = const BorderRadius.all(Radius.circular(999)),
     this.blurBackdrop = true,
     this.opaque = false,
+    this.shadows,
+    this.tintOpacity = 1,
+    this.blurSigma,
   });
 
   final Widget child;
   final BorderRadius borderRadius;
+
+  /// Strength of the tints, from 0 (clear) to 1 (the style's tints). A
+  /// floating bar over blurred content lowers it, so more of the page shows
+  /// through.
+  final double tintOpacity;
+
+  /// Blur of the content behind the glass. Defaults to
+  /// [GlassStyle.blurSigma].
+  final double? blurSigma;
+
+  /// [tintOpacity] of the floating navigation bars. Their blur keeps the
+  /// icons readable with the lighter tint.
+  static const double barTintOpacity = 0.4;
+
+  /// [blurSigma] of the floating navigation bars: lighter than the default
+  /// glass, so the page shows through as soft shapes.
+  static const double barBlurSigma = 10;
+
+  /// Shadows under the glass. Defaults to [GlassStyle.shadows].
+  final List<BoxShadow>? shadows;
 
   /// Blurs and saturates the content behind the glass.
   final bool blurBackdrop;
@@ -63,6 +86,7 @@ class LiquidGlass extends StatelessWidget {
         glass,
         borderRadius,
         base: opaque ? BackdropStyle.of(context).base : null,
+        tintOpacity: tintOpacity,
       ),
       foregroundPainter: _GlassRimPainter(glass.rim, borderRadius),
       // Content updates (for example a new price) repaint only the content,
@@ -72,7 +96,7 @@ class LiquidGlass extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        boxShadow: glass.shadows,
+        boxShadow: shadows ?? glass.shadows,
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
@@ -85,8 +109,8 @@ class LiquidGlass extends StatelessWidget {
                     saturationMatrix(glass.saturation),
                   ),
                   inner: ui.ImageFilter.blur(
-                    sigmaX: glass.blurSigma,
-                    sigmaY: glass.blurSigma,
+                    sigmaX: blurSigma ?? glass.blurSigma,
+                    sigmaY: blurSigma ?? glass.blurSigma,
                     tileMode: TileMode.mirror,
                   ),
                 ),
@@ -403,10 +427,18 @@ class GlassLens extends StatelessWidget {
 }
 
 class _GlassBodyPainter extends CustomPainter {
-  _GlassBodyPainter(this.glass, this.borderRadius, {this.base});
+  _GlassBodyPainter(
+    this.glass,
+    this.borderRadius, {
+    this.base,
+    this.tintOpacity = 1,
+  });
 
   final GlassStyle glass;
   final BorderRadius borderRadius;
+
+  /// Scales the alpha of each tint.
+  final double tintOpacity;
 
   /// Opaque color under the tints. Null keeps the glass translucent.
   final Color? base;
@@ -420,7 +452,10 @@ class _GlassBodyPainter extends CustomPainter {
       canvas.drawRRect(shape, Paint()..color = base);
     }
     for (final tint in glass.tints) {
-      canvas.drawRRect(shape, Paint()..color = tint);
+      canvas.drawRRect(
+        shape,
+        Paint()..color = tint.withValues(alpha: tint.a * tintOpacity),
+      );
     }
 
     canvas.drawRRect(
@@ -452,6 +487,7 @@ class _GlassBodyPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GlassBodyPainter oldDelegate) =>
+      oldDelegate.tintOpacity != tintOpacity ||
       oldDelegate.glass != glass ||
       oldDelegate.borderRadius != borderRadius ||
       oldDelegate.base != base;
