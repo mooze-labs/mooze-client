@@ -38,7 +38,7 @@ enum Asset {
     return switch (this) {
       Asset.usdt => "USDT",
       Asset.depix => "Depix",
-      Asset.lbtc => "BTC L2",
+      Asset.lbtc => "L-BTC",
       Asset.btc => "BTC",
     };
   }
@@ -47,7 +47,7 @@ enum Asset {
     return switch (this) {
       Asset.usdt => "USDt",
       Asset.depix => "Decentralized Pix",
-      Asset.lbtc => "Bitcoin L2",
+      Asset.lbtc => "Liquid Bitcoin",
       Asset.btc => "Bitcoin",
     };
   }
@@ -66,7 +66,7 @@ enum Asset {
       Asset.usdt => 'assets/icons/asset/usdt.svg',
       Asset.depix => 'assets/icons/asset/depix.svg',
       Asset.btc => 'assets/icons/asset/bitcoin.svg',
-      Asset.lbtc => 'assets/icons/asset/layer2_bitcoin.svg',
+      Asset.lbtc => 'assets/icons/asset/lbtc.svg',
     };
   }
 
@@ -274,7 +274,7 @@ extension AssetDisplayName on Asset {
       case Asset.btc:
         return 'Bitcoin';
       case Asset.lbtc:
-        return 'Bitcoin L2';
+        return 'Liquid Bitcoin';
       case Asset.usdt:
         return 'USDT';
       case Asset.depix:

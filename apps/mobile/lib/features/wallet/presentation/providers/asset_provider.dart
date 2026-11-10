@@ -67,6 +67,8 @@ class FavoriteAssetsNotifier extends StateNotifier<List<Asset>> {
         return Asset.usdt;
       case 'decentralized pix':
         return Asset.depix;
+      case 'liquid bitcoin':
+      // The name of L-BTC in earlier versions.
       case 'bitcoin l2':
         return Asset.lbtc;
       default:

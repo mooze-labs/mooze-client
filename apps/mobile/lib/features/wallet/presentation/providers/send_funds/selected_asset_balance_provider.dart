@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
 
 import 'package:mooze_mobile/features/wallet/presentation/providers.dart';
@@ -14,7 +15,7 @@ final selectedAssetBalanceProvider = FutureProvider<
   final balance = await ref.read(balanceProvider(selectedAsset).future);
 
   return balance.map((balanceInSats) {
-    if (selectedAsset.ticker == 'BTC' || selectedAsset.ticker == 'BTC L2') {
+    if (selectedAsset == Asset.btc || selectedAsset == Asset.lbtc) {
       final formattedSats = SatsInputFormatter.formatValue(
         balanceInSats.toInt(),
       );

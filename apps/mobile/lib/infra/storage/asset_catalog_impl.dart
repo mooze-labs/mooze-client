@@ -83,12 +83,17 @@ class SharedPreferencesFavouriteAssetsStore implements FavouriteAssetsStore {
   }
 
   /// Compat layer: legacy wrote `asset.name` ('btc') in some builds and
-  /// `asset.displayName` ('Bitcoin') in others. Accept both.
+  /// `asset.displayName` ('Bitcoin') in others. Accept both, and the names
+  /// L-BTC had as "Bitcoin L2".
   Asset? _assetFromLegacyName(String stored) {
     final s = stored.trim().toLowerCase();
     return switch (s) {
       'btc' || 'bitcoin' => Asset.btc,
-      'lbtc' || 'bitcoin l2' || 'btc l2' => Asset.lbtc,
+      'lbtc' ||
+      'liquid bitcoin' ||
+      'l-btc' ||
+      'bitcoin l2' ||
+      'btc l2' => Asset.lbtc,
       'usdt' || 'usdt liquid' || 'tether' => Asset.usdt,
       'depix' || 'decentralized pix' => Asset.depix,
       _ => null,
