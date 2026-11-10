@@ -68,7 +68,14 @@ impl WsConnector for TungsteniteConnector {
 
 /// True for errors that only mean the connection is gone.
 fn is_closed_error(e: &tungstenite::Error) -> bool {
-    matches!(e, tungstenite::Error::ConnectionClosed | tungstenite::Error::AlreadyClosed)
+    // A peer that drops the socket without a close frame (the server, a
+    // proxy, or the OS while the app sleeps) closed the connection too.
+    matches!(
+        e,
+        tungstenite::Error::ConnectionClosed
+            | tungstenite::Error::AlreadyClosed
+            | tungstenite::Error::Protocol(tungstenite::error::ProtocolError::ResetWithoutClosingHandshake)
+    )
 }
 
 // Explicit futures keep the MaybeSend bound visible at the impl site.
@@ -196,6 +203,25 @@ mod tests {
             let mut conn = TungsteniteConnector.connect(&format!("ws://{addr}")).await.unwrap();
             assert_eq!(conn.recv().await.unwrap(), WsMessage::Binary(vec![1, 2, 3]));
             assert_eq!(conn.recv().await.unwrap(), WsMessage::Closed);
+        });
+    }
+
+    #[test]
+    fn a_reset_without_closing_handshake_reads_as_closed() {
+        // The server, a proxy or the OS can drop the socket without a close
+        // frame, for example while the app sleeps. That is a closed
+        // connection, not a protocol error.
+        runtime().block_on(async {
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let addr = listener.local_addr().unwrap();
+            tokio::spawn(async move {
+                let (tcp, _) = listener.accept().await.unwrap();
+                let ws = tokio_tungstenite::accept_async(tcp).await.unwrap();
+                drop(ws);
+            });
+            let mut conn = TungsteniteConnector.connect(&format!("ws://{addr}")).await.unwrap();
+            assert_eq!(conn.recv().await.unwrap(), WsMessage::Closed);
+            assert!(conn.send_text("late".into()).await.is_err());
         });
     }
 
