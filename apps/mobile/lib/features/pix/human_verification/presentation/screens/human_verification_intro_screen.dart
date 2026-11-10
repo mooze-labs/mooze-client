@@ -14,10 +14,7 @@ class HumanVerificationIntroScreen extends StatelessWidget {
       backgroundColor: context.colors.backgroundColor,
       appBar: AppBar(
         title: Text(t.human_verif_title),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
-        ),
+        leading: BackButton(onPressed: () => context.pop()),
       ),
       body: PlatformSafeArea(
         child: Padding(

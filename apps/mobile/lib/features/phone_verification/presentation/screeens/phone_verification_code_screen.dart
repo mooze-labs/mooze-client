@@ -93,7 +93,7 @@ class _PhoneVerificationCodeScreenState
       child: Scaffold(
         appBar: AppBar(
           title: Text(t.phone_verif_code_title),
-          leading: Icon(Icons.arrow_back_ios_new_rounded),
+          leading: const BackButtonIcon(),
         ),
         body: PlatformSafeArea(
           child: Padding(

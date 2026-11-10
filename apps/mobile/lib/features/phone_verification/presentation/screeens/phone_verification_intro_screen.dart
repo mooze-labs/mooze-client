@@ -15,7 +15,7 @@ class PhoneVerificationIntroScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(t.phone_verif_title),
-        leading: const Icon(Icons.arrow_back_ios_new_rounded),
+        leading: const BackButtonIcon(),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),

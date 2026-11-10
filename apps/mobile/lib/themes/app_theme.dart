@@ -41,6 +41,7 @@ class AppTheme {
 
       // App Bar
       appBarTheme: ComponentThemes.appBarTheme(context, colorScheme),
+      actionIconTheme: ComponentThemes.actionIconTheme(),
 
       // Scaffold
       scaffoldBackgroundColor: colorScheme.surfaceDim,
@@ -118,6 +119,7 @@ class AppTheme {
 
       // App Bar
       appBarTheme: ComponentThemes.appBarTheme(context, colorScheme),
+      actionIconTheme: ComponentThemes.actionIconTheme(),
 
       // Scaffold
       scaffoldBackgroundColor: colorScheme.surfaceDim,

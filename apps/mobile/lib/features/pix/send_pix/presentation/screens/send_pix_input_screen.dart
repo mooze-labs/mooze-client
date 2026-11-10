@@ -117,10 +117,7 @@ class _SendPixInputScreenState extends ConsumerState<SendPixInputScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(t.send_pix_appbar),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
-        ),
+        leading: BackButton(onPressed: () => context.pop()),
       ),
       body: PlatformSafeArea(
         child: SingleChildScrollView(

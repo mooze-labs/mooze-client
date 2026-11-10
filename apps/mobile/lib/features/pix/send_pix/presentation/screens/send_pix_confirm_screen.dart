@@ -152,10 +152,7 @@ class _SendPixConfirmScreenState extends ConsumerState<SendPixConfirmScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).pix_send_confirm_title),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
-        ),
+        leading: BackButton(onPressed: () => context.pop()),
       ),
       body: PlatformSafeArea(
         child: Padding(

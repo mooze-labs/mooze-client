@@ -198,10 +198,7 @@ class _SendPixProcessingScreenState
       backgroundColor: context.colors.backgroundColor,
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).pix_send_error_title),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.go('/pix'),
-        ),
+        leading: BackButton(onPressed: () => context.go('/pix')),
       ),
       body: PlatformSafeArea(
         child: Padding(

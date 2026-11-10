@@ -97,10 +97,7 @@ class _HumanVerificationPaymentScreenState
       child: Scaffold(
         appBar: AppBar(
           title: Text(t.human_verif_payment_title),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
-            onPressed: () => context.pop(),
-          ),
+          leading: BackButton(onPressed: () => context.pop()),
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
@@ -297,7 +294,7 @@ class _HumanVerificationPaymentScreenState
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Pagamento de verificação',
+                              t.human_verification_payment_label,
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: context.colors.textSecondary),
                             ),

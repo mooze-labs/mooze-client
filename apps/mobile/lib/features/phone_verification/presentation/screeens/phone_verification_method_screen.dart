@@ -56,7 +56,7 @@ class _PhoneVerificationMethodScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(t.phone_verif_method_title),
-        leading: const Icon(Icons.arrow_back_ios_new_rounded),
+        leading: const BackButtonIcon(),
       ),
       body: PlatformSafeArea(
         child: Padding(

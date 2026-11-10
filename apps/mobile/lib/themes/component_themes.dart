@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mooze_mobile/shared/widgets/glass/glass_back_button_icon.dart';
 import 'app_extra_colors.dart';
 import 'app_text_styles.dart';
 
@@ -34,6 +35,13 @@ class ComponentThemes {
     ),
     titleTextStyle: AppTextStyles.appBarTitle(context, colorScheme),
     iconTheme: IconThemeData(color: colorScheme.primary),
+  );
+
+  // ── Action Icons ──────────────────────────────────────────────────────────
+
+  /// Every [BackButton] shows the round glass button of Merchant Mode.
+  static ActionIconThemeData actionIconTheme() => ActionIconThemeData(
+    backButtonIconBuilder: (_) => const GlassBackButtonIcon(),
   );
 
   // ── Card ──────────────────────────────────────────────────────────────────
