@@ -3,11 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 
 import 'widgets.dart';
 
+/// Shows the new recovery phrase before its confirmation.
+///
+/// It has the layout of the phrase in the settings: the words in one glass
+/// panel on the backdrop, and the next step pinned at the bottom.
 class DisplaySeedsScreen extends ConsumerWidget {
   const DisplaySeedsScreen({super.key, required this.mnemonic});
 
@@ -19,30 +24,42 @@ class DisplaySeedsScreen extends ConsumerWidget {
 
     if (mnemonic.isEmpty) {
       _redirectToConfigureSeeds(context);
-      return _buildLoadingScaffold(t);
+      return BackdropPageScaffold(
+        title: t.seed_screen_title,
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
-    return PlatformSafeArea(
-      child: Scaffold(
-        appBar: _buildAppBar(context, t),
-        body: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              TitleAndSubtitleCreateWallet(
-                title: t.seed_words_of,
-                highlighted: t.seed_recovery_word,
-                subtitle: t.seed_save_warning,
+    return BackdropPageScaffold(
+      title: t.seed_screen_title,
+      leading: BackButton(onPressed: () => context.pop()),
+      bottomAction: PrimaryButton(
+        text: t.seed_confirm_phrase,
+        onPressed: () => _goToConfirmSeeds(context),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          BackdropPageScaffold.gutter,
+          16,
+          BackdropPageScaffold.gutter,
+          8,
+        ),
+        child: Column(
+          children: [
+            TitleAndSubtitleCreateWallet(
+              title: t.seed_words_of,
+              highlighted: t.seed_recovery_word,
+              subtitle: t.seed_save_warning,
+            ),
+            const SizedBox(height: 20),
+            // The panel fits the words, and scrolls only when they do not fit.
+            Flexible(
+              child: GlassPanel(
+                padding: const EdgeInsets.all(12),
+                child: MnemonicGridDisplay(mnemonic: mnemonic),
               ),
-              const SizedBox(height: 24),
-              Expanded(child: MnemonicGridDisplay(mnemonic: mnemonic)),
-              const SizedBox(height: 16),
-              PrimaryButton(
-                text: t.seed_confirm_phrase,
-                onPressed: () => _goToConfirmSeeds(context),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -56,22 +73,5 @@ class DisplaySeedsScreen extends ConsumerWidget {
 
   void _goToConfirmSeeds(BuildContext context) {
     context.push("/setup/create-wallet/confirm-seeds", extra: mnemonic);
-  }
-
-  AppBar _buildAppBar(BuildContext context, AppLocalizations t) {
-    return AppBar(
-      title: Text(t.seed_screen_title),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        onPressed: () => context.pop(),
-      ),
-    );
-  }
-
-  Widget _buildLoadingScaffold(AppLocalizations t) {
-    return Scaffold(
-      appBar: AppBar(title: Text(t.seed_screen_title)),
-      body: const Center(child: CircularProgressIndicator()),
-    );
   }
 }

@@ -12,7 +12,9 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/balance_prov
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
+import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/shared/authentication/providers.dart';
 
 class ConfirmMnemonicScreen extends ConsumerStatefulWidget {
@@ -83,46 +85,48 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final back = BackButton(onPressed: () => context.pop());
     if (_isLoading || !_hasValidData) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(t.setup_confirm_seed_appbar),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded),
-            onPressed: () => context.pop(),
-          ),
-        ),
-        body: Center(child: CircularProgressIndicator()),
+      return BackdropPageScaffold(
+        title: t.setup_confirm_seed_appbar,
+        leading: back,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(t.setup_confirm_seed_appbar),
+    // The twelve words fit the page, so the page scrolls as a whole only
+    // with large text, and the confirm button stays pinned.
+    return BackdropPageScaffold(
+      title: t.setup_confirm_seed_appbar,
+      leading: back,
+      bottomAction: PrimaryButton(
+        text: t.common_confirm,
+        onPressed: _confirm,
+        isEnabled: _canConfirm(),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(24),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          BackdropPageScaffold.gutter,
+          8,
+          BackdropPageScaffold.gutter,
+          16,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TitleAndSubtitleCreateWallet(
               title: t.setup_confirm_seed_title,
               highlighted: t.setup_confirm_seed_highlight,
               subtitle: t.setup_confirm_seed_subtitle,
             ),
-            SizedBox(height: 40),
-
+            const SizedBox(height: 24),
             SelectedWordsRow(
               positions: positions,
               selectedWords: selectedWords,
             ),
-            SizedBox(height: 40),
-
-            Expanded(
+            const SizedBox(height: 20),
+            GlassPanel(
+              padding: const EdgeInsets.all(12),
               child: WordSelectionGrid(
                 shuffledWords: shuffledWords,
                 selectedWords: selectedWords,
@@ -130,14 +134,6 @@ class _ConfirmMnemonicScreenState extends ConsumerState<ConfirmMnemonicScreen> {
                 getWordPosition: _getWordPosition,
               ),
             ),
-
-            SizedBox(height: 10),
-            PrimaryButton(
-              text: t.common_confirm,
-              onPressed: _confirm,
-              isEnabled: _canConfirm(),
-            ),
-            SizedBox(height: 30),
           ],
         ),
       ),

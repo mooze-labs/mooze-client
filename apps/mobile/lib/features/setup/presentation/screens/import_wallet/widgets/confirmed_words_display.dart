@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
+/// The words the user confirmed, numbered, in one glass panel.
+///
+/// A tap on a word edits it, and its cross removes it. The word being
+/// edited takes the brand border of a focused field.
 class ConfirmedWordsDisplay extends ConsumerWidget {
   const ConfirmedWordsDisplay({super.key});
 
@@ -17,60 +24,67 @@ class ConfirmedWordsDisplay extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Container(
+    return GlassPanel(
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // With large text the action moves below the count instead of
+          // pushing it out of the row.
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
                 t.seed_confirmed_words_count(state.wordCount),
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
+                style: context.textTheme.titleSmall?.copyWith(
+                  color: context.colors.textPrimary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               if (state.wordCount > 0)
                 TextButton.icon(
                   onPressed: notifier.removeLastWord,
-                  icon: const Icon(Icons.backspace, size: 16),
+                  icon: const Icon(Icons.backspace_outlined, size: 18),
                   label: Text(t.seed_remove_last),
                   style: TextButton.styleFrom(
+                    foregroundColor: context.colors.textSecondary,
+                    minimumSize: const Size(48, 48),
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              const spacing = 8.0;
-              final columns = MediaQuery.sizeOf(context).width >= 430 ? 3 : 2;
-              final itemWidth =
-                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
+          const SizedBox(height: 6),
+          Padding(
+            // The panel has a narrow right padding for the header action.
+            padding: const EdgeInsets.only(right: 8),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const spacing = 8.0;
+                final columns = MediaQuery.sizeOf(context).width >= 430 ? 3 : 2;
+                final itemWidth =
+                    (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
-              return Wrap(
-                spacing: spacing,
-                runSpacing: spacing,
-                children:
-                    state.confirmedWords.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final word = entry.value;
-                      final isEditing = state.editingIndex == index;
-                      return SizedBox(
+                return Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  children: [
+                    for (final (index, word) in state.confirmedWords.indexed)
+                      SizedBox(
                         width: itemWidth,
                         child: _WordChip(
                           number: index + 1,
                           word: word,
-                          isEditing: isEditing,
+                          isEditing: state.editingIndex == index,
                           onTap: () => notifier.startEditingWord(index),
                           onDelete: () => notifier.removeWordAt(index),
                         ),
-                      );
-                    }).toList(),
-              );
-            },
+                      ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -93,86 +107,60 @@ class _WordChip extends StatelessWidget {
     this.onDelete,
   });
 
+  static const BorderRadius _radius = BorderRadius.all(Radius.circular(12));
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: BoxDecoration(
-          color:
-              isEditing
-                  ? Theme.of(context).colorScheme.tertiaryContainer
-                  : Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(8),
-          border:
-              isEditing
-                  ? Border.all(
-                    color: Theme.of(context).colorScheme.tertiary,
-                    width: 2,
-                  )
-                  : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color:
-                    isEditing
-                        ? Theme.of(context).colorScheme.tertiary
-                        : Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: _radius,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.only(left: 10),
+          decoration: BoxDecoration(
+            color: GlassStyle.of(context).lensFill,
+            borderRadius: _radius,
+            border: Border.all(
+              color: isEditing
+                  ? context.colorScheme.primary
+                  : AppSurfaces.hairline(context),
+              width: isEditing ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Text(
                 '$number',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color:
-                      isEditing
-                          ? Theme.of(context).colorScheme.onTertiary
-                          : Theme.of(context).colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 10,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                word,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color:
-                      isEditing
-                          ? Theme.of(context).colorScheme.onTertiaryContainer
-                          : Theme.of(context).colorScheme.onPrimaryContainer,
+                style: context.textTheme.labelMedium?.copyWith(
+                  color: context.colors.textSecondary,
                   fontWeight: FontWeight.w600,
-                  fontSize: 13,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
-                softWrap: true,
               ),
-            ),
-            if (onDelete != null) ...[
-              const SizedBox(width: 4),
-              InkWell(
-                onTap: onDelete,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  child: Icon(
-                    Icons.close,
-                    size: 14,
-                    color: (isEditing
-                            ? Theme.of(context).colorScheme.onTertiaryContainer
-                            : Theme.of(context).colorScheme.onPrimaryContainer)
-                        .withValues(alpha: 0.7),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  word,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: context.colors.textPrimary,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
+              if (onDelete != null)
+                IconButton(
+                  onPressed: onDelete,
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: context.colors.textSecondary,
+                  ),
+                ),
             ],
-          ],
+          ),
         ),
       ),
     );

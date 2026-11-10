@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/word_selection_item.dart';
 
+/// The words to choose from, three per row.
+///
+/// The grid does not scroll: the page around it scrolls when the words do
+/// not fit, for example with large text.
 class WordSelectionGrid extends StatelessWidget {
   final List<String> shuffledWords;
 
@@ -21,27 +25,24 @@ class WordSelectionGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 2.5,
-        crossAxisSpacing: 15,
-        mainAxisSpacing: 15,
+        // A word keeps a 48 pt touch target at any width.
+        mainAxisExtent: 52,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
       itemCount: shuffledWords.length,
       itemBuilder: (context, index) {
         final word = shuffledWords[index];
-        final isSelected = selectedWords.containsValue(word);
-        final wordPosition = getWordPosition(word);
-
-        return Stack(
-          children: [
-            WordSelectionItem(
-              word: word,
-              isSelected: isSelected,
-              position: wordPosition,
-              onTap: () => onWordSelected(word),
-            ),
-          ],
+        return WordSelectionItem(
+          word: word,
+          isSelected: selectedWords.containsValue(word),
+          position: getWordPosition(word),
+          onTap: () => onWordSelected(word),
         );
       },
     );

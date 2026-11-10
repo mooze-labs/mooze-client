@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+/// The words of a recovery phrase, three per row, numbered.
+///
+/// The grid scrolls only when the words do not fit its height.
 class MnemonicGridDisplay extends StatelessWidget {
   final String mnemonic;
 
@@ -67,27 +71,41 @@ class MnemonicGridDisplay extends StatelessWidget {
     return totalHeight > constraints.maxHeight;
   }
 
+  /// One word of the phrase on a glass lens: its number, muted, and the
+  /// word. A long word or large text scales the line down instead of
+  /// wrapping.
   Widget _buildWordCard(int number, String word, BuildContext context) {
-    final theme = Theme.of(context).textTheme.labelLarge;
-    final colorScheme = Theme.of(context).colorScheme;
+    final style = context.textTheme.labelLarge;
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: colorScheme.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.onSurface.withValues(alpha: 0.1)),
+        color: GlassStyle.of(context).lensFill,
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        border: Border.all(color: AppSurfaces.hairline(context)),
       ),
-      child: Center(
-        child: RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
+      alignment: Alignment.center,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text.rich(
+          TextSpan(
             children: [
               TextSpan(
                 text: '$number. ',
-                style: theme?.copyWith(color: context.colors.textQuintary),
+                style: style?.copyWith(
+                  color: context.colors.textSecondary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
-              TextSpan(text: word, style: theme),
+              TextSpan(
+                text: word,
+                style: style?.copyWith(
+                  color: context.colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
+          maxLines: 1,
         ),
       ),
     );

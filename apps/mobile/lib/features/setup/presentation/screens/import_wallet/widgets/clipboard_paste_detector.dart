@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/shared/widgets/clipboard_suggestion_banner.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
@@ -82,95 +83,16 @@ class _ClipboardPasteDetectorState
       return const SizedBox.shrink();
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.content_paste,
-              color: Theme.of(context).colorScheme.onPrimary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t.setup_clipboard_detected_title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  t.setup_clipboard_detected_body,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            children: [
-              ElevatedButton(
-                onPressed: _pasteFromClipboard,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check, size: 18),
-                    SizedBox(width: 4),
-                    Text(t.setup_clipboard_paste_button),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 4),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _showBanner = false;
-                  });
-                },
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
-                child: Text(
-                  t.setup_clipboard_ignore_button,
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    // The banner names the phrase and never shows it: it is the secret of
+    // the wallet.
+    return ClipboardSuggestionBanner(
+      title: t.setup_clipboard_detected_title,
+      preview: t.setup_clipboard_detected_body,
+      showsValue: false,
+      actionLabel: t.setup_clipboard_paste_button,
+      dismissTooltip: t.setup_clipboard_ignore_button,
+      onUse: _pasteFromClipboard,
+      onDismiss: () => setState(() => _showBanner = false),
     );
   }
 }

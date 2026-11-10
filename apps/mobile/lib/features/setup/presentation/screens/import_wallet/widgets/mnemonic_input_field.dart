@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 import '../providers/seed_phrase_provider.dart';
+import 'import_status_note.dart';
 
 class MnemonicInputField extends ConsumerStatefulWidget {
   const MnemonicInputField({super.key});
@@ -91,57 +94,58 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
       }
     });
 
+    // A glass input, as in the other forms: the lens fill, a hairline, and
+    // the brand border on focus.
+    final hairline = AppSurfaces.hairline(context);
+    OutlineInputBorder frame(Color color, double width) => OutlineInputBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: color, width: width),
+    );
+    final inputStyle = context.textTheme.bodyLarge?.copyWith(
+      color: context.colors.textPrimary,
+    );
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextField(
           controller: _controller,
           focusNode: _focusNode,
+          style: inputStyle,
+          cursorColor: context.colorScheme.primary,
           decoration: InputDecoration(
-            hintText:
-                state.suggestions.isNotEmpty
-                    ? t.setup_input_hint_press_space(state.suggestions.first)
-                    : t.setup_input_hint_default,
-            hintStyle: TextStyle(
-              fontSize: 14,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.3),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
-                width: 2,
-              ),
+            hintText: state.suggestions.isNotEmpty
+                ? t.setup_input_hint_press_space(state.suggestions.first)
+                : t.setup_input_hint_default,
+            hintStyle: context.textTheme.bodyMedium?.copyWith(
+              color: context.colors.textTertiary,
             ),
             filled: true,
-            fillColor: Theme.of(context).colorScheme.surface,
-            prefixIcon: Icon(
-              Icons.edit,
-              color: Theme.of(context).colorScheme.primary,
+            fillColor: GlassStyle.of(context).lensFill,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 16,
             ),
-            suffixIcon:
-                state.currentInput.isNotEmpty
-                    ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _controller.clear();
-                        if (state.isEditing) {
-                          ref.read(seedPhraseProvider.notifier).cancelEditing();
-                        }
-                      },
-                    )
-                    : null,
+            border: frame(hairline, 1),
+            enabledBorder: frame(hairline, 1),
+            focusedBorder: frame(context.colorScheme.primary, 1.5),
+            prefixIcon: Icon(
+              Icons.edit_rounded,
+              size: 20,
+              color: context.colors.textSecondary,
+            ),
+            suffixIcon: state.currentInput.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    color: context.colors.textSecondary,
+                    onPressed: () {
+                      _controller.clear();
+                      if (state.isEditing) {
+                        ref.read(seedPhraseProvider.notifier).cancelEditing();
+                      }
+                    },
+                  )
+                : null,
           ),
           textCapitalization: TextCapitalization.none,
           keyboardType: TextInputType.text,
@@ -154,31 +158,9 @@ class _MnemonicInputFieldState extends ConsumerState<MnemonicInputField> {
         ),
         if (state.error != null) ...[
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  color: Theme.of(context).colorScheme.error,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    state.error!.localize(context),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          ImportStatusNote(
+            tone: ImportStatusTone.negative,
+            text: state.error!.localize(context),
           ),
         ],
       ],

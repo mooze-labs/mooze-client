@@ -13,12 +13,26 @@ class ClipboardSuggestionBanner extends StatelessWidget {
   final VoidCallback onUse;
   final VoidCallback onDismiss;
 
+  /// Label of the action that uses the value. Defaults to "Use".
+  final String? actionLabel;
+
+  /// Tooltip of the dismiss button. Defaults to "Close".
+  final String? dismissTooltip;
+
+  /// True when [preview] is the value itself, shown in a monospace font.
+  /// A secret, such as a recovery phrase, never shows on screen: its
+  /// [preview] describes it instead, in the body font.
+  final bool showsValue;
+
   const ClipboardSuggestionBanner({
     super.key,
     required this.title,
     required this.preview,
     required this.onUse,
     required this.onDismiss,
+    this.actionLabel,
+    this.dismissTooltip,
+    this.showsValue = true,
   });
 
   @override
@@ -55,20 +69,23 @@ class ClipboardSuggestionBanner extends StatelessWidget {
                   ),
                   Text(
                     preview,
-                    maxLines: 1,
+                    maxLines: showsValue ? 1 : 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: context.colors.textSecondary,
-                      fontFamily: 'monospace',
+                      fontFamily: showsValue ? 'monospace' : null,
                     ),
                   ),
                 ],
               ),
             ),
-            TextButton(onPressed: onUse, child: Text(t.send_clipboard_use)),
+            TextButton(
+              onPressed: onUse,
+              child: Text(actionLabel ?? t.send_clipboard_use),
+            ),
             IconButton(
               onPressed: onDismiss,
-              tooltip: t.common_close,
+              tooltip: dismissTooltip ?? t.common_close,
               icon: Icon(
                 Icons.close_rounded,
                 size: 18,

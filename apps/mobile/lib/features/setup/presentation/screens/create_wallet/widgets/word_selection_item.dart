@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+/// One word to choose in the confirmation of the recovery phrase.
+///
+/// A chosen word takes the brand border and shows the position it fills,
+/// in a badge inside the chip, so the badge never leaves the grid.
 class WordSelectionItem extends StatelessWidget {
   final String word;
   final bool isSelected;
+
+  /// The position the word fills, from 1, or null while it is not chosen.
   final int? position;
   final VoidCallback onTap;
 
@@ -15,50 +23,66 @@ class WordSelectionItem extends StatelessWidget {
     super.key,
   });
 
+  static const BorderRadius _radius = BorderRadius.all(Radius.circular(12));
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final borderColor =
-        isSelected
-            ? theme.colorScheme.primary
-            : colorScheme.onSurface.withValues(alpha: 0.1);
-    double? borderWidth = isSelected ? 2.0 : 1;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        GestureDetector(
+    final duration = Motion.of(context, Motion.durationFast);
+    final position = this.position;
+
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
           onTap: onTap,
-          child: Container(
+          borderRadius: _radius,
+          child: AnimatedContainer(
+            duration: duration,
+            curve: Motion.curveMove,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
-              color: colorScheme.onSurface.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: borderColor, width: borderWidth),
+              color: GlassStyle.of(context).lensFill,
+              borderRadius: _radius,
+              border: Border.all(
+                color: isSelected
+                    ? context.colorScheme.primary
+                    : AppSurfaces.hairline(context),
+                width: isSelected ? 1.5 : 1,
+              ),
             ),
-            padding: EdgeInsets.symmetric(horizontal: 5),
             alignment: Alignment.center,
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
-                word,
-                style: theme.textTheme.bodyLarge,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isSelected && position != null) ...[
+                    _PositionBadge(position: position),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(
+                    word,
+                    maxLines: 1,
+                    style: context.textTheme.bodyLarge?.copyWith(
+                      color: context.colors.textPrimary,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        if (isSelected && position != null)
-          Positioned(
-            top: -8,
-            right: -8,
-            child: _PositionBadge(position: position!),
-          ),
-      ],
+      ),
     );
   }
 }
 
+/// The position a chosen word fills, on the brand fill.
 class _PositionBadge extends StatelessWidget {
   final int position;
 
@@ -67,18 +91,20 @@ class _PositionBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 24,
-      height: 24,
+      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        shape: BoxShape.circle,
+        color: context.colorScheme.primary,
+        borderRadius: BorderRadius.circular(11),
       ),
       alignment: Alignment.center,
       child: Text(
         '$position',
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: Colors.white),
+        style: context.textTheme.labelSmall?.copyWith(
+          color: context.colorScheme.onPrimary,
+          fontWeight: FontWeight.w700,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
       ),
     );
   }
