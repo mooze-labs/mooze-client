@@ -377,7 +377,7 @@ mod tests {
             s.to_asset_id = Some(LBTC_ASSET_ID.into());
             s.received_amount_sat = Some(1234);
             let out = n.on_events(&[ev(s)], 1).await;
-            assert_eq!((out[0].amount, out[0].asset_ticker.as_str()), (1234, "BTC L2"));
+            assert_eq!((out[0].amount, out[0].asset_ticker.as_str()), (1234, "L-BTC"));
             let mut bad = confirmed("bad", ChainId::Liquid, TransactionDirection::Swap, 5);
             bad.to_asset_id = Some(LBTC_ASSET_ID.into());
             bad.received_amount_sat = Some(0);

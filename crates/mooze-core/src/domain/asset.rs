@@ -54,7 +54,7 @@ impl Asset {
         match self {
             Asset::Usdt => "USDT",
             Asset::Depix => "Depix",
-            Asset::Lbtc => "BTC L2",
+            Asset::Lbtc => "L-BTC",
             Asset::Btc => "BTC",
         }
     }
@@ -64,7 +64,7 @@ impl Asset {
         match self {
             Asset::Usdt => "USDt",
             Asset::Depix => "Decentralized Pix",
-            Asset::Lbtc => "Bitcoin L2",
+            Asset::Lbtc => "Liquid Bitcoin",
             Asset::Btc => "Bitcoin",
         }
     }

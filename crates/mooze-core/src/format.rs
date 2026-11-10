@@ -168,7 +168,7 @@ pub fn format_as_asset(asset: Asset, sats: u64) -> String {
     if asset == Asset::Btc {
         return format!("{} BTC", to_fixed(sats as f64 / SATS_PER_UNIT as f64, 8));
     }
-    // NOTE: L-BTC is not divided by 1e8 here, so 1 sat prints "1.00000000 BTC L2".
+    // NOTE: L-BTC is not divided by 1e8 here, so 1 sat prints "1.00000000 L-BTC".
     format!("{} {}", to_fixed(from_satoshis(asset, sats), 8), asset.ticker())
 }
 
@@ -206,7 +206,7 @@ pub fn format_quote_amount(asset: Asset, amount: f64, locale: Locale) -> String 
 pub fn display_name(asset: Asset) -> &'static str {
     match asset {
         Asset::Btc => "Bitcoin",
-        Asset::Lbtc => "Bitcoin L2",
+        Asset::Lbtc => "Liquid Bitcoin",
         Asset::Usdt => "USDT",
         Asset::Depix => "DEPIX",
     }
@@ -425,13 +425,14 @@ mod tests {
         assert_eq!(format_quote_amount(Asset::Depix, 10.5, Locale::En), "10.50 DEPIX");
         assert_eq!(format_quote_amount(Asset::Usdt, 1.5, Locale::En), "1.50000000 USDT");
         assert_eq!(format_as_asset(Asset::Btc, 150_000_000), "1.50000000 BTC");
-        assert_eq!(format_as_asset(Asset::Lbtc, 1), "1.00000000 BTC L2");
+        assert_eq!(format_as_asset(Asset::Lbtc, 1), "1.00000000 L-BTC");
         assert_eq!(format_as_asset(Asset::Usdt, 250_000_000), "2.50000000 USDT");
         assert_eq!(format_as_satoshis(Asset::Btc, 1), "1 sat");
         assert_eq!(format_as_satoshis(Asset::Lbtc, 21), "21 sats");
         assert_eq!(format_as_satoshis(Asset::Depix, 100_000_000), "1.00000000 Depix");
         assert_eq!(format_as_fiat(Asset::Btc, 100_000, 600_000.0, "R$"), "R$ 600.00");
         assert_eq!(display_name(Asset::Usdt), "USDT");
+        assert_eq!(display_name(Asset::Lbtc), "Liquid Bitcoin");
     }
 
     #[test]
