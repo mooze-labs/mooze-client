@@ -43,6 +43,24 @@ class _FakeLinkRepository implements PixPaymentLinkRepository {
       return results.removeAt(0)();
     });
   }
+
+  // The merchant flow creates fixed-amount links only.
+  @override
+  TaskEither<PixHubFailure, PixPaymentLink> createLink({
+    int? amountInCents,
+    required Asset asset,
+    required String destinationAddress,
+    required bool singleUse,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  TaskEither<PixHubFailure, List<PixPaymentLink>> listLinks() =>
+      throw UnimplementedError();
+
+  @override
+  TaskEither<PixHubFailure, Unit> revokeLink(String id) =>
+      throw UnimplementedError();
 }
 
 final _link = PixPaymentLink(

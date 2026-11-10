@@ -107,7 +107,7 @@ void main() {
 
       expect(find.text('Como o cliente vai pagar?'), findsOneWidget);
       expect(find.textContaining('45,90'), findsOneWidget);
-      expect(find.text('Você recebe em BTC L2'), findsOneWidget);
+      expect(find.text('Você recebe em L-BTC'), findsOneWidget);
       expect(find.text('Na hora'), findsOneWidget);
       expect(find.text('Pede CPF'), findsOneWidget);
       expect(find.text('À distância'), findsOneWidget);

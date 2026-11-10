@@ -423,6 +423,44 @@ void main() {
   });
 
   group('merchant mode screen', () {
+    testWidgets('the tutorial skip takes the place of back, clear of Limpar', (
+      tester,
+    ) async {
+      _phone(tester);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            merchantModeRepositoryProvider.overrideWithValue(_Repository()),
+            productControllerProvider.overrideWith(_Products.new),
+          ],
+          child: wrapForTest(const MerchantModeScreen()),
+        ),
+      );
+      ProviderScope.containerOf(tester.element(find.byType(MerchantModeScreen)))
+          .read(cartControllerProvider.notifier)
+          .updateQuantity(1, 'Café coado', 6.5, true);
+      // The coach mark pulses without end, so the frames are bounded.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      final skip = tester.getRect(
+        find.ancestor(
+          of: find.text('Pular'),
+          matching: find.byType(LiquidGlass),
+        ),
+      );
+      final clear = tester.getRect(
+        find.descendant(
+          of: find.byType(MerchantHeaderWidget),
+          matching: find.text('Limpar'),
+        ),
+      );
+      expect(skip.overlaps(clear), isFalse);
+      expect(skip.contains(tester.getCenter(find.byType(BackButton))), isTrue);
+    });
+
     testWidgets('clearing the cart asks for a confirmation', (tester) async {
       _phone(tester);
       SharedPreferences.setMockInitialValues({'merchant_tutorial_shown': true});

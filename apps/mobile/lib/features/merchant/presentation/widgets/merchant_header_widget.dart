@@ -46,11 +46,8 @@ class MerchantHeaderWidget extends StatelessWidget {
         SizedBox(
           height: kToolbarHeight,
           child: NavigationToolbar(
-            leading: MerchantGlassIconButton(
-              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-              onPressed: onBack,
-              child: const BackButtonIcon(),
-            ),
+            // The theme draws every back button as the round glass button.
+            leading: BackButton(onPressed: onBack),
             middle: Semantics(
               header: true,
               child: Text(
@@ -101,65 +98,6 @@ class MerchantHeaderWidget extends StatelessWidget {
           centered: true,
         ),
       ],
-    );
-  }
-}
-
-/// A round glass button with an icon, such as the back button.
-///
-/// The glass circle is [size] wide. The touch target is at least 48 pt.
-class MerchantGlassIconButton extends StatelessWidget {
-  const MerchantGlassIconButton({
-    super.key,
-    required this.tooltip,
-    required this.onPressed,
-    required this.child,
-    this.size = 44,
-  });
-
-  final String tooltip;
-  final VoidCallback? onPressed;
-  final Widget child;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Semantics(
-        button: true,
-        label: tooltip,
-        excludeSemantics: true,
-        onTap: onPressed,
-        child: SizedBox.square(
-          dimension: 48,
-          child: Center(
-            child: PressScale(
-              scale: Motion.pressScaleCircle,
-              child: SizedBox.square(
-                dimension: size,
-                child: LiquidGlass(
-                  blurBackdrop: false,
-                  child: Material(
-                    type: MaterialType.transparency,
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: onPressed,
-                      child: IconTheme.merge(
-                        data: IconThemeData(
-                          size: 20,
-                          color: context.colors.textPrimary,
-                        ),
-                        child: Center(child: child),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

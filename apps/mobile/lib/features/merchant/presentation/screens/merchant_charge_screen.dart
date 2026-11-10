@@ -15,6 +15,7 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_c
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_payment_link_screen.dart';
 import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_payment_method_screen.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/pix_charge_payer.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/presentation/pix_cpf_gate.dart';
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_amount_provider.dart';
@@ -254,8 +255,13 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen>
   void _startQrCodeFlow() async {
     setState(() => _isLoading = true);
 
-    // Temporary payer-CPF step (shared with the Pix flow).
-    final cpfGate = await PixCpfGate.ensure(context, ref);
+    // Temporary payer-CPF step (shared with the Pix flow). The customer pays
+    // the charge, so the step asks for their document with an empty field.
+    final cpfGate = await PixCpfGate.ensure(
+      context,
+      ref,
+      payer: PixChargePayer.someoneElse,
+    );
     if (!mounted) return;
     if (cpfGate.cancelled) {
       setState(() => _isLoading = false);

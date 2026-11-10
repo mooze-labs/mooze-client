@@ -108,7 +108,7 @@ class MerchantModeScreenState extends ConsumerState<MerchantModeScreen>
       focusAnimationDuration: focusDuration,
       unFocusAnimationDuration: focusDuration,
       pulseEnable: !Motion.isReduced(context),
-      alignSkip: Alignment.topRight,
+      alignSkip: Alignment.topLeft,
       skipWidget: _TutorialSkip(label: t.merchant_tutorial_skip),
       onClickOverlay: (target) {},
       onClickTarget: (target) async {
@@ -774,6 +774,11 @@ class _TutorialCard extends StatelessWidget {
 }
 
 /// The skip control of the tutorial: a glass pill with a translated label.
+///
+/// It covers the glass back button of the header. The header has 8 pt of
+/// side padding, and the 44 pt circle of the back button sits in the middle
+/// of a 48 pt button on the 56 pt toolbar: 10 pt from the left and 6 pt from
+/// the top. The 44 pt pill starts at the same point.
 class _TutorialSkip extends StatelessWidget {
   const _TutorialSkip({required this.label});
 
@@ -782,7 +787,7 @@ class _TutorialSkip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
       child: LiquidGlass(
         blurBackdrop: false,
         opaque: true,
