@@ -3,13 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/enums/address_chain.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/services/address_chain_detector.dart';
 import 'package:mooze_mobile/features/address_explorer/presentation/controllers/address_ownership_controller.dart';
 import 'package:mooze_mobile/features/address_explorer/presentation/widgets/address_ownership_result.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 const Duration _kVerifyDebounce = Duration(milliseconds: 500);
 
@@ -83,11 +87,6 @@ class _AddressOwnershipScreenState
     return _detector.detect(cleaned).isNotEmpty;
   }
 
-  Color _inputBorderColor(ColorScheme scheme) =>
-      scheme.brightness == Brightness.light
-          ? scheme.outline
-          : scheme.outlineVariant.withValues(alpha: 0.6);
-
   AddressChain? _detectedChain(String input) {
     final cleaned = _detector.stripUriScheme(input);
     if (cleaned.isEmpty) return null;
@@ -128,8 +127,8 @@ class _AddressOwnershipScreenState
       if (ctx == null) return;
       Scrollable.ensureVisible(
         ctx,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
+        duration: Motion.of(context, Motion.durationEmphasis),
+        curve: Motion.curveMove,
         alignment: 0.1,
       );
     });
@@ -139,137 +138,159 @@ class _AddressOwnershipScreenState
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final state = ref.watch(addressOwnershipControllerProvider);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final borderColor = _inputBorderColor(scheme);
+    final colors = context.colors;
+    final tt = context.textTheme;
+    final hairline = AppSurfaces.hairline(context);
+    OutlineInputBorder frame(Color color, double width) => OutlineInputBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: color, width: width),
+    );
+    final codeStyle = tt.bodyMedium?.copyWith(
+      fontFamily: 'monospace',
+      // iOS has no font named "monospace", so it takes the fallback.
+      fontFamilyFallback: const ['Menlo', 'Courier'],
+      color: colors.textPrimary,
+    );
 
     final raw = _controller.text.trim();
     final hasInput = raw.isNotEmpty;
     final cleaned = _detector.stripUriScheme(raw);
     final detectedChain = _detectedChain(raw);
-    final invalidFormat = hasInput &&
+    final invalidFormat =
+        hasInput &&
         cleaned.length >= _kMinAddressLength &&
         _detector.detect(cleaned).isEmpty;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.address_ownership_title),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
+    return BackdropPageScaffold(
+      title: t.address_ownership_title,
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        padding: EdgeInsets.fromLTRB(
+          BackdropPageScaffold.gutter,
+          12,
+          BackdropPageScaffold.gutter,
+          32 + MediaQuery.paddingOf(context).bottom,
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                t.address_ownership_description,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: scheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                t.address_ownership_subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _controller,
-                minLines: 2,
-                maxLines: 4,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) {
-                  final input = _controller.text.trim();
-                  if (input.isEmpty || !_isFormatPlausible(input)) return;
-                  _debounce?.cancel();
-                  _lastVerified = input;
-                  ref
-                      .read(addressOwnershipControllerProvider.notifier)
-                      .verify(input)
-                      .then((_) => _scrollToResult());
-                },
-                style: const TextStyle(fontFamily: 'monospace'),
-                decoration: InputDecoration(
-                  hintText: t.address_ownership_input_hint,
-                  filled: true,
-                  fillColor: scheme.surfaceContainerHighest
-                      .withValues(alpha: 0.3),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: scheme.primary.withValues(alpha: 0.6),
-                      width: 1.4,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.address_ownership_description,
+                    style: tt.titleMedium?.copyWith(
+                      color: colors.textPrimary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  contentPadding: const EdgeInsets.fromLTRB(14, 14, 96, 14),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (hasInput)
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 20),
-                          tooltip: t.address_ownership_clear_tooltip,
-                          onPressed: _clear,
-                        ),
-                      IconButton(
-                        icon: const Icon(Icons.content_paste_rounded, size: 20),
-                        tooltip: t.address_ownership_paste_tooltip,
-                        onPressed: _pasteFromClipboard,
-                      ),
-                    ],
+                  const SizedBox(height: 4),
+                  Text(
+                    t.address_ownership_subtitle,
+                    style: tt.bodyMedium?.copyWith(
+                      color: colors.textSecondary,
+                      height: 1.35,
+                    ),
                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _controller,
+              minLines: 2,
+              maxLines: 4,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                final input = _controller.text.trim();
+                if (input.isEmpty || !_isFormatPlausible(input)) return;
+                _debounce?.cancel();
+                _lastVerified = input;
+                ref
+                    .read(addressOwnershipControllerProvider.notifier)
+                    .verify(input)
+                    .then((_) => _scrollToResult());
+              },
+              cursorColor: colors.primaryColor,
+              style: codeStyle,
+              decoration: InputDecoration(
+                hintText: t.address_ownership_input_hint,
+                hintStyle: codeStyle?.copyWith(color: colors.textTertiary),
+                filled: true,
+                fillColor: GlassStyle.of(context).lensFill,
+                border: frame(hairline, 1),
+                enabledBorder: frame(hairline, 1),
+                focusedBorder: frame(colors.primaryColor, 1.5),
+                contentPadding: const EdgeInsets.fromLTRB(14, 15, 96, 15),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (hasInput)
+                      IconButton(
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 20,
+                          color: colors.textSecondary,
+                        ),
+                        tooltip: t.address_ownership_clear_tooltip,
+                        onPressed: _clear,
+                      ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.content_paste_rounded,
+                        size: 20,
+                        color: colors.textSecondary,
+                      ),
+                      tooltip: t.address_ownership_paste_tooltip,
+                      onPressed: _pasteFromClipboard,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 24,
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 24,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
+                  duration: Motion.of(context, Motion.durationFast),
+                  switchInCurve: Motion.curveEnter,
+                  switchOutCurve: Motion.curveExit,
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [...previous, if (current != null) current],
+                  ),
                   child: _buildInputHint(
                     t,
-                    theme,
                     state.isLoading,
                     detectedChain,
                     invalidFormat,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              KeyedSubtree(
-                key: _resultKey,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
-                  transitionBuilder: (child, anim) => FadeTransition(
-                    opacity: anim,
-                    child: SizeTransition(
-                      sizeFactor: anim,
-                      axisAlignment: -1,
-                      child: child,
-                    ),
+            ),
+            const SizedBox(height: 16),
+            KeyedSubtree(
+              key: _resultKey,
+              child: AnimatedSwitcher(
+                duration: Motion.of(context, Motion.durationBase),
+                switchInCurve: Motion.curveEnter,
+                switchOutCurve: Motion.curveExit,
+                transitionBuilder: (child, anim) => FadeTransition(
+                  opacity: anim,
+                  child: SizeTransition(
+                    sizeFactor: anim,
+                    axisAlignment: -1,
+                    child: child,
                   ),
-                  child: _buildResultArea(state, theme),
                 ),
+                child: _buildResultArea(state),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -277,12 +298,14 @@ class _AddressOwnershipScreenState
 
   Widget _buildInputHint(
     AppLocalizations t,
-    ThemeData theme,
     bool isLoading,
     AddressChain? detectedChain,
     bool invalidFormat,
   ) {
-    final scheme = theme.colorScheme;
+    final colors = context.colors;
+    final hintStyle = context.textTheme.bodySmall?.copyWith(
+      color: colors.textSecondary,
+    );
 
     if (isLoading) {
       return Row(
@@ -294,16 +317,11 @@ class _AddressOwnershipScreenState
             height: 14,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: scheme.primary,
+              color: colors.primaryColor,
             ),
           ),
           const SizedBox(width: 10),
-          Text(
-            t.address_ownership_verifying,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
+          Text(t.address_ownership_verifying, style: hintStyle),
         ],
       );
     }
@@ -313,14 +331,15 @@ class _AddressOwnershipScreenState
         key: const ValueKey('hint-invalid'),
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline_rounded,
-              size: 16, color: scheme.error.withValues(alpha: 0.85)),
+          Icon(
+            Icons.error_outline_rounded,
+            size: 16,
+            color: colors.negativeColor,
+          ),
           const SizedBox(width: 6),
           Text(
             t.address_ownership_invalid_format,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.error.withValues(alpha: 0.85),
-            ),
+            style: hintStyle?.copyWith(color: colors.negativeColor),
           ),
         ],
       );
@@ -339,15 +358,10 @@ class _AddressOwnershipScreenState
                 ? Icons.currency_bitcoin_rounded
                 : Icons.water_drop_rounded,
             size: 16,
-            color: scheme.onSurfaceVariant,
+            color: colors.textSecondary,
           ),
           const SizedBox(width: 6),
-          Text(
-            t.address_ownership_detected(label),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
+          Text(t.address_ownership_detected(label), style: hintStyle),
         ],
       );
     }
@@ -355,27 +369,25 @@ class _AddressOwnershipScreenState
     return const SizedBox(key: ValueKey('hint-empty'));
   }
 
-  Widget _buildResultArea(AddressOwnershipState state, ThemeData theme) {
+  Widget _buildResultArea(AddressOwnershipState state) {
     if (state.error != null) {
-      final scheme = theme.colorScheme;
-      return Container(
+      final colors = context.colors;
+      return GlassPanel(
         key: const ValueKey('result-error'),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-          border: Border.all(color: _inputBorderColor(scheme)),
-          borderRadius: BorderRadius.circular(12),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(Icons.error_outline_rounded,
-                size: 20, color: scheme.error.withValues(alpha: 0.85)),
-            const SizedBox(width: 10),
+            Icon(
+              Icons.error_outline_rounded,
+              size: 20,
+              color: colors.negativeColor,
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 state.error!.localize(context),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurface,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: colors.textPrimary,
                 ),
               ),
             ),
