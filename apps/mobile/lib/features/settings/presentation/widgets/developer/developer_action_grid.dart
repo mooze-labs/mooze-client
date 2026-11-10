@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'package:mooze_mobile/features/settings/presentation/widgets/developer/sync_progress_card.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_glass_section.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/widgets/developer/grid_action_button.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-
+/// Developer actions, as two glass groups of rows split by hairlines:
+/// synchronisation and diagnostics.
 class DeveloperActionGrid extends StatelessWidget {
   const DeveloperActionGrid({
     super.key,
@@ -30,49 +33,42 @@ class DeveloperActionGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = context.colorScheme;
-    final tt = context.textTheme;
-    final extra = context.appColors;
-    final warningColor = extra.warning;
     final t = AppLocalizations.of(context);
+    final colors = context.colors;
+    final tt = context.textTheme;
+    const divider = PanelDivider(indent: _ActionRow.textInset);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.onSurface.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.onSurface.withValues(alpha: 0.06)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(36, 28, 36, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.tune_rounded, size: 18, color: cs.primary),
-              const SizedBox(width: 10),
-              Text(
-                t.developer_tools_title,
-                style: tt.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.1,
+              Semantics(
+                header: true,
+                child: Text(
+                  t.developer_tools_title,
+                  style: tt.titleMedium?.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                t.developer_tools_subtitle,
+                style: tt.bodySmall?.copyWith(color: colors.textSecondary),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 28),
-            child: Text(
-              t.developer_tools_subtitle,
-              style: tt.bodySmall?.copyWith(color: extra.textSecondary),
-            ),
-          ),
-          const SizedBox(height: 18),
-          _SectionLabel(text: t.developer_section_synchronisation),
-          const SizedBox(height: 10),
-          _ActionRow(
+        ),
+        SettingsGlassSection(
+          title: t.developer_section_synchronisation,
+          child: Column(
             children: [
-              GridActionButton(
+              _ActionRow(
                 icon: Icons.sync_rounded,
                 label: t.developer_action_light_sync,
                 subtitle: 'Balances · transactions',
@@ -81,7 +77,8 @@ class DeveloperActionGrid extends StatelessWidget {
                 enabled: !_busy,
                 loading: activeOperation == DeveloperOperation.lightSync,
               ),
-              GridActionButton(
+              divider,
+              _ActionRow(
                 icon: Icons.sync_alt_rounded,
                 label: t.developer_action_full_sync,
                 subtitle: 'Light + rescan',
@@ -89,14 +86,10 @@ class DeveloperActionGrid extends StatelessWidget {
                 onPressed: onFullSync,
                 enabled: !_busy,
                 loading: activeOperation == DeveloperOperation.fullSync,
-                iconColor: warningColor,
+                iconColor: context.appColors.warning,
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _ActionRow(
-            children: [
-              GridActionButton(
+              divider,
+              _ActionRow(
                 icon: Icons.radar_rounded,
                 label: t.developer_action_rescan,
                 subtitle: 'Onchain swaps',
@@ -107,20 +100,22 @@ class DeveloperActionGrid extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 22),
-          _SectionLabel(text: t.developer_section_diagnostics),
-          const SizedBox(height: 10),
-          _ActionRow(
+        ),
+        SettingsGlassSection(
+          title: t.developer_section_diagnostics,
+          child: Column(
             children: [
-              GridActionButton(
+              _ActionRow(
                 icon: Icons.article_outlined,
                 label: t.developer_action_view_logs,
                 subtitle: 'Live viewer',
                 tooltip: t.developer_action_view_logs_tooltip,
                 onPressed: onViewLogs,
                 enabled: !_busy,
+                showChevron: true,
               ),
-              GridActionButton(
+              divider,
+              _ActionRow(
                 icon: Icons.ios_share_rounded,
                 label: t.developer_action_export,
                 subtitle: 'Share / email ZIP',
@@ -129,12 +124,8 @@ class DeveloperActionGrid extends StatelessWidget {
                 enabled: !_busy,
                 loading: activeOperation == DeveloperOperation.exportLogs,
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _ActionRow(
-            children: [
-              GridActionButton(
+              divider,
+              _ActionRow(
                 icon: Icons.delete_sweep_outlined,
                 label: t.developer_action_clear_logs,
                 subtitle: 'Memory · DB · files',
@@ -142,54 +133,131 @@ class DeveloperActionGrid extends StatelessWidget {
                 onPressed: onClearLogs,
                 enabled: !_busy,
                 loading: activeOperation == DeveloperOperation.clearLogs,
-                iconColor: cs.error,
+                iconColor: context.colors.negativeColor,
               ),
-              const SizedBox.shrink(),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final extra = context.appColors;
-    final tt = context.textTheme;
-    return Text(
-      text.toUpperCase(),
-      style: tt.bodySmall?.copyWith(
-        color: extra.textTertiary,
-        letterSpacing: 1.2,
-        fontWeight: FontWeight.w600,
-        fontSize: 10,
-      ),
-    );
-  }
-}
-
+/// One action row: icon, label and subtitle, and a spinner while the
+/// action runs.
 class _ActionRow extends StatelessWidget {
-  const _ActionRow({required this.children});
+  const _ActionRow({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.tooltip,
+    required this.onPressed,
+    this.enabled = true,
+    this.loading = false,
+    this.iconColor,
+    this.showChevron = false,
+  });
 
-  final List<Widget> children;
+  static const double _padding = 16;
+  static const double _iconSize = 22;
+  static const double _iconGap = 16;
+
+  /// Distance from the panel edge to the row text. Dividers start here.
+  static const double textInset = _padding + _iconSize + _iconGap;
+
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final bool enabled;
+  final bool loading;
+
+  /// Status color of the icon, for a heavy or destructive action.
+  final Color? iconColor;
+  final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (int i = 0; i < children.length; i++) ...[
-            Expanded(child: children[i]),
-            if (i != children.length - 1) const SizedBox(width: 10),
-          ],
-        ],
+    final colors = context.colors;
+    final tt = context.textTheme;
+    final active = enabled && !loading;
+    final dimmed = !enabled && !loading;
+
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: active ? onPressed : null,
+        child: AnimatedOpacity(
+          duration: Motion.of(context, Motion.durationFast),
+          curve: Motion.curveMove,
+          opacity: dimmed ? 0.4 : 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 60),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: _padding,
+                vertical: 12,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: _iconSize,
+                    color: iconColor ?? colors.textPrimary,
+                  ),
+                  const SizedBox(width: _iconGap),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: tt.bodyLarge?.copyWith(
+                            color: colors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: tt.bodySmall?.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedSwitcher(
+                    duration: Motion.of(context, Motion.durationFast),
+                    child: loading
+                        ? SizedBox(
+                            key: const ValueKey('spinner'),
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: context.colorScheme.primary,
+                            ),
+                          )
+                        : showChevron
+                        ? Icon(
+                            Icons.chevron_right_rounded,
+                            key: const ValueKey('chevron'),
+                            size: 22,
+                            color: colors.textSecondary,
+                          )
+                        : const SizedBox.shrink(key: ValueKey('none')),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

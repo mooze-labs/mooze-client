@@ -8,6 +8,9 @@ import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_control_panel.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_item.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/log_detail_modal.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_page_scaffold.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/database/database.dart';
 
 /// Screen for viewing and filtering application logs.
@@ -67,18 +70,17 @@ class _LogsViewerScreenState extends State<LogsViewerScreen>
     super.initState();
 
     _entryController = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: Motion.durationEmphasis,
       vsync: this,
     );
     _fadeAnimation = CurvedAnimation(
       parent: _entryController,
-      curve: Curves.easeOut,
+      curve: Motion.curveEnter,
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.04),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
-    _entryController.forward();
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero).animate(
+          CurvedAnimation(parent: _entryController, curve: Motion.curveEnter),
+        );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -112,6 +114,19 @@ class _LogsViewerScreenState extends State<LogsViewerScreen>
         });
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Start the entrance once; with reduced motion, show the page at rest.
+    if (!_entryController.isAnimating && _entryController.value == 0) {
+      if (Motion.isReduced(context)) {
+        _entryController.value = 1;
+      } else {
+        _entryController.forward();
+      }
+    }
   }
 
   @override
@@ -217,10 +232,9 @@ class _LogsViewerScreenState extends State<LogsViewerScreen>
 
           final start = offset;
           final end = (offset + _pageSize).clamp(0, filtered.length);
-          final page =
-              start < filtered.length
-                  ? filtered.sublist(start, end)
-                  : const <LogEntry>[];
+          final page = start < filtered.length
+              ? filtered.sublist(start, end)
+              : const <LogEntry>[];
 
           if (token != _loadToken) return;
 
@@ -269,17 +283,18 @@ class _LogsViewerScreenState extends State<LogsViewerScreen>
 
             final merged = <dynamic>[...memoryLogs, ...dbLogs];
             merged.sort((a, b) {
-              final timeA =
-                  a is LogEntry ? a.timestamp : (a as AppLog).timestamp;
-              final timeB =
-                  b is LogEntry ? b.timestamp : (b as AppLog).timestamp;
+              final timeA = a is LogEntry
+                  ? a.timestamp
+                  : (a as AppLog).timestamp;
+              final timeB = b is LogEntry
+                  ? b.timestamp
+                  : (b as AppLog).timestamp;
               return timeB.compareTo(timeA);
             });
 
-            _allLogs =
-                merged.length > _pageSize
-                    ? merged.take(_pageSize).toList()
-                    : merged;
+            _allLogs = merged.length > _pageSize
+                ? merged.take(_pageSize).toList()
+                : merged;
             _hasMoreData =
                 dbLogs.length == _pageSize || memoryLogs.length > _pageSize;
           } else {
@@ -327,10 +342,9 @@ class _LogsViewerScreenState extends State<LogsViewerScreen>
       tag: appLog.tag,
       message: appLog.message,
       error: appLog.error,
-      stackTrace:
-          appLog.stackTrace != null
-              ? StackTrace.fromString(appLog.stackTrace!)
-              : null,
+      stackTrace: appLog.stackTrace != null
+          ? StackTrace.fromString(appLog.stackTrace!)
+          : null,
     );
   }
 
@@ -366,12 +380,8 @@ class _LogsViewerScreenState extends State<LogsViewerScreen>
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        elevation: 0,
-        title: Text(t.logs_viewer_title),
-      ),
+    return SettingsPageScaffold(
+      title: t.logs_viewer_title,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
@@ -379,7 +389,12 @@ class _LogsViewerScreenState extends State<LogsViewerScreen>
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                padding: const EdgeInsets.fromLTRB(
+                  SettingsPageScaffold.gutter,
+                  8,
+                  SettingsPageScaffold.gutter,
+                  0,
+                ),
                 child: LogControlPanel(
                   source: _logSource,
                   onSourceChanged: _onSourceChanged,
@@ -393,7 +408,7 @@ class _LogsViewerScreenState extends State<LogsViewerScreen>
                   levelCounts: _levelCounts,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               Expanded(child: _buildBody(context, t)),
             ],
           ),
@@ -429,32 +444,47 @@ class _LogsViewerScreenState extends State<LogsViewerScreen>
       return _EmptyState(message: t.logs_viewer_empty);
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-      itemCount: _allLogs.length + (_hasMoreData ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == _allLogs.length) {
-          return _isLoadingMore
-              ? const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  ),
+    // Plain rows on the backdrop, split by hairlines. The transparent
+    // Material gives the row ink a surface above the backdrop.
+    return Material(
+      type: MaterialType.transparency,
+      child: ListView.separated(
+        controller: _scrollController,
+        padding: EdgeInsets.only(
+          bottom: 28 + MediaQuery.paddingOf(context).bottom,
+        ),
+        itemCount: _allLogs.length + (_hasMoreData ? 1 : 0),
+        separatorBuilder: (context, index) => index < _allLogs.length - 1
+            ? const Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: SettingsPageScaffold.gutter,
                 ),
+                child: PanelDivider(),
               )
-              : const SizedBox(height: 8);
-        }
+            : const SizedBox.shrink(),
+        itemBuilder: (context, index) {
+          if (index == _allLogs.length) {
+            return _isLoadingMore
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                    ),
+                  )
+                : const SizedBox(height: 8);
+          }
 
-        final log = _toLogEntry(_allLogs[index]);
-        return LogItem(
-          log: log,
-          onTap: () => LogDetailModal.show(context, log),
-        );
-      },
+          final log = _toLogEntry(_allLogs[index]);
+          return LogItem(
+            log: log,
+            onTap: () => LogDetailModal.show(context, log),
+          );
+        },
+      ),
     );
   }
 }
@@ -466,33 +496,19 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = context.colorScheme;
-    final extra = context.appColors;
-    final tt = context.textTheme;
+    final colors = context.colors;
 
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: cs.onSurface.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: cs.onSurface.withValues(alpha: 0.06)),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.inbox_rounded,
-              size: 28,
-              color: extra.textTertiary,
-            ),
-          ),
-          const SizedBox(height: 16),
+          Icon(Icons.inbox_rounded, size: 32, color: colors.textSecondary),
+          const SizedBox(height: 12),
           Text(
             message,
-            style: tt.bodyMedium?.copyWith(color: extra.textSecondary),
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: colors.textSecondary,
+            ),
           ),
         ],
       ),

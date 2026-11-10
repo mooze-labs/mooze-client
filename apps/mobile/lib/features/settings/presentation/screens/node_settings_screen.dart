@@ -5,8 +5,14 @@ import 'package:mooze_mobile/features/settings/presentation/providers/node_setti
 import 'package:mooze_mobile/features/settings/presentation/widgets/node_settings/node_mode_card.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_glass_section.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_page_scaffold.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
-import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 enum _ExitChoice { save, discard, cancel }
 
@@ -115,29 +121,29 @@ class _NodeSettingsScreenState extends ConsumerState<NodeSettingsScreen> {
   /// confirmed exit. When the user picks "save", we attempt to persist
   /// first and only allow exit if the save succeeded.
   Future<bool> _confirmExit(AppLocalizations t) async {
-    final colorScheme = Theme.of(context).colorScheme;
     final choice = await showDialog<_ExitChoice>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(t.node_config_unsaved_title),
-            content: Text(t.node_config_unsaved_message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(_ExitChoice.cancel),
-                child: Text(t.common_cancel),
-              ),
-              TextButton(
-                style: TextButton.styleFrom(foregroundColor: colorScheme.error),
-                onPressed: () => Navigator.of(ctx).pop(_ExitChoice.discard),
-                child: Text(t.node_config_unsaved_discard),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(_ExitChoice.save),
-                child: Text(t.common_save),
-              ),
-            ],
+      builder: (ctx) => GlassAlertDialog(
+        title: Text(t.node_config_unsaved_title),
+        content: Text(t.node_config_unsaved_message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_ExitChoice.cancel),
+            child: Text(t.common_cancel),
           ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: ctx.colors.negativeColor,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(_ExitChoice.discard),
+            child: Text(t.node_config_unsaved_discard),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(_ExitChoice.save),
+            child: Text(t.common_save),
+          ),
+        ],
+      ),
     );
 
     switch (choice) {
@@ -154,7 +160,6 @@ class _NodeSettingsScreenState extends ConsumerState<NodeSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     final asyncState = ref.watch(nodeSettingsControllerProvider);
     final currentState = asyncState.value;
 
@@ -170,8 +175,9 @@ class _NodeSettingsScreenState extends ConsumerState<NodeSettingsScreen> {
 
     // Block accidental exit only when there are unsaved changes and we
     // aren't already in the middle of a save.
-    final canPop =
-        currentState == null ? true : !_isDirty(currentState) && !_saving;
+    final canPop = currentState == null
+        ? true
+        : !_isDirty(currentState) && !_saving;
 
     return PopScope<Object?>(
       canPop: canPop,
@@ -182,26 +188,28 @@ class _NodeSettingsScreenState extends ConsumerState<NodeSettingsScreen> {
         if (!mounted) return;
         if (shouldExit) navigator.pop();
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(t.node_config_title),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
-            // Goes through PopScope so the unsaved-changes dialog
-            // surfaces consistently with system back / iOS swipe-back.
-            onPressed: () => Navigator.maybePop(context),
-          ),
+      child: SettingsPageScaffold(
+        title: t.node_config_title,
+        leading: BackButton(
+          // Goes through PopScope so the unsaved-changes dialog
+          // surfaces consistently with system back / iOS swipe-back.
+          onPressed: () => Navigator.maybePop(context),
         ),
-        body: PlatformSafeArea(
-          child: asyncState.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error:
-                (_, _) => _ErrorView(
-                  message: t.node_config_load_error,
-                  color: colorScheme.error,
-                ),
-            data: (state) => _buildContent(context, t, state),
+        // The save button only exists once the settings are loaded, as
+        // before, and stays pinned above the bottom edge.
+        bottomAction: asyncState.maybeWhen(
+          data: (state) => PrimaryButton(
+            text: t.node_config_save,
+            onPressed: _handleSave,
+            isEnabled: _isDirty(state) && !_saving,
+            isLoading: _saving,
           ),
+          orElse: () => null,
+        ),
+        body: asyncState.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, _) => _ErrorView(message: t.node_config_load_error),
+          data: (state) => _buildContent(context, t, state),
         ),
       ),
     );
@@ -214,80 +222,74 @@ class _NodeSettingsScreenState extends ConsumerState<NodeSettingsScreen> {
   ) {
     final controller = ref.read(nodeSettingsControllerProvider.notifier);
     final isCustom = state.isCustomMode;
-    final dirty = _isDirty(state);
 
     return Form(
       key: _formKey,
-      autovalidateMode:
-          isCustom
-              ? AutovalidateMode.onUserInteraction
-              : AutovalidateMode.disabled,
+      autovalidateMode: isCustom
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        padding: const EdgeInsets.only(bottom: 24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _SectionHeader(label: t.node_config_section_mode),
-            NodeModeCard(
-              icon: Icons.shield_moon_rounded,
-              title: t.node_config_mode_default_title,
-              subtitle: t.node_config_mode_default_subtitle,
-              selected: !isCustom,
-              onTap: () {
-                controller.setCustomMode(false);
-                _formKey.currentState?.reset();
-              },
+            SettingsGlassSection(
+              title: t.node_config_section_mode,
+              child: Column(
+                children: [
+                  NodeModeCard(
+                    icon: Icons.shield_moon_rounded,
+                    title: t.node_config_mode_default_title,
+                    subtitle: t.node_config_mode_default_subtitle,
+                    selected: !isCustom,
+                    onTap: () {
+                      controller.setCustomMode(false);
+                      _formKey.currentState?.reset();
+                    },
+                  ),
+                  const PanelDivider(indent: 70),
+                  NodeModeCard(
+                    icon: Icons.tune_rounded,
+                    title: t.node_config_mode_custom_title,
+                    subtitle: t.node_config_mode_custom_subtitle,
+                    selected: isCustom,
+                    onTap: () => controller.setCustomMode(true),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
-            NodeModeCard(
-              icon: Icons.tune_rounded,
-              title: t.node_config_mode_custom_title,
-              subtitle: t.node_config_mode_custom_subtitle,
-              selected: isCustom,
-              onTap: () => controller.setCustomMode(true),
-            ),
-            const SizedBox(height: 28),
 
             // Custom-mode block: smoothly expands/collapses with
             // mode toggle. AnimatedSize controls the height,
             // AnimatedSwitcher cross-fades the contents so the
             // transition feels natural rather than abrupt.
             AnimatedSize(
-              duration: const Duration(milliseconds: 240),
-              curve: Curves.easeOut,
+              duration: Motion.of(context, Motion.durationBase),
+              curve: Motion.curveMove,
               alignment: Alignment.topCenter,
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                transitionBuilder:
-                    (child, anim) =>
-                        FadeTransition(opacity: anim, child: child),
-                child:
-                    isCustom
-                        ? _CustomModeSection(
-                          key: const ValueKey('custom-section'),
-                          t: t,
-                          state: state,
-                          bitcoinController: _bitcoinController,
-                          liquidController: _liquidController,
-                          onBitcoinChanged: controller.setBitcoinUrl,
-                          onLiquidChanged: controller.setLiquidUrl,
-                          onFallbackChanged: controller.setFallbackEnabled,
-                          urlValidator: (v) => _validateUrl(v, t),
-                        )
-                        : const SizedBox(
-                          key: ValueKey('default-section'),
-                          width: double.infinity,
-                        ),
+                duration: Motion.of(context, Motion.durationFast),
+                switchInCurve: Motion.curveEnter,
+                switchOutCurve: Motion.curveExit,
+                transitionBuilder: (child, anim) =>
+                    FadeTransition(opacity: anim, child: child),
+                child: isCustom
+                    ? _CustomModeSection(
+                        key: const ValueKey('custom-section'),
+                        t: t,
+                        state: state,
+                        bitcoinController: _bitcoinController,
+                        liquidController: _liquidController,
+                        onBitcoinChanged: controller.setBitcoinUrl,
+                        onLiquidChanged: controller.setLiquidUrl,
+                        onFallbackChanged: controller.setFallbackEnabled,
+                        urlValidator: (v) => _validateUrl(v, t),
+                      )
+                    : const SizedBox(
+                        key: ValueKey('default-section'),
+                        width: double.infinity,
+                      ),
               ),
-            ),
-            const SizedBox(height: 28),
-            PrimaryButton(
-              text: t.node_config_save,
-              onPressed: _handleSave,
-              isEnabled: dirty && !_saving,
-              isLoading: _saving,
             ),
           ],
         ),
@@ -321,88 +323,80 @@ class _CustomModeSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _AdvancedWarning(message: t.node_config_advanced_warning),
-        const SizedBox(height: 18),
-        _SectionHeader(label: t.node_config_section_custom),
-        _UrlField(
-          controller: bitcoinController,
-          label: t.node_config_bitcoin_label,
-          hint: t.node_config_bitcoin_hint,
-          helper: t.node_config_bitcoin_helper,
-          onChanged: onBitcoinChanged,
-          validator: urlValidator,
+        SettingsGlassSection(
+          title: t.node_config_section_custom,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _UrlField(
+                controller: bitcoinController,
+                label: t.node_config_bitcoin_label,
+                hint: t.node_config_bitcoin_hint,
+                helper: t.node_config_bitcoin_helper,
+                onChanged: onBitcoinChanged,
+                validator: urlValidator,
+              ),
+              const SizedBox(height: 20),
+              _UrlField(
+                controller: liquidController,
+                label: t.node_config_liquid_label,
+                hint: t.node_config_liquid_hint,
+                helper: t.node_config_liquid_helper,
+                onChanged: onLiquidChanged,
+                validator: urlValidator,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 18),
-        _UrlField(
-          controller: liquidController,
-          label: t.node_config_liquid_label,
-          hint: t.node_config_liquid_hint,
-          helper: t.node_config_liquid_helper,
-          onChanged: onLiquidChanged,
-          validator: urlValidator,
+        SettingsGlassSection(
+          child: _FallbackTile(
+            value: state.fallbackEnabled,
+            onChanged: onFallbackChanged,
+            title: t.node_config_fallback_toggle_title,
+            subtitle: t.node_config_fallback_toggle_subtitle,
+          ),
         ),
-        const SizedBox(height: 22),
-        _FallbackTile(
-          value: state.fallbackEnabled,
-          onChanged: onFallbackChanged,
-          title: t.node_config_fallback_toggle_title,
-          subtitle: t.node_config_fallback_toggle_subtitle,
-        ),
-        const SizedBox(height: 16),
-        _LightningNote(text: t.node_config_lightning_note),
       ],
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  final String label;
-  const _SectionHeader({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
+/// A plain note on the gutter that flags custom nodes as an advanced
+/// setting. The warning color stays on the icon, so the note does not
+/// become a colored card.
 class _AdvancedWarning extends StatelessWidget {
   final String message;
   const _AdvancedWarning({required this.message});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colorScheme.errorContainer.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.error.withValues(alpha: 0.25)),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        SettingsPageScaffold.gutter + 16,
+        16,
+        SettingsPageScaffold.gutter + 16,
+        0,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, color: colorScheme.error, size: 20),
+          Icon(
+            Icons.warning_amber_rounded,
+            color: context.appColors.warning,
+            size: 18,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(height: 1.35),
+              style: context.textTheme.bodySmall?.copyWith(
+                color: context.colors.textSecondary,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -428,19 +422,34 @@ class _UrlField extends StatelessWidget {
     required this.validator,
   });
 
+  static const _radius = BorderRadius.all(Radius.circular(14));
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
+    final hairline = AppSurfaces.hairline(context);
+    OutlineInputBorder frame(Color color, double width) => OutlineInputBorder(
+      borderRadius: _radius,
+      borderSide: BorderSide(color: color, width: width),
+    );
+    final codeStyle = context.textTheme.bodyMedium?.copyWith(
+      fontFamily: 'monospace',
+      // iOS has no font named "monospace", so it takes the fallback.
+      fontFamilyFallback: const ['Menlo', 'Courier'],
+      color: colors.textPrimary,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         TextFormField(
@@ -450,40 +459,36 @@ class _UrlField extends StatelessWidget {
           keyboardType: TextInputType.url,
           autocorrect: false,
           enableSuggestions: false,
-          style: const TextStyle(fontFamily: 'monospace'),
+          cursorColor: colors.primaryColor,
+          style: codeStyle,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              fontFamily: 'monospace',
-            ),
+            hintStyle: codeStyle?.copyWith(color: colors.textTertiary),
             filled: true,
-            fillColor: colorScheme.surfaceContainerLow,
+            fillColor: GlassStyle.of(context).lensFill,
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
-              vertical: 14,
+              vertical: 15,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colorScheme.outlineVariant),
+            errorMaxLines: 2,
+            errorStyle: context.textTheme.bodySmall?.copyWith(
+              color: colors.negativeColor,
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colorScheme.outlineVariant),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-            ),
+            border: frame(hairline, 1),
+            enabledBorder: frame(hairline, 1),
+            focusedBorder: frame(colors.primaryColor, 1.5),
+            errorBorder: frame(colors.negativeColor, 1),
+            focusedErrorBorder: frame(colors.negativeColor, 1.5),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(left: 4, top: 6),
+          padding: const EdgeInsets.only(left: 4, top: 8),
           child: Text(
             helper,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+            style: context.textTheme.bodySmall?.copyWith(
+              color: colors.textSecondary,
+              height: 1.35,
             ),
           ),
         ),
@@ -492,6 +497,7 @@ class _UrlField extends StatelessWidget {
   }
 }
 
+/// The fallback switch as a row of its glass panel.
 class _FallbackTile extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -507,77 +513,39 @@ class _FallbackTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+    final colors = context.colors;
+    return SwitchListTile(
+      value: value,
+      onChanged: onChanged,
+      title: Text(
+        title,
+        style: context.textTheme.bodyLarge?.copyWith(
+          color: colors.textPrimary,
+          fontWeight: FontWeight.w500,
         ),
       ),
-      child: SwitchListTile(
-        value: value,
-        onChanged: onChanged,
-        title: Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              height: 1.35,
-            ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Text(
+          subtitle,
+          style: context.textTheme.bodySmall?.copyWith(
+            color: colors.textSecondary,
+            height: 1.35,
           ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       ),
-    );
-  }
-}
-
-class _LightningNote extends StatelessWidget {
-  final String text;
-  const _LightningNote({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          Icons.flash_on_rounded,
-          size: 16,
-          color: colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              height: 1.4,
-            ),
-          ),
-        ),
-      ],
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
   }
 }
 
 class _ErrorView extends StatelessWidget {
   final String message;
-  final Color color;
-  const _ErrorView({required this.message, required this.color});
+  const _ErrorView({required this.message});
 
   @override
   Widget build(BuildContext context) {
+    final color = context.colors.negativeColor;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -588,7 +556,7 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               message,
-              style: TextStyle(color: color),
+              style: context.textTheme.bodyMedium?.copyWith(color: color),
               textAlign: TextAlign.center,
             ),
           ],

@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_back_to_top_button.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_expandable_section.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_footer_link.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_header.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_info_card.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_section.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_warning_card.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_glass_section.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_page_scaffold.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TermsAndConditionsScreen extends StatefulWidget {
@@ -74,24 +79,24 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final sections = _buildTermsSections(t);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.terms_title),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-      ),
+    return SettingsPageScaffold(
+      title: t.terms_title,
+      floatingActionButton: _showBackToTop
+          ? LegalDocumentBackToTopButton(onPressed: _scrollToTop)
+          : null,
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                SettingsPageScaffold.gutter,
+                12,
+                SettingsPageScaffold.gutter,
+                0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -106,131 +111,111 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
                     icon: Icons.warning_amber_rounded,
                     title: t.terms_warning_title,
                     message: t.terms_warning_message,
-                    containerColor: colorScheme.errorContainer.withValues(
-                      alpha: 0.3,
-                    ),
-                    borderColor: colorScheme.error.withValues(alpha: 0.3),
-                    iconColor: colorScheme.error,
-                    textColor: colorScheme.onErrorContainer,
                   ),
-                  const SizedBox(height: 24),
-                  _buildQuickInfo(t),
                 ],
               ),
             ),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              return LegalDocumentExpandableSection(
-                index: index,
-                section: sections[index],
-                isExpanded: _expandedSections[index],
-                onExpansionChanged: (expanded) {
-                  setState(() => _expandedSections[index] = expanded);
-                },
-                // The unnumbered preamble keeps section badges aligned with
-                // their clause numbers.
-                showInfoIconForFirst: true,
-              );
-            }, childCount: sections.length),
+          SliverToBoxAdapter(child: _buildQuickInfo(t)),
+          SliverToBoxAdapter(
+            child: SettingsGlassSection(
+              child: Column(
+                children: [
+                  for (var index = 0; index < sections.length; index++) ...[
+                    if (index > 0) const PanelDivider(indent: 56),
+                    LegalDocumentExpandableSection(
+                      index: index,
+                      section: sections[index],
+                      isExpanded: _expandedSections[index],
+                      onExpansionChanged: (expanded) {
+                        setState(() => _expandedSections[index] = expanded);
+                      },
+                      // The unnumbered preamble keeps section numbers aligned
+                      // with their clause numbers.
+                      showInfoIconForFirst: true,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                const SizedBox(height: 32),
-                _buildFooter(colorScheme, textTheme, t),
+                const SizedBox(height: 8),
+                _buildFooter(t),
                 const SizedBox(height: 100),
               ],
             ),
           ),
         ],
       ),
-      floatingActionButton:
-          _showBackToTop
-              ? FloatingActionButton.small(
-                onPressed: _scrollToTop,
-                elevation: 4,
-                child: const Icon(Icons.keyboard_arrow_up_rounded),
-              )
-              : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 
   Widget _buildQuickInfo(AppLocalizations t) {
-    return SizedBox(
-      height: 125,
-      child: Row(
+    return SettingsGlassSection(
+      child: Column(
         children: [
-          Expanded(
-            child: LegalDocumentInfoCard(
-              icon: Icons.account_balance_rounded,
-              title: t.terms_self_custody_title,
-              subtitle: t.terms_self_custody_subtitle,
-            ),
+          LegalDocumentInfoCard(
+            icon: Icons.account_balance_rounded,
+            title: t.terms_self_custody_title,
+            subtitle: t.terms_self_custody_subtitle,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: LegalDocumentInfoCard(
-              icon: Icons.shield_rounded,
-              title: t.terms_privacy_title,
-              subtitle: t.terms_privacy_subtitle,
-            ),
+          const PanelDivider(indent: 48),
+          LegalDocumentInfoCard(
+            icon: Icons.shield_rounded,
+            title: t.terms_privacy_title,
+            subtitle: t.terms_privacy_subtitle,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: LegalDocumentInfoCard(
-              icon: Icons.science_rounded,
-              title: t.terms_beta_title,
-              subtitle: t.terms_beta_subtitle,
-            ),
+          const PanelDivider(indent: 48),
+          LegalDocumentInfoCard(
+            icon: Icons.science_rounded,
+            title: t.terms_beta_title,
+            subtitle: t.terms_beta_subtitle,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFooter(
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    AppLocalizations t,
-  ) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.update_rounded,
-                size: 16,
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                t.terms_last_updated,
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          LegalDocumentFooterLink(
+  Widget _buildFooter(AppLocalizations t) {
+    final colors = context.colors;
+
+    return Column(
+      children: [
+        SettingsGlassSection(
+          child: LegalDocumentFooterLink(
             icon: Icons.privacy_tip_outlined,
             label: t.terms_privacy_policy_link,
-            backgroundColor: colorScheme.primaryContainer,
-            foregroundColor: colorScheme.primary,
             onTap: () => _launchUrl('https://mooze.app/termos-e-privacidade/'),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 20),
+        LiquidGlass(
+          blurBackdrop: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.update_rounded,
+                  size: 14,
+                  color: colors.textSecondary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  t.terms_last_updated,
+                  style: context.textTheme.labelMedium?.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

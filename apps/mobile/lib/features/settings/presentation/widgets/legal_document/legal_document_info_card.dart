@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Small info card with icon, title, and subtitle used in legal document
-/// quick-info rows.
+/// A quick-info row of the legal document screens: an icon, a muted label
+/// ([title]) and its value ([subtitle]).
+///
+/// The row has no surface of its own: the screen stacks the rows in one
+/// glass panel and splits them with hairlines.
 class LegalDocumentInfoCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -16,40 +20,41 @@ class LegalDocumentInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.colors;
+    final textTheme = context.textTheme;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.2),
+    return MergeSemantics(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 52),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: colors.textSecondary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // A tight half, so every value ends at the row edge.
+              Expanded(
+                child: Text(
+                  subtitle,
+                  textAlign: TextAlign.end,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 20, color: colorScheme.primary),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            subtitle,
-            style: textTheme.labelSmall?.copyWith(
-              fontSize: 9,
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }

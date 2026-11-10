@@ -5,6 +5,9 @@ import 'package:mooze_mobile/app/di/v2_providers.dart' as v2;
 import 'package:mooze_mobile/domain/entities/chain.dart';
 import 'package:mooze_mobile/domain/services/service_state.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 enum DeveloperOperation { lightSync, fullSync, rescan, exportLogs, clearLogs }
@@ -47,7 +50,7 @@ class _SyncProgressCardState extends ConsumerState<SyncProgressCard>
   Widget build(BuildContext context) {
     final cs = context.colorScheme;
     final tt = context.textTheme;
-    final extra = context.appColors;
+    final colors = context.colors;
 
     final syncAsync = ref.watch(v2.syncStateProvider);
     final state = syncAsync.valueOrNull;
@@ -59,43 +62,25 @@ class _SyncProgressCardState extends ConsumerState<SyncProgressCard>
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 340),
-      curve: Curves.easeOutCubic,
+      duration: Motion.of(context, Motion.durationEmphasis),
+      curve: Motion.curveEnter,
       builder: (context, t, child) {
         return Opacity(
           opacity: t,
           child: Transform.translate(
-            offset: Offset(0, (1 - t) * -8),
+            offset: Offset(0, (1 - t) * -Motion.riseDistance),
             child: child,
           ),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: const [0.0, 0.55, 1.0],
-            colors: [
-              cs.primary.withValues(alpha: 0.02),
-              cs.primary.withValues(alpha: 0.08),
-              cs.primary.withValues(alpha: 0.1),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cs.primary.withValues(alpha: 0.22)),
-        ),
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+      child: GlassPanel(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                _AnimatedSyncGlyph(
-                  rotation: _rotation,
-                  pulse: _pulse,
-                  color: cs.primary,
-                ),
+                _AnimatedSyncGlyph(rotation: _rotation, color: cs.primary),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -104,20 +89,21 @@ class _SyncProgressCardState extends ConsumerState<SyncProgressCard>
                       Text(
                         title,
                         style: tt.titleMedium?.copyWith(
+                          color: colors.textPrimary,
                           fontWeight: FontWeight.w600,
                           letterSpacing: -0.2,
                         ),
                       ),
                       const SizedBox(height: 2),
                       AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 240),
-                        switchInCurve: Curves.easeOut,
-                        switchOutCurve: Curves.easeIn,
+                        duration: Motion.of(context, Motion.durationBase),
+                        switchInCurve: Motion.curveEnter,
+                        switchOutCurve: Motion.curveExit,
                         child: Text(
                           subtitle,
                           key: ValueKey(subtitle),
                           style: tt.bodySmall?.copyWith(
-                            color: extra.textSecondary,
+                            color: colors.textSecondary,
                             height: 1.3,
                           ),
                         ),
@@ -129,7 +115,7 @@ class _SyncProgressCardState extends ConsumerState<SyncProgressCard>
             ),
             const SizedBox(height: 14),
             _ProgressBar(controller: _pulse, color: cs.primary),
-            const SizedBox(height: 14),
+            const SizedBox(height: 4),
             _ChainList(perChain: perChain, operation: widget.operation),
           ],
         ),
@@ -191,46 +177,22 @@ class _SyncProgressCardState extends ConsumerState<SyncProgressCard>
 }
 
 class _AnimatedSyncGlyph extends StatelessWidget {
-  const _AnimatedSyncGlyph({
-    required this.rotation,
-    required this.pulse,
-    required this.color,
-  });
+  const _AnimatedSyncGlyph({required this.rotation, required this.color});
 
   final AnimationController rotation;
-  final AnimationController pulse;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([rotation, pulse]),
-      builder: (context, _) {
-        final scale = 0.96 + (pulse.value * 0.08);
-        return Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.14),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.22 * pulse.value),
-                blurRadius: 18,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          alignment: Alignment.center,
-          child: Transform.scale(
-            scale: scale,
-            child: Transform.rotate(
-              angle: rotation.value * 6.28319,
-              child: Icon(Icons.sync_rounded, color: color, size: 22),
-            ),
-          ),
-        );
-      },
+    return SizedBox(
+      width: 28,
+      height: 28,
+      child: Center(
+        child: RotationTransition(
+          turns: rotation,
+          child: Icon(Icons.sync_rounded, color: color, size: 24),
+        ),
+      ),
     );
   }
 }
@@ -243,11 +205,11 @@ class _ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final track = color.withValues(alpha: 0.10);
+    final track = AppSurfaces.hairline(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(99),
       child: Container(
-        height: 4,
+        height: 3,
         color: track,
         child: AnimatedBuilder(
           animation: controller,
@@ -266,13 +228,8 @@ class _ProgressBar extends StatelessWidget {
                       width: width,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              color.withValues(alpha: 0),
-                              color,
-                              color.withValues(alpha: 0),
-                            ],
-                          ),
+                          borderRadius: BorderRadius.circular(99),
+                          color: color,
                         ),
                       ),
                     ),
@@ -287,6 +244,7 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
+/// Status of each chain, as dots on one line.
 class _ChainList extends StatelessWidget {
   const _ChainList({required this.perChain, required this.operation});
 
@@ -298,22 +256,20 @@ class _ChainList extends StatelessWidget {
     final chains = const [ChainId.liquid, ChainId.bitcoin];
     return Row(
       children: [
-        for (int i = 0; i < chains.length; i++) ...[
+        for (int i = 0; i < chains.length; i++)
           Expanded(
-            child: _ChainPill(
+            child: _ChainStatus(
               chain: chains[i],
               lifecycle: perChain[chains[i]] ?? ServiceLifecycle.uninitialized,
             ),
           ),
-          if (i != chains.length - 1) const SizedBox(width: 8),
-        ],
       ],
     );
   }
 }
 
-class _ChainPill extends StatelessWidget {
-  const _ChainPill({required this.chain, required this.lifecycle});
+class _ChainStatus extends StatelessWidget {
+  const _ChainStatus({required this.chain, required this.lifecycle});
 
   final ChainId chain;
   final ServiceLifecycle lifecycle;
@@ -321,29 +277,23 @@ class _ChainPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = context.colorScheme;
-    final extra = context.appColors;
+    final colors = context.colors;
     final tt = context.textTheme;
 
     final isActive = lifecycle == ServiceLifecycle.connected;
     final isErrored = lifecycle == ServiceLifecycle.errored;
     final isWorking = lifecycle == ServiceLifecycle.connecting;
 
-    final dotColor =
-        isErrored
-            ? cs.error
-            : isActive
-            ? cs.tertiary
-            : isWorking
-            ? cs.primary
-            : extra.textTertiary.withValues(alpha: 0.6);
+    final dotColor = isErrored
+        ? cs.error
+        : isActive
+        ? colors.positiveColor
+        : isWorking
+        ? cs.primary
+        : colors.textTertiary;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: cs.onSurface.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: cs.onSurface.withValues(alpha: 0.06)),
-      ),
+    return SizedBox(
+      height: 44,
       child: Row(
         children: [
           _StatusDot(color: dotColor, animating: isWorking),
@@ -353,7 +303,7 @@ class _ChainPill extends StatelessWidget {
               _label(chain),
               style: tt.bodySmall?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: isErrored ? cs.error : cs.onSurface,
+                color: isErrored ? cs.error : colors.textSecondary,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -424,16 +374,6 @@ class _StatusDotState extends State<_StatusDot>
           decoration: BoxDecoration(
             color: widget.color.withValues(alpha: t),
             shape: BoxShape.circle,
-            boxShadow:
-                widget.animating
-                    ? [
-                      BoxShadow(
-                        color: widget.color.withValues(alpha: 0.4 * t),
-                        blurRadius: 6,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                    : null,
           ),
         );
       },

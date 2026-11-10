@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Gradient header for legal document screens (license, terms, etc.)
+/// Header of the legal document screens (license, terms, etc.): a glass
+/// icon badge, the title and subtitle, and a short description, set
+/// directly on the page backdrop.
 class LegalDocumentHeader extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -17,78 +21,55 @@ class LegalDocumentHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.colors;
+    final textTheme = context.textTheme;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colorScheme.primaryContainer,
-            colorScheme.secondaryContainer,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            LiquidGlass(
+              blurBackdrop: false,
+              child: SizedBox.square(
+                dimension: 48,
+                child: Icon(icon, size: 22, color: colors.textPrimary),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: textTheme.titleLarge?.copyWith(
+                      color: colors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+        const SizedBox(height: 16),
+        Text(
+          description,
+          style: textTheme.bodyMedium?.copyWith(
+            color: colors.textSecondary,
+            height: 1.5,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: colorScheme.onPrimary, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: textTheme.headlineSmall?.copyWith(
-                        color: colorScheme.onPrimaryContainer,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: textTheme.titleMedium?.copyWith(
-                        color: colorScheme.onPrimaryContainer.withValues(
-                          alpha: 0.8,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            description,
-            style: textTheme.titleSmall?.copyWith(
-              color: colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

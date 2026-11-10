@@ -1,45 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Warning/info card for legal document screens.
+/// Warning/info card for legal document screens: a glass panel with a small
+/// colored icon, a title and a message.
 ///
-/// Use [containerColor], [borderColor], [iconColor], and [textColor]
-/// to customize the card's appearance (e.g. error colors for terms,
-/// tertiary colors for license).
+/// [iconColor] defaults to the app warning color. Pass a neutral color for
+/// a notice that is informative rather than a warning.
 class LegalDocumentWarningCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String message;
-  final Color containerColor;
-  final Color borderColor;
-  final Color iconColor;
-  final Color textColor;
+  final Color? iconColor;
 
   const LegalDocumentWarningCard({
     super.key,
     required this.icon,
     required this.title,
     required this.message,
-    required this.containerColor,
-    required this.borderColor,
-    required this.iconColor,
-    required this.textColor,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.colors;
+    final textTheme = context.textTheme;
 
-    return Container(
+    return GlassPanel(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: containerColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: 1),
-      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: iconColor, size: 24),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(
+              icon,
+              size: 20,
+              color: iconColor ?? context.appColors.warning,
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -47,17 +46,17 @@ class LegalDocumentWarningCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   message,
                   style: textTheme.bodySmall?.copyWith(
-                    color: textColor.withValues(alpha: 0.9),
-                    height: 1.3,
+                    color: colors.textSecondary,
+                    height: 1.5,
                   ),
                 ),
               ],

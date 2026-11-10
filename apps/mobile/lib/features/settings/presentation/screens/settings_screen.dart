@@ -5,15 +5,17 @@ import 'package:go_router/go_router.dart';
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mooze_mobile/app/session/auth_prompt_controller.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
-import 'package:mooze_mobile/features/settings/presentation/actions/callback_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/toggle.dart';
 import 'package:mooze_mobile/features/settings/presentation/models/settings_structure.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_settings.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/section_settings.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_glass_section.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_page_scaffold.dart';
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:mooze_mobile/shared/key_management/store.dart';
 import 'package:mooze_mobile/shared/key_management/providers.dart';
 
@@ -32,14 +34,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  void _replayPixTutorial() {
-    Future(() {
-      if (!mounted) return;
-      ref.read(pixTutorialControllerProvider.notifier).start();
-      if (mounted) context.go('/pix');
-    });
-  }
-
   /// Called when the user taps the biometric toggle. Enabling triggers the
   /// native prompt to confirm it works before persisting; disabling clears the
   /// preference immediately.
@@ -108,20 +102,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final biometricAvailable = isBiometricAvailable.value ?? false;
     final biometricEnabled = isBiometricEnabled.value ?? false;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.settings_title),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () {
-            context.pop();
-          },
-        ),
-      ),
+    return SettingsPageScaffold(
+      title: t.settings_title,
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const AnalyticsSetting(),
+            // AnalyticsSetting shows nothing when analytics is not set up,
+            // so the panel shows only with it.
+            if (ref.watch(analyticsProvider).configured)
+              const SettingsGlassSection(
+                child: AnalyticsSetting(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: LabelSettings.horizontalPadding,
+                    vertical: 4,
+                  ),
+                ),
+              ),
             SectionSettings(
               title: t.settings_section_security,
               settingsItems: [
@@ -302,6 +298,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             SectionSettings(
+              title: t.settings_section_advanced,
+              settingsItems: [
+                ConfigStructure(
+                  title: t.settings_fees,
+                  iconSvgPath: 'assets/icons/menu/settings/gauge.svg',
+                  action: Navigation(
+                    context: context,
+                    rota: '/settings/advanced/fees',
+                  ),
+                ),
+              ],
+            ),
+            SectionSettings(
               title: t.settings_section_developer,
               settingsItems: [
                 ConfigStructure(
@@ -324,11 +333,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     context: context,
                     rota: '/settings/support',
                   ),
-                ),
-                ConfigStructure(
-                  title: t.pix_tutorial_settings_replay,
-                  iconSvgPath: 'assets/icons/menu/settings/tutorial.svg',
-                  action: CallbackSettingsAction(_replayPixTutorial),
                 ),
               ],
             ),

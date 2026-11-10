@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_divider.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/label_settings.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_choice_row.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_glass_section.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_page_scaffold.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_icon.dart';
 
 class ThemeSelectorScreen extends ConsumerWidget {
   const ThemeSelectorScreen({super.key});
@@ -32,116 +35,29 @@ class ThemeSelectorScreen extends ConsumerWidget {
       ),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.settings_theme),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
-        ),
-      ),
+    return SettingsPageScaffold(
+      title: t.settings_theme,
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.only(bottom: 32),
+        child: SettingsGlassSection(
+          title: t.settings_section_appearance,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 15, left: 20, bottom: 10),
-                child: Text(
-                  t.settings_section_appearance,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Column(
-                  children: List.generate(options.length, (index) {
-                    final option = options[index];
-                    return Column(
-                      children: [
-                        _buildOption(
-                          context: context,
-                          ref: ref,
-                          option: option,
-                          currentMode: currentMode,
-                        ),
-                        if (index < options.length - 1) const LabelDivider(),
-                      ],
-                    );
-                  }),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOption({
-    required BuildContext context,
-    required WidgetRef ref,
-    required _ThemeOption option,
-    required ThemeMode currentMode,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isSelected = currentMode == option.mode;
-
-    return Container(
-      decoration: BoxDecoration(
-        // gradient: isSelected
-        //     ? LinearGradient(
-        //         begin: Alignment.centerRight,
-        //         end: Alignment.centerLeft,
-        //         colors: [
-        //           colorScheme.primary,
-        //           colorScheme.surfaceContainerLowest,
-        //         ],
-        //       )
-        //     : null,
-        color: colorScheme.surfaceContainerLow,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap:
-              () => ref
-                  .read(themeModeProvider.notifier)
-                  .setThemeMode(option.mode),
-          child: Padding(
-            padding: const EdgeInsets.only(top: 10, bottom: 10, left: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
-                  children: [
-                    SvgPicture.asset(
-                      option.iconAsset,
-                      width: 20,
-                      height: 20,
-                    ),
-                    const SizedBox(width: 20),
-                    Text(
-                      option.label,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: Icon(
-                    isSelected
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    size: 20,
-                    color:
-                        isSelected ? colorScheme.primary : colorScheme.primary,
+              for (var i = 0; i < options.length; i++) ...[
+                if (i > 0) const LabelDivider(),
+                SettingsChoiceRow(
+                  title: options[i].label,
+                  leading: AppIcon(
+                    path: options[i].iconAsset,
+                    size: LabelSettings.iconSize,
                   ),
+                  selected: currentMode == options[i].mode,
+                  onTap: () => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(options[i].mode),
                 ),
               ],
-            ),
+            ],
           ),
         ),
       ),

@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/delete_wallet/delete_wallet_sign.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_page_scaffold.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/create_wallet/widgets/title_and_subtitle_create_wallet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
-import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/di/providers/pix_repository_provider.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
@@ -32,78 +33,53 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return PlatformSafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(t.delete_wallet_title),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
-            onPressed: () {
-              context.pop();
-            },
-          ),
+    final confirmed = _trustAware && _recoveryAware;
+    return SettingsPageScaffold(
+      title: t.delete_wallet_title,
+      bottomAction: PrimaryButton(
+        text: t.delete_wallet_button,
+        onPressed: confirmed ? () => _verifyAndDeleteWallet(context) : null,
+        isEnabled: confirmed,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          SettingsPageScaffold.gutter,
+          16,
+          SettingsPageScaffold.gutter,
+          24,
         ),
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TitleAndSubtitleCreateWallet(
-                          title: t.delete_wallet_warning_title,
-                          highlighted: t.delete_wallet_word,
-                          subtitle: t.delete_wallet_warning_subtitle,
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        DeleteWalletSign(
-                          title: t.delete_wallet_pix_limits_title,
-                          description: t.delete_wallet_pix_limits_desc,
-                          isSelected: _trustAware,
-                          onTap: () {
-                            setState(() {
-                              _trustAware = !_trustAware;
-                            });
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        DeleteWalletSign(
-                          title: t.delete_wallet_funds_loss_title,
-                          description: t.delete_wallet_funds_loss_desc,
-                          isSelected: _recoveryAware,
-                          onTap: () {
-                            setState(() {
-                              _recoveryAware = !_recoveryAware;
-                            });
-                          },
-                        ),
-
-                        const Spacer(),
-
-                        const SizedBox(height: 16),
-
-                        PrimaryButton(
-                          text: t.delete_wallet_button,
-                          onPressed: (_trustAware && _recoveryAware)
-                              ? () => _verifyAndDeleteWallet(context)
-                              : null,
-                          isEnabled: _trustAware && _recoveryAware,
-                        ),
-                      ],
-                    ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TitleAndSubtitleCreateWallet(
+              title: t.delete_wallet_warning_title,
+              highlighted: t.delete_wallet_word,
+              subtitle: t.delete_wallet_warning_subtitle,
+            ),
+            const SizedBox(height: 24),
+            // Both risks sit in one panel. The button stays off until the
+            // user confirms each of them.
+            GlassPanel(
+              child: Column(
+                children: [
+                  DeleteWalletSign(
+                    title: t.delete_wallet_pix_limits_title,
+                    description: t.delete_wallet_pix_limits_desc,
+                    isSelected: _trustAware,
+                    onTap: () => setState(() => _trustAware = !_trustAware),
                   ),
-                ),
+                  const PanelDivider(indent: 16),
+                  DeleteWalletSign(
+                    title: t.delete_wallet_funds_loss_title,
+                    description: t.delete_wallet_funds_loss_desc,
+                    isSelected: _recoveryAware,
+                    onTap: () =>
+                        setState(() => _recoveryAware = !_recoveryAware),
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );

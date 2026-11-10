@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_back_to_top_button.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_expandable_section.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_footer_link.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_header.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_info_card.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_section.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/legal_document/legal_document_warning_card.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_glass_section.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_page_scaffold.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LicenseScreen extends StatefulWidget {
@@ -73,24 +77,26 @@ class _LicenseScreenState extends State<LicenseScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
+    final textTheme = context.textTheme;
     final sections = _buildLicenseSections(t);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.license_title),
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          tooltip: t.common_back,
-        ),
-      ),
+    return SettingsPageScaffold(
+      title: t.license_title,
+      floatingActionButton: _showBackToTop
+          ? LegalDocumentBackToTopButton(onPressed: _scrollToTop)
+          : null,
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                SettingsPageScaffold.gutter,
+                12,
+                SettingsPageScaffold.gutter,
+                0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -102,151 +108,141 @@ class _LicenseScreenState extends State<LicenseScreen> {
                   ),
                   const SizedBox(height: 24),
                   LegalDocumentWarningCard(
-                    icon: Icons.info_rounded,
+                    icon: Icons.info_outline_rounded,
                     title: t.license_copyleft_title,
                     message: t.license_copyleft_desc,
-                    containerColor: colorScheme.tertiaryContainer.withValues(
-                      alpha: 0.3,
-                    ),
-                    borderColor: colorScheme.tertiary.withValues(alpha: 0.3),
-                    iconColor: colorScheme.tertiary,
-                    textColor: colorScheme.onTertiaryContainer,
+                    iconColor: colors.textSecondary,
                   ),
-                  const SizedBox(height: 24),
-                  _buildQuickInfo(t),
                 ],
               ),
             ),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              return LegalDocumentExpandableSection(
-                index: index,
-                section: sections[index],
-                isExpanded: _expandedSections[index],
-                onExpansionChanged: (expanded) {
-                  setState(() => _expandedSections[index] = expanded);
-                },
-                showInfoIconForFirst: true,
-                useMonospaceContent: true,
-              );
-            }, childCount: sections.length),
+          SliverToBoxAdapter(child: _buildQuickInfo(t)),
+          SliverToBoxAdapter(
+            child: SettingsGlassSection(
+              child: Column(
+                children: [
+                  for (var index = 0; index < sections.length; index++) ...[
+                    if (index > 0) const PanelDivider(indent: 56),
+                    LegalDocumentExpandableSection(
+                      index: index,
+                      section: sections[index],
+                      isExpanded: _expandedSections[index],
+                      onExpansionChanged: (expanded) {
+                        setState(() => _expandedSections[index] = expanded);
+                      },
+                      showInfoIconForFirst: true,
+                      useMonospaceContent: true,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                const SizedBox(height: 16),
-                Center(child: Text(t.license_end_terms)),
-                const SizedBox(height: 16),
-                _buildFooter(colorScheme, t),
+                const SizedBox(height: 28),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SettingsPageScaffold.gutter,
+                  ),
+                  child: Text(
+                    t.license_end_terms,
+                    textAlign: TextAlign.center,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: colors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                _buildFooter(t),
                 const SizedBox(height: 100),
               ],
             ),
           ),
         ],
       ),
-      floatingActionButton:
-          _showBackToTop
-              ? FloatingActionButton.small(
-                onPressed: _scrollToTop,
-                elevation: 4,
-                child: const Icon(Icons.keyboard_arrow_up_rounded),
-              )
-              : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 
   Widget _buildQuickInfo(AppLocalizations t) {
-    return SizedBox(
-      height: 125,
-      child: Row(
+    return SettingsGlassSection(
+      child: Column(
         children: [
-          Expanded(
-            child: LegalDocumentInfoCard(
-              icon: Icons.lock_open_rounded,
-              title: t.license_free_software_title,
-              subtitle: t.license_free_software_subtitle,
-            ),
+          LegalDocumentInfoCard(
+            icon: Icons.lock_open_rounded,
+            title: t.license_free_software_title,
+            subtitle: t.license_free_software_subtitle,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: LegalDocumentInfoCard(
-              icon: Icons.share_rounded,
-              title: t.license_redistributable_title,
-              subtitle: t.license_redistributable_subtitle,
-            ),
+          const PanelDivider(indent: 48),
+          LegalDocumentInfoCard(
+            icon: Icons.share_rounded,
+            title: t.license_redistributable_title,
+            subtitle: t.license_redistributable_subtitle,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: LegalDocumentInfoCard(
-              icon: Icons.code_rounded,
-              title: t.license_copyleft_short_title,
-              subtitle: t.license_copyleft_short_subtitle,
-            ),
+          const PanelDivider(indent: 48),
+          LegalDocumentInfoCard(
+            icon: Icons.code_rounded,
+            title: t.license_copyleft_short_title,
+            subtitle: t.license_copyleft_short_subtitle,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFooter(ColorScheme colorScheme, AppLocalizations t) {
-    final textTheme = Theme.of(context).textTheme;
+  Widget _buildFooter(AppLocalizations t) {
+    final colors = context.colors;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    return Column(
+      children: [
+        SettingsGlassSection(
+          child: Column(
+            children: [
+              LegalDocumentFooterLink(
+                icon: Icons.public_rounded,
+                label: t.license_fsf_link,
+                onTap: () => _launchUrl('https://www.fsf.org/'),
+              ),
+              const PanelDivider(indent: 48),
+              LegalDocumentFooterLink(
+                icon: Icons.article_outlined,
+                label: t.license_full_link,
+                onTap: () =>
+                    _launchUrl('https://www.gnu.org/licenses/gpl-3.0.html'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: SettingsPageScaffold.gutter,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.copyright_rounded,
-                size: 16,
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
+                size: 14,
+                color: colors.textSecondary,
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              const SizedBox(width: 6),
+              Flexible(
                 child: Text(
                   t.license_copyright_line,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: colors.textSecondary,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              LegalDocumentFooterLink(
-                icon: Icons.public_rounded,
-                label: t.license_fsf_link,
-                backgroundColor: colorScheme.primaryContainer,
-                foregroundColor: colorScheme.onPrimaryContainer,
-                onTap: () => _launchUrl('https://www.fsf.org/'),
-              ),
-              const SizedBox(height: 8),
-              LegalDocumentFooterLink(
-                icon: Icons.article_outlined,
-                label: t.license_full_link,
-                backgroundColor: colorScheme.secondaryContainer,
-                foregroundColor: colorScheme.onSecondaryContainer,
-                onTap:
-                    () =>
-                        _launchUrl('https://www.gnu.org/licenses/gpl-3.0.html'),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -18,6 +18,8 @@ import 'package:mooze_mobile/features/settings/presentation/widgets/developer/de
 import 'package:mooze_mobile/features/settings/presentation/widgets/developer/balance_overview_card.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/developer/sync_progress_card.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/export_logs_dialog.dart';
+import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_page_scaffold.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/logs/clear_logs_dialog.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/logs_viewer_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
@@ -468,10 +470,9 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
   }
 
   DebugHeader _buildDebugHeader({String? userId, String? walletId}) {
-    final btcEquivalentSats =
-        _balance == null
-            ? 0
-            : _balance!.assets.fold<int>(0, (sum, a) => sum + a.amountSat);
+    final btcEquivalentSats = _balance == null
+        ? 0
+        : _balance!.assets.fold<int>(0, (sum, a) => sum + a.amountSat);
     final sdkVersions =
         ref.read(sdkVersionsProvider).valueOrNull ?? SdkVersions.unavailable;
 
@@ -537,61 +538,58 @@ class _DeveloperScreenState extends ConsumerState<DeveloperScreen>
     final sdkVersions =
         ref.watch(sdkVersionsProvider).valueOrNull ?? SdkVersions.loading;
 
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(t.developer_title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.copy_outlined),
-            tooltip: t.developer_copy_debug_tooltip,
-            onPressed: _copyDebugInfo,
-          ),
-        ],
-      ),
+    return SettingsPageScaffold(
+      title: t.developer_title,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.copy_outlined),
+          tooltip: t.developer_copy_debug_tooltip,
+          onPressed: _copyDebugInfo,
+        ),
+        const SizedBox(width: 8),
+      ],
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
           position: _slideAnimation,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+            padding: const EdgeInsets.only(bottom: 40),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 BalanceOverviewCard(
                   balance: _balance,
                   loading: _balance == null,
                   refreshing: _refreshingBalance,
                 ),
-                const SizedBox(height: 16),
                 DeveloperInfoCard(
                   appVersion: _appVersion,
                   buildNumber: _buildNumber,
                   lwkVersion: sdkVersions.lwk,
                   bdkVersion: sdkVersions.bdk,
-                              bitcoinTip: _bitcoinTip,
+                  bitcoinTip: _bitcoinTip,
                   totalLogs: _totalLogs,
                   dbLogs: _dbLogs,
-                  logRetention:
-                      _retentionDays >= 0
-                          ? t.developer_log_retention_days(_retentionDays)
-                          : 'N/A',
+                  logRetention: _retentionDays >= 0
+                      ? t.developer_log_retention_days(_retentionDays)
+                      : 'N/A',
                   onViewLogs: _viewLogs,
                 ),
-                const SizedBox(height: 16),
                 AnimatedSize(
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOutCubic,
+                  duration: Motion.of(context, Motion.durationEmphasis),
+                  curve: Motion.curveLargeMove,
                   alignment: Alignment.topCenter,
-                  child:
-                      _activeOperation == null
-                          ? const SizedBox.shrink()
-                          : Padding(
-                            padding: const EdgeInsets.only(bottom: 18),
-                            child: SyncProgressCard(
-                              operation: _activeOperation!,
-                            ),
+                  child: _activeOperation == null
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            SettingsPageScaffold.gutter,
+                            28,
+                            SettingsPageScaffold.gutter,
+                            0,
                           ),
+                          child: SyncProgressCard(operation: _activeOperation!),
+                        ),
                 ),
                 DeveloperActionGrid(
                   activeOperation: _activeOperation,

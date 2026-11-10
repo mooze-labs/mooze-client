@@ -2,24 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/services/app_logger_service.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Theme-aware visual tokens for a [LogLevel] — accent color and glyph.
+/// Theme-aware visual tokens for a [LogLevel] — signal color and glyph.
 ///
 /// Centralising these keeps the log list, filters, stats, and detail sheet
 /// visually consistent: a level always reads as the same color + icon pair
-/// across the whole feature.
+/// across the whole feature. The color is a small signal (a dot or a label),
+/// never a fill. Every color comes from the theme. Error and critical share
+/// the error color; the label and the glyph tell them apart.
 extension LogLevelColorX on LogLevel {
   Color color(BuildContext context) {
     switch (this) {
       case LogLevel.debug:
         return context.colors.textTertiary;
       case LogLevel.info:
-        return const Color(0xFF5BA9E0);
+        return context.colorScheme.tertiary;
       case LogLevel.warning:
         return context.appColors.warning;
       case LogLevel.error:
-        return context.colorScheme.error;
       case LogLevel.critical:
-        return const Color(0xFFBA68C8);
+        return context.colorScheme.error;
     }
   }
 

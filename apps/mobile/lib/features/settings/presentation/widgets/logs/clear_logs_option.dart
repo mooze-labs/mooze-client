@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+/// One choice of [ClearLogsDialog]: a row that pops the dialog with [value].
+///
+/// The row has no card of its own; the dialog groups the rows in one glass
+/// panel and splits them with hairlines. [iconColor] marks a destructive
+/// choice; otherwise the icon is muted.
 class ClearOption extends StatelessWidget {
   final String title;
   final String description;
@@ -19,59 +24,48 @@ class ClearOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
+    final colors = context.colors;
     final textTheme = context.textTheme;
-    final effectiveIconColor = iconColor ?? colorScheme.primary;
+    final effectiveIconColor = iconColor ?? colors.textSecondary;
 
     return InkWell(
       onTap: () => Navigator.pop(context, value),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: colorScheme.onSurface.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: colorScheme.onSurface.withValues(alpha: 0.08),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 56),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, color: effectiveIconColor, size: 22),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: textTheme.titleSmall?.copyWith(
+                        color: iconColor ?? colors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      description,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colors.textSecondary,
+                size: 20,
+              ),
+            ],
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: effectiveIconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: effectiveIconColor, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    description,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: context.colors.textTertiary,
-              size: 20,
-            ),
-          ],
         ),
       ),
     );

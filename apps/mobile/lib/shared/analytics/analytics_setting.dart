@@ -4,15 +4,22 @@ import '../../l10n/generated/app_localizations.dart';
 import 'providers.dart';
 
 class AnalyticsSetting extends ConsumerWidget {
-  const AnalyticsSetting({super.key, this.compact = false});
+  const AnalyticsSetting({
+    super.key,
+    this.compact = false,
+    this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+  });
   final bool compact;
+
+  /// Space around the switch, for example the row padding of a panel.
+  final EdgeInsetsGeometry padding;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final analytics = ref.watch(analyticsProvider);
     if (!analytics.configured) return const SizedBox.shrink();
     final t = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

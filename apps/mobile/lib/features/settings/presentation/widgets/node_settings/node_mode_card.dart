@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/motion.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+/// One selectable option of the node mode group.
+///
+/// It is a row inside a [GlassPanel], not a card of its own: the panel
+/// groups the options, and hairlines split them. The selected option shows
+/// a glass lens behind its icon and a filled check in brand pink. The
+/// other option shows an empty radio ring.
 class NodeModeCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -18,50 +27,44 @@ class NodeModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.colors;
+    final textTheme = context.textTheme;
+    final duration = Motion.of(context, Motion.durationFast);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: selected
-            ? colorScheme.primary.withValues(alpha: 0.08)
-            : colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: selected
-              ? colorScheme.primary.withValues(alpha: 0.6)
-              : colorScheme.outlineVariant.withValues(alpha: 0.4),
-          width: selected ? 1.5 : 1,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
+    return Semantics(
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 64),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? colorScheme.primary.withValues(alpha: 0.15)
-                        : colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 20,
-                    color: selected
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
+                SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Positioned.fill(
+                        child: AnimatedOpacity(
+                          opacity: selected ? 1 : 0,
+                          duration: duration,
+                          curve: Motion.curveMove,
+                          child: const GlassLens(),
+                        ),
+                      ),
+                      Icon(
+                        icon,
+                        size: 20,
+                        color: selected
+                            ? colors.textPrimary
+                            : colors.textSecondary,
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -69,42 +72,38 @@ class NodeModeCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              style: textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 180),
-                            transitionBuilder: (child, anim) =>
-                                ScaleTransition(scale: anim, child: child),
-                            child: Icon(
-                              selected
-                                  ? Icons.check_circle_rounded
-                                  : Icons.radio_button_unchecked_rounded,
-                              key: ValueKey(selected),
-                              size: 22,
-                              color: selected
-                                  ? colorScheme.primary
-                                  : colorScheme.outline,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        title,
+                        style: textTheme.titleSmall?.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         subtitle,
                         style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                          color: colors.textSecondary,
                           height: 1.35,
                         ),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                AnimatedSwitcher(
+                  duration: duration,
+                  switchInCurve: Motion.curveEnter,
+                  switchOutCurve: Motion.curveExit,
+                  transitionBuilder: (child, anim) =>
+                      ScaleTransition(scale: anim, child: child),
+                  child: Icon(
+                    selected
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    key: ValueKey(selected),
+                    size: 22,
+                    color: selected ? colors.primaryColor : colors.textTertiary,
                   ),
                 ),
               ],
