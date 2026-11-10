@@ -79,7 +79,7 @@ class PreparedOnchainBitcoinTransaction implements PartiallySignedTransaction {
   @override
   final bool drain;
   final BigInt? claimFeesSat;
-  final int? feeRateSatPerVByte;
+  final double? feeRateSatPerVByte;
 
   final BigInt amount;
   @override

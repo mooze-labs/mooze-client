@@ -15,6 +15,7 @@ import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/p
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/selected_asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/send_funds/custom_fee_rate_option.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/send_funds/send_flow_parts.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -211,7 +212,13 @@ class _ReviewBody extends StatelessWidget {
         const SizedBox(height: 24),
         Consumer(
           builder: (context, ref, _) {
-            final speed = _speedTexts(context, ref.watch(feeSpeedProvider));
+            final customRate = ref.watch(customFeeRateProvider);
+            final speed = customRate == null
+                ? _speedTexts(context, ref.watch(feeSpeedProvider))
+                : (
+                    t.wallet_fee_custom,
+                    '${formatFeeRate(context, customRate)} sat/vB',
+                  );
             return SendSummaryPanel(
               rows: [
                 SendSummaryRow(

@@ -17,7 +17,7 @@ class WalletController {
     required Asset asset,
     required Blockchain blockchain,
     required BigInt amount,
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
     bool drain = false,
   }) {
     if (drain) {
@@ -63,7 +63,7 @@ class WalletController {
     required Asset asset,
     required Blockchain blockchain,
     required BigInt amount,
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
   }) {
     if (asset != Asset.btc && asset != Asset.lbtc) {
       return _walletRepository
@@ -114,7 +114,7 @@ class WalletController {
   TaskEither<String, PartiallySignedTransaction> _buildOnchainPsbt(
     String destination,
     BigInt amount,
-    int? feeRateSatPerVByte, [
+    double? feeRateSatPerVByte, [
     Asset? asset,
   ]) {
     return _walletRepository

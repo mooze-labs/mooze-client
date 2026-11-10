@@ -37,7 +37,7 @@ abstract class WalletRepository {
   buildOnchainBitcoinPaymentTransaction(
     String destination,
     BigInt amount, [
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
     Asset? asset,
   ]);
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
@@ -48,7 +48,7 @@ abstract class WalletRepository {
   buildDrainOnchainBitcoinTransaction(
     String destination, {
     Asset? asset,
-    int? feeRateSatPerVbyte,
+    double? feeRateSatPerVbyte,
   });
   TaskEither<WalletError, PreparedLayer2BitcoinTransaction>
   buildDrainLiquidBitcoinTransaction(String destination);

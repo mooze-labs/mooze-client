@@ -89,7 +89,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
   buildOnchainBitcoinPaymentTransaction(
     String destination,
     BigInt amount, [
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
     Asset? asset,
   ]) {
     return TaskEither.right(
@@ -174,7 +174,7 @@ class FakeWalletRepositoryImpl extends WalletRepository {
   buildDrainOnchainBitcoinTransaction(
     String destination, {
     Asset? asset,
-    int? feeRateSatPerVbyte,
+    double? feeRateSatPerVbyte,
   }) {
     return getBalance().flatMap((balance) {
       final btcBalance = balance[Asset.btc] ?? BigInt.zero;

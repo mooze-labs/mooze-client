@@ -7,6 +7,7 @@ import 'amount_provider.dart';
 import 'selected_asset_provider.dart';
 import 'selected_network_provider.dart';
 import 'drain_provider.dart';
+import 'fee_speed_provider.dart';
 import 'send_validation_controller.dart';
 
 class FeeEstimation {
@@ -95,6 +96,8 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
   final walletControllerResult = await ref.watch(
     walletControllerProvider.future,
   );
+  // The same rate as the send, so the balance check counts its fee.
+  final feeRateSatPerVByte = await ref.watch(bitcoinSendFeeRateProvider.future);
 
   return walletControllerResult.fold(
     (error) {
@@ -116,6 +119,7 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
                       asset: asset,
                       blockchain: blockchain,
                       amount: amount,
+                      feeRateSatPerVByte: feeRateSatPerVByte,
                     )
                     .run()
                 : await controller
@@ -124,6 +128,7 @@ final feeEstimationProvider = FutureProvider<FeeEstimation>((ref) async {
                       asset: asset,
                       blockchain: blockchain,
                       amount: amount,
+                      feeRateSatPerVByte: feeRateSatPerVByte,
                     )
                     .run();
 

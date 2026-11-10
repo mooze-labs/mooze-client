@@ -8,6 +8,8 @@ import '../../providers/send_funds/amount_provider.dart';
 import '../../providers/send_funds/selected_asset_provider.dart';
 import '../../providers/send_funds/transaction_loading_provider.dart';
 import '../../providers/send_funds/drain_provider.dart';
+import '../../providers/send_funds/fee_speed_provider.dart';
+import '../fee_speed_selector.dart';
 
 class AutoValidationListener extends ConsumerStatefulWidget {
   final Widget child;
@@ -67,6 +69,20 @@ class _AutoValidationListenerState
     });
 
     ref.listen<bool>(isDrainTransactionProvider, (previous, current) {
+      if (previous != current) {
+        _validateTransaction();
+      }
+    });
+
+    // A new fee rate changes the fee of a Bitcoin send, so the balance check
+    // runs again.
+    ref.listen<FeeSpeed>(feeSpeedProvider, (previous, current) {
+      if (previous != current) {
+        _validateTransaction();
+      }
+    });
+
+    ref.listen<double?>(customFeeRateProvider, (previous, current) {
       if (previous != current) {
         _validateTransaction();
       }

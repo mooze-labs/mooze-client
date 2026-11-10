@@ -180,7 +180,7 @@ class ServiceBackedWalletRepository extends WalletRepository {
       buildOnchainBitcoinPaymentTransaction(
     String destination,
     BigInt amount, [
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
     Asset? asset,
   ]) {
     if (asset == Asset.lbtc || isLiquidDestination(destination)) {
@@ -245,7 +245,7 @@ class ServiceBackedWalletRepository extends WalletRepository {
       buildDrainOnchainBitcoinTransaction(
     String destination, {
     Asset? asset,
-    int? feeRateSatPerVbyte,
+    double? feeRateSatPerVbyte,
   }) {
     if (asset == Asset.lbtc || isLiquidDestination(destination)) {
       return _withLiquidSpend(
@@ -383,7 +383,7 @@ class ServiceBackedWalletRepository extends WalletRepository {
     required String txid,
     required String destination,
     required BigInt amountSats,
-    required int? feeRateSatPerVByte,
+    required double? feeRateSatPerVByte,
     required bool drain,
   }) async {
     final database = _database;
@@ -754,14 +754,14 @@ class ServiceBackedWalletRepository extends WalletRepository {
     required String destination,
     required BigInt amountSat,
     bool drain = false,
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
   }) {
     return SendRequest(
       chain: ChainId.bitcoin,
       destination: destination,
       amountSat: amountSat.toInt(),
       drain: drain,
-      feeRateOverrideSatPerVByte: feeRateSatPerVByte?.toDouble(),
+      feeRateOverrideSatPerVByte: feeRateSatPerVByte,
     );
   }
 

@@ -157,7 +157,7 @@ class LiquidSpendWallet {
   buildOnchainBitcoinPaymentTransaction(
     String destination,
     BigInt amount, [
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
   ]) {
     if (!isLiquidDestination(destination)) return _unsupportedChainSwap();
     return _estimate(
@@ -178,7 +178,7 @@ class LiquidSpendWallet {
   TaskEither<WalletError, PreparedOnchainBitcoinTransaction>
   buildDrainOnchainBitcoinTransaction(
     String destination, {
-    int? feeRateSatPerVbyte,
+    double? feeRateSatPerVbyte,
   }) {
     if (!isLiquidDestination(destination)) return _unsupportedChainSwap();
     return _buildLbtcDrain(destination, feeRateSatPerVbyte).map(
@@ -236,7 +236,7 @@ class LiquidSpendWallet {
     required BigInt amountSat,
     String? assetId,
     bool drain = false,
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
   }) {
     return TaskEither(() async {
       final r = await _liquid.estimateFee(
@@ -259,13 +259,13 @@ class LiquidSpendWallet {
   /// the fee, which only the built transaction knows.
   TaskEither<WalletError, ({BigInt amount, BigInt fee})> _buildLbtcDrain(
     String destination, [
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
   ]) {
     return TaskEither(() async {
       final r = await _liquid.buildLbtcSend(
         destination: bareLiquidAddress(destination),
         amountSat: BigInt.zero,
-        feeRateSatPerVb: feeRateSatPerVByte?.toDouble(),
+        feeRateSatPerVb: feeRateSatPerVByte,
         drain: true,
       );
       return r.bimap(
@@ -295,7 +295,7 @@ class LiquidSpendWallet {
     required BigInt amountSat,
     required bool drain,
     required Asset asset,
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
   }) {
     return TaskEither(() async {
       final r = await _liquid.sendOnchain(
@@ -331,7 +331,7 @@ class LiquidSpendWallet {
     required BigInt amountSat,
     String? assetId,
     bool drain = false,
-    int? feeRateSatPerVByte,
+    double? feeRateSatPerVByte,
   }) {
     return SendRequest(
       chain: ChainId.liquid,
@@ -339,7 +339,7 @@ class LiquidSpendWallet {
       amountSat: amountSat.toInt(),
       assetId: assetId,
       drain: drain,
-      feeRateOverrideSatPerVByte: feeRateSatPerVByte?.toDouble(),
+      feeRateOverrideSatPerVByte: feeRateSatPerVByte,
     );
   }
 
