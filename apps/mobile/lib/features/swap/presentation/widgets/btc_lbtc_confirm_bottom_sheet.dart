@@ -5,8 +5,8 @@ import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
+import 'package:mooze_mobile/features/settings/presentation/providers/advanced_settings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
-import 'package:mooze_mobile/features/wallet/data/services/bitcoin_fee_service.dart';
 import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
 import 'package:mooze_mobile/features/swap/presentation/widgets/swap_deal_card.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
@@ -16,11 +16,28 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 import '../../domain/entities/peg.dart';
 import '../../domain/usecases/peg_orchestrator.dart';
+import '../providers/peg_quote_controller.dart';
 
+/// Confirms a peg on the live quote of the swap screen.
+///
+/// A peg has no TTL, so the sheet asks for no quote when it opens. It asks
+/// for one only when the user picks another fee speed for a peg-in.
 class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
   final BigInt amount;
   final bool isPegIn;
   final PegOrchestrator orchestrator;
+
+  /// The live quote of the swap screen. A peg-in was priced at
+  /// [feeSpeed].
+  final PegQuote quote;
+
+  /// The Bitcoin fee rates [quote] was priced with. Null for a peg-out, or
+  /// when no rate could be fetched: the sheet then shows no fee speeds.
+  final BitcoinFeeEstimate? feeEstimate;
+
+  /// The speed the sheet opens on: the economic one when the advanced
+  /// settings turn it on, else the normal one. Null with no [feeEstimate].
+  final FeeSpeed? feeSpeed;
 
   final Future<void> Function(int? feeRateSatPerVByte, PegQuote quote)
   onConfirm;
@@ -32,6 +49,9 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
     required this.amount,
     required this.isPegIn,
     required this.orchestrator,
+    required this.quote,
+    this.feeEstimate,
+    this.feeSpeed,
     required this.onConfirm,
     this.onCancel,
     this.drain = false,
@@ -42,6 +62,9 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
     required BigInt amount,
     required bool isPegIn,
     required PegOrchestrator orchestrator,
+    required PegQuote quote,
+    BitcoinFeeEstimate? feeEstimate,
+    FeeSpeed? feeSpeed,
     required Future<void> Function(int? feeRateSatPerVByte, PegQuote quote)
     onConfirm,
     VoidCallback? onCancel,
@@ -51,15 +74,17 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => BtcLbtcConfirmBottomSheet(
-            amount: amount,
-            isPegIn: isPegIn,
-            orchestrator: orchestrator,
-            onConfirm: onConfirm,
-            onCancel: onCancel,
-            drain: drain,
-          ),
+      builder: (context) => BtcLbtcConfirmBottomSheet(
+        amount: amount,
+        isPegIn: isPegIn,
+        orchestrator: orchestrator,
+        quote: quote,
+        feeEstimate: feeEstimate,
+        feeSpeed: feeSpeed,
+        onConfirm: onConfirm,
+        onCancel: onCancel,
+        drain: drain,
+      ),
     ).whenComplete(() => onCancel?.call());
   }
 
@@ -71,29 +96,16 @@ class BtcLbtcConfirmBottomSheet extends ConsumerStatefulWidget {
 class _BtcLbtcConfirmBottomSheetState
     extends ConsumerState<BtcLbtcConfirmBottomSheet> {
   bool _isConfirming = false;
-  bool _isLoadingFees = true;
+  bool _isLoadingFees = false;
   bool _feesExpanded = false;
-  FeeSpeed _selectedFeeSpeed = FeeSpeed.medium;
-  BitcoinFeeEstimate? _feeEstimate;
-  PegQuote? _currentQuote;
+  // The speed the screen priced the quote at, so the highlighted segment
+  // matches the total fees.
+  late FeeSpeed _selectedFeeSpeed = widget.feeSpeed ?? FeeSpeed.medium;
+  late PegQuote? _currentQuote = widget.quote;
   String? _quoteError;
-  final _feeService = BitcoinFeeService();
 
   PegDirection get _direction =>
       widget.isPegIn ? PegDirection.pegIn : PegDirection.pegOut;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadFeeEstimates();
-  }
-
-  Future<void> _loadFeeEstimates() async {
-    final bitcoinEstimate =
-        widget.isPegIn ? await _feeService.fetchFeeEstimate() : null;
-
-    await _requote(bitcoinEstimate?.mediumFeeSatPerVByte, bitcoinEstimate);
-  }
 
   Future<void> _onFeeSpeedChanged(FeeSpeed speed) async {
     setState(() {
@@ -103,20 +115,18 @@ class _BtcLbtcConfirmBottomSheetState
     await _requote(_getSelectedFeeRate());
   }
 
-  Future<void> _requote(int? feeRate, [BitcoinFeeEstimate? estimate]) async {
-    final result =
-        await widget.orchestrator
-            .quote(
-              direction: _direction,
-              amountSat: widget.amount,
-              feeRateSatPerVByte: feeRate,
-              drain: widget.drain,
-            )
-            .run();
+  Future<void> _requote(int? feeRate) async {
+    final result = await widget.orchestrator
+        .quote(
+          direction: _direction,
+          amountSat: widget.amount,
+          feeRateSatPerVByte: feeRate,
+          drain: widget.drain,
+        )
+        .run();
 
     if (!mounted) return;
     setState(() {
-      if (estimate != null) _feeEstimate = estimate;
       result.match(
         (error) {
           _quoteError = error.message;
@@ -138,6 +148,7 @@ class _BtcLbtcConfirmBottomSheetState
     final toAsset = widget.isPegIn ? core.Asset.lbtc : core.Asset.btc;
 
     final quote = _currentQuote;
+    final feeEstimate = widget.feeEstimate;
     final serviceFeeSat = quote?.serviceFeeSat;
     final networkFeeSat = quote?.networkFeeSat;
     final totalFeeSat = quote?.totalFeeSat;
@@ -172,44 +183,54 @@ class _BtcLbtcConfirmBottomSheetState
                 child: Column(
                   children: [
                     const SizedBox(height: 16),
-                    SwapDealCard(
-                      sendAsset: fromAsset,
-                      sendAmountSats: sendAmountSats,
-                      receiveAsset: toAsset,
-                      receiveAmountSats: receiveAmountSats,
-                      isLoadingSend: _isLoadingFees || sendAmountSats == null,
-                      isLoadingReceive: _isLoadingFees || quote == null,
-                      sendLabel: t.swap_you_send,
-                      receiveLabel: t.swap_you_receive,
-                      // A lens inside the glass sheet.
-                      backgroundColor: GlassStyle.of(context).lensFill,
+                    // Like the refresh of the Confirm Swap sheet: a new fee
+                    // speed dims the values it reprices and keeps them
+                    // visible.
+                    AnimatedOpacity(
+                      opacity: _isLoadingFees ? 0.55 : 1.0,
+                      duration: const Duration(milliseconds: 220),
+                      child: SwapDealCard(
+                        sendAsset: fromAsset,
+                        sendAmountSats: sendAmountSats,
+                        receiveAsset: toAsset,
+                        receiveAmountSats: receiveAmountSats,
+                        isLoadingSend: sendAmountSats == null,
+                        isLoadingReceive: quote == null,
+                        sendLabel: t.swap_you_send,
+                        receiveLabel: t.swap_you_receive,
+                        // A lens inside the glass sheet.
+                        backgroundColor: GlassStyle.of(context).lensFill,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     const Divider(),
                     const SizedBox(height: 16),
-                    if (widget.isPegIn) ...[
-                      if (_feeEstimate != null)
-                        FeeSpeedSelector(
-                          selectedSpeed: _selectedFeeSpeed,
-                          lowFeeLoading: false,
-                          onSpeedChanged: _onFeeSpeedChanged,
-                          lowFeeSatPerVByte: _feeEstimate!.lowFeeSatPerVByte,
-                          mediumFeeSatPerVByte:
-                              _feeEstimate!.mediumFeeSatPerVByte,
-                          fastFeeSatPerVByte: _feeEstimate!.fastFeeSatPerVByte,
-                        )
-                      else
-                        _buildFeeSpeedSelectorSkeleton(),
+                    if (widget.isPegIn && feeEstimate != null) ...[
+                      FeeSpeedSelector(
+                        selectedSpeed: _selectedFeeSpeed,
+                        // false hides the economic speed. A peg-in offers
+                        // it only when the user turned it on in the
+                        // advanced settings, after a warning.
+                        lowFeeLoading: ref.watch(pegLowFeeEnabledProvider),
+                        onSpeedChanged: _onFeeSpeedChanged,
+                        lowFeeSatPerVByte: feeEstimate.lowFeeSatPerVByte,
+                        mediumFeeSatPerVByte: feeEstimate.mediumFeeSatPerVByte,
+                        fastFeeSatPerVByte: feeEstimate.fastFeeSatPerVByte,
+                      ),
                       const SizedBox(height: 16),
                       const Divider(),
                       const SizedBox(height: 8),
                     ],
 
-                    _buildFeeBreakdown(
-                      serviceFeeSat: serviceFeeSat,
-                      networkFeeSat: networkFeeSat,
-                      totalFeeSat: totalFeeSat,
-                      isLoading: _isLoadingFees || quote == null,
+                    AnimatedOpacity(
+                      opacity: _isLoadingFees ? 0.55 : 1.0,
+                      duration: const Duration(milliseconds: 220),
+                      child: _buildFeeBreakdown(
+                        serviceFeeSat: serviceFeeSat,
+                        networkFeeSat: networkFeeSat,
+                        totalFeeSat: totalFeeSat,
+                        isLoading: quote == null,
+                      ),
                     ),
 
                     if (_quoteError != null) ...[
@@ -243,78 +264,6 @@ class _BtcLbtcConfirmBottomSheetState
     );
   }
 
-  Widget _buildFeeSpeedSelectorSkeleton() {
-    final baseColor = context.colors.baseColor;
-    final highlightColor = context.colors.highlightColor;
-
-    return Shimmer.fromColors(
-      baseColor: baseColor,
-      highlightColor: highlightColor,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 160,
-            height: 14,
-            decoration: BoxDecoration(
-              color: baseColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _buildFeeCardSkeleton(baseColor)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildFeeCardSkeleton(baseColor)),
-            ],
-          ),
-          const SizedBox(height: 12),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeeCardSkeleton(Color baseColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: baseColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 48,
-            height: 14,
-            decoration: BoxDecoration(
-              color: baseColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            width: 60,
-            height: 12,
-            decoration: BoxDecoration(
-              color: baseColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            width: 48,
-            height: 12,
-            decoration: BoxDecoration(
-              color: baseColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFeeBreakdown({
     required BigInt? serviceFeeSat,
     required BigInt? networkFeeSat,
@@ -334,15 +283,14 @@ class _BtcLbtcConfirmBottomSheetState
     // The "sending" / "receiving" rows that used to live here have
     // been removed because the SwapDealCard already surfaces both
     // amounts above this section.
-    final Widget totalValue =
-        (isLoading || totalFeeSat == null)
-            ? _ShimmerBlock(width: 80, height: 16)
-            : Text(
-              formatSats(totalFeeSat),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            );
+    final Widget totalValue = (isLoading || totalFeeSat == null)
+        ? _ShimmerBlock(width: 80, height: 16)
+        : Text(
+            formatSats(totalFeeSat),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,10 +318,9 @@ class _BtcLbtcConfirmBottomSheetState
         Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap:
-                isLoading
-                    ? null
-                    : () => setState(() => _feesExpanded = !_feesExpanded),
+            onTap: isLoading
+                ? null
+                : () => setState(() => _feesExpanded = !_feesExpanded),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -419,26 +366,26 @@ class _BtcLbtcConfirmBottomSheetState
                     curve: Curves.easeOutCubic,
                     child:
                         (_feesExpanded &&
-                                !isLoading &&
-                                serviceFeeSat != null &&
-                                networkFeeSat != null)
-                            ? Padding(
-                              padding: const EdgeInsets.only(top: 10, left: 24),
-                              child: Column(
-                                children: [
-                                  _BreakdownRow(
-                                    label: t.swap_confirm_server_fee,
-                                    value: formatSats(serviceFeeSat),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  _BreakdownRow(
-                                    label: t.swap_confirm_tx_fee,
-                                    value: formatSats(networkFeeSat),
-                                  ),
-                                ],
-                              ),
-                            )
-                            : const SizedBox.shrink(),
+                            !isLoading &&
+                            serviceFeeSat != null &&
+                            networkFeeSat != null)
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 10, left: 24),
+                            child: Column(
+                              children: [
+                                _BreakdownRow(
+                                  label: t.swap_confirm_server_fee,
+                                  value: formatSats(serviceFeeSat),
+                                ),
+                                const SizedBox(height: 6),
+                                _BreakdownRow(
+                                  label: t.swap_confirm_tx_fee,
+                                  value: formatSats(networkFeeSat),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
                 ],
               ),
@@ -464,17 +411,10 @@ class _BtcLbtcConfirmBottomSheetState
     }
   }
 
+  /// The rate of the selected speed, or null when the wallet chose it.
   int? _getSelectedFeeRate() {
-    if (_feeEstimate == null) return null;
-
-    switch (_selectedFeeSpeed) {
-      case FeeSpeed.low:
-        return _feeEstimate!.lowFeeSatPerVByte;
-      case FeeSpeed.medium:
-        return _feeEstimate!.mediumFeeSatPerVByte;
-      case FeeSpeed.fast:
-        return _feeEstimate!.fastFeeSatPerVByte;
-    }
+    final fees = widget.feeEstimate;
+    return fees == null ? null : feeRateFor(fees, _selectedFeeSpeed);
   }
 
   Future<void> _handleConfirm() async {

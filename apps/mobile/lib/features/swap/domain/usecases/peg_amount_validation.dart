@@ -60,7 +60,7 @@ class PegAmountValidation {
 
 /// Validates a peg amount with the mooze-core rules. The minimum comes from
 /// [limits], or [fallbackMinimumSats] while the limits are unknown. A drain
-/// is always valid.
+/// is valid when the spendable balance reaches the minimum.
 PegAmountValidation evaluatePegAmount({
   required PegDirection direction,
   required BigInt? amountSat,

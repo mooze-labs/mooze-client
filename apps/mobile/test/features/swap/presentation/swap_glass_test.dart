@@ -8,10 +8,10 @@ import 'package:mooze_mobile/features/swap/presentation/widgets/no_liquidity_dia
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/shared/widgets.dart';
-import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/app_text_styles.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 
 const _txid =
     'f3a9c1d2e4b5a6978877665544332211aabbccddeeff00112233445566778899';
@@ -101,16 +101,19 @@ void main() {
         ),
       );
       await _open(tester);
-      // The content fades and slides in until 1.4 s after the screen opens.
-      await tester.pump(const Duration(seconds: 1));
+      // The summary fades in as the coin comes to rest.
+      await tester.pump(Motion.durationSwap);
     }
 
-    testWidgets('shows the summary on a glass panel over the backdrop', (
+    testWidgets('shows the summary on a glass panel, on the black stage', (
       tester,
     ) async {
       await show(tester);
 
-      expect(find.byType(AppBackdrop), findsOneWidget);
+      final background = tester
+          .widget<Scaffold>(find.byType(Scaffold).last)
+          .backgroundColor!;
+      expect(background.computeLuminance(), lessThan(0.01));
       expect(find.byType(GlassPanel), findsOneWidget);
       expect(find.byType(BackdropFilter), findsNothing);
     });

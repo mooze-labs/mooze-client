@@ -4,13 +4,16 @@ import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:mooze_mobile/shared/analytics/product_flows.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:mooze_mobile/features/wallet/domain/models/bitcoin_fee_estimate.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/fee_speed_selector.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 
 import '../../di/providers/peg_providers.dart';
 import '../../domain/entities/peg.dart';
 import '../../domain/entities/peg_error.dart';
+import '../../domain/usecases/peg_orchestrator.dart';
 import '../../domain/usecases/peg_tracker.dart';
 import '../screens/swap_success_screen.dart';
 import '../utils/post_swap_refresh.dart';
@@ -23,10 +26,15 @@ class PegSwapHelper {
   final BuildContext context;
   final WidgetRef ref;
 
+  /// Opens the confirm sheet on [quote], the live quote of the swap screen,
+  /// priced with [feeEstimate] at [feeSpeed] for a peg-in.
   Future<void> executeSwap({
     required BigInt amount,
     required core.Asset fromAsset,
     required core.Asset toAsset,
+    required PegQuote quote,
+    BitcoinFeeEstimate? feeEstimate,
+    FeeSpeed? feeSpeed,
     bool drain = false,
     String? externalBitcoinAddress,
     VoidCallback? onSuccess,
@@ -45,6 +53,9 @@ class PegSwapHelper {
       amount: amount,
       isPegIn: direction.isPegIn,
       orchestrator: orchestrator,
+      quote: quote,
+      feeEstimate: feeEstimate,
+      feeSpeed: feeSpeed,
       drain: drain,
       onConfirm: (feeRateSatPerVByte, quote) async {
         final sendAmount = quote.amountSat;

@@ -15,7 +15,10 @@ import '../widgets/no_liquidity_dialog.dart';
 import '../helpers/peg_swap_helper.dart';
 import '../../di/providers/peg_providers.dart';
 import '../../domain/entities/peg.dart';
+import '../../domain/entities/peg_error.dart';
 import '../../domain/usecases/peg_amount_validation.dart';
+import '../../domain/usecases/peg_orchestrator.dart';
+import '../providers/peg_quote_controller.dart';
 import '../providers/swap_onboarding_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
@@ -54,6 +57,10 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   bool _isSyncingDecimal = false;
   bool _hasShownNoLiquidityDialog = false;
   bool _useDrain = false;
+
+  /// The rules of mooze-core for a peg amount, with the request they
+  /// checked. A check of another amount does not count.
+  ({PegQuoteRequest request, PegAmountValidation validation})? _pegCheck;
   bool _hasCheckedBtcLbtcWarning = false;
   bool _isFiatMode = false;
   double? _cachedFromPrice;
@@ -202,6 +209,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     }
 
     final swapState = ref.watch(swapControllerProvider);
+    final pegQuote = ref.watch(pegQuoteControllerProvider);
 
     final isLoading = swapState.loading;
     final error = swapState.error;
@@ -306,6 +314,18 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 const SizedBox(height: 15),
                 if (isLoading)
                   SizedBox.shrink()
+                else if (_isBtcLbtcSwap && _pegQuoteFor(pegQuote) != null)
+                  // The fees of the live peg quote, where the other pairs
+                  // show their rate.
+                  Center(
+                    child: Text(
+                      '${t.swap_confirm_total_fees} '
+                      '${_formatSats(_pegQuoteFor(pegQuote)!.totalFeeSat)} sats',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  )
                 else if (!_isBtcLbtcSwap &&
                     _fromAmountController.text.isNotEmpty &&
                     swapState.currentQuote?.quote != null) ...[
@@ -374,14 +394,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                FutureBuilder<PegAmountValidation>(
-                  future:
-                      _isBtcLbtcSwap
-                          ? _validatePegAmount()
-                          : Future.value(const PegAmountValidation.empty()),
-                  builder: (context, snapshot) {
-                    final pegValidation =
-                        snapshot.data ?? const PegAmountValidation.empty();
+                Builder(
+                  builder: (context) {
                     final hasQuote = swapState.currentQuote?.quote != null;
 
                     final isQuoteValid =
@@ -389,9 +403,23 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                         (swapState.lastSendAssetId == _fromAsset.id &&
                             swapState.lastReceiveAssetId == _toAsset.id);
 
+                    // A peg goes on only with a live quote of the amount on
+                    // screen, Max included: the rules of mooze-core passed
+                    // and mooze-core priced it. Below the minimum, SideSwap
+                    // pays nothing out and the funds are lost.
+                    final pegRequest =
+                        _isBtcLbtcSwap ? _pegQuoteRequest() : null;
+                    final pegIssue =
+                        pegRequest == null
+                            ? null
+                            : _pegIssue(t, pegQuote, pegRequest);
                     final canProceed =
                         _isBtcLbtcSwap
-                            ? (_useDrain || pegValidation.isValid) && !isLoading
+                            ? pegRequest != null &&
+                                (_pegValidationFor(pegRequest)?.isValid ??
+                                    false) &&
+                                pegQuote.isReadyFor(pegRequest) &&
+                                !isLoading
                             : _fromAmountController.text.isNotEmpty &&
                                 hasQuote &&
                                 isQuoteValid &&
@@ -399,20 +427,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
                     return Column(
                       children: [
-                        if (_isBtcLbtcSwap && pegValidation.showsIssue)
+                        if (pegIssue != null)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _StatusBanner(
                               tone: _StatusTone.warning,
                               icon: Icons.info_outline,
-                              message: switch (pegValidation.issue!) {
-                                PegAmountIssue.belowMinimum => t
-                                    .swap_min_value_sats(
-                                      _formatSats(pegValidation.minimumSats!),
-                                    ),
-                                PegAmountIssue.aboveBalance =>
-                                  t.swap_insufficient_balance,
-                              },
+                              message: pegIssue,
                             ),
                           ),
                         PrimaryButton(
@@ -795,6 +816,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     final t = AppLocalizations.of(context);
     final currencyEnum = ref.watch(currencyControllerProvider);
     final swapState = ref.watch(swapControllerProvider);
+    final pegQuote = ref.watch(pegQuoteControllerProvider);
 
     final toOptions = () {
       if (_fromAsset == core.Asset.btc) {
@@ -823,10 +845,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     String displayToAmount() {
       if (_fromAmountController.text.trim().isEmpty) return '0';
 
+      // A peg shows what arrives after the fees, from its live quote.
       if (_isBtcLbtcSwap) {
-        final amount =
-            BigInt.tryParse(_fromAmountController.text.trim()) ?? BigInt.zero;
-        return _toAsset.formatAmount(amount.toInt(), locale: locale);
+        final quote = _pegQuoteFor(pegQuote);
+        if (quote == null) return '0';
+        return _toAsset.formatAmount(
+          quote.estimatedReceiveSat.toInt(),
+          locale: locale,
+        );
       }
 
       final isQuoteValid =
@@ -841,13 +867,13 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
     // Drive shimmer / fade off the unified quote status so the
     // receive amount stays consistent with the bottom sheet's UX.
-    // BTC↔LBTC uses Breez (not Sideswap) so it has no QuoteStatus — fall
-    // back to "valid" while the user has an amount typed in.
+    // BTC↔LBTC follows its live peg quote instead.
     final hasFromAmount = _fromAmountController.text.trim().isNotEmpty;
+    final pegRequest = _isBtcLbtcSwap ? _pegQuoteRequest() : null;
     final receiveIsFetching =
-        !_isBtcLbtcSwap &&
-        hasFromAmount &&
-        swapState.status == QuoteStatus.fetching;
+        _isBtcLbtcSwap
+            ? pegRequest != null && pegQuote.isLoadingFor(pegRequest)
+            : hasFromAmount && swapState.status == QuoteStatus.fetching;
     final receiveIsRefreshing =
         !_isBtcLbtcSwap &&
         hasFromAmount &&
@@ -874,6 +900,21 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
                   );
                   if (_fromAmountController.text.trim().isEmpty) {
                     return Text('—', style: secondaryStyle);
+                  }
+                  if (_isBtcLbtcSwap) {
+                    final quote = _pegQuoteFor(pegQuote);
+                    final price = snapshot.data?.toNullable();
+                    if (quote == null || price == null) {
+                      return Text('—', style: secondaryStyle);
+                    }
+                    final fiat = _toAsset.toUsd(
+                      quote.estimatedReceiveSat,
+                      price,
+                    );
+                    return Text(
+                      '≈ ${_formatFiatFromDouble(fiat, currencyEnum, withSymbol: true)}',
+                      style: secondaryStyle,
+                    );
                   }
                   final isQuoteValid =
                       swapState.lastSendAssetId == _fromAsset.id &&
@@ -1125,6 +1166,80 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
+  PegDirection get _pegDirection =>
+      _fromAsset == core.Asset.btc ? PegDirection.pegIn : PegDirection.pegOut;
+
+  /// The peg on screen, or null without an amount. Max (a drain) sends the
+  /// balance less the network fee, so the quote reports its amount.
+  PegQuoteRequest? _pegQuoteRequest() {
+    final amount = BigInt.tryParse(_fromAmountController.text.trim());
+    if (!_useDrain && (amount == null || amount <= BigInt.zero)) return null;
+    return PegQuoteRequest(
+      direction: _pegDirection,
+      amountSat: amount ?? BigInt.zero,
+      drain: _useDrain,
+    );
+  }
+
+  PegAmountValidation? _pegValidationFor(PegQuoteRequest request) {
+    final check = _pegCheck;
+    return check != null && check.request == request
+        ? check.validation
+        : null;
+  }
+
+  /// The live quote of the peg on screen, or null while there is none.
+  PegQuote? _pegQuoteFor(PegQuoteState state) {
+    final request = _pegQuoteRequest();
+    return request != null && state.isReadyFor(request) ? state.quote : null;
+  }
+
+  /// What keeps the peg on screen from going on: the rules of mooze-core
+  /// first, then the answer of the live quote.
+  String? _pegIssue(
+    AppLocalizations t,
+    PegQuoteState quote,
+    PegQuoteRequest request,
+  ) {
+    final validation = _pegValidationFor(request);
+    if (validation != null && validation.showsIssue) {
+      return switch (validation.issue!) {
+        PegAmountIssue.belowMinimum => t.swap_min_value_sats(
+          _formatSats(validation.minimumSats!),
+        ),
+        PegAmountIssue.aboveBalance => t.swap_insufficient_balance,
+      };
+    }
+    return switch (quote.errorFor(request)) {
+      null => null,
+      PegBelowMinimum(:final minimumSat) => t.swap_min_value_sats(
+        _formatSats(BigInt.from(minimumSat)),
+      ),
+      PegInsufficientFunds() => t.swap_insufficient_balance,
+      final error => error.message,
+    };
+  }
+
+  /// Checks the peg on screen with the rules of mooze-core and, when it
+  /// passes, asks for its live quote, as the market quote does for the
+  /// other pairs. An amount that fails the rules, Max included, gets none.
+  Future<void> _executePegQuoteRequest() async {
+    final controller = ref.read(pegQuoteControllerProvider.notifier);
+    final request = _pegQuoteRequest();
+    if (request == null) {
+      controller.clear();
+      return;
+    }
+    final validation = await _validatePegAmount();
+    if (!mounted || request != _pegQuoteRequest()) return;
+    setState(() => _pegCheck = (request: request, validation: validation));
+    if (!validation.isValid) {
+      controller.clear();
+      return;
+    }
+    await controller.request(request);
+  }
+
   Future<void> _handleBtcLbtcSwap() async {
     final text = _fromAmountController.text.trim();
     final amount = BigInt.tryParse(text);
@@ -1140,29 +1255,38 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
       return;
     }
 
-    if (!_useDrain) {
-      final validation = await _validatePegAmount();
-      if (!validation.isValid) {
-        if (!mounted) return;
-        final t = AppLocalizations.of(context);
-        AppSnackBar.warning(context, switch (validation.issue) {
-          PegAmountIssue.aboveBalance => t.swap_insufficient_balance,
-          _ => t.swap_min_amount_sats(
-            _formatSats(
-              validation.minimumSats ?? BigInt.from(_minBtcLbtcSwapSats),
-            ),
+    // A drain is checked too: the balance must reach the minimum. The core
+    // checks the amount after the network fee again before it sends.
+    final validation = await _validatePegAmount();
+    if (!validation.isValid) {
+      if (!mounted) return;
+      final t = AppLocalizations.of(context);
+      AppSnackBar.warning(context, switch (validation.issue) {
+        PegAmountIssue.aboveBalance => t.swap_insufficient_balance,
+        _ => t.swap_min_amount_sats(
+          _formatSats(
+            validation.minimumSats ?? BigInt.from(_minBtcLbtcSwapSats),
           ),
-        });
-        return;
-      }
+        ),
+      });
+      return;
     }
 
     if (!mounted) return;
+
+    // The sheet opens on the live quote of this amount: a peg has no TTL,
+    // so there is nothing to ask again. Swap is off until it is ready.
+    final pegQuote = ref.read(pegQuoteControllerProvider);
+    final quote = _pegQuoteFor(pegQuote);
+    if (quote == null) return;
 
     await PegSwapHelper(context, ref).executeSwap(
       amount: amount ?? BigInt.zero,
       fromAsset: _fromAsset,
       toAsset: _toAsset,
+      quote: quote,
+      feeEstimate: pegQuote.feeEstimate,
+      feeSpeed: pegQuote.feeSpeed,
       drain: _useDrain && _isBtcLbtcSwap,
       onSuccess: _clearSwapFields,
       onError: _clearSwapFields,
@@ -1251,7 +1375,8 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
   }
 
   Future<void> _executeQuoteRequest() async {
-    if (!mounted || _isBtcLbtcSwap) return;
+    if (!mounted) return;
+    if (_isBtcLbtcSwap) return _executePegQuoteRequest();
 
     final amount = BigInt.tryParse(_fromAmountController.text.trim());
 
@@ -1273,6 +1398,9 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
   void _requestQuoteDebounced() {
     _debounce?.cancel();
+    // A peg quote answers one amount: the screen drops the old one at once,
+    // so Swap stays off until the new amount is priced.
+    if (_isBtcLbtcSwap) setState(() {});
 
     _debounce = Timer(
       const Duration(milliseconds: 800),
