@@ -87,7 +87,6 @@ String? screenForPath(String location) {
   return const {
     '/home': 'wallet',
     '/asset': 'assets',
-    '/asset-activity': 'asset',
     '/transactions-history': 'activity',
     '/send-asset': 'send',
     '/send-funds/review-onchain': 'send_review',

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_activity/asset_activity_sheet.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/expanding_glass_sheet.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/allocation_bar.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_loading.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_transaction_item.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/portfolio_history_sheet.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/balance_hero.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/home_action_row.dart';
@@ -11,10 +14,11 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/home/section_h
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
-import 'package:mooze_mobile/shared/widgets/wallet_loading_banner.dart';
+import 'package:mooze_mobile/shared/widgets/refresh_scroll_view.dart';
+import 'package:mooze_mobile/shared/widgets/status_island.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
-import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
+import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_price_info_overlay.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart' hide balanceProvider;
 import 'package:mooze_mobile/features/sync/domain/sync_state.dart';
@@ -35,17 +39,11 @@ class HoldingsAsseetScreen extends ConsumerStatefulWidget {
 }
 
 class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
-  late final ScrollController _scrollController;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-  }
+  final _pull = PullRefreshController();
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _pull.dispose();
     super.dispose();
   }
 
@@ -62,60 +60,47 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
     // body starts at the top of the screen, below the transparent bar.
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(loading: isLoadingData),
       body: Stack(
         children: [
           const Positioned.fill(child: AppBackdrop()),
           SafeArea(
             bottom: false,
             child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              _holdingsMargin,
-              16,
-              _holdingsMargin,
-              0,
-            ),
-            child: WalletLoadingBanner(
-              isVisible: isLoadingData,
-              label: t.wallet_import_msg_loading_transactions,
-            ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () => _refreshData(),
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Padding(
-                  // The bottom space keeps the last row above the
-                  // navigation bar.
-                  padding: const EdgeInsets.fromLTRB(
-                    _holdingsMargin,
-                    8,
-                    _holdingsMargin,
-                    120,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const BalanceHero(),
-                      const SizedBox(height: 24),
-                      _buildActionButtons(context),
-                      const SizedBox(height: 24),
-                      ValuesToReceiveCard(),
-                      // The app bar already says "Assets". The section
-                      // shows how the total splits between the assets.
-                      SectionHeader(title: t.wallet_holding_allocation_title),
-                      _buildAssetsList(),
-                    ],
+              children: [
+                Expanded(
+                  child: RefreshScrollView(
+                    controller: _pull,
+                    onRefresh: _refreshData,
+                    // The bottom space keeps the last row above the
+                    // navigation bar.
+                    padding: const EdgeInsets.fromLTRB(
+                      _holdingsMargin,
+                      8,
+                      _holdingsMargin,
+                      120,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // A tap on the change chip opens the history of the
+                        // portfolio.
+                        const BalanceHero(
+                          onVariationTap: showPortfolioHistorySheet,
+                        ),
+                        const SizedBox(height: 24),
+                        _buildActionButtons(context),
+                        const SizedBox(height: 24),
+                        ValuesToReceiveCard(),
+                        // The app bar already says "Assets". The section
+                        // shows how the total splits between the assets.
+                        SectionHeader(title: t.wallet_holding_allocation_title),
+                        _buildAssetsList(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        ],
+              ],
             ),
           ),
         ],
@@ -131,42 +116,28 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
     } catch (e) {
       debugPrint('Erro durante refresh: $e');
     }
-    _resetScrollToTop();
   }
 
-  Future<void> _resetScrollToTop() async {
-    if (!mounted) return;
-    await Future.delayed(Motion.durationBase);
-    if (!mounted || !_scrollController.hasClients) return;
-    if (_scrollController.offset == 0) return;
-    // Reduced motion jumps to the top without a scroll animation.
-    if (Motion.isReduced(context)) {
-      _scrollController.jumpTo(0);
-      return;
-    }
-    try {
-      await _scrollController.animateTo(
-        0,
-        duration: Motion.durationEmphasis,
-        curve: Motion.curveMove,
-      );
-    } catch (_) {
-      // `animateTo` can throw if the controller detaches mid-flight.
-    }
-    if (mounted &&
-        _scrollController.hasClients &&
-        _scrollController.offset != 0) {
-      _scrollController.jumpTo(0);
-    }
-  }
-
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar({required bool loading}) {
     final t = AppLocalizations.of(context);
+    final offline = ref.watch(isUsingCacheProvider);
     return BackdropAppBar(
       title: Text(t.wallet_holding_appbar_title),
       actions: [
-        OfflineIndicator(onTap: () => OfflinePriceInfoOverlay.show(context)),
-        const SizedBox(width: 16),
+        // The island is the indicator of the pull-to-refresh too.
+        ListenableBuilder(
+          listenable: _pull,
+          builder: (context, _) => StatusIsland(
+            alignment: Alignment.centerRight,
+            offline: offline,
+            loading: loading || _pull.refreshing,
+            pull: _pull.progress,
+            loadingLabel: t.status_island_sync,
+            loadingSemanticsLabel: t.wallet_import_msg_loading_transactions,
+            onOfflineTap: () => OfflinePriceInfoOverlay.show(context),
+          ),
+        ),
+        const SizedBox(width: _holdingsMargin),
       ],
     );
   }
@@ -199,25 +170,23 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
         final content = holdingsAsync.when(
           skipLoadingOnRefresh: true,
           skipLoadingOnReload: true,
-          data:
-              (holdingsResult) => holdingsResult.fold(
-                (error) => KeyedSubtree(
-                  key: const ValueKey('error'),
-                  child: _buildErrorWidget(error),
-                ),
-                (holdings) => KeyedSubtree(
-                  key: const ValueKey('data'),
-                  child: _buildHoldingsList(holdings),
-                ),
-              ),
+          data: (holdingsResult) => holdingsResult.fold(
+            (error) => KeyedSubtree(
+              key: const ValueKey('error'),
+              child: _buildErrorWidget(error),
+            ),
+            (holdings) => KeyedSubtree(
+              key: const ValueKey('data'),
+              child: _buildHoldingsList(holdings),
+            ),
+          ),
           loading: () => const AssetLoading(key: ValueKey('loading')),
-          error:
-              (error, stack) => KeyedSubtree(
-                key: const ValueKey('error'),
-                child: _buildErrorWidget(
-                  t.wallet_holding_unexpected_error('$error'),
-                ),
-              ),
+          error: (error, stack) => KeyedSubtree(
+            key: const ValueKey('error'),
+            child: _buildErrorWidget(
+              t.wallet_holding_unexpected_error('$error'),
+            ),
+          ),
         );
 
         // The skeleton cross-fades to the content. Value updates keep the
@@ -226,11 +195,10 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
           duration: Motion.of(context, Motion.durationBase),
           switchInCurve: Motion.curveMove,
           switchOutCurve: Motion.curveMove,
-          layoutBuilder:
-              (current, previous) => Stack(
-                alignment: Alignment.topCenter,
-                children: [...previous, if (current != null) current],
-              ),
+          layoutBuilder: (current, previous) => Stack(
+            alignment: Alignment.topCenter,
+            children: [...previous, if (current != null) current],
+          ),
           child: content,
         );
       },
@@ -302,35 +270,75 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                     ],
                   ),
                 ),
-                const PanelDivider(),
               ],
-              for (var i = 0; i < holdings.length; i++) ...[
-                if (i > 0)
-                  const PanelDivider(indent: AssetTransactionItem.textInset),
-                MergeSemantics(
-                  child: InkWell(
-                    onTap: () => context.push(
-                      '/asset-activity',
-                      extra: holdings[i].asset,
-                    ),
-                    child: AssetTransactionItem(
-                      icon: holdings[i].asset.iconPath,
-                      title: holdings[i].asset.name,
-                      ticker: holdings[i].asset.ticker,
-                      balance: holdings[i].formattedBalance,
-                      value: holdings[i].formattedFiatValue,
-                      fiatValue: holdings[i].fiatValue,
-                      // A muted "R\$ 0,00" already says "no balance".
-                      muted: !holdings[i].hasBalance,
-                      isHidden: isHidden,
-                    ),
+              // Each row is the origin of its activity sheet. The origin
+              // covers the row's whole slice of the panel: the hairline
+              // above it and, at the ends, the panel corners. The sheet
+              // then opens from, and closes into, the row as it looks.
+              for (var i = 0; i < holdings.length; i++)
+                GlassSheetOrigin(
+                  borderRadius: _rowSliceRadius(
+                    first: i == 0 && total <= 0,
+                    last: i == holdings.length - 1,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (i > 0)
+                        const PanelDivider(
+                          indent: AssetTransactionItem.textInset,
+                        )
+                      else if (total > 0)
+                        const PanelDivider(),
+                      Builder(
+                        builder: (context) => MergeSemantics(
+                          // No ripple and no press highlight: the sheet
+                          // grows out of the row, and the row stays as it
+                          // is.
+                          child: InkWell(
+                            onTap: () => showAssetActivitySheet(
+                              context,
+                              asset: holdings[i].asset,
+                            ),
+                            splashFactory: NoSplash.splashFactory,
+                            highlightColor: Colors.transparent,
+                            child: AssetTransactionItem(
+                              icon: holdings[i].asset.iconPath,
+                              title: holdings[i].asset.name,
+                              ticker: holdings[i].asset.ticker,
+                              balance: holdings[i].formattedBalance,
+                              value: holdings[i].formattedFiatValue,
+                              fiatValue: holdings[i].fiatValue,
+                              // A muted "R\$ 0,00" already says "no balance".
+                              muted: !holdings[i].hasBalance,
+                              isHidden: isHidden,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
             ],
           ),
         );
       },
+    );
+  }
+
+  /// Corners of a row's slice of the panel: the panel corners at the top of
+  /// the [first] slice and at the bottom of the [last] slice.
+  static BorderRadius _rowSliceRadius({
+    required bool first,
+    required bool last,
+  }) {
+    const corner = AppSurfaces.panelRadius;
+    return BorderRadius.only(
+      topLeft: first ? corner.topLeft : Radius.zero,
+      topRight: first ? corner.topRight : Radius.zero,
+      bottomLeft: last ? corner.bottomLeft : Radius.zero,
+      bottomRight: last ? corner.bottomRight : Radius.zero,
     );
   }
 

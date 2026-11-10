@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/errors.dart';
+import 'package:mooze_mobile/shared/connectivity/providers/connectivity_provider.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/services/providers/app_logger_provider.dart';
 
@@ -89,6 +90,29 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
 
   AssetPriceHistoryNotifier(this.ref) : super(const AssetPriceHistoryState());
 
+  /// Puts [result] in [histories]. A failure never replaces a history that
+  /// loaded before, so a refresh while offline keeps the sparkline.
+  static void _put(
+    Map<Asset, Either<String, List<double>>> histories,
+    Asset asset,
+    Either<String, List<double>> result,
+  ) {
+    if (result.isLeft() && (histories[asset]?.isRight() ?? false)) return;
+    histories[asset] = result;
+  }
+
+  /// Loads again the histories that failed, for example offline. Nothing
+  /// else asks for them: a row asks only for a history it has not got.
+  Future<void> retryFailed() async {
+    final failed = [
+      for (final MapEntry(key: asset, value: history)
+          in state.priceHistory.entries)
+        if (history.isLeft()) asset,
+    ];
+    if (failed.isEmpty) return;
+    await fetchMultipleAssets(failed, forceRefresh: true);
+  }
+
   Future<void> fetchAssetPriceHistory(
     Asset asset, {
     bool forceRefresh = false,
@@ -104,22 +128,20 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
 
     if (!mounted) return;
 
-    // CRITICAL: Invalidate the FutureProvider to force fresh data fetch
-    if (forceRefresh) {
-      ref.invalidate(assetPriceHistoryProvider(asset));
-    }
-
     state = state.copyWith(isLoading: true);
 
     try {
-      final result = await ref.read(assetPriceHistoryProvider(asset).future);
+      // A forced refresh reloads the history once (see fetchMultipleAssets).
+      final result = await (forceRefresh
+          ? ref.refresh(assetPriceHistoryProvider(asset).future)
+          : ref.read(assetPriceHistoryProvider(asset).future));
 
       if (!mounted) return;
 
       final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
         state.priceHistory,
       );
-      updatedPriceHistory[asset] = result;
+      _put(updatedPriceHistory, asset, result);
 
       state = state.copyWith(
         priceHistory: updatedPriceHistory,
@@ -132,7 +154,7 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
       final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
         state.priceHistory,
       );
-      updatedPriceHistory[asset] = Left('Erro ao carregar dados: $e');
+      _put(updatedPriceHistory, asset, Left('Erro ao carregar dados: $e'));
 
       state = state.copyWith(
         priceHistory: updatedPriceHistory,
@@ -153,7 +175,7 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
       final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
         state.priceHistory,
       );
-      updatedPriceHistory[asset] = result;
+      _put(updatedPriceHistory, asset, result);
 
       state = state.copyWith(
         priceHistory: updatedPriceHistory,
@@ -166,7 +188,7 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
       final updatedPriceHistory = Map<Asset, Either<String, List<double>>>.from(
         state.priceHistory,
       );
-      updatedPriceHistory[asset] = Left('Erro ao carregar dados: $e');
+      _put(updatedPriceHistory, asset, Left('Erro ao carregar dados: $e'));
 
       state = state.copyWith(
         priceHistory: updatedPriceHistory,
@@ -193,18 +215,15 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
 
     if (assetsToFetch.isEmpty) return;
 
-    // CRITICAL: Invalidate all FutureProviders to force fresh data fetch
-    if (forceRefresh) {
-      for (final asset in assetsToFetch) {
-        ref.invalidate(assetPriceHistoryProvider(asset));
-      }
-    }
-
     state = state.copyWith(isLoading: true);
 
     try {
+      // A forced refresh reloads each history once. An invalidate followed
+      // by a read would rebuild a live provider twice: two requests.
       final futures = assetsToFetch.map(
-        (asset) => ref.read(assetPriceHistoryProvider(asset).future),
+        (asset) => forceRefresh
+            ? ref.refresh(assetPriceHistoryProvider(asset).future)
+            : ref.read(assetPriceHistoryProvider(asset).future),
       );
 
       final results = await Future.wait(futures);
@@ -216,7 +235,7 @@ class AssetPriceHistoryNotifier extends StateNotifier<AssetPriceHistoryState> {
       );
 
       for (int i = 0; i < assetsToFetch.length; i++) {
-        updatedPriceHistory[assetsToFetch[i]] = results[i];
+        _put(updatedPriceHistory, assetsToFetch[i], results[i]);
       }
 
       state = state.copyWith(
@@ -593,7 +612,13 @@ final assetPriceHistoryCacheProvider =
     StateNotifierProvider<AssetPriceHistoryNotifier, AssetPriceHistoryState>((
       ref,
     ) {
-      return AssetPriceHistoryNotifier(ref);
+      final notifier = AssetPriceHistoryNotifier(ref);
+      // The histories that failed offline load again when the network
+      // returns, without a restart of the app.
+      ref.listen<bool>(isOnlineProvider, (wasOnline, online) {
+        if (wasOnline == false && online) notifier.retryFailed();
+      });
+      return notifier;
     });
 
 final balanceCacheProvider =

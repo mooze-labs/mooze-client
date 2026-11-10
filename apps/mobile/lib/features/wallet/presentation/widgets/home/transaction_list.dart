@@ -313,7 +313,7 @@ class SuccessfulTransactionList extends ConsumerWidget {
     }
 
     final t = AppLocalizations.of(context);
-    final dates = _TransactionDates(context, t);
+    final dates = TransactionDates(context, t);
     final leading = [
       for (var i = 0; i < leadingRows.length; i++) ...[
         if (i > 0) const PanelDivider(indent: HomeTransactionItem.textInset),
@@ -350,7 +350,7 @@ class SuccessfulTransactionList extends ConsumerWidget {
             child: Column(children: leading),
           ),
         for (var g = 0; g < groups.length; g++) ...[
-          _DateHeader(
+          TransactionDateHeader(
             label: dates.day(groups[g].first.createdAt),
             isFirst: g == 0 && leading.isEmpty,
           ),
@@ -500,8 +500,8 @@ class SuccessfulTransactionList extends ConsumerWidget {
 ///
 /// Today and yesterday read as words. Other days show the day and the
 /// short month, and the year when it is not the current year.
-class _TransactionDates {
-  _TransactionDates(BuildContext context, this.t)
+class TransactionDates {
+  TransactionDates(BuildContext context, this.t)
     : _locale = Localizations.localeOf(context).toString(),
       _today = DateUtils.dateOnly(DateTime.now());
 
@@ -524,8 +524,12 @@ class _TransactionDates {
 }
 
 /// Date label above one day of transactions.
-class _DateHeader extends StatelessWidget {
-  const _DateHeader({required this.label, required this.isFirst});
+class TransactionDateHeader extends StatelessWidget {
+  const TransactionDateHeader({
+    super.key,
+    required this.label,
+    required this.isFirst,
+  });
 
   final String label;
 
@@ -756,6 +760,10 @@ class HomeTransactionItem extends StatelessWidget {
   final bool isVisible;
   final Transaction? transaction;
 
+  /// Strikes the amount through and mutes it, for money that did not move,
+  /// such as an expired Pix deposit.
+  final bool amountStruck;
+
   const HomeTransactionItem({
     super.key,
     required this.icon,
@@ -765,6 +773,7 @@ class HomeTransactionItem extends StatelessWidget {
     required this.time,
     required this.isVisible,
     this.transaction,
+    this.amountStruck = false,
   });
 
   @override
@@ -889,7 +898,15 @@ class HomeTransactionItem extends StatelessWidget {
   /// The sign and the direction badge show the direction, so the amount
   /// uses the primary text color.
   Widget _buildAmount(BuildContext context, {required bool showValue}) {
-    final style = _amountStyle(context);
+    var style = _amountStyle(context);
+    if (amountStruck) {
+      final muted = context.colors.textTertiary;
+      style = style?.copyWith(
+        color: muted,
+        decoration: TextDecoration.lineThrough,
+        decorationColor: muted,
+      );
+    }
     if (!showValue) return Text('', style: style);
     return _masked(context, Text(value, style: style));
   }

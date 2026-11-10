@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
@@ -10,9 +9,9 @@ import 'package:mooze_mobile/shared/prices/providers/currency_controller_provide
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Identity + balance hero: a clean centered asset logo, the current balance,
-/// its fiat equivalent, and a flat market-price line. No tinted containers or
-/// chips — the balance is the focal point.
+/// Balance hero: the current balance, its fiat equivalent, and a flat
+/// market-price line. No tinted containers or chips — the balance is the
+/// focal point. The sheet header above it shows the asset logo and name.
 class AssetActivityHeader extends ConsumerWidget {
   final Asset asset;
 
@@ -23,7 +22,7 @@ class AssetActivityHeader extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     final hidden = ref.watch(isVisibleProvider);
     final locale = ref.watch(localeStringProvider);
-    final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
+    final currencyIcon = ref.watch(currencySymbolProvider);
     final holdingsAsync = ref.watch(walletHoldingsProvider);
 
     final holding = holdingsAsync.valueOrNull?.fold(
@@ -31,19 +30,16 @@ class AssetActivityHeader extends ConsumerWidget {
       (holdings) => _findHolding(holdings),
     );
 
-    final balanceText =
-        hidden
-            ? '••••••'
-            : (holding?.formattedBalance ??
-                WalletHolding.formatBalance(BigInt.zero, asset, locale));
+    final balanceText = hidden
+        ? '••••••'
+        : (holding?.formattedBalance ??
+              WalletHolding.formatBalance(BigInt.zero, asset, locale));
     final fiatText = hidden ? '••••••' : holding?.formattedFiatValue;
     final price = holding?.fiatPrice;
     final secondary = context.colors.textSecondary;
 
     return Column(
       children: [
-        SvgPicture.asset(asset.iconPath, width: 60, height: 60),
-        const SizedBox(height: 20),
         Text(
           balanceText,
           textAlign: TextAlign.center,

@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/asset_detail_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_market/asset_market_sheet.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/expanding_glass_sheet.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
@@ -18,8 +19,20 @@ class AssetGraphCard extends ConsumerWidget {
 
   const AssetGraphCard({super.key, required this.asset});
 
+  /// Corner radius of the card. The market sheet grows out of it.
+  static const BorderRadius borderRadius = BorderRadius.all(
+    Radius.circular(16),
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return GlassSheetOrigin(
+      borderRadius: borderRadius,
+      child: _buildCard(ref),
+    );
+  }
+
+  Widget _buildCard(WidgetRef ref) {
     final cachedPriceHistory = ref.watch(
       cachedAssetPriceHistoryProvider(asset),
     );
@@ -58,7 +71,7 @@ class SuccessfulAssetCard extends ConsumerWidget {
     final percentage = ((klines.last - klines.first) / klines.first) * 100;
     final isPositive = klines.last > klines.first;
     final assetValue = spotPrice ?? klines.last;
-    final icon = ref.watch(currencyControllerProvider.notifier).icon;
+    final icon = ref.watch(currencySymbolProvider);
     final colorScheme = context.colorScheme;
     final numberFormat = NumberFormat(
       '#,##0.00',
@@ -66,14 +79,7 @@ class SuccessfulAssetCard extends ConsumerWidget {
     );
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AssetDetailScreen(asset: asset),
-          ),
-        );
-      },
+      onTap: () => showAssetMarketSheet(context, asset: asset),
       child: Container(
         decoration: BoxDecoration(
           color: colorScheme.onSurface.withValues(alpha: 0.05),
@@ -232,14 +238,7 @@ class LoadingAssetCard extends StatelessWidget {
     final highlightColor = context.colors.highlightColor;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AssetDetailScreen(asset: asset),
-          ),
-        );
-      },
+      onTap: () => showAssetMarketSheet(context, asset: asset),
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -328,14 +327,7 @@ class ErrorAssetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AssetDetailScreen(asset: asset),
-          ),
-        );
-      },
+      onTap: () => showAssetMarketSheet(context, asset: asset),
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLow,

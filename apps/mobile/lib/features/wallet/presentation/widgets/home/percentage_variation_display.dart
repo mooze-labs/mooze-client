@@ -13,11 +13,20 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// light and the dark theme.
 ///
 /// Color changes cross-fade and the arrow turns when the direction flips.
-/// The value uses [AnimatedAmount].
+/// The value uses [AnimatedAmount], unless [animateValue] is false.
 class ChangeChip extends StatelessWidget {
-  const ChangeChip({super.key, required this.percentage});
+  const ChangeChip({
+    super.key,
+    required this.percentage,
+    this.animateValue = true,
+  });
 
   final double percentage;
+
+  /// Animates value changes with [AnimatedAmount]. Set it to false where
+  /// the value follows the finger, for example while a chart is scrubbed:
+  /// [AnimatedAmount] shows at most one change per second.
+  final bool animateValue;
 
   /// Returns true when [percentage] shows as 0,00%.
   ///
@@ -89,10 +98,17 @@ class ChangeChip extends StatelessWidget {
             style: textStyle ?? const TextStyle(),
             // No explicit style: the text reads the animated default style,
             // so its color cross-fades with the container.
-            child: AnimatedAmount(
-              text: format(context, percentage),
-              value: percentage,
-            ),
+            child: animateValue
+                ? AnimatedAmount(
+                    text: format(context, percentage),
+                    value: percentage,
+                  )
+                : Text(
+                    format(context, percentage),
+                    style: const TextStyle(
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
           ),
         ],
       ),

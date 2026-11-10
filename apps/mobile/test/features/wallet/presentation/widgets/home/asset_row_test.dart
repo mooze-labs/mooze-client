@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_icon_hero.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/asset_row.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/themes/motion.dart';
@@ -123,71 +121,6 @@ void main() {
         tester.getTopLeft(boxes.at(0)).dx,
         tester.getTopLeft(boxes.at(1)).dx,
       );
-    });
-  });
-
-  group('Asset icon Hero', () {
-    Widget detail() => const Scaffold(
-      body: Align(
-        alignment: Alignment.topLeft,
-        child: AssetIconHero(asset: Asset.btc, size: 22),
-      ),
-    );
-
-    Widget home() => wrapForTest(
-      Builder(
-        builder: (context) => Scaffold(
-          body: AssetRowView(
-            asset: Asset.btc,
-            trailing: const SizedBox(),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => detail()),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-
-    testWidgets('the row icon is a Hero with the shared tag', (tester) async {
-      await tester.pumpWidget(home());
-
-      final hero = tester.widget<Hero>(find.byType(Hero));
-      expect(hero.tag, assetIconHeroTag(Asset.btc));
-      expect(tester.widget<HeroMode>(find.byType(HeroMode)).enabled, isTrue);
-    });
-
-    testWidgets('the icon flies to the detail screen', (tester) async {
-      await tester.pumpWidget(home());
-      await tester.tap(find.byType(AssetRowView));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // During the flight the icon size is between the row size and the
-      // app bar size.
-      final size = tester.getSize(find.byType(SvgPicture).last);
-      expect(size.width, inExclusiveRange(22, AssetRowView.iconSize));
-
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('reduced motion turns the flight off', (tester) async {
-      reduceMotion(tester);
-      await tester.pumpWidget(home());
-      expect(tester.widget<HeroMode>(find.byType(HeroMode)).enabled, isFalse);
-
-      await tester.tap(find.byType(AssetRowView));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      for (final element in find.byType(SvgPicture).evaluate()) {
-        final width = (element.renderObject! as RenderBox).size.width;
-        expect(width, anyOf(22, AssetRowView.iconSize));
-      }
-
-      await tester.pumpAndSettle();
     });
   });
 }

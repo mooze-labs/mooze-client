@@ -65,22 +65,36 @@ final assetPriceHistoryProvider = FutureProvider.autoDispose
           .run();
     });
 
+/// Loads one price history from the network.
+typedef PriceHistoryFetcher =
+    Future<Either<String, List<double>>> Function(
+      AssetPriceHistoryParams params,
+    );
+
+/// The network source of price histories. [assetPriceHistoryWithPeriodProvider]
+/// and the market history cache both load through it.
+final priceHistoryFetcherProvider = Provider<PriceHistoryFetcher>((ref) {
+  return (params) async {
+    final priceHistorySvc = ref.read(priceHistoryServiceProvider);
+
+    return await priceHistorySvc
+        .flatMap(
+          (service) => service.getKlinesForPeriod(
+            params.asset,
+            params.interval,
+            params.periodInDays,
+          ),
+        )
+        .run();
+  };
+});
+
 final assetPriceHistoryWithPeriodProvider = FutureProvider.autoDispose
     .family<Either<String, List<double>>, AssetPriceHistoryParams>((
       ref,
       params,
     ) async {
-      final priceHistorySvc = ref.read(priceHistoryServiceProvider);
-
-      return await priceHistorySvc
-          .flatMap(
-            (service) => service.getKlinesForPeriod(
-              params.asset,
-              params.interval,
-              params.periodInDays,
-            ),
-          )
-          .run();
+      return ref.read(priceHistoryFetcherProvider)(params);
     });
 
 final assetPercentageVariationProvider = FutureProvider.autoDispose

@@ -137,6 +137,36 @@ void main() {
       expect(find.byType(GlassSheet), findsNothing);
     });
 
+    testWidgets('the secondary action closes the sheet and runs', (
+      tester,
+    ) async {
+      _usePhoneScreen(tester);
+      var primary = 0;
+      var secondary = 0;
+      await tester.pumpWidget(
+        _launcher(
+          (context) => showGlassInfoSheet(
+            context,
+            title: 'Como receber',
+            steps: const [('Selecione o ativo', 'Escolha o ativo.')],
+            actionLabel: 'Ir',
+            onAction: () => primary++,
+            secondaryActionLabel: 'Ver taxas',
+            onSecondaryAction: () => secondary++,
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      _expectFloating(tester);
+
+      await tester.tap(find.text('Ver taxas'));
+      await tester.pumpAndSettle();
+
+      expect((primary, secondary), (0, 1));
+      expect(find.byType(GlassSheet), findsNothing);
+    });
+
     testWidgets('the sheet slides in over the open duration', (tester) async {
       _usePhoneScreen(tester);
       await tester.pumpWidget(_launcher(_openInfo));

@@ -8,9 +8,12 @@ import 'package:fpdart/fpdart.dart' hide State;
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/data_refresh_trigger.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/market_period.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/portfolio_history_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_display_mode_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_total_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/expanding_glass_sheet.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/percentage_variation_display.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/formatters/sats_input_formatter.dart';
@@ -63,9 +66,16 @@ class BalanceAmount {
 /// the wallet providers and shows [BalanceHeroView].
 ///
 /// A tap on the amount cycles fiat, BTC, and sats. The eye button toggles
-/// [isVisibleProvider].
+/// [isVisibleProvider]. With [onVariationTap], a tap on the change chip
+/// runs it, and the hero keeps the 1D history of the portfolio computed,
+/// so the history sheet of the chip opens with its chart at once.
 class BalanceHero extends ConsumerWidget {
-  const BalanceHero({super.key});
+  const BalanceHero({super.key, this.onVariationTap});
+
+  /// Runs on a tap on the change chip, with a context below the chip's
+  /// [GlassSheetOrigin], so a sheet can grow out of the chip. Null leaves
+  /// the chip without a tap.
+  final void Function(BuildContext origin)? onVariationTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -76,7 +86,7 @@ class BalanceHero extends ConsumerWidget {
     // Watch the refresh trigger to re-render without loading state.
     ref.watch(dataRefreshTriggerProvider);
 
-    final currencyIcon = ref.watch(currencyControllerProvider.notifier).icon;
+    final currencyIcon = ref.watch(currencySymbolProvider);
     final numberFormat = NumberFormat(
       '#,##0.00',
       Localizations.localeOf(context).toString(),
@@ -118,6 +128,12 @@ class BalanceHero extends ConsumerWidget {
 
     final variation = ref.watch(totalWalletVariationProvider);
 
+    // The change chip opens the history of the portfolio. A listener keeps
+    // its 1D chart computed, as the market sheets keep theirs in a cache.
+    if (onVariationTap != null) {
+      ref.listen(portfolioHistoryProvider(MarketPeriod.day), (_, _) {});
+    }
+
     return BalanceHeroView(
       amount: amount,
       mode: displayMode,
@@ -130,6 +146,7 @@ class BalanceHero extends ConsumerWidget {
       onCycleMode: () =>
           ref.read(walletDisplayModeProvider.notifier).state = displayMode.next,
       onPendingPixTap: () => context.go('/asset'),
+      onVariationTap: onVariationTap,
     );
   }
 
@@ -184,6 +201,7 @@ class BalanceHeroView extends StatefulWidget {
     required this.onCycleMode,
     this.showPendingPix = false,
     this.onPendingPixTap,
+    this.onVariationTap,
   });
 
   /// The balance. Null data means that the balance is not available.
@@ -201,6 +219,9 @@ class BalanceHeroView extends StatefulWidget {
   final VoidCallback onCycleMode;
   final bool showPendingPix;
   final VoidCallback? onPendingPixTap;
+
+  /// Runs on a tap on the change chip (see [BalanceHero.onVariationTap]).
+  final void Function(BuildContext origin)? onVariationTap;
 
   @override
   State<BalanceHeroView> createState() => _BalanceHeroViewState();
@@ -389,10 +410,32 @@ class _BalanceHeroViewState extends State<BalanceHeroView> {
     } else {
       final value = variation.valueOrNull;
       // A change that shows as 0,00% shows no chip.
-      chip = value == null || ChangeChip.isFlat(value)
-          ? const SizedBox.shrink(key: ValueKey('none'))
-          : ChangeChip(key: const ValueKey('chip'), percentage: value);
+      final onTap = widget.onVariationTap;
+      if (value == null || ChangeChip.isFlat(value)) {
+        chip = const SizedBox.shrink(key: ValueKey('none'));
+      } else if (onTap == null) {
+        chip = ChangeChip(key: const ValueKey('chip'), percentage: value);
+      } else {
+        // The chip looks the same and opens more detail: a press sinks it
+        // a little, and a sheet grows out of it.
+        chip = GlassSheetOrigin(
+          key: const ValueKey('chip'),
+          borderRadius: const BorderRadius.all(Radius.circular(999)),
+          child: Builder(
+            builder: (origin) => Semantics(
+              button: true,
+              hint: AppLocalizations.of(origin).wallet_portfolio_history_title,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onTap(origin),
+                child: PressScale(child: ChangeChip(percentage: value)),
+              ),
+            ),
+          ),
+        );
+      }
     }
+    
     return AnimatedSwitcher(
       duration: Motion.of(context, Motion.durationBase),
       switchInCurve: Motion.curveMove,

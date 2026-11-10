@@ -12,16 +12,20 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// The sheet opens over [Motion.durationSlow] and closes over
 /// [Motion.durationExit]. With reduced motion, it opens and closes at once.
 /// It opens on the root navigator, so it also covers the floating
-/// navigation bar.
+/// navigation bar. With [dismissible] false, a tap outside and a drag do
+/// not close the sheet: only its own buttons do.
 Future<T?> showFloatingGlassSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
+  bool dismissible = true,
 }) {
   final reduced = Motion.isReduced(context);
   return showModalBottomSheet<T>(
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
+    isDismissible: dismissible,
+    enableDrag: dismissible,
     elevation: 0,
     backgroundColor: Colors.transparent,
     sheetAnimationStyle: AnimationStyle(
@@ -35,14 +39,24 @@ Future<T?> showFloatingGlassSheet<T>(
 }
 
 /// Top of a floating glass sheet: the drag handle, the title, and a close
-/// button.
+/// button. An optional [leading] widget sits before the title, and an
+/// optional [subtitle] below it.
 ///
 /// Put it in a [GlassSheet] with an 8 pt side padding. The title then
 /// starts 20 pt from the edge of the glass, as the sheet content does.
 class GlassSheetHeader extends StatelessWidget {
-  const GlassSheetHeader({super.key, required this.title});
+  const GlassSheetHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.leading,
+  });
 
   final String title;
+  final String? subtitle;
+
+  /// Widget before the title, for example an asset icon.
+  final Widget? leading;
 
   /// Largest text scale of the title.
   static const double _maxTitleScale = 1.5;
@@ -67,22 +81,39 @@ class GlassSheetHeader extends StatelessWidget {
         Row(
           children: [
             const SizedBox(width: 12),
+            if (leading case final leading?) ...[
+              leading,
+              const SizedBox(width: 12),
+            ],
             Expanded(
-              child: Semantics(
-                header: true,
-                child: Text(
-                  title,
-                  // As with the large screen titles, the title grows with
-                  // the system text size up to 150%. Above that, a long
-                  // word breaks inside the word on a narrow screen.
-                  textScaler: MediaQuery.textScalerOf(
-                    context,
-                  ).clamp(maxScaleFactor: _maxTitleScale),
-                  style: context.textTheme.titleLarge?.copyWith(
-                    color: context.colors.textPrimary,
-                    fontWeight: FontWeight.w700,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      title,
+                      // As with the large screen titles, the title grows
+                      // with the system text size up to 150%. Above that,
+                      // a long word breaks inside the word on a narrow
+                      // screen.
+                      textScaler: MediaQuery.textScalerOf(
+                        context,
+                      ).clamp(maxScaleFactor: _maxTitleScale),
+                      style: context.textTheme.titleLarge?.copyWith(
+                        color: context.colors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
+                  if (subtitle case final subtitle?)
+                    Text(
+                      subtitle,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                ],
               ),
             ),
             IconButton(
@@ -112,6 +143,8 @@ Future<void> showGlassInfoSheet(
   String? hint,
   String? actionLabel,
   VoidCallback? onAction,
+  String? secondaryActionLabel,
+  VoidCallback? onSecondaryAction,
 }) {
   return showFloatingGlassSheet<void>(
     context,
@@ -121,15 +154,17 @@ Future<void> showGlassInfoSheet(
       hint: hint,
       actionLabel: actionLabel,
       onAction: onAction,
+      secondaryActionLabel: secondaryActionLabel,
+      onSecondaryAction: onSecondaryAction,
     ),
   );
 }
 
 /// Floating glass sheet that explains a screen in numbered steps.
 ///
-/// Below the steps, it can show a hint and one action. The steps scroll
-/// when they do not fit, and the action stays visible. A tap on the action
-/// closes the sheet first and then runs [onAction].
+/// Below the steps, it can show a hint, one action and a secondary text
+/// action. The steps scroll when they do not fit, and the actions stay
+/// visible. A tap on an action closes the sheet first and then runs it.
 class GlassInfoSheet extends StatelessWidget {
   const GlassInfoSheet({
     super.key,
@@ -138,9 +173,15 @@ class GlassInfoSheet extends StatelessWidget {
     this.hint,
     this.actionLabel,
     this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
   }) : assert(
          (actionLabel == null) == (onAction == null),
          'Give both actionLabel and onAction, or neither',
+       ),
+       assert(
+         (secondaryActionLabel == null) == (onSecondaryAction == null),
+         'Give both secondaryActionLabel and onSecondaryAction, or neither',
        );
 
   final String title;
@@ -152,6 +193,11 @@ class GlassInfoSheet extends StatelessWidget {
   /// Label of the action button. Null hides the button.
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// Label of a text button below the action, for a less common path.
+  /// Null hides the button.
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -219,6 +265,25 @@ class GlassInfoSheet extends StatelessWidget {
                   Navigator.of(context).pop();
                   onAction!();
                 },
+              ),
+            ),
+          ],
+          if (secondaryActionLabel case final label?) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  onSecondaryAction!();
+                },
+                style: TextButton.styleFrom(
+                  // A secondary path stays neutral. The brand color is for
+                  // the main action.
+                  foregroundColor: context.colors.textPrimary,
+                  minimumSize: const Size(64, 48),
+                ),
+                child: Text(label),
               ),
             ),
           ],

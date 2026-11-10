@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/data_refresh_trigger.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/asset_detail/asset_detail_screen.dart';
-import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_icon_hero.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/market_history_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/providers/market_period.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_market/asset_market_sheet.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/expanding_glass_sheet.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/percentage_variation_display.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
@@ -15,11 +18,11 @@ import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/shared/widgets/motion/animated_amount.dart';
 import 'package:mooze_mobile/shared/widgets/motion/skeleton.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// The favorite assets as rows in one Liquid Glass panel, separated by inset
-/// hairlines.
+/// The favorite assets as rows of an [AssetRowPanel].
 class AssetRowList extends ConsumerWidget {
   const AssetRowList({super.key});
 
@@ -32,14 +35,62 @@ class AssetRowList extends ConsumerWidget {
 
     if (favoriteAssets.isEmpty) return const SizedBox.shrink();
 
+    return AssetRowPanel(
+      rows: [for (final asset in favoriteAssets) AssetRow(asset: asset)],
+    );
+  }
+}
+
+/// [rows] in one Liquid Glass panel, separated by inset hairlines.
+///
+/// Each row is a [GlassSheetOrigin] that covers the row's whole slice of
+/// the panel: the panel inset at the top of the first row and at the bottom
+/// of the last row, and the hairline above every other row. The slices tile
+/// the panel without gaps, and the outer corners of the first and the last
+/// slice follow the panel corners. A sheet then opens from, and closes
+/// into, the exact area of the row on screen.
+class AssetRowPanel extends StatelessWidget {
+  const AssetRowPanel({super.key, required this.rows});
+
+  /// Space between the panel edge and the first and the last row.
+  static const double inset = 4;
+
+  final List<Widget> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    const corner = AppSurfaces.panelRadius;
+    final last = rows.length - 1;
     return GlassPanel(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      borderRadius: corner,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        // Every slice spans the full panel width.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i < favoriteAssets.length; i++) ...[
-            if (i > 0) const PanelDivider(indent: AssetRowView.textInset),
-            AssetRow(asset: favoriteAssets[i]),
-          ],
+          for (var i = 0; i <= last; i++)
+            GlassSheetOrigin(
+              borderRadius: BorderRadius.only(
+                topLeft: i == 0 ? corner.topLeft : Radius.zero,
+                topRight: i == 0 ? corner.topRight : Radius.zero,
+                bottomLeft: i == last ? corner.bottomLeft : Radius.zero,
+                bottomRight: i == last ? corner.bottomRight : Radius.zero,
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: i == 0 ? inset : 0,
+                  bottom: i == last ? inset : 0,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (i > 0)
+                      const PanelDivider(indent: AssetRowView.textInset),
+                    rows[i],
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -48,8 +99,8 @@ class AssetRowList extends ConsumerWidget {
 
 /// One asset: icon, name, ticker, 24 h sparkline, price, and change.
 ///
-/// A tap opens the asset detail. The icon flies to the detail screen as a
-/// Hero.
+/// A tap opens the market sheet of the asset. Put the row in a
+/// [GlassSheetOrigin], so the sheet grows out of it.
 class AssetRow extends ConsumerWidget {
   const AssetRow({super.key, required this.asset});
 
@@ -73,7 +124,12 @@ class AssetRow extends ConsumerWidget {
       trailing = cachedPriceHistory.fold(
         (err) {
           if (kDebugMode) debugPrint("[KLINES] $err");
-          return const _ErrorTrailing(key: ValueKey('error'));
+          // Offline the history fails, but the disk still has the price
+          // and the 1D history of the market sheet.
+          return _CachedHistoryTrailing(
+            key: const ValueKey('cached'),
+            asset: asset,
+          );
         },
         (klines) => _PriceTrailing(
           key: const ValueKey('data'),
@@ -86,14 +142,7 @@ class AssetRow extends ConsumerWidget {
     return AssetRowView(
       asset: asset,
       trailing: trailing,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AssetDetailScreen(asset: asset),
-          ),
-        );
-      },
+      onTap: () => showAssetMarketSheet(context, asset: asset),
     );
   }
 }
@@ -132,8 +181,12 @@ class AssetRowView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = context.textTheme;
+    // No ripple and no press highlight: the market sheet grows out of the
+    // row, and the row stays unchanged.
     return InkWell(
       onTap: onTap,
+      splashFactory: NoSplash.splashFactory,
+      highlightColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 72),
         child: Padding(
@@ -146,7 +199,11 @@ class AssetRowView extends StatelessWidget {
               final freeWidth = constraints.maxWidth - iconSize - 24;
               return Row(
                 children: [
-                  AssetIconHero(asset: asset, size: iconSize),
+                  SvgPicture.asset(
+                    asset.iconPath,
+                    width: iconSize,
+                    height: iconSize,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -207,25 +264,52 @@ bool _showSparkline(BuildContext context) {
   return textScale <= 1.3 && width >= 360;
 }
 
+/// The trailing part of a row whose 24 h history failed, for example
+/// offline: the price of the store and the 1D history of the market sheet,
+/// which the disk keeps for days.
+class _CachedHistoryTrailing extends ConsumerWidget {
+  const _CachedHistoryTrailing({super.key, required this.asset});
+
+  final Asset asset;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final klines = ref.watch(
+      marketHistoryProvider((
+        asset,
+        MarketPeriod.day,
+      )).select((s) => s.history?.prices),
+    );
+    return _PriceTrailing(asset: asset, klines: klines);
+  }
+}
+
 class _PriceTrailing extends ConsumerWidget {
   const _PriceTrailing({super.key, required this.asset, required this.klines});
 
   final Asset asset;
-  final List<double> klines;
+
+  /// The 24 h history. Null when no history loaded: the row then shows the
+  /// price of the store with no sparkline and no change, and N/A only when
+  /// the store has no price either.
+  final List<double>? klines;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final spotPrice = ref.watch(
       priceQuotesProvider.select((s) => s.priceFor(asset)),
     );
-    final icon = ref.watch(currencyControllerProvider.notifier).icon;
+    final klines = this.klines;
+    if (klines == null && spotPrice == null) return const _ErrorTrailing();
+
+    final icon = ref.watch(currencySymbolProvider);
     final numberFormat = NumberFormat(
       '#,##0.00',
       Localizations.localeOf(context).toString(),
     );
 
-    final first = klines.isEmpty ? 0.0 : klines.first;
-    final last = klines.isEmpty ? 0.0 : klines.last;
+    final first = (klines?.isEmpty ?? true) ? 0.0 : klines!.first;
+    final last = (klines?.isEmpty ?? true) ? 0.0 : klines!.last;
     final percentage = first == 0 ? 0.0 : ((last - first) / first) * 100;
     final assetValue = spotPrice ?? last;
 
@@ -237,10 +321,14 @@ class _PriceTrailing extends ConsumerWidget {
 
     return Row(
       children: [
-        if (_showSparkline(context) && klines.length > 1) ...[
-          Sparkline(values: klines, color: lineColor, revealId: asset),
-          const SizedBox(width: 16),
-        ],
+        if (_showSparkline(context))
+          if (klines == null) ...[
+            const _NoSparkline(),
+            const SizedBox(width: 16),
+          ] else if (klines.length > 1) ...[
+            Sparkline(values: klines, color: lineColor, revealId: asset),
+            const SizedBox(width: 16),
+          ],
         _FitEnd(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -254,8 +342,12 @@ class _PriceTrailing extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 4),
-              ChangeChip(percentage: percentage),
+              // With no history, the change is unknown: the price stands
+              // alone.
+              if (klines != null) ...[
+                const SizedBox(height: 4),
+                ChangeChip(percentage: percentage),
+              ],
             ],
           ),
         ),
@@ -286,21 +378,31 @@ class _FitEnd extends StatelessWidget {
   }
 }
 
+/// A flat line in the place of a sparkline that has no history.
+class _NoSparkline extends StatelessWidget {
+  const _NoSparkline();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: Sparkline.width,
+      height: Sparkline.height,
+      child: Center(
+        child: Container(height: 1.5, color: context.colorScheme.outline),
+      ),
+    );
+  }
+}
+
 class _ErrorTrailing extends StatelessWidget {
-  const _ErrorTrailing({super.key});
+  const _ErrorTrailing();
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         if (_showSparkline(context)) ...[
-          SizedBox(
-            width: Sparkline.width,
-            height: Sparkline.height,
-            child: Center(
-              child: Container(height: 1.5, color: context.colorScheme.outline),
-            ),
-          ),
+          const _NoSparkline(),
           const SizedBox(width: 16),
         ],
         _FitEnd(
@@ -314,8 +416,6 @@ class _ErrorTrailing extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 4),
-              const UnavailableChangeChip(),
             ],
           ),
         ),

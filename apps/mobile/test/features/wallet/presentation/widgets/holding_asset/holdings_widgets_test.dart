@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart' hide State;
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_transaction_item.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/home/home_action_row.dart';
@@ -162,7 +165,7 @@ void main() {
         .widget<FadeTransition>(
           find
               .ancestor(
-                of: find.byIcon(Icons.schedule_rounded),
+                of: find.byType(PixIconWell),
                 matching: find.byType(FadeTransition),
               )
               .first,
@@ -185,6 +188,28 @@ void main() {
       // out here.
       await tester.pumpAndSettle();
       expect(iconOpacity(tester), 1);
+    });
+
+    testWidgets('the card is a glass panel, with the pending icon in a well '
+        'of the warning tone and one row per payment', (tester) async {
+      await tester.pumpWidget(card());
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        find.ancestor(
+          of: find.text('R\$ 50,00'),
+          matching: find.byType(GlassPanel),
+        ),
+        findsOneWidget,
+      );
+      final well = tester.widget<PixIconWell>(find.byType(PixIconWell));
+      expect(well.icon, PixIcons.pending);
+      expect(well.tone, PixTone.warning);
+      expect(find.text(Asset.depix.name), findsOneWidget);
+      // The total follows the number format of the app language.
+      expect(find.text('Total: R\$ 50,00'), findsOneWidget);
+      await tester.pumpAndSettle();
     });
 
     testWidgets('reduced motion keeps the icon still', (tester) async {

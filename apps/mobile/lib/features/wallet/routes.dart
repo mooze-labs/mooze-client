@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/controllers/pix_tutorial_controller.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/pix_hub_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/main_settings_screen.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/converting_details_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/dev/raw_tx_dump_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/dev/swap_simulator_screen.dart';
-import 'package:mooze_mobile/features/wallet/presentation/screens/asset_activity/asset_activity_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/holding_asset/holding_asset_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/home/home_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/new_transaction_screen.dart';
@@ -132,58 +130,37 @@ class _MainNavigationScaffoldState
     }
   }
 
-  /// Starts the Pix tutorial on the first visit to the Pix tab.
-  ///
-  /// The tab shows the hub, but the deposit screen hosts the tutorial steps.
-  /// The tutorial opens that screen when it starts.
-  Future<void> _startPixTutorialIfUnseen() async {
-    await ref.read(pixTutorialControllerProvider.notifier).startIfUnseen();
-    if (!mounted || !ref.read(pixTutorialControllerProvider).isActive) return;
-    context.push('/pix/deposit');
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentIndex = _getIndexFromLocation(widget.currentLocation);
-
-    final tutorialActive = ref.watch(pixTutorialControllerProvider).isActive;
 
     return PageVisibilityProvider(
       currentPage: _currentPageNotifier,
       pageFloat: _pageFloatNotifier,
       child: PlatformSafeArea(
-        child: AbsorbPointer(
-          absorbing: tutorialActive,
-          child: Scaffold(
-            body: PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              physics: tutorialActive
-                  ? const NeverScrollableScrollPhysics()
-                  : null,
-              children: [
-                const HomeScreen(),
-                const HoldingsAsseetScreen(),
-                const PixHubScreen(),
-                const SwapScreen(),
-                const MainSettingsScreen(),
-              ],
-            ),
-            extendBody: true,
-            resizeToAvoidBottomInset: false,
-            bottomNavigationBar: CustomBottomNavBar(
-              currentIndex: currentIndex,
-              // The lens of the bar follows the finger during a swipe.
-              pagePosition: _pageFloatNotifier,
-              onTap: (index) {
-                if (index == 2) {
-                  _startPixTutorialIfUnseen();
-                }
-                if (_pageController.hasClients) {
-                  _pageController.jumpToPage(index);
-                }
-              },
-            ),
+        child: Scaffold(
+          body: PageView(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            children: [
+              const HomeScreen(),
+              const HoldingsAsseetScreen(),
+              const PixHubScreen(),
+              const SwapScreen(),
+              const MainSettingsScreen(),
+            ],
+          ),
+          extendBody: true,
+          resizeToAvoidBottomInset: false,
+          bottomNavigationBar: CustomBottomNavBar(
+            currentIndex: currentIndex,
+            // The lens of the bar follows the finger during a swipe.
+            pagePosition: _pageFloatNotifier,
+            onTap: (index) {
+              if (_pageController.hasClients) {
+                _pageController.jumpToPage(index);
+              }
+            },
           ),
         ),
       ),
@@ -209,13 +186,6 @@ final walletRoutes = [
     builder: (context, state) {
       final localId = state.pathParameters['localId']!;
       return ConvertingDetailsScreen(localId: localId);
-    },
-  ),
-  GoRoute(
-    path: '/asset-activity',
-    builder: (context, state) {
-      final asset = state.extra as Asset;
-      return AssetActivityScreen(asset: asset);
     },
   ),
   GoRoute(
