@@ -2705,6 +2705,25 @@ class AppLocalizationsPt extends AppLocalizations {
   String get setup_import_button => 'Importar Carteira';
 
   @override
+  String get setup_import_scan_seedqr => 'Escanear SeedQR';
+
+  @override
+  String get seedqr_scan_detail =>
+      'SeedQR, CompactSeedQR ou QR com as palavras da frase';
+
+  @override
+  String get seedqr_scan_unavailable =>
+      'Não foi possível usar a câmera. Volte e digite as palavras da frase.';
+
+  @override
+  String get seedqr_error_unsupported =>
+      'Este código não traz uma frase de recuperação que o app consiga ler.';
+
+  @override
+  String get seedqr_error_invalid =>
+      'As palavras deste código não formam uma frase de recuperação válida.';
+
+  @override
   String get setup_import_cleanup_warning =>
       'Aviso: Alguns arquivos antigos não puderam ser removidos. O app pode precisar ser reiniciado.';
 

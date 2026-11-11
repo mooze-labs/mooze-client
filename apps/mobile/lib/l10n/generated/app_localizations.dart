@@ -4900,6 +4900,36 @@ abstract class AppLocalizations {
   /// **'Importar Carteira'**
   String get setup_import_button;
 
+  /// No description provided for @setup_import_scan_seedqr.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escanear SeedQR'**
+  String get setup_import_scan_seedqr;
+
+  /// No description provided for @seedqr_scan_detail.
+  ///
+  /// In pt, this message translates to:
+  /// **'SeedQR, CompactSeedQR ou QR com as palavras da frase'**
+  String get seedqr_scan_detail;
+
+  /// No description provided for @seedqr_scan_unavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível usar a câmera. Volte e digite as palavras da frase.'**
+  String get seedqr_scan_unavailable;
+
+  /// No description provided for @seedqr_error_unsupported.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este código não traz uma frase de recuperação que o app consiga ler.'**
+  String get seedqr_error_unsupported;
+
+  /// No description provided for @seedqr_error_invalid.
+  ///
+  /// In pt, this message translates to:
+  /// **'As palavras deste código não formam uma frase de recuperação válida.'**
+  String get seedqr_error_invalid;
+
   /// No description provided for @setup_import_cleanup_warning.
   ///
   /// In pt, this message translates to:
