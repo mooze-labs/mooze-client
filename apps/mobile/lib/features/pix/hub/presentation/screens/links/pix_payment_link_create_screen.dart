@@ -32,7 +32,7 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 ///
 /// The amount is the hero of the step. The two switches share one glass
 /// group, the assets another, and the reference is a bare underline field.
-/// The review opens in a floating glass sheet.
+/// The review opens in a floating glass sheet, whose slide creates the link.
 class PixPaymentLinkCreateScreen extends ConsumerStatefulWidget {
   const PixPaymentLinkCreateScreen({super.key});
 
@@ -48,7 +48,6 @@ class _PixPaymentLinkCreateScreenState
   int _amountInCents = 0;
   bool _openAmount = false;
   bool _singleUse = true;
-  bool _submitted = false;
 
   /// Asset that the wallet receives. DePix keeps the BRL value.
   Asset _asset = Asset.depix;
@@ -59,31 +58,30 @@ class _PixPaymentLinkCreateScreenState
     super.dispose();
   }
 
-  String? _referenceError(AppLocalizations t) {
-    if (!_submitted) return null;
-    return _referenceController.text.trim().isEmpty
-        ? t.pix_hub_link_reference_error
-        : null;
-  }
+  bool get _amountIsValid =>
+      _openAmount || FixedPaymentLinkAmount(_amountInCents).isWithinBounds;
 
+  /// The review opens once the link has an identification and an amount.
+  bool get _canReview =>
+      _referenceController.text.trim().isNotEmpty && _amountIsValid;
+
+  /// The limits show once an amount is typed, so the disabled review has a
+  /// visible reason.
   String? _amountError(AppLocalizations t) {
-    if (!_submitted || _openAmount) return null;
-    final policy = FixedPaymentLinkAmount(_amountInCents);
-    if (policy.isWithinBounds) return null;
+    if (_amountInCents == 0 || _amountIsValid) return null;
     return t.pix_hub_link_amount_error(
       formatBrlCents(PaymentLinkAmount.minAmountInCents),
       formatBrlCents(PaymentLinkAmount.maxAmountInCents),
     );
   }
 
-  /// Shows the review sheet and creates the link when the user confirms.
+  /// Shows the review sheet, whose slide creates the link.
   Future<void> _reviewAndCreate() async {
     final t = AppLocalizations.of(context);
-    setState(() => _submitted = true);
-    if (_referenceError(t) != null || _amountError(t) != null) return;
+    if (!_canReview) return;
 
     FocusScope.of(context).unfocus();
-    final confirmed = await showModalBottomSheet<bool>(
+    await showModalBottomSheet<void>(
       context: context,
       // The glass sheet draws its own floating surface.
       backgroundColor: Colors.transparent,
@@ -97,11 +95,16 @@ class _PixPaymentLinkCreateScreenState
             ? t.pix_hub_link_single_use
             : t.pix_hub_link_reusable,
         assetLabel: _asset.ticker,
+        onCreate: () => _create(sheetContext),
       ),
     );
+  }
 
-    if (confirmed != true || !mounted) return;
-
+  /// Creates the link while the slide of the review waits. The review then
+  /// closes either way, so a failure shows on this screen, not behind the
+  /// sheet.
+  Future<void> _create(BuildContext sheetContext) async {
+    final t = AppLocalizations.of(context);
     final link = await ref
         .read(pixPaymentLinkFormControllerProvider.notifier)
         .create(
@@ -111,6 +114,7 @@ class _PixPaymentLinkCreateScreenState
           amountInCents: _openAmount ? null : _amountInCents,
         );
 
+    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
     if (!mounted) return;
     if (link == null) {
       final failure = ref.read(pixPaymentLinkFormControllerProvider).failure;
@@ -133,6 +137,7 @@ class _PixPaymentLinkCreateScreenState
       title: t.pix_hub_link_create,
       bottomAction: PrimaryButton(
         text: t.pix_hub_link_review,
+        isEnabled: _canReview,
         isLoading: isBusy,
         onPressed: _reviewAndCreate,
       ),
@@ -206,7 +211,6 @@ class _PixPaymentLinkCreateScreenState
         const SizedBox(height: 24),
         _ReferenceField(
           controller: _referenceController,
-          errorText: _referenceError(t),
           onChanged: (_) => setState(() {}),
         ),
       ],
@@ -348,18 +352,12 @@ class _AssetRow extends StatelessWidget {
 /// The reference of the link, drawn as a bare underline.
 ///
 /// It follows the underline fields of the send flow. Unlike those, it keeps
-/// sentence capitalization and suggestions, because it holds free text. An
-/// error turns the line red and shows its message below.
+/// sentence capitalization and suggestions, because it holds free text.
 class _ReferenceField extends StatelessWidget {
   final TextEditingController controller;
-  final String? errorText;
   final ValueChanged<String> onChanged;
 
-  const _ReferenceField({
-    required this.controller,
-    required this.errorText,
-    required this.onChanged,
-  });
+  const _ReferenceField({required this.controller, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -385,8 +383,6 @@ class _ReferenceField extends StatelessWidget {
             hintStyle: context.textTheme.titleMedium?.copyWith(
               color: context.colors.textTertiary,
             ),
-            errorText: errorText,
-            errorMaxLines: 2,
             filled: false,
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
             // The field sits on the page, where the light outline variant
@@ -394,8 +390,6 @@ class _ReferenceField extends StatelessWidget {
             border: line(context.colorScheme.outline, 1),
             enabledBorder: line(context.colorScheme.outline, 1),
             focusedBorder: line(context.colors.primaryColor, 1.5),
-            errorBorder: line(context.colors.negativeColor, 1),
-            focusedErrorBorder: line(context.colors.negativeColor, 1.5),
           ),
         ),
       ],
@@ -407,22 +401,27 @@ class _ReferenceField extends StatelessWidget {
 ///
 /// The sheet is a floating glass surface, so the details sit on it directly,
 /// split by hairlines, without a second panel.
-class _ReviewSheet extends StatelessWidget {
+class _ReviewSheet extends ConsumerWidget {
   final String reference;
   final String amountLabel;
   final String usageLabel;
   final String assetLabel;
+  final VoidCallback onCreate;
 
   const _ReviewSheet({
     required this.reference,
     required this.amountLabel,
     required this.usageLabel,
     required this.assetLabel,
+    required this.onCreate,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
+    final isBusy = ref.watch(
+      pixPaymentLinkFormControllerProvider.select((state) => state.isBusy),
+    );
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -462,13 +461,14 @@ class _ReviewSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              PrimaryButton(
+              SlideToConfirmButton(
                 text: t.pix_hub_link_confirm,
-                onPressed: () => Navigator.of(context).pop(true),
+                isLoading: isBusy,
+                onSlideComplete: onCreate,
               ),
               const SizedBox(height: 4),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
+                onPressed: isBusy ? null : () => Navigator.of(context).pop(),
                 style: TextButton.styleFrom(
                   foregroundColor: context.colors.textPrimary,
                   minimumSize: const Size.fromHeight(48),

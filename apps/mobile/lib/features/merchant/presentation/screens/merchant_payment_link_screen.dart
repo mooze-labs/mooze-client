@@ -2,11 +2,10 @@ import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/merchant/presentation/controllers/merchant_payment_link_controller.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_flow_scaffold.dart';
-import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_glass_button.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/payment/widgets/copyable_address.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/payment/widgets/qr_code_display.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -26,7 +25,12 @@ class MerchantPaymentLinkScreen extends StatefulWidget {
     super.key,
     required this.link,
     required this.request,
+    this.debugLaunchUrl,
   });
+
+  /// Stands in for [launchUrl], which needs a device with a browser.
+  @visibleForTesting
+  final Future<bool> Function(Uri url, {LaunchMode mode})? debugLaunchUrl;
 
   /// Opens the screen. Returns true when the merchant ends the sale.
   static Future<bool> open(
@@ -51,6 +55,10 @@ class MerchantPaymentLinkScreen extends StatefulWidget {
 // screen as it opens, and fades away to uncover it: see
 // `PixQrLoadingOverlay`.
 class _MerchantPaymentLinkScreenState extends State<MerchantPaymentLinkScreen> {
+  /// Side of the QR Code, small enough for the address and the browser
+  /// action to fit above the bottom buttons.
+  static const double _qrSize = 184;
+
   Future<void> _share() async {
     final t = AppLocalizations.of(context);
     await SharePlus.instance.share(
@@ -66,14 +74,12 @@ class _MerchantPaymentLinkScreenState extends State<MerchantPaymentLinkScreen> {
   /// Opens the link in the browser, as the settings screens open URLs.
   Future<void> _openInBrowser() async {
     final t = AppLocalizations.of(context);
+    final launch = widget.debugLaunchUrl ?? launchUrl;
     try {
       final uri = Uri.parse(widget.link.url);
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      final launched = await launch(uri, mode: LaunchMode.externalApplication);
       if (!launched) {
-        final fallback = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        final fallback = await launch(uri, mode: LaunchMode.platformDefault);
         if (!fallback && mounted) {
           AppSnackBar.error(context, t.merchant_payment_link_open_failed);
         }
@@ -129,13 +135,16 @@ class _MerchantPaymentLinkScreenState extends State<MerchantPaymentLinkScreen> {
           ),
         ],
       ),
+      // The code, the address and the browser fit a phone above the bottom
+      // buttons: the merchant shows the screen to the customer, and nothing
+      // should hide under a scroll.
       children: [
-        PixQrCodeDisplay(
-          pixQrData: widget.link.url,
-          boxConstraints: const BoxConstraints(),
+        PixQrPanel(
+          data: widget.link.url,
+          size: _qrSize,
           semanticLabel: t.merchant_payment_method_link_title,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Text(
           t.merchant_payment_link_scan_hint,
           textAlign: TextAlign.center,
@@ -144,19 +153,31 @@ class _MerchantPaymentLinkScreenState extends State<MerchantPaymentLinkScreen> {
             height: 1.4,
           ),
         ),
-        const SizedBox(height: 28),
-        CopyableAddress(
-          pixKey: widget.link.url,
+        const SizedBox(height: 20),
+        PixCopyField(
           label: t.pix_hub_link_url_label,
+          value: widget.link.url,
           icon: PixIcons.link,
-          // The analytics schema has no payment-link event.
-          trackCopy: false,
+          maxLines: 1,
         ),
-        const SizedBox(height: 12),
-        MerchantGlassButton(
-          label: t.merchant_payment_link_open,
-          icon: PixIcons.externalLink,
-          onPressed: _openInBrowser,
+        const SizedBox(height: 4),
+        Center(
+          child: TextButton.icon(
+            onPressed: _openInBrowser,
+            icon: PixIcon(
+              PixIcons.externalLink,
+              size: 18,
+              color: context.colors.textPrimary,
+            ),
+            label: Text(t.merchant_payment_link_open),
+            style: TextButton.styleFrom(
+              foregroundColor: context.colors.textPrimary,
+              minimumSize: const Size(0, 44),
+              textStyle: context.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ),
       ],
     );

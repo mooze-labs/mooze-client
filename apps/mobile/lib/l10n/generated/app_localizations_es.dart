@@ -6198,9 +6198,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pix_hub_link_reference_hint => 'Mensualidad de marzo';
 
   @override
-  String get pix_hub_link_reference_error => 'Informe una identificación.';
-
-  @override
   String pix_hub_link_amount_error(String min, String max) {
     return 'El monto debe estar entre $min y $max.';
   }

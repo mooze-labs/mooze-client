@@ -2903,7 +2903,6 @@
   "pix_hub_link_create": "Criar link",
   "pix_hub_link_reference_label": "Identificação",
   "pix_hub_link_reference_hint": "Mensalidade de março",
-  "pix_hub_link_reference_error": "Informe uma identificação.",
   "pix_hub_link_amount_error": "O valor deve ficar entre {min} e {max}.",
   "@pix_hub_link_amount_error": {
     "placeholders": {

@@ -2094,7 +2094,6 @@
   "pix_hub_link_create": "Create link",
   "pix_hub_link_reference_label": "Reference",
   "pix_hub_link_reference_hint": "March subscription",
-  "pix_hub_link_reference_error": "Enter a reference.",
   "pix_hub_link_amount_error": "The amount must stay between {min} and {max}.",
   "pix_hub_link_single_use": "Single use",
   "pix_hub_link_single_use_hint": "The link accepts one payment and closes.",

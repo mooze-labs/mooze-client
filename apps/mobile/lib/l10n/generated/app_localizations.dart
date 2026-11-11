@@ -10966,12 +10966,6 @@ abstract class AppLocalizations {
   /// **'Mensalidade de março'**
   String get pix_hub_link_reference_hint;
 
-  /// No description provided for @pix_hub_link_reference_error.
-  ///
-  /// In pt, this message translates to:
-  /// **'Informe uma identificação.'**
-  String get pix_hub_link_reference_error;
-
   /// No description provided for @pix_hub_link_amount_error.
   ///
   /// In pt, this message translates to:

@@ -6151,9 +6151,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pix_hub_link_reference_hint => 'March subscription';
 
   @override
-  String get pix_hub_link_reference_error => 'Enter a reference.';
-
-  @override
   String pix_hub_link_amount_error(String min, String max) {
     return 'The amount must stay between $min and $max.';
   }

@@ -2094,7 +2094,6 @@
   "pix_hub_link_create": "Crear enlace",
   "pix_hub_link_reference_label": "Identificación",
   "pix_hub_link_reference_hint": "Mensualidad de marzo",
-  "pix_hub_link_reference_error": "Informe una identificación.",
   "pix_hub_link_amount_error": "El monto debe estar entre {min} y {max}.",
   "pix_hub_link_single_use": "Uso único",
   "pix_hub_link_single_use_hint": "El enlace acepta un pago y se cierra.",

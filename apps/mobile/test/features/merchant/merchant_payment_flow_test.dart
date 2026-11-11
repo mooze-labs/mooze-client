@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,8 +10,10 @@ import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.d
 import 'package:mooze_mobile/features/pix/shared/cpf/pix_cpf_config.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const _url = 'https://pay.mooze.app/pay/tok_abc123';
 const _request = (amountInCents: 4590, asset: Asset.depix);
@@ -226,6 +229,80 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('Abrir no navegador'), findsOneWidget);
+    });
+
+    testWidgets('the link and its actions fit a phone above the bottom '
+        'buttons, with no scroll', (tester) async {
+      await openLink(tester, (_) {});
+
+      final open = find.text('Abrir no navegador');
+      expect(open.hitTestable(), findsOneWidget);
+      expect(find.text(_url).hitTestable(), findsOneWidget);
+      final share = find.ancestor(
+        of: find.text('Compartilhar link'),
+        matching: find.byType(PrimaryButton),
+      );
+      expect(
+        tester.getRect(open).bottom,
+        lessThanOrEqualTo(tester.getRect(share).top),
+      );
+    });
+
+    testWidgets('a tap on the address copies the link', (tester) async {
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await openLink(tester, (_) {});
+
+      await tester.tap(find.text(_url));
+      await tester.pump();
+      expect(copied, _url);
+      await tester.pumpAndSettle(const Duration(seconds: 3));
+    });
+
+    testWidgets('"Abrir no navegador" opens the link outside the app', (
+      tester,
+    ) async {
+      final opened = <(Uri, LaunchMode)>[];
+      tester.view.physicalSize = const Size(393 * 3, 852 * 3);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _host(
+          (context) => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => MerchantPaymentLinkScreen(
+                link: _link,
+                request: _request,
+                debugLaunchUrl: (url, {mode = LaunchMode.platformDefault}) {
+                  opened.add((url, mode));
+                  return Future.value(true);
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Abrir no navegador'));
+      await tester.pump();
+
+      expect(opened, [(Uri.parse(_url), LaunchMode.externalApplication)]);
     });
 
     testWidgets('"Concluir venda" ends the sale', (tester) async {
