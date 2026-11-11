@@ -2691,6 +2691,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setup_import_button => 'Import Wallet';
 
   @override
+  String get setup_import_scan_seedqr => 'Scan SeedQR';
+
+  @override
+  String get seedqr_scan_detail =>
+      'SeedQR, CompactSeedQR or a QR with the words of the phrase';
+
+  @override
+  String get seedqr_scan_unavailable =>
+      'The camera is not available. Go back and type the words of the phrase.';
+
+  @override
+  String get seedqr_error_unsupported =>
+      'This code does not hold a recovery phrase that the app can read.';
+
+  @override
+  String get seedqr_error_invalid =>
+      'The words in this code do not form a valid recovery phrase.';
+
+  @override
   String get setup_import_cleanup_warning =>
       'Warning: Some old files could not be removed. The app may need to be restarted.';
 

@@ -2712,6 +2712,25 @@ class AppLocalizationsEs extends AppLocalizations {
   String get setup_import_button => 'Importar Billetera';
 
   @override
+  String get setup_import_scan_seedqr => 'Escanear SeedQR';
+
+  @override
+  String get seedqr_scan_detail =>
+      'SeedQR, CompactSeedQR o un QR con las palabras de la frase';
+
+  @override
+  String get seedqr_scan_unavailable =>
+      'No se pudo usar la cámara. Vuelve y escribe las palabras de la frase.';
+
+  @override
+  String get seedqr_error_unsupported =>
+      'Este código no trae una frase de recuperación que la app pueda leer.';
+
+  @override
+  String get seedqr_error_invalid =>
+      'Las palabras de este código no forman una frase de recuperación válida.';
+
+  @override
   String get setup_import_cleanup_warning =>
       'Aviso: Algunos archivos antiguos no se pudieron eliminar. La app puede necesitar reiniciarse.';
 
