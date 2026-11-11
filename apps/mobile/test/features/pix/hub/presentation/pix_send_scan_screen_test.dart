@@ -98,7 +98,7 @@ void main() {
 
   /// Reports [code] as if the camera read it.
   Future<void> scan(WidgetTester tester, String code) async {
-    scanner(tester).onCode(code);
+    scanner(tester).onCode!(code);
     await tester.pumpAndSettle();
   }
 
@@ -122,7 +122,7 @@ void main() {
     );
 
     // The camera reports the code in view again before the step opens.
-    scanner(tester).onCode(code);
+    scanner(tester).onCode!(code);
     await scan(tester, code);
 
     final amountSteps = find.text('amount', skipOffstage: false);

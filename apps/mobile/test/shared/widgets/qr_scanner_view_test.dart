@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -124,6 +126,54 @@ void main() {
     expect(find.text('Use o Pix Copia e Cola.'), findsOneWidget);
     expect(find.text('Pix Copia e Cola'), findsOneWidget);
     expect(find.text('Procurando QR Code...'), findsNothing);
+  });
+
+  testWidgets('the camera hands a binary code to a host that reads bytes, '
+      'and the text of a code to the others', (tester) async {
+    final binary = Barcode(rawBytes: Uint8List.fromList([0x0a, 0x00, 0x0d]));
+    final barcodes = <Barcode>[];
+    final codes = <String>[];
+    // The real camera view, with a camera that never starts.
+    Widget camera({required bool readsBytes}) => _host(
+      QrScannerView(
+        title: 'SeedQR',
+        hint: 'Posicione o código',
+        found: false,
+        onCode: readsBytes ? null : codes.add,
+        onBarcode: readsBytes ? barcodes.add : null,
+        controller: MobileScannerController(autoStart: false),
+      ),
+    );
+    void detect(WidgetTester tester, List<Barcode> found) => tester
+        .widget<MobileScanner>(find.byType(MobileScanner))
+        .onDetect!(BarcodeCapture(barcodes: found));
+
+    await tester.pumpWidget(camera(readsBytes: true));
+    detect(tester, [const Barcode(), binary]);
+    expect(barcodes, [same(binary)]);
+
+    await tester.pumpWidget(camera(readsBytes: false));
+    detect(tester, [binary, const Barcode(rawValue: 'texto')]);
+    expect(codes, ['texto']);
+  });
+
+  test('a host that reads bytes gets the first code with content, a binary '
+      'code without text too', () {
+    final binary = Barcode(rawBytes: Uint8List.fromList([0x0a, 0x00, 0x0d]));
+    const text = Barcode(rawValue: 'texto');
+
+    expect(
+      QrScannerView.readableBarcode([const Barcode(), binary, text]),
+      same(binary),
+    );
+    expect(
+      QrScannerView.readableBarcode([const Barcode(rawValue: ''), text]),
+      same(text),
+    );
+    expect(
+      QrScannerView.readableBarcode([Barcode(rawBytes: Uint8List(0))]),
+      isNull,
+    );
   });
 
   testWidgets('a failure message of the camera comes first', (tester) async {

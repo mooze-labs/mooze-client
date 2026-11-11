@@ -32,14 +32,15 @@ class QrScannerView extends StatefulWidget {
     required this.title,
     required this.hint,
     required this.found,
-    required this.onCode,
+    this.onCode,
+    this.onBarcode,
     this.detail,
     this.unavailableMessage,
     this.unavailableAction,
     this.detectionSpeed = DetectionSpeed.normal,
     this.controller,
     this.debugPreview,
-  });
+  }) : assert(onCode != null || onBarcode != null);
 
   /// Title of the app bar.
   final String title;
@@ -55,7 +56,23 @@ class QrScannerView extends StatefulWidget {
   final bool found;
 
   /// Receives the text of a code that the camera read.
-  final ValueChanged<String> onCode;
+  final ValueChanged<String>? onCode;
+
+  /// Receives the whole code in place of [onCode], for a host that reads
+  /// binary codes, which can have bytes and no text.
+  final ValueChanged<Barcode>? onBarcode;
+
+  /// The first of [barcodes] with text or bytes.
+  @visibleForTesting
+  static Barcode? readableBarcode(List<Barcode> barcodes) {
+    for (final barcode in barcodes) {
+      if ((barcode.rawValue?.isNotEmpty ?? false) ||
+          (barcode.rawBytes?.isNotEmpty ?? false)) {
+        return barcode;
+      }
+    }
+    return null;
+  }
 
   /// Message when the camera fails for a reason other than a blocked access
   /// and the error carries no message. Null shows the position hint.
@@ -94,10 +111,15 @@ class _QrScannerViewState extends State<QrScannerView> {
 
   void _onDetect(BarcodeCapture capture) {
     if (widget.found) return;
+    if (widget.onBarcode case final onBarcode?) {
+      final barcode = QrScannerView.readableBarcode(capture.barcodes);
+      if (barcode != null) onBarcode(barcode);
+      return;
+    }
     final value = capture.barcodes
         .map((barcode) => barcode.rawValue)
         .firstWhere((raw) => raw != null && raw.isNotEmpty, orElse: () => null);
-    if (value != null) widget.onCode(value);
+    if (value != null) widget.onCode?.call(value);
   }
 
   void _toggleFlash() {
