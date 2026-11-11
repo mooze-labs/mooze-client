@@ -33,7 +33,8 @@ String formatFeeRate(BuildContext context, double rate) => NumberFormat(
 /// row. Open, the row holds the rate in sat/vB in three ways: the field
 /// takes a typed rate, with a comma or a point; the minus and plus buttons
 /// step it; and the slider sweeps it. Dots on the slider mark the Economic,
-/// Normal, and Fast rates, and a drag clicks as it passes one.
+/// Normal, and Fast rates. A drag clicks on each rate that the field shows,
+/// taps harder on a dot, and knocks at the ends of the slider.
 ///
 /// The chevron at the end of the title closes the row to one line that
 /// shows the rate, and opens it again. Closing keeps the rate; a speed
@@ -406,6 +407,7 @@ class _CustomFeeRateOptionState extends State<CustomFeeRateOption> {
                   ])
                     _toSlider(preset.toDouble()),
                 ],
+                detentOf: _fromSlider,
                 semanticFormatterCallback: (position) =>
                     '${formatFeeRate(context, _fromSlider(position))} sat/vB',
                 onChanged: (position) {

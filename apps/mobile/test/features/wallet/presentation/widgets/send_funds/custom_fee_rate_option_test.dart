@@ -202,6 +202,22 @@ void main() {
     expect(changes.last, 18);
   });
 
+  testWidgets('a drag clicks on each rate that the field shows', (
+    tester,
+  ) async {
+    await pump(tester, rate: 5);
+    double position(double rate) => math.log(rate / 0.1) / math.log(18 / 0.1);
+    final detentOf = tester
+        .widget<GlassSlider>(find.byType(GlassSlider))
+        .detentOf!;
+
+    // Tenths below 10 sat/vB, whole rates from there.
+    expect(detentOf(position(0.5)), 0.5);
+    expect(detentOf(position(0.54)), 0.5);
+    expect(detentOf(position(5)), 5.0);
+    expect(detentOf(position(12.4)), 12.0);
+  });
+
   testWidgets('the slider gives the rates below 1 sat/vB room', (tester) async {
     await pump(tester, rate: 1);
 

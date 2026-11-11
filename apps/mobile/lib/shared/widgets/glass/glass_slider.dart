@@ -12,9 +12,11 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// [activeColor]. The thumb is a solid capsule. While the finger holds it,
 /// it grows and clears into a glass lens, so the fill shows through it.
 ///
-/// [marks] puts dots on the track, for example at preset values. A drag
-/// that reaches or crosses a mark gives a selection click, so the finger
-/// feels the presets without a snap.
+/// [marks] puts dots on the track, for example at preset values. The finger
+/// feels the drag without a snap, with one haptic per move at most:
+/// - a knock when the thumb reaches an end of the track;
+/// - a tap when it reaches or crosses a mark;
+/// - a click when it reaches a new value of [detentOf].
 ///
 /// It keeps the gestures, the keyboard, and the semantics of [Slider].
 class GlassSlider extends StatelessWidget {
@@ -24,6 +26,7 @@ class GlassSlider extends StatelessWidget {
     required this.onChanged,
     this.onChangeEnd,
     this.marks = const [],
+    this.detentOf,
     this.activeColor,
     this.semanticFormatterCallback,
   });
@@ -34,6 +37,10 @@ class GlassSlider extends StatelessWidget {
 
   /// Positions of the dots on the track, from 0 to 1.
   final List<double> marks;
+
+  /// The value that a slider position stands for, such as a rounded rate.
+  /// The drag clicks each time it changes, as a picker wheel does.
+  final Object? Function(double position)? detentOf;
 
   /// Fill of the track up to the thumb. Defaults to the primary text color,
   /// a neutral fill that leaves the brand color to the main action.
@@ -57,7 +64,14 @@ class GlassSlider extends StatelessWidget {
           (previous - mark) * (next - mark) < 0 ||
           (next == mark && previous != mark),
     );
-    if (crossed) HapticFeedback.selectionClick();
+    final detent = detentOf;
+    if ((next == 0 || next == 1) && next != previous) {
+      HapticFeedback.mediumImpact();
+    } else if (crossed) {
+      HapticFeedback.lightImpact();
+    } else if (detent != null && detent(next) != detent(previous)) {
+      HapticFeedback.selectionClick();
+    }
     onChanged(next);
   }
 
