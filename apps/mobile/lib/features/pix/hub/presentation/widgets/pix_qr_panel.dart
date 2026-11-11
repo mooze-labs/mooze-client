@@ -22,6 +22,9 @@ class PixQrPanel extends StatefulWidget {
   /// Side of the code, without the white margin.
   static const double defaultSize = 220;
 
+  /// White margin around the code.
+  static const double margin = 16;
+
   /// The Pix code, usually a BR Code.
   final String data;
   final double size;
@@ -74,7 +77,7 @@ class _PixQrPanelState extends State<PixQrPanel>
             label: widget.semanticLabel,
             excludeSemantics: true,
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(PixQrPanel.margin),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),

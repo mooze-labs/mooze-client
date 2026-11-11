@@ -10,6 +10,10 @@ class MnemonicGridDisplay extends StatelessWidget {
 
   const MnemonicGridDisplay({required this.mnemonic, super.key});
 
+  /// The grid of [mnemonic] with every word masked, for a hidden phrase.
+  MnemonicGridDisplay.masked(String mnemonic, {super.key})
+    : mnemonic = List.filled(mnemonic.split(' ').length, '•••••').join(' ');
+
   @override
   Widget build(BuildContext context) {
     final words = mnemonic.split(" ");

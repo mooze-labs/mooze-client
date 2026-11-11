@@ -505,6 +505,35 @@ class AppLocalizationsEs extends AppLocalizations {
   String get seed_copied => 'Copiado';
 
   @override
+  String get seed_reveal => 'Toca para revelar';
+
+  @override
+  String get seed_hide => 'Ocultar frase';
+
+  @override
+  String get seed_view_words => 'Palabras';
+
+  @override
+  String get seed_view_qr => 'Código QR';
+
+  @override
+  String get seed_qr_label => 'Código QR de la frase de recuperación';
+
+  @override
+  String get seed_qr_title_prefix => 'Código QR de ';
+
+  @override
+  String get seed_qr_title_highlight => 'Recuperación';
+
+  @override
+  String get seed_qr_subtitle =>
+      'Escanéalo con la app de la billetera de destino para importar tu frase.';
+
+  @override
+  String get seed_qr_warning =>
+      'Quien tenga este código tiene acceso a tus fondos. No lo compartas ni le tomes foto.';
+
+  @override
   String get seed_confirm_phrase => 'Confirmar frase';
 
   @override

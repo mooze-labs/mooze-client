@@ -12,17 +12,31 @@ import 'widgets.dart';
 /// Shows the new recovery phrase before its confirmation.
 ///
 /// It has the layout of the phrase in the settings: the words in one glass
-/// panel on the backdrop, and the next step pinned at the bottom.
-class DisplaySeedsScreen extends ConsumerWidget {
+/// panel on the backdrop, blurred until tapped, and the next step pinned at
+/// the bottom.
+class DisplaySeedsScreen extends ConsumerStatefulWidget {
   const DisplaySeedsScreen({super.key, required this.mnemonic});
 
   final String mnemonic;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DisplaySeedsScreen> createState() => _DisplaySeedsScreenState();
+}
+
+class _DisplaySeedsScreenState extends ConsumerState<DisplaySeedsScreen> {
+  final _reveal = SeedRevealController();
+
+  @override
+  void dispose() {
+    _reveal.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
 
-    if (mnemonic.isEmpty) {
+    if (widget.mnemonic.isEmpty) {
       _redirectToConfigureSeeds(context);
       return BackdropPageScaffold(
         title: t.seed_screen_title,
@@ -56,7 +70,11 @@ class DisplaySeedsScreen extends ConsumerWidget {
             Flexible(
               child: GlassPanel(
                 padding: const EdgeInsets.all(12),
-                child: MnemonicGridDisplay(mnemonic: mnemonic),
+                child: SeedReveal(
+                  controller: _reveal,
+                  placeholder: MnemonicGridDisplay.masked(widget.mnemonic),
+                  child: MnemonicGridDisplay(mnemonic: widget.mnemonic),
+                ),
               ),
             ),
           ],
@@ -72,6 +90,6 @@ class DisplaySeedsScreen extends ConsumerWidget {
   }
 
   void _goToConfirmSeeds(BuildContext context) {
-    context.push("/setup/create-wallet/confirm-seeds", extra: mnemonic);
+    context.push("/setup/create-wallet/confirm-seeds", extra: widget.mnemonic);
   }
 }

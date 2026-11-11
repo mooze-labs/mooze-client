@@ -1012,6 +1012,60 @@ abstract class AppLocalizations {
   /// **'Copiado'**
   String get seed_copied;
 
+  /// No description provided for @seed_reveal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para revelar'**
+  String get seed_reveal;
+
+  /// No description provided for @seed_hide.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ocultar frase'**
+  String get seed_hide;
+
+  /// No description provided for @seed_view_words.
+  ///
+  /// In pt, this message translates to:
+  /// **'Palavras'**
+  String get seed_view_words;
+
+  /// No description provided for @seed_view_qr.
+  ///
+  /// In pt, this message translates to:
+  /// **'QR code'**
+  String get seed_view_qr;
+
+  /// No description provided for @seed_qr_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'QR code da frase de recuperação'**
+  String get seed_qr_label;
+
+  /// No description provided for @seed_qr_title_prefix.
+  ///
+  /// In pt, this message translates to:
+  /// **'QR code de '**
+  String get seed_qr_title_prefix;
+
+  /// No description provided for @seed_qr_title_highlight.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recuperação'**
+  String get seed_qr_title_highlight;
+
+  /// No description provided for @seed_qr_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escaneie com o app da carteira de destino para importar sua frase.'**
+  String get seed_qr_subtitle;
+
+  /// No description provided for @seed_qr_warning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quem tiver este código tem acesso aos seus fundos. Não compartilhe nem tire foto.'**
+  String get seed_qr_warning;
+
   /// No description provided for @seed_confirm_phrase.
   ///
   /// In pt, this message translates to:

@@ -501,6 +501,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seed_copied => 'Copied';
 
   @override
+  String get seed_reveal => 'Tap to reveal';
+
+  @override
+  String get seed_hide => 'Hide phrase';
+
+  @override
+  String get seed_view_words => 'Words';
+
+  @override
+  String get seed_view_qr => 'QR code';
+
+  @override
+  String get seed_qr_label => 'QR code of the recovery phrase';
+
+  @override
+  String get seed_qr_title_prefix => 'Recovery ';
+
+  @override
+  String get seed_qr_title_highlight => 'QR code';
+
+  @override
+  String get seed_qr_subtitle =>
+      'Scan it with the app of the destination wallet to import your phrase.';
+
+  @override
+  String get seed_qr_warning =>
+      'Anyone with this code has access to your funds. Don\'t share it or take a photo of it.';
+
+  @override
   String get seed_confirm_phrase => 'Confirm phrase';
 
   @override
