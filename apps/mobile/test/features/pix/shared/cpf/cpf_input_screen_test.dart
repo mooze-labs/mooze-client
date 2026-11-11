@@ -7,6 +7,8 @@ import 'package:mooze_mobile/features/favorite_payers/presentation/providers/fav
 import 'package:mooze_mobile/features/pix/shared/cpf/presentation/cpf_input_screen.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/themes/app_extra_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -52,6 +54,35 @@ List<FavoritePayer> manyPayers(int n) => List.generate(
   (i) => FavoritePayer(id: i + 1, label: 'Payer $i', cpf: '${10000000000 + i}'),
 );
 
+/// A screen that opens the payer step and keeps what it returns, as the Pix
+/// charge flows do.
+Widget _launcher(List<String?> results) => ProviderScope(
+  overrides: [
+    favoritePayersRepositoryProvider.overrideWithValue(_FakeRepo(const [])),
+    sharedPreferencesProvider.overrideWithValue(_prefs),
+  ],
+  child: MaterialApp(
+    theme: ThemeData.dark().copyWith(extensions: const [AppExtraColors.dark]),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: const Locale('en'),
+    home: Builder(
+      builder: (context) => Scaffold(
+        body: Center(
+          child: TextButton(
+            onPressed: () async => results.add(
+              await Navigator.of(context).push<String>(
+                MaterialPageRoute(builder: (_) => const CpfInputScreen()),
+              ),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ),
+  ),
+);
+
 /// Pumps frames for a bounded time instead of `pumpAndSettle`.
 ///
 /// A bounded pump cannot hang when a widget on the screen repeats an
@@ -60,6 +91,23 @@ Future<void> _settle(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(seconds: 1));
 }
+
+/// Pumps one second in frames, for animations that run frame by frame.
+Future<void> _frames(WidgetTester tester) async {
+  for (var i = 0; i < 60; i++) {
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+}
+
+final _slide = find.byType(SlideToConfirmButton);
+
+/// The thumb of the main action.
+final _thumb = find.descendant(
+  of: _slide,
+  matching: find.byWidgetPredicate(
+    (widget) => widget is GestureDetector && widget.onHorizontalDragEnd != null,
+  ),
+);
 
 void main() {
   useCoreSyncHelpers();
@@ -192,5 +240,68 @@ void main() {
     expect(find.widgetWithText(ListTile, 'Payer 6'), findsOneWidget);
     // 'Payer 7' is sheet-only and filtered out → gone from the tree.
     expect(find.text('Payer 7'), findsNothing);
+  });
+
+  group('the main action', () {
+    final t = lookupAppLocalizations(const Locale('en'));
+
+    SlideToConfirmButton slide(WidgetTester tester) =>
+        tester.widget<SlideToConfirmButton>(_slide);
+
+    testWidgets('is a slide that generates the QR code, off until the '
+        'document is complete', (tester) async {
+      await tester.pumpWidget(_app(const []));
+      await _settle(tester);
+
+      expect(find.byType(PrimaryButton), findsNothing);
+      expect(slide(tester).text, t.merchant_generate_qr);
+      expect(slide(tester).isEnabled, isFalse);
+
+      await tester.enterText(find.byType(TextField), '5299822');
+      await _settle(tester);
+      expect(slide(tester).isEnabled, isFalse);
+
+      await tester.enterText(find.byType(TextField), '52998224725');
+      await _settle(tester);
+      expect(slide(tester).isEnabled, isTrue);
+    });
+
+    testWidgets('a slide with a valid document returns its digits to the '
+        'flow that asked for it', (tester) async {
+      final results = <String?>[];
+      await tester.pumpWidget(_launcher(results));
+      await tester.tap(find.text('open'));
+      await _settle(tester);
+
+      await tester.enterText(find.byType(TextField), '52998224725');
+      await _settle(tester);
+      await tester.drag(_thumb, const Offset(800, 0));
+      await tester.pump();
+      // The slide waits at its end, with a spinner, as the screen closes.
+      expect(slide(tester).isLoading, isTrue);
+      await _frames(tester);
+
+      expect(results, ['52998224725']);
+      expect(find.byType(CpfInputScreen), findsNothing);
+    });
+
+    testWidgets('a slide with an invalid document shows the error, stays, and '
+        'gives the thumb back', (tester) async {
+      final results = <String?>[];
+      await tester.pumpWidget(_launcher(results));
+      await tester.tap(find.text('open'));
+      await _settle(tester);
+
+      await tester.enterText(find.byType(TextField), '11111111111');
+      await _settle(tester);
+      await tester.drag(_thumb, const Offset(800, 0));
+      await _frames(tester);
+
+      expect(find.text(t.cpf_error_invalid), findsOneWidget);
+      expect(results, isEmpty);
+      expect(find.byType(CpfInputScreen), findsOneWidget);
+      expect(slide(tester).isLoading, isFalse);
+      expect(tester.getRect(_thumb).left, tester.getRect(_slide).left);
+    });
   });
 }

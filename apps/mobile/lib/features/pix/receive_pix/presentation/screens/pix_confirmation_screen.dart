@@ -25,8 +25,8 @@ import 'package:mooze_mobile/themes/motion.dart';
 /// Review of a Pix deposit before the charge is created.
 ///
 /// The screen shows what the user receives, the fees, and the deposit rules.
-/// The main action asks for the payer CPF when the rules need it, then
-/// creates the charge and opens the payment screen.
+/// The user slides to confirm. The slide asks for the payer CPF when the
+/// rules need it, then creates the charge and opens the payment screen.
 class PixConfirmationScreen extends ConsumerStatefulWidget {
   /// Who pays the charge. The payer step uses the document of "my user"
   /// for the user's own deposit, and asks for another person's.
@@ -153,8 +153,7 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     final t = AppLocalizations.of(context);
     final depositAmount = ref.watch(depositAmountProvider);
     final validation = ref.watch(depositValidationProvider);
-    final isConfirmEnabled =
-        depositAmount > 0 && validation.isValid && !_isLoading;
+    final canConfirm = depositAmount > 0 && validation.isValid;
 
     const gutter = PixScreenScaffold.gutter;
 
@@ -208,11 +207,11 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
                             gutter,
                             12,
                           ),
-                          child: PrimaryButton(
-                            onPressed: isConfirmEnabled ? _onConfirm : null,
-                            text: t.common_continue,
+                          child: SlideToConfirmButton(
+                            text: t.wallet_slide_to_confirm,
+                            isEnabled: canConfirm,
                             isLoading: _isLoading,
-                            isEnabled: isConfirmEnabled,
+                            onSlideComplete: _onConfirm,
                           ),
                         ),
                       ],

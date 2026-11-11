@@ -29,7 +29,7 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 ///
 /// The recipient comes first, then one glass panel with the amounts, the
 /// fees, and the method. The amount the recipient receives and the DePix
-/// debit stand out. The countdown sits right above the confirm button.
+/// debit stand out. The countdown sits right above the confirm slide.
 class PixSendReviewScreen extends ConsumerStatefulWidget {
   const PixSendReviewScreen({super.key});
 
@@ -126,18 +126,20 @@ class _PixSendReviewScreenState extends ConsumerState<PixSendReviewScreen> {
                 onPressed: _requestNewQuote,
               )
             else
-              PrimaryButton(
+              // The payment cannot be undone, so it takes a slide, not a
+              // tap.
+              SlideToConfirmButton(
                 text: t.pix_hub_review_confirm,
                 isEnabled: quote.canFund,
                 isLoading: isFunding,
-                onPressed: _confirm,
+                onSlideComplete: _confirm,
               ),
             const SizedBox(height: 4),
             TextButton(
               onPressed: state.isBusy ? null : () => context.pop(),
               style: TextButton.styleFrom(
                 // A secondary action stays neutral. The brand pink is for
-                // the confirm button.
+                // the confirm slide.
                 foregroundColor: context.colors.textPrimary,
                 minimumSize: const Size(64, 48),
                 textStyle: context.textTheme.labelLarge?.copyWith(
@@ -149,7 +151,7 @@ class _PixSendReviewScreenState extends ConsumerState<PixSendReviewScreen> {
           ],
         ),
         children: [
-          // The blocker explains the disabled confirm button, so it leads.
+          // The blocker explains the disabled confirm slide, so it leads.
           if (quote.fundingBlocker != null) ...[
             PixWarningBanner(
               message: pixHubFailureMessage(t, quote.fundingBlocker!),

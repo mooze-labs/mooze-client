@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -147,6 +148,18 @@ void main() {
     controller.setAmount(4590);
     return controller.requestQuote();
   }
+
+  /// Slides the thumb of the review to its end, as a user confirms.
+  Future<void> slideToPay(WidgetTester tester) => tester.drag(
+    find.descendant(
+      of: find.byType(SlideToConfirmButton),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is GestureDetector && widget.onHorizontalDragEnd != null,
+      ),
+    ),
+    const Offset(800, 0),
+  );
 
   /// A tall view keeps every row of the screens built.
   void useTallView(WidgetTester tester) {
@@ -525,13 +538,21 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.tap(find.text('Confirm and pay'));
+      expect(
+        tester
+            .widget<SlideToConfirmButton>(find.byType(SlideToConfirmButton))
+            .isEnabled,
+        isFalse,
+      );
+      await slideToPay(tester);
       await settle(tester);
 
       expect(wallet.sends, isEmpty);
     });
 
-    testWidgets('confirm sends once and opens the result', (tester) async {
+    testWidgets('a tap pays nothing; a slide sends once and opens the result', (
+      tester,
+    ) async {
       useTallView(tester);
       await quoted();
       await tester.pumpWidget(host(initial: '/pix/send/review'));
@@ -539,10 +560,39 @@ void main() {
 
       await tester.tap(find.text('Confirm and pay'));
       await settle(tester);
+      expect(wallet.sends, isEmpty);
+
+      await slideToPay(tester);
+      await settle(tester);
 
       expect(wallet.sends, hasLength(1));
       expect(find.text('Pix in progress'), findsOneWidget);
       expect(find.text('Waiting for the deposit'), findsNothing);
+    });
+
+    testWidgets('during the broadcast the slide waits at its end, and the '
+        'screen cannot pay twice', (tester) async {
+      useTallView(tester);
+      wallet.sendGate = Completer<PixFundingResult>();
+      await quoted();
+      await tester.pumpWidget(host(initial: '/pix/send/review'));
+      await settle(tester);
+
+      await slideToPay(tester);
+      await settle(tester);
+      expect(
+        tester
+            .widget<SlideToConfirmButton>(find.byType(SlideToConfirmButton))
+            .isLoading,
+        isTrue,
+      );
+      await slideToPay(tester);
+      await settle(tester);
+      expect(wallet.sends, hasLength(1));
+
+      wallet.sendGate!.complete(const PixFundingSent(txid: 'txid-1'));
+      await settle(tester);
+      expect(find.text('Pix in progress'), findsOneWidget);
     });
   });
 

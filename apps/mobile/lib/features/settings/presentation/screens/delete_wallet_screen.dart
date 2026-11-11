@@ -30,16 +30,20 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
   bool _trustAware = false;
   bool _recoveryAware = false;
 
+  /// The slide waits at its end while the PIN screen is open.
+  bool _awaitingPin = false;
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final confirmed = _trustAware && _recoveryAware;
     return SettingsPageScaffold(
       title: t.delete_wallet_title,
-      bottomAction: PrimaryButton(
+      bottomAction: SlideToConfirmButton(
         text: t.delete_wallet_button,
-        onPressed: confirmed ? () => _verifyAndDeleteWallet(context) : null,
         isEnabled: confirmed,
+        isLoading: _awaitingPin,
+        onSlideComplete: () => _verifyAndDeleteWallet(context),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
@@ -57,7 +61,7 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
               subtitle: t.delete_wallet_warning_subtitle,
             ),
             const SizedBox(height: 24),
-            // Both risks sit in one panel. The button stays off until the
+            // Both risks sit in one panel. The slide stays off until the
             // user confirms each of them.
             GlassPanel(
               child: Column(
@@ -85,7 +89,7 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
     );
   }
 
-  void _verifyAndDeleteWallet(BuildContext context) {
+  Future<void> _verifyAndDeleteWallet(BuildContext context) async {
     final t = AppLocalizations.of(context);
     final verifyPinArgs = VerifyPinArgs(
       onPinConfirmed: () async {
@@ -154,6 +158,9 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
       },
       forceAuth: true,
     );
-    context.push('/setup/pin/verify', extra: verifyPinArgs);
+    setState(() => _awaitingPin = true);
+    await context.push('/setup/pin/verify', extra: verifyPinArgs);
+    // The user left the PIN screen, and the wallet is still here.
+    if (mounted) setState(() => _awaitingPin = false);
   }
 }

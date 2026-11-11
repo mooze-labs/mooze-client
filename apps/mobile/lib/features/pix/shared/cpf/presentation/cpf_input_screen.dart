@@ -316,11 +316,11 @@ class _CpfInputScreenState extends ConsumerState<CpfInputScreen> {
                         PixScreenScaffold.gutter,
                         12,
                       ),
-                      child: PrimaryButton(
+                      child: SlideToConfirmButton(
                         text: t.merchant_generate_qr,
                         isEnabled: canContinue,
                         isLoading: _isSubmitting,
-                        onPressed: () => _submit(canSave),
+                        onSlideComplete: () => _submit(canSave),
                       ),
                     ),
                   ],
