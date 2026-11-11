@@ -262,8 +262,8 @@ void main() {
     expect(repository.requests, isEmpty);
   });
 
-  testWidgets('for another payer, the slide opens the payer step, whose slide '
-      'creates the charge with their document', (tester) async {
+  testWidgets('for another payer, a plain button opens the payer step, whose '
+      'slide creates the charge with their document', (tester) async {
     final repository = _FakePixRepository(right(_deposit));
     await open(
       tester,
@@ -272,15 +272,23 @@ void main() {
       cpfRequired: true,
     );
 
-    await tester.drag(thumbOf(PixConfirmationScreen), const Offset(800, 0));
+    expect(slideOf(PixConfirmationScreen), findsNothing);
+    final button = find.descendant(
+      of: find.byType(PixConfirmationScreen),
+      matching: find.byType(PrimaryButton),
+    );
+    expect(tester.widget<PrimaryButton>(button).text, t.common_continue);
+    expect(tester.widget<PrimaryButton>(button).isEnabled, isTrue);
+
+    await tester.tap(button);
     await advance(tester, const Duration(seconds: 1));
     expect(find.byType(CpfInputScreen), findsOneWidget);
     expect(repository.requests, isEmpty);
-    // The slide of the review waits at its end, with a spinner.
-    final review = tester.widget<SlideToConfirmButton>(
+    // The button of the review waits with a spinner.
+    final review = tester.widget<PrimaryButton>(
       find.descendant(
         of: find.byType(PixConfirmationScreen, skipOffstage: false),
-        matching: find.byType(SlideToConfirmButton, skipOffstage: false),
+        matching: find.byType(PrimaryButton, skipOffstage: false),
       ),
     );
     expect(review.isLoading, isTrue);
@@ -296,5 +304,43 @@ void main() {
     ]);
     await advance(tester, const Duration(seconds: 4));
     expect(find.text('payment deposit-1'), findsOneWidget);
+  });
+
+  testWidgets('for another payer, the button stays off while the amount is '
+      'not valid', (tester) async {
+    final repository = _FakePixRepository(right(_deposit));
+    await open(
+      tester,
+      repository: repository,
+      payer: PixChargePayer.someoneElse,
+      cpfRequired: true,
+      validation: const DepositValidation.errorWith(
+        DepositValidationError.belowMinimum,
+        limitAmount: 20,
+      ),
+    );
+
+    final button = find.byType(PrimaryButton);
+    expect(tester.widget<PrimaryButton>(button).isEnabled, isFalse);
+    await tester.tap(button);
+    await advance(tester, const Duration(seconds: 1));
+    expect(find.byType(CpfInputScreen), findsNothing);
+  });
+
+  testWidgets('for another payer without the payer step, the review creates '
+      'the charge itself, so it keeps the slide', (tester) async {
+    final repository = _FakePixRepository(right(_deposit));
+    await open(
+      tester,
+      repository: repository,
+      payer: PixChargePayer.someoneElse,
+    );
+
+    expect(find.byType(PrimaryButton), findsNothing);
+    await tester.drag(thumbOf(PixConfirmationScreen), const Offset(800, 0));
+    await tester.pump();
+    await tester.pump();
+    expect(repository.requests, [(amountInCents: 10000, taxIdNumber: null)]);
+    await advance(tester, const Duration(seconds: 4));
   });
 }

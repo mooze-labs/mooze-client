@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/pix_charge_payer.dart';
+import 'package:mooze_mobile/features/pix/shared/cpf/pix_cpf_config.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/shared/utils/error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,8 +26,12 @@ import 'package:mooze_mobile/themes/motion.dart';
 /// Review of a Pix deposit before the charge is created.
 ///
 /// The screen shows what the user receives, the fees, and the deposit rules.
-/// The user slides to confirm. The slide asks for the payer CPF when the
-/// rules need it, then creates the charge and opens the payment screen.
+/// Confirming asks for the payer CPF when the rules need it, then creates
+/// the charge and opens the payment screen.
+///
+/// The slide sits on the step that creates the charge. A charge for someone
+/// else continues with a plain button to the payer step, which ends with
+/// the slide.
 class PixConfirmationScreen extends ConsumerStatefulWidget {
   /// Who pays the charge. The payer step uses the document of "my user"
   /// for the user's own deposit, and asks for another person's.
@@ -154,6 +159,9 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
     final depositAmount = ref.watch(depositAmountProvider);
     final validation = ref.watch(depositValidationProvider);
     final canConfirm = depositAmount > 0 && validation.isValid;
+    final opensPayerStep =
+        widget.payer == PixChargePayer.someoneElse &&
+        ref.watch(pixCpfRequiredProvider);
 
     const gutter = PixScreenScaffold.gutter;
 
@@ -207,12 +215,19 @@ class _PixConfirmationScreenState extends ConsumerState<PixConfirmationScreen>
                             gutter,
                             12,
                           ),
-                          child: SlideToConfirmButton(
-                            text: t.wallet_slide_to_confirm,
-                            isEnabled: canConfirm,
-                            isLoading: _isLoading,
-                            onSlideComplete: _onConfirm,
-                          ),
+                          child: opensPayerStep
+                              ? PrimaryButton(
+                                  text: t.common_continue,
+                                  isEnabled: canConfirm,
+                                  isLoading: _isLoading,
+                                  onPressed: _onConfirm,
+                                )
+                              : SlideToConfirmButton(
+                                  text: t.wallet_slide_to_confirm,
+                                  isEnabled: canConfirm,
+                                  isLoading: _isLoading,
+                                  onSlideComplete: _onConfirm,
+                                ),
                         ),
                       ],
                     ),
