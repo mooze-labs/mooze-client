@@ -107,7 +107,9 @@ class _ImportWalletScreenState extends ConsumerState<ImportWalletScreen> {
                   const SizedBox(height: 20),
                   const ImportButton(),
                   if (state.wordCount == 0) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 4),
+                    const _ScanSeedQr(),
+                    const SizedBox(height: 12),
                     _Tip(text: t.setup_import_tip),
                   ],
                 ],
@@ -168,6 +170,27 @@ class _ImportGuide extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens the camera to read the phrase from a QR code.
+class _ScanSeedQr extends StatelessWidget {
+  const _ScanSeedQr();
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => context.push('/setup/import-wallet/seed-qr'),
+      icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
+      label: Text(AppLocalizations.of(context).setup_import_scan_seedqr),
+      style: TextButton.styleFrom(
+        foregroundColor: context.colors.textPrimary,
+        minimumSize: const Size(double.infinity, 48),
+        textStyle: context.textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

@@ -34,6 +34,11 @@ final setupRoutes = [
     builder: (context, state) =>
         const SecureScreen(child: ImportWalletScreen()),
   ),
+  // Sensitive: the camera shows a QR code of the recovery phrase.
+  GoRoute(
+    path: "/setup/import-wallet/seed-qr",
+    builder: (context, state) => const SecureScreen(child: SeedQrScanScreen()),
+  ),
   GoRoute(
     path: "/setup/first-access",
     builder: (context, state) => const FirstAccessScreen(),
