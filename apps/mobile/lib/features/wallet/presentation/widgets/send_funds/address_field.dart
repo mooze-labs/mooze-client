@@ -128,8 +128,9 @@ class _AddressFieldState extends ConsumerState<AddressField> {
         // The label brightens while the field has the focus.
         SendSectionLabel(t.wallet_send_address_label, active: _isFocused),
         const SizedBox(height: 10),
+        // No autofocus: the keyboard would cover the asset and the amount,
+        // and many users paste or scan the address. It opens on a tap.
         TextField(
-          autofocus: true,
           controller: controller,
           focusNode: _focusNode,
           autocorrect: false,
