@@ -22,7 +22,10 @@ import 'privacy_shield_overlay.dart';
 ///     as a cosmetic app-switcher / transient cover.
 ///   - [showCover] true, [showAuthentication] true → the locked flow
 ///     ([_LockedView]): the same branded shield, now the biometric step.
-class WalletLockOverlay extends StatelessWidget {
+///
+/// When the cover rises, the focus leaves the screen below, which closes the
+/// keyboard: see [_WalletLockOverlayState.didUpdateWidget].
+class WalletLockOverlay extends StatefulWidget {
   /// Whether any opaque cover is shown (privacy shield visible OR session
   /// locked).
   final bool showCover;
@@ -41,13 +44,31 @@ class WalletLockOverlay extends StatelessWidget {
   });
 
   @override
+  State<WalletLockOverlay> createState() => _WalletLockOverlayState();
+}
+
+class _WalletLockOverlayState extends State<WalletLockOverlay> {
+  @override
+  void didUpdateWidget(WalletLockOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The keyboard is a system window above the app, so the cover cannot
+    // paint over it. While a field of the screen below keeps the focus, the
+    // keyboard stays open over the cover and opens again when the app
+    // returns. Taking the focus away closes it. The user taps the field
+    // again after the unlock.
+    if (widget.showCover && !oldWidget.showCover) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Offstage(
-      offstage: !showCover,
+      offstage: !widget.showCover,
       child: TickerMode(
-        enabled: showCover,
-        child: showAuthentication
-            ? _LockedView(onAuthenticated: onAuthenticated)
+        enabled: widget.showCover,
+        child: widget.showAuthentication
+            ? _LockedView(onAuthenticated: widget.onAuthenticated)
             : const PrivacyShieldOverlay(),
       ),
     );
