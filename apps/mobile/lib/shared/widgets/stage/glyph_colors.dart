@@ -15,14 +15,29 @@ class CoinGlyphColors extends ColorMapper {
 
   factory CoinGlyphColors.of(Asset asset, Color tint) => switch (asset) {
     // The orange disc behind the ₿.
-    Asset.btc => CoinGlyphColors._(tint, 0xFFF7931A, null),
+    Asset.btc => CoinGlyphColors._(tint, _btcDisc, null),
     // The drop, dimmed, so the ₿ inside it stands out.
-    Asset.lbtc => CoinGlyphColors._(tint, null, 0xFF46BEAE),
+    Asset.lbtc => CoinGlyphColors._(tint, null, _lbtcDrop),
     // The green disc behind the ₮.
-    Asset.usdt => CoinGlyphColors._(tint, 0xFF26A17B, null),
+    Asset.usdt => CoinGlyphColors._(tint, _usdtDisc, null),
     // The dark bar of the D.
-    Asset.depix => CoinGlyphColors._(tint, null, 0xFF366378),
+    Asset.depix => CoinGlyphColors._(tint, null, _depixBar),
   };
+
+  static const _btcDisc = 0xFFF7931A;
+  static const _lbtcDrop = 0xFF46BEAE;
+  static const _usdtDisc = 0xFF26A17B;
+  static const _depixBar = 0xFF366378;
+
+  /// The color of [asset], taken from its icon, for a coin in the colors of
+  /// the asset. The DePix coin takes the dark bar of its D: the light teal
+  /// of its icon would read as the L-BTC drop.
+  static Color colorOf(Asset asset) => Color(switch (asset) {
+    Asset.btc => _btcDisc,
+    Asset.lbtc => _lbtcDrop,
+    Asset.usdt => _usdtDisc,
+    Asset.depix => _depixBar,
+  });
 
   /// Size of the icon on the face, as a share of the coin diameter. The
   /// symbols fill their icons by different amounts, so each gets its own

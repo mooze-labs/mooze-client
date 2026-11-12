@@ -71,6 +71,11 @@ abstract final class Motion {
   /// [durationAmbient] forward and back.
   static const durationOnboardingScene = Duration(milliseconds: 1200);
 
+  /// Opening of the door of the first access, once the terms are accepted:
+  /// the door swings in, the light spills out, and the Mooze coin rises in
+  /// the doorway (1.2 s). It shuts in [durationSlow].
+  static const durationDoorOpen = Duration(milliseconds: 1200);
+
   /// Count-up of a balance from 0 to its value after a tap (700 ms). Use it
   /// only for a figure the user asked to see, never on screen open.
   static const durationCountUp = Duration(milliseconds: 700);

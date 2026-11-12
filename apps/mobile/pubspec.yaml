@@ -139,7 +139,6 @@ flutter:
     - assets/icons/menu/settings/
     - assets/icons/pix/
     - assets/images/
-    - assets/images/getstarted/
     - assets/images/onboarding/
     - assets/images/phone_verification/
     - assets/images/splash/

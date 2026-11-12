@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mooze_mobile/features/setup/presentation/screens/first_access/widgets/mock_app_image.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/first_access/widgets/first_access_scene.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/first_access/widgets/title_and_subtitle.dart';
 import 'package:mooze_mobile/shared/analytics/analytics_setting.dart';
 import 'package:mooze_mobile/shared/analytics/providers.dart';
@@ -12,10 +12,10 @@ import 'widgets.dart';
 
 /// The first screen of a new install: create a wallet or import one.
 ///
-/// The app image fills the space above the content, on the screen backdrop.
-/// The title, the consent panel and the actions keep their height and
-/// enter in a short stagger. With large text they scroll, and the image
-/// gives up its space.
+/// The door of [FirstAccessScene] fills the space above the content, on the
+/// screen backdrop; it opens when the terms are accepted. The title, the
+/// consent panel and the actions keep their height and enter in a short
+/// stagger. With large text they scroll, and the door gives up its space.
 class FirstAccessScreen extends StatelessWidget {
   const FirstAccessScreen({super.key});
 
@@ -34,8 +34,8 @@ class FirstAccessScreen extends StatelessWidget {
                 children: [
                   const Expanded(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(gutter, 24, gutter, 8),
-                      child: MockAppImage(),
+                      padding: EdgeInsets.only(top: 16),
+                      child: FirstAccessScene(),
                     ),
                   ),
                   ConstrainedBox(
