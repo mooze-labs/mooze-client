@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mooze_mobile/infra/core/core_sync_helpers.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/clipboard_suggestion_banner.dart';
+import 'package:mooze_mobile/shared/clipboard/clipboard_reader.dart';
 
 /// Heuristic detector for the PIX key formats the send flow accepts.
 ///
@@ -45,9 +46,9 @@ class _ClipboardPixKeySuggestionState extends State<ClipboardPixKeySuggestion> {
   }
 
   Future<void> _checkClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final data = await ClipboardReader.readText();
     if (!mounted) return;
-    final text = data?.text?.trim();
+    final text = data?.trim();
     if (text == null || !PixKeyDetector.looksLikePixKey(text)) return;
     setState(() => _candidate = text);
   }

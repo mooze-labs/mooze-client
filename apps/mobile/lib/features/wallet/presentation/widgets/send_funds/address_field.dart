@@ -9,6 +9,7 @@ import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/shared/clipboard/clipboard_reader.dart';
 
 import '../../providers/send_funds/address_controller_provider.dart';
 import '../../providers/send_funds/address_provider.dart';
@@ -70,9 +71,9 @@ class _AddressFieldState extends ConsumerState<AddressField> {
   }
 
   Future<void> _pasteFromClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final data = await ClipboardReader.readText();
     if (!mounted) return;
-    final text = data?.text?.trim();
+    final text = data?.trim();
     if (text == null || text.isEmpty) {
       AppSnackBar.info(
         context,

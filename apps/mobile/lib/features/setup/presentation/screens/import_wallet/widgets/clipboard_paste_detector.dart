@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/clipboard_suggestion_banner.dart';
+import 'package:mooze_mobile/shared/clipboard/clipboard_reader.dart';
 
 import '../providers/seed_phrase_provider.dart';
 
@@ -32,8 +32,7 @@ class _ClipboardPasteDetectorState
     _isChecking = true;
 
     try {
-      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-      final text = clipboardData?.text?.trim();
+      final text = (await ClipboardReader.readText())?.trim();
 
       if (text != null && text.isNotEmpty) {
         final words = text.split(RegExp(r'\s+'));

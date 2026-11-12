@@ -6,6 +6,7 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/shared/clipboard/clipboard_reader.dart';
 
 import '../../providers/send_funds/address_provider.dart';
 import '../../providers/send_funds/payment_request_applier.dart';
@@ -37,9 +38,9 @@ class _ClipboardAddressSuggestionState
   }
 
   Future<void> _checkClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final data = await ClipboardReader.readText();
     if (!mounted) return;
-    final text = data?.text?.trim();
+    final text = data?.trim();
     if (text == null || text.isEmpty || text.length > 2048) return;
     if (!QrValidationService.validateQrData(text).isValid) return;
     if (ref.read(addressStateProvider).isNotEmpty) return;

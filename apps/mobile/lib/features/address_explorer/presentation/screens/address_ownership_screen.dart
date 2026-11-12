@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/enums/address_chain.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/services/address_chain_detector.dart';
@@ -14,6 +13,7 @@ import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/shared/clipboard/clipboard_reader.dart';
 
 const Duration _kVerifyDebounce = Duration(milliseconds: 500);
 
@@ -96,8 +96,7 @@ class _AddressOwnershipScreenState
   }
 
   Future<void> _pasteFromClipboard() async {
-    final data = await Clipboard.getData('text/plain');
-    final text = data?.text;
+    final text = await ClipboardReader.readText();
     if (text == null || text.isEmpty) return;
     _controller.text = text;
     _controller.selection = TextSelection.collapsed(offset: text.length);

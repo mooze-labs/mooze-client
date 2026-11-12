@@ -48,8 +48,9 @@ class _AppForegroundObserverState extends ConsumerState<AppForegroundObserver>
         // Raise the shield while still rendering on the way out, so it becomes
         // the last painted frame and the app-switcher snapshot. Also fires for
         // transient interruptions; the shield is dropped on resume when no real
-        // backgrounding was recorded.
-        privacyShield.onLeavingForeground();
+        // backgrounding was recorded. The alert of a clipboard read also
+        // fires it, and does not raise the shield.
+        privacyShield.onInactive();
         _forceShieldPaint();
         break;
       case AppLifecycleState.paused:

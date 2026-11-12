@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_key.dart';
@@ -18,6 +17,7 @@ import 'package:mooze_mobile/shared/widgets/motion/press_scale.dart';
 import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/shared/clipboard/clipboard_reader.dart';
 
 /// Pix Copy and Paste step of the send flow.
 ///
@@ -56,8 +56,7 @@ class _PixSendCopyPasteScreenState
   }
 
   Future<void> _pasteFromClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = data?.text?.trim() ?? '';
+    final text = (await ClipboardReader.readText())?.trim() ?? '';
     if (!mounted) return;
     if (text.isEmpty) {
       AppSnackBar.warning(

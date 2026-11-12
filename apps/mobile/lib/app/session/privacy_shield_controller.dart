@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mooze_mobile/features/settings/presentation/providers/security_settings_provider.dart';
+import 'package:mooze_mobile/shared/clipboard/clipboard_reader.dart';
 
 import 'auth_prompt_controller.dart';
 import 'privacy_shield_state.dart';
@@ -45,6 +46,18 @@ class PrivacyShieldController extends Notifier<PrivacyShieldState> {
     if (privacyShieldEnabled || sessionLockEnabled) {
       state = PrivacyShieldState.visible;
     }
+  }
+
+  /// Raises the shield on `inactive`, unless a paste alert may cause it.
+  ///
+  /// The iOS "Allow Paste" alert of a clipboard read takes the app out of
+  /// the active state, like the app switcher. It is not a backgrounding:
+  /// raising the shield would flash it over the screen (see
+  /// [ClipboardReader.mayShowPasteAlert]). A real backgrounding then fires
+  /// `paused`, which raises the shield anyway.
+  void onInactive() {
+    if (ClipboardReader.mayShowPasteAlert) return;
+    onLeavingForeground();
   }
 
   /// Drops the shield on resume.
