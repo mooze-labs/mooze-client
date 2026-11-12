@@ -77,7 +77,8 @@ void main() {
           (tester) async {
         await tester.pumpWidget(buildWidget(isApiDown: true));
 
-        expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
+        // The glass restyle draws the warning as an outline.
+        expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
       });
 
       testWidgets('should not display submit button when API is down',

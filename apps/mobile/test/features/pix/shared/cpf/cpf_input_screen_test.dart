@@ -236,8 +236,10 @@ void main() {
     await tester.enterText(search, 'Payer 6');
     await _settle(tester);
 
-    // The matching payer's row is shown (scoped to the tile, not the search box).
-    expect(find.widgetWithText(ListTile, 'Payer 6'), findsOneWidget);
+    // The matching payer's row is shown. The search box holds the same
+    // text, so the finder looks for the tappable row. The rows are InkWells
+    // since the picker restyle, not ListTiles.
+    expect(find.widgetWithText(InkWell, 'Payer 6'), findsOneWidget);
     // 'Payer 7' is sheet-only and filtered out → gone from the tree.
     expect(find.text('Payer 7'), findsNothing);
   });

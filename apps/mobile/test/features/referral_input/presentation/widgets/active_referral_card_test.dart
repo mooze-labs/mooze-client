@@ -35,16 +35,18 @@ void main() {
       );
     });
 
-    testWidgets('should display check circle icon', (tester) async {
+    // Since the glass restyle, the circle is a tinted well around a bare
+    // check, and the savings icon is outlined, as the other panels.
+    testWidgets('should display check icon', (tester) async {
       await tester.pumpWidget(buildWidget(referralCode: 'CODE1'));
 
-      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
     });
 
     testWidgets('should display savings icon', (tester) async {
       await tester.pumpWidget(buildWidget(referralCode: 'CODE1'));
 
-      expect(find.byIcon(Icons.savings_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.savings_outlined), findsOneWidget);
     });
 
     testWidgets('should display different codes correctly', (tester) async {

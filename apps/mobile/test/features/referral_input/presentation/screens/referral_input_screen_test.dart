@@ -30,8 +30,11 @@ void main() {
     mockApplyReferralCode = MockApplyReferralCodeUseCase();
   });
 
+  /// [home] replaces the screen as the first route, so a test can push the
+  /// screen over it.
   Widget buildScreen({
     bool isApiDown = false,
+    Widget? home,
   }) {
     return ProviderScope(
       overrides: [
@@ -51,7 +54,7 @@ void main() {
             ),
         ),
       ],
-      child: wrapForTest(ReferralInputScreen(),
+      child: wrapForTest(home ?? ReferralInputScreen(),
       ),
     );
   }
@@ -98,14 +101,26 @@ void main() {
         expect(find.byType(ActiveReferralCard), findsNothing);
       });
 
+      // The settings push this screen. The app bar has no leading of its
+      // own: it shows the back button of the app, because the route can
+      // pop. The glyph comes from the app theme, so the test looks for the
+      // button and for what it does.
       testWidgets('should display back button', (tester) async {
-        await tester.pumpWidget(buildScreen());
+        await tester.pumpWidget(
+          buildScreen(home: const Scaffold(body: Text('Settings'))),
+        );
+        Navigator.of(tester.element(find.text('Settings'))).push(
+          MaterialPageRoute<void>(builder: (_) => ReferralInputScreen()),
+        );
         await tester.pumpAndSettle();
 
-        expect(
-          find.byIcon(Icons.arrow_back_ios_new_rounded),
-          findsOneWidget,
-        );
+        expect(find.byType(BackButton), findsOneWidget);
+
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ReferralInputScreen), findsNothing);
+        expect(find.text('Settings'), findsOneWidget);
       });
     });
 
