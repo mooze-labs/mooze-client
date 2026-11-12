@@ -10936,18 +10936,6 @@ abstract class AppLocalizations {
   /// **'Chave que recebe'**
   String get pix_hub_charge_key_label;
 
-  /// No description provided for @pix_hub_charge_open_amount.
-  ///
-  /// In pt, this message translates to:
-  /// **'Quem paga escolhe o valor'**
-  String get pix_hub_charge_open_amount;
-
-  /// No description provided for @pix_hub_charge_open_amount_hint.
-  ///
-  /// In pt, this message translates to:
-  /// **'A cobrança fica sem valor definido.'**
-  String get pix_hub_charge_open_amount_hint;
-
   /// No description provided for @pix_hub_charge_create.
   ///
   /// In pt, this message translates to:
@@ -11007,6 +10995,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Mensalidade de março'**
   String get pix_hub_link_reference_hint;
+
+  /// No description provided for @pix_hub_link_reference_caption.
+  ///
+  /// In pt, this message translates to:
+  /// **'Identificação (opcional)'**
+  String get pix_hub_link_reference_caption;
+
+  /// No description provided for @pix_hub_link_reference_add.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar identificação'**
+  String get pix_hub_link_reference_add;
+
+  /// No description provided for @pix_hub_link_reference_edit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar identificação'**
+  String get pix_hub_link_reference_edit;
+
+  /// No description provided for @pix_hub_link_reference_sheet_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Um nome para organizar seus links. Só você vê esse nome, e ele fica salvo neste aparelho.'**
+  String get pix_hub_link_reference_sheet_body;
 
   /// No description provided for @pix_hub_link_amount_error.
   ///

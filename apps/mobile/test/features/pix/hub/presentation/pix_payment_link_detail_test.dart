@@ -1,7 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
+import 'package:mooze_mobile/features/pix/hub/data/datasources/pix_payment_link_reference_store.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_hub_failure.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
@@ -94,16 +99,22 @@ void main() {
       ..setMockMethodCallHandler(SystemChannels.platform, null);
   });
 
+  /// The device storage of the names of the links.
+  late SharedPreferences prefs;
+
   Future<void> open(WidgetTester tester, PixPaymentLink link) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     tester.view.padding = const FakeViewPadding(top: 47 * 3, bottom: 34 * 3);
     addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           pixHubPaymentLinksProvider.overrideWith(_NoLinks.new),
           localeStringProvider.overrideWithValue('pt_BR'),
+          sharedPreferencesProvider.overrideWithValue(prefs),
         ],
         child: MaterialApp(
           locale: const Locale('pt'),
@@ -152,7 +163,9 @@ void main() {
   });
 
   group('hero', () {
-    testWidgets('names the charge above the amount', (tester) async {
+    testWidgets('names the charge above the amount, centered on it', (
+      tester,
+    ) async {
       await open(tester, _link());
 
       final reference = tester.getRect(find.text('Bolo de pote'));
@@ -160,6 +173,7 @@ void main() {
         find.bySemanticsLabel(formatBrlCents(4590)),
       );
       expect(reference.bottom, lessThanOrEqualTo(amount.top + 1));
+      expect(reference.center.dx, closeTo(amount.center.dx, 1));
     });
 
     // As a received transaction: the sign carries the direction, so it
@@ -332,15 +346,20 @@ void main() {
     (PixPaymentLinkStatus.revoked, t.pix_hub_link_inactive_revoked),
   ]) {
     testWidgets('a ${linkStatus.name} link says why it takes no payment, '
-        'with no address, share, QR Code, or menu', (tester) async {
+        'with no address, share, QR Code, or revoke', (tester) async {
       await open(tester, _link(status: linkStatus));
 
       expect(find.widgetWithText(InfoBanner, notice), findsOneWidget);
       expect(find.text(t.pix_hub_link_url_label), findsNothing);
       expect(find.text(t.pix_hub_link_share_action), findsNothing);
       expect(find.text(t.pix_hub_link_qr_action), findsNothing);
-      expect(menuButton(), findsNothing);
       expect(find.byType(TxMetaPanel), findsOneWidget);
+
+      // Its name still organizes the list, so the menu keeps the rename.
+      await tester.tap(menuButton());
+      await frames(tester);
+      expect(find.text(t.pix_hub_link_reference_edit), findsOneWidget);
+      expect(find.text(t.pix_hub_link_revoke), findsNothing);
     });
   }
 
@@ -391,6 +410,164 @@ void main() {
       expect(links(tester).revoked, isEmpty);
       expect(status(tester).title, t.pix_hub_link_status_pending);
       expect(menuButton(), findsOneWidget);
+    });
+  });
+
+  // The name of a link only organizes the links of the owner. It can be
+  // added or changed at any time, from the menu of the bar.
+  group('identification', () {
+    Future<void> openSheet(WidgetTester tester, String action) async {
+      await tester.tap(menuButton());
+      await frames(tester);
+      await tester.tap(find.text(action));
+      await frames(tester);
+    }
+
+    Finder field() => find.descendant(
+      of: find.byType(GlassSheet),
+      matching: find.byType(TextField),
+    );
+
+    testWidgets('the menu is a glass panel that offers to name a link with '
+        'no name, and to revoke it', (tester) async {
+      await open(tester, _link(reference: ''));
+
+      await tester.tap(menuButton());
+      await frames(tester);
+
+      final panel = find.ancestor(
+        of: find.text(t.pix_hub_link_reference_add),
+        matching: find.byType(LiquidGlass),
+      );
+      expect(panel, findsOneWidget);
+      expect(
+        find.descendant(of: panel, matching: find.text(t.pix_hub_link_revoke)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a name added in the sheet shows on the link and stays on '
+        'the device', (tester) async {
+      await open(tester, _link(reference: ''));
+
+      await openSheet(tester, t.pix_hub_link_reference_add);
+      expect(find.byType(GlassSheet), findsOneWidget);
+      expect(find.text(t.pix_hub_link_reference_sheet_body), findsOneWidget);
+
+      await tester.enterText(field(), '  Aula de março ');
+      await tester.tap(find.text(t.common_save));
+      await frames(tester);
+
+      expect(find.byType(GlassSheet), findsNothing);
+      expect(find.text('Aula de março'), findsOneWidget);
+      expect(PixPaymentLinkReferenceStore(prefs).load(), {
+        'link-1': 'Aula de março',
+      });
+    });
+
+    testWidgets('a new name grows and fades in', (tester) async {
+      await open(tester, _link(reference: ''));
+
+      await openSheet(tester, t.pix_hub_link_reference_add);
+      await tester.enterText(field(), 'Aula de março');
+      await tester.tap(find.text(t.common_save));
+      // The sheet closes, then the name arrives.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final fade = tester.widget<FadeTransition>(
+        find
+            .ancestor(
+              of: find.text('Aula de março'),
+              matching: find.byType(FadeTransition),
+            )
+            .first,
+      );
+      expect(fade.opacity.value, inExclusiveRange(0, 1));
+      await frames(tester);
+      expect(fade.opacity.value, 1);
+    });
+
+    // The amount under the name moves up as the name leaves, not at once.
+    testWidgets('a cleared name closes its space smoothly', (tester) async {
+      await open(tester, _link());
+      double amountTop() =>
+          tester.getRect(find.bySemanticsLabel(formatBrlCents(4590))).top;
+      final before = amountTop();
+
+      await openSheet(tester, t.pix_hub_link_reference_edit);
+      await tester.enterText(field(), '');
+      await tester.tap(find.text(t.common_save));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 120));
+      final middle = amountTop();
+      await frames(tester);
+      final after = amountTop();
+
+      expect(after, isNot(before));
+      expect(
+        middle,
+        inExclusiveRange(math.min(before, after), math.max(before, after)),
+      );
+    });
+
+    testWidgets('a link with a name offers to edit it, filled in', (
+      tester,
+    ) async {
+      await open(tester, _link());
+
+      await openSheet(tester, t.pix_hub_link_reference_edit);
+
+      expect(
+        tester.widget<TextField>(field()).controller?.text,
+        'Bolo de pote',
+      );
+    });
+
+    testWidgets('a cleared name leaves the link with no name', (tester) async {
+      await open(tester, _link());
+
+      await openSheet(tester, t.pix_hub_link_reference_edit);
+      await tester.enterText(field(), '');
+      await tester.tap(find.text(t.common_save));
+      await frames(tester);
+
+      expect(find.text('Bolo de pote'), findsNothing);
+      expect(PixPaymentLinkReferenceStore(prefs).load(), {'link-1': ''});
+
+      // The menu now offers to add a name.
+      await tester.tap(menuButton());
+      await frames(tester);
+      expect(find.text(t.pix_hub_link_reference_add), findsOneWidget);
+    });
+
+    testWidgets('closing the sheet keeps the name', (tester) async {
+      await open(tester, _link());
+
+      await openSheet(tester, t.pix_hub_link_reference_edit);
+      await tester.enterText(field(), 'Outro nome');
+      await tester.tap(find.byTooltip(t.common_close));
+      await frames(tester);
+
+      expect(find.byType(GlassSheet), findsNothing);
+      expect(find.text('Bolo de pote'), findsOneWidget);
+      expect(PixPaymentLinkReferenceStore(prefs).load(), isEmpty);
+    });
+
+    // The keyboard opens over the bottom of the screen. The field and the
+    // save button stay above it.
+    testWidgets('the sheet rises above the keyboard', (tester) async {
+      await open(tester, _link());
+      await openSheet(tester, t.pix_hub_link_reference_edit);
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300 * 3);
+      await frames(tester);
+
+      final keyboardTop = 844.0 - 300;
+      expect(
+        tester.getRect(find.text(t.common_save)).bottom,
+        lessThanOrEqualTo(keyboardTop),
+      );
     });
   });
 }

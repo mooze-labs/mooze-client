@@ -9,7 +9,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 typedef _Create = ({
-  int? amountInCents,
+  int amountInCents,
   Asset asset,
   String address,
   bool singleUse,
@@ -24,8 +24,8 @@ class _FakeLinks implements PixPaymentLinkRepository {
   _FakeLinks(this.answers);
 
   @override
-  TaskEither<PixHubFailure, PixPaymentLink> createLink({
-    int? amountInCents,
+  TaskEither<PixHubFailure, PixPaymentLink> createFixedAmountLink({
+    required int amountInCents,
     required Asset asset,
     required String destinationAddress,
     required bool singleUse,
@@ -40,15 +40,6 @@ class _FakeLinks implements PixPaymentLinkRepository {
     ));
     return TaskEither.fromEither(answers.removeAt(0));
   }
-
-  @override
-  TaskEither<PixHubFailure, PixPaymentLink> createFixedAmountLink({
-    required int amountInCents,
-    required Asset asset,
-    required String destinationAddress,
-    required bool singleUse,
-    required String idempotencyKey,
-  }) => throw UnimplementedError();
 
   @override
   TaskEither<PixHubFailure, List<PixPaymentLink>> listLinks() =>
@@ -127,14 +118,18 @@ void main() {
     },
   );
 
-  test('an open amount asks for a variable link', () async {
+  // The identification is optional. A link without one keeps nothing on
+  // the device, and shows the generic name.
+  test('a link without an identification keeps nothing', () async {
     final links = _FakeLinks([Right(_link)]);
 
-    await controller(
+    final created = await controller(
       links,
-    ).create(reference: 'Doação', singleUse: false, asset: Asset.depix);
+    ).create(singleUse: false, asset: Asset.depix, amountInCents: 4590);
 
-    expect(links.creates.single.amountInCents, isNull);
+    expect(created?.reference, isEmpty);
+    expect(links.creates.single.amountInCents, 4590);
+    expect(references.load(), isEmpty);
   });
 
   test('a retry of the same charge repeats the address and the key', () async {

@@ -6132,13 +6132,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pix_hub_charge_key_label => 'Receiving key';
 
   @override
-  String get pix_hub_charge_open_amount => 'The payer chooses the amount';
-
-  @override
-  String get pix_hub_charge_open_amount_hint =>
-      'The charge carries no fixed amount.';
-
-  @override
   String get pix_hub_charge_create => 'Generate charge';
 
   @override
@@ -6172,6 +6165,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pix_hub_link_reference_hint => 'March subscription';
+
+  @override
+  String get pix_hub_link_reference_caption => 'Reference (optional)';
+
+  @override
+  String get pix_hub_link_reference_add => 'Add a reference';
+
+  @override
+  String get pix_hub_link_reference_edit => 'Edit reference';
+
+  @override
+  String get pix_hub_link_reference_sheet_body =>
+      'A name to organize your links. Only you see it, and it stays on this device.';
 
   @override
   String pix_hub_link_amount_error(String min, String max) {

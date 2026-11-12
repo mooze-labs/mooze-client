@@ -24,7 +24,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../shared/fake_core_sync_helpers.dart';
 
-typedef _Create = ({int? amountInCents, Asset asset, bool singleUse});
+typedef _Create = ({int amountInCents, Asset asset, bool singleUse});
 
 /// The payment-link API. Each create waits for [answer].
 class _FakeLinks implements PixPaymentLinkRepository {
@@ -35,8 +35,8 @@ class _FakeLinks implements PixPaymentLinkRepository {
   late Completer<Either<PixHubFailure, PixPaymentLink>> answer;
 
   @override
-  TaskEither<PixHubFailure, PixPaymentLink> createLink({
-    int? amountInCents,
+  TaskEither<PixHubFailure, PixPaymentLink> createFixedAmountLink({
+    required int amountInCents,
     required Asset asset,
     required String destinationAddress,
     required bool singleUse,
@@ -50,15 +50,6 @@ class _FakeLinks implements PixPaymentLinkRepository {
     answer = Completer();
     return TaskEither(() => answer.future);
   }
-
-  @override
-  TaskEither<PixHubFailure, PixPaymentLink> createFixedAmountLink({
-    required int amountInCents,
-    required Asset asset,
-    required String destinationAddress,
-    required bool singleUse,
-    required String idempotencyKey,
-  }) => throw UnimplementedError();
 
   @override
   TaskEither<PixHubFailure, List<PixPaymentLink>> listLinks() =>
@@ -241,8 +232,10 @@ void main() {
     expect(find.text('Bolo de pote'), findsOneWidget);
   });
 
-  testWidgets('the review stays off until the link has an identification '
-      'and an amount within the limits', (tester) async {
+  // The identification only organizes the links of the owner, so the
+  // review waits for the amount alone.
+  testWidgets('the review waits only for an amount within the limits: the '
+      'identification is optional', (tester) async {
     await open(tester);
     bool reviewEnabled() => tester
         .widget<PrimaryButton>(
@@ -258,14 +251,6 @@ void main() {
 
     await tester.enterText(find.byType(TextField).first, '4590');
     await settle(tester);
-    expect(reviewEnabled(), isFalse);
-
-    await tester.enterText(find.byType(TextField).last, '   ');
-    await settle(tester);
-    expect(reviewEnabled(), isFalse);
-
-    await tester.enterText(find.byType(TextField).last, 'Bolo de pote');
-    await settle(tester);
     expect(reviewEnabled(), isTrue);
     expect(find.text(amountError), findsNothing);
 
@@ -276,14 +261,39 @@ void main() {
       find.text(t.pix_receive_validation_below_min('20,00')),
       findsOneWidget,
     );
+  });
 
-    await tester.tap(find.text(t.pix_hub_charge_open_amount));
+  testWidgets('the identification says that it is optional', (tester) async {
+    await open(tester);
+
+    expect(find.text(t.pix_hub_link_reference_caption), findsOneWidget);
+  });
+
+  // The API no longer takes links whose payer chooses the amount.
+  testWidgets('no option lets the payer choose the amount', (tester) async {
+    await open(tester);
+
+    expect(find.text('Quem paga escolhe o valor'), findsNothing);
+    expect(find.byType(Switch), findsOneWidget);
+  });
+
+  testWidgets('a link with no identification is named "Link de pagamento" '
+      'and keeps no name on the device', (tester) async {
+    await open(tester);
+    await tester.enterText(find.byType(TextField).first, '4590');
     await settle(tester);
-    expect(reviewEnabled(), isTrue);
-    expect(
-      find.text(t.pix_receive_validation_below_min('20,00')),
-      findsNothing,
-    );
+    await tester.tap(find.widgetWithText(PrimaryButton, t.pix_hub_link_review));
+    await settle(tester);
+
+    expect(find.text(t.pix_hub_link_no_reference), findsOneWidget);
+
+    await tester.drag(thumb(), const Offset(800, 0));
+    await settle(tester);
+    links.answer.complete(Right(_link));
+    await settle(tester);
+
+    expect(find.text('detail link-1'), findsOneWidget);
+    expect(PixPaymentLinkReferenceStore(prefs).load(), isEmpty);
   });
 
   bool reviewEnabled(WidgetTester tester) => tester
@@ -394,21 +404,17 @@ void main() {
     expect(find.byType(TextField), findsNWidgets(2));
   });
 
-  testWidgets('an open amount and a reusable link reach the API as such', (
-    tester,
-  ) async {
+  testWidgets('a reusable link reaches the API as such', (tester) async {
     await open(tester);
-    await tester.tap(find.text(t.pix_hub_charge_open_amount));
     await tester.tap(find.text(t.pix_hub_link_single_use));
-    await tester.enterText(find.byType(TextField).last, 'Doações');
-    await settle(tester);
+    await typeAmount(tester, '4590');
     await tester.tap(find.widgetWithText(PrimaryButton, t.pix_hub_link_review));
     await settle(tester);
 
     await tester.drag(thumb(), const Offset(800, 0));
     await settle(tester);
     expect(links.creates, [
-      (amountInCents: null, asset: Asset.depix, singleUse: false),
+      (amountInCents: 4590, asset: Asset.depix, singleUse: false),
     ]);
     links.answer.complete(Right(_link));
     await settle(tester);

@@ -4,12 +4,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_hub_providers.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_link_rename.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_link_revoke.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_labels.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_sheet.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_detail_scaffold.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_meta_panel.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_status_panel.dart';
@@ -19,6 +19,8 @@ import 'package:mooze_mobile/features/transaction_history/presentation/widgets/i
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/info_banner.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
+import 'package:mooze_mobile/shared/widgets/glass/glass_menu.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -33,12 +35,14 @@ import 'package:share_plus/share_plus.dart';
 /// the usage, the address with copy, and the actions: share the link, or
 /// show its QR Code in a floating sheet.
 ///
-/// Revoke is destructive, so it lives in the menu of the bar and asks for a
+/// The menu of the bar is a glass panel. It adds or changes the name of the
+/// link, which only organizes the links of the owner, so every link offers
+/// it. Revoke is destructive, so it lives there too and asks for a
 /// confirmation. A paid, expired, or revoked link has no address, actions,
-/// or menu: they would only lead the payer to a dead page.
+/// or revoke: they would only lead the payer to a dead page.
 ///
-/// The screen follows the link in the list, so a revoke turns the status
-/// and the actions here at once.
+/// The screen follows the link in the list and its name on the device, so
+/// a revoke or a rename shows here at once.
 class PixPaymentLinkDetailScreen extends ConsumerWidget {
   /// The link as the previous screen saw it. It shows until the list has
   /// the link, for example right after the link was created.
@@ -75,6 +79,11 @@ class PixPaymentLinkDetailScreen extends ConsumerWidget {
           ),
         ) ??
         this.link;
+    // The name on the device. A link created since the names were read
+    // keeps the one it came with.
+    final name =
+        ref.watch(pixPaymentLinkReferencesProvider)[link.id] ?? link.reference;
+    final named = link.withReference(name);
     final active = link.isActive;
     final asset = link.asset;
     final notice = _inactiveNotice(context, link.status);
@@ -83,10 +92,26 @@ class PixPaymentLinkDetailScreen extends ConsumerWidget {
       title: t.pix_hub_link_detail_title,
       entranceKey: 'payment-link-${link.id}',
       actions: [
-        if (active)
-          _LinkMenu(
-            onRevoke: () => confirmAndRevokePaymentLink(context, ref, link),
-          ),
+        GlassMenuButton(
+          tooltip: t.pix_hub_link_actions,
+          items: [
+            GlassMenuItem(
+              icon: Icons.edit_outlined,
+              label: name.isEmpty
+                  ? t.pix_hub_link_reference_add
+                  : t.pix_hub_link_reference_edit,
+              onSelected: () => editPaymentLinkReference(context, ref, named),
+            ),
+            if (active)
+              GlassMenuItem(
+                icon: Icons.link_off_rounded,
+                label: t.pix_hub_link_revoke,
+                destructive: true,
+                onSelected: () =>
+                    confirmAndRevokePaymentLink(context, ref, link),
+              ),
+          ],
+        ),
       ],
       hero: Column(
         children: [
@@ -94,19 +119,25 @@ class PixPaymentLinkDetailScreen extends ConsumerWidget {
             HeroAssetIcon(asset: asset, glyph: Icons.link_rounded),
             const SizedBox(height: 14),
           ],
-          if (link.reference.isNotEmpty) ...[
-            Text(
-              link.reference,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colors.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 2),
-          ],
+          // A name that comes, changes, or goes grows and fades in place.
+          _NameSwitcher(
+            child: name.isEmpty
+                ? const SizedBox(key: ValueKey('no-name'), width: 0)
+                : Padding(
+                    key: ValueKey(name),
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text(
+                      name,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: context.colors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+          ),
           _HeroAmount(
             amountInCents: link.amountInCents,
             paid: link.status == PixPaymentLinkStatus.paid,
@@ -349,35 +380,33 @@ class _HeroAmount extends StatelessWidget {
   }
 }
 
-/// The menu of the bar, with the revoke of a link that takes payments.
+/// Grows and fades the name of the link in, and shrinks and fades the old
+/// one out, over [Motion.durationEmphasis]. With reduced motion, the name
+/// changes at once.
 ///
-/// The revoke is destructive, so its icon and its text have the negative
-/// color, and it still asks for a confirmation.
-class _LinkMenu extends StatelessWidget {
-  final VoidCallback onRevoke;
+/// The page sizes itself from the intrinsic height of the hero. A
+/// [SizeTransition] reports the height of each frame, so the page follows
+/// the switch. `AnimatedSize` reports the end height at once, and the page
+/// would be too short while the name shrinks.
+class _NameSwitcher extends StatelessWidget {
+  const _NameSwitcher({required this.child});
 
-  const _LinkMenu({required this.onRevoke});
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    final negative = context.colors.negativeColor;
-    return PopupMenuButton<VoidCallback>(
-      tooltip: t.pix_hub_link_actions,
-      icon: Icon(Icons.more_vert_rounded, color: context.colors.textPrimary),
-      onSelected: (action) => action(),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: onRevoke,
-          child: Row(
-            children: [
-              PixIcon(PixIcons.delete, size: 20, color: negative),
-              const SizedBox(width: 12),
-              Text(t.pix_hub_link_revoke, style: TextStyle(color: negative)),
-            ],
-          ),
-        ),
-      ],
+    return AnimatedSwitcher(
+      duration: Motion.of(context, Motion.durationEmphasis),
+      switchInCurve: Motion.curveEnter,
+      switchOutCurve: Motion.curveExit,
+      transitionBuilder: (child, animation) => SizeTransition(
+        sizeFactor: animation,
+        // The width of the name, not of the hero, so the name stays
+        // centered.
+        fixedCrossAxisSizeFactor: 1,
+        child: FadeTransition(opacity: animation, child: child),
+      ),
+      child: child,
     );
   }
 }

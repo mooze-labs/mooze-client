@@ -336,6 +336,8 @@ void main() {
     expect(failureCode(result), PixHubErrorCode.network);
   });
 
+  // The app no longer creates open amounts, but a link made before still
+  // lists with no amount.
   test('reads the paid and expired states and an open amount', () async {
     final data = Map<String, dynamic>.from(_created['data']! as Map);
     final paid = {...data, 'consumed': true};
@@ -363,24 +365,6 @@ void main() {
     expect(links[3].amountInCents, isNull);
     expect(links[3].singleUse, isFalse);
     expect(links[0].asset, Asset.depix);
-  });
-
-  test('an open amount sends a variable amount policy', () async {
-    final adapter = _QueueAdapter([_json(201, _created)]);
-
-    await repositoryWith(adapter)
-        .createLink(
-          asset: Asset.lbtc,
-          destinationAddress: 'lq1qqdest',
-          singleUse: false,
-          idempotencyKey: 'key-1',
-        )
-        .run();
-
-    final body = jsonDecode(adapter.bodies.single) as Map<String, dynamic>;
-    expect(body['amount_policy'], {'type': 'variable'});
-    expect(body['asset'], lbtcAssetId);
-    expect(body['usage_policy'], 'reusable');
   });
 
   group('lists the links of the user', () {

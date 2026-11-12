@@ -6180,13 +6180,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pix_hub_charge_key_label => 'Clave que recibe';
 
   @override
-  String get pix_hub_charge_open_amount => 'Quien paga elige el monto';
-
-  @override
-  String get pix_hub_charge_open_amount_hint =>
-      'El cobro queda sin monto definido.';
-
-  @override
   String get pix_hub_charge_create => 'Generar cobro';
 
   @override
@@ -6220,6 +6213,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pix_hub_link_reference_hint => 'Mensualidad de marzo';
+
+  @override
+  String get pix_hub_link_reference_caption => 'Identificación (opcional)';
+
+  @override
+  String get pix_hub_link_reference_add => 'Agregar identificación';
+
+  @override
+  String get pix_hub_link_reference_edit => 'Editar identificación';
+
+  @override
+  String get pix_hub_link_reference_sheet_body =>
+      'Un nombre para organizar tus enlaces. Solo tú lo ves y queda guardado en este dispositivo.';
 
   @override
   String pix_hub_link_amount_error(String min, String max) {

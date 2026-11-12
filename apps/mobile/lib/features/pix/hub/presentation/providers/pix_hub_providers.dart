@@ -34,6 +34,32 @@ final pixPaymentLinkReferenceStoreProvider =
           PixPaymentLinkReferenceStore(ref.watch(sharedPreferencesProvider)),
     );
 
+/// The names that the owner gave the payment links, by link id.
+///
+/// A name only organizes the links on this device: the API has no field
+/// for it. A rename goes through here, so every screen of the links shows
+/// it at once, without a new read of the API.
+class PixPaymentLinkReferences extends Notifier<Map<String, String>> {
+  @override
+  Map<String, String> build() =>
+      ref.watch(pixPaymentLinkReferenceStoreProvider).load();
+
+  /// Names the link [id]. An empty [reference] takes the name away, and the
+  /// link shows a generic name.
+  Future<void> rename(String id, String reference) async {
+    final store = ref.read(pixPaymentLinkReferenceStoreProvider);
+    await store.save(id, reference);
+    // The store, not the names read before: the create screen saves the
+    // name of a new link there.
+    state = store.load();
+  }
+}
+
+final pixPaymentLinkReferencesProvider =
+    NotifierProvider<PixPaymentLinkReferences, Map<String, String>>(
+      PixPaymentLinkReferences.new,
+    );
+
 /// Reads a new receive address of the Liquid wallet.
 ///
 /// The address is bare: the payment-link API expects an Elements address,
@@ -81,8 +107,19 @@ class PixPaymentLinksController
     extends AutoDisposeAsyncNotifier<List<PixPaymentLink>> {
   @override
   Future<List<PixPaymentLink>> build() async {
+    // A rename changes the names of the list in place: a new read of the
+    // API would only bring the same links.
+    ref.listen(pixPaymentLinkReferencesProvider, (_, names) {
+      final links = state.valueOrNull;
+      if (links == null) return;
+      state = AsyncData([
+        for (final link in links) link.withReference(names[link.id] ?? ''),
+      ]);
+    });
     final repository = ref.watch(pixPaymentLinkRepositoryProvider);
     final links = _unwrap(await repository.listLinks().run());
+    // The store, not the names read before: a link created since then
+    // saved its name there.
     final references = ref.watch(pixPaymentLinkReferenceStoreProvider).load();
     return [
       for (final link in links) link.withReference(references[link.id] ?? ''),

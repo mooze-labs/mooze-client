@@ -91,26 +91,8 @@ class ApiPixPaymentLinkRepository implements PixPaymentLinkRepository {
     required bool singleUse,
     required String idempotencyKey,
   }) {
-    return createLink(
-      amountInCents: amountInCents,
-      asset: asset,
-      destinationAddress: destinationAddress,
-      singleUse: singleUse,
-      idempotencyKey: idempotencyKey,
-    );
-  }
-
-  @override
-  TaskEither<PixHubFailure, PixPaymentLink> createLink({
-    int? amountInCents,
-    required Asset asset,
-    required String destinationAddress,
-    required bool singleUse,
-    required String idempotencyKey,
-  }) {
     return TaskEither(() async {
-      if (amountInCents != null &&
-          !FixedPaymentLinkAmount(amountInCents).isWithinBounds) {
+      if (!FixedPaymentLinkAmount(amountInCents).isWithinBounds) {
         return const Left(PixHubFailure(PixHubErrorCode.amountOutOfBounds));
       }
       if (!acceptedAssets.contains(asset)) {
@@ -124,7 +106,7 @@ class ApiPixPaymentLinkRepository implements PixPaymentLinkRepository {
 
       _log(
         'request POST ${_dio.options.baseUrl}$_path '
-        'amount=${amountInCents ?? 'variable'} '
+        'amount=$amountInCents '
         'asset=${EnumName(asset).name} '
         'usage=${singleUse ? 'single_use' : 'reusable'} '
         'destination=${shortAddress(destinationAddress)} '
@@ -135,9 +117,7 @@ class ApiPixPaymentLinkRepository implements PixPaymentLinkRepository {
         'asset': asset.id,
         'destination_address': destinationAddress,
         'usage_policy': singleUse ? 'single_use' : 'reusable',
-        'amount_policy': amountInCents == null
-            ? {'type': 'variable'}
-            : {'type': 'fixed', 'amount_in_cents': amountInCents},
+        'amount_policy': {'type': 'fixed', 'amount_in_cents': amountInCents},
       });
 
       final response = await _sendWithRefresh(

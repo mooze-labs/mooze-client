@@ -2884,8 +2884,6 @@
   "pix_hub_share": "Compartilhar",
   "pix_hub_value_unavailable": "Não informado",
   "pix_hub_charge_key_label": "Chave que recebe",
-  "pix_hub_charge_open_amount": "Quem paga escolhe o valor",
-  "pix_hub_charge_open_amount_hint": "A cobrança fica sem valor definido.",
   "pix_hub_charge_create": "Gerar cobrança",
   "pix_hub_charge_error_min": "O valor mínimo é {amount}.",
   "@pix_hub_charge_error_min": {
@@ -2910,6 +2908,10 @@
   "pix_hub_link_create": "Criar link",
   "pix_hub_link_reference_label": "Identificação",
   "pix_hub_link_reference_hint": "Mensalidade de março",
+  "pix_hub_link_reference_caption": "Identificação (opcional)",
+  "pix_hub_link_reference_add": "Adicionar identificação",
+  "pix_hub_link_reference_edit": "Editar identificação",
+  "pix_hub_link_reference_sheet_body": "Um nome para organizar seus links. Só você vê esse nome, e ele fica salvo neste aparelho.",
   "pix_hub_link_amount_error": "O valor deve ficar entre {min} e {max}.",
   "@pix_hub_link_amount_error": {
     "placeholders": {

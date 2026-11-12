@@ -12,6 +12,7 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_amount_fi
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_labels.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_link_reference_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_payment_link_level_notice.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_card.dart';
@@ -39,9 +40,14 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// Payment links start at the Silver level. A Bronze account sees why, and
 /// the way to its level, in place of the form.
 ///
-/// The amount is the hero of the step. The two switches share one glass
-/// group, the assets another, and the reference is a bare underline field.
-/// The review opens in a floating glass sheet, whose slide creates the link.
+/// Every link has a fixed amount: the API no longer lets the payer choose
+/// it. The identification is optional, because it only organizes the links
+/// of the owner. A link without one shows as "Link de pagamento".
+///
+/// The amount is the hero of the step. The single-use switch sits in one
+/// glass group, the assets in another, and the reference is a bare
+/// underline field. The review opens in a floating glass sheet, whose slide
+/// creates the link.
 class PixPaymentLinkCreateScreen extends ConsumerStatefulWidget {
   const PixPaymentLinkCreateScreen({super.key});
 
@@ -55,7 +61,6 @@ class _PixPaymentLinkCreateScreenState
   final TextEditingController _referenceController = TextEditingController();
 
   int _amountInCents = 0;
-  bool _openAmount = false;
   bool _singleUse = true;
 
   /// Asset that the wallet receives. DePix keeps the BRL value.
@@ -73,13 +78,12 @@ class _PixPaymentLinkCreateScreenState
       validatePixReceiveAmount(_amountInCents / 100, ref.read(levelsProvider));
 
   bool get _amountIsValid =>
-      _openAmount ||
-      (FixedPaymentLinkAmount(_amountInCents).isWithinBounds &&
-          _receiveValidation.isValid);
+      FixedPaymentLinkAmount(_amountInCents).isWithinBounds &&
+      _receiveValidation.isValid;
 
-  /// The review opens once the link has an identification and an amount.
-  bool get _canReview =>
-      _referenceController.text.trim().isNotEmpty && _amountIsValid;
+  /// The review opens once the amount is within the limits. The
+  /// identification is optional.
+  bool get _canReview => _amountIsValid;
 
   /// The limits show once an amount is typed, so the disabled review has a
   /// visible reason. The receive limit of the account comes first, with the
@@ -114,16 +118,15 @@ class _PixPaymentLinkCreateScreenState
     if (!_canReview) return;
 
     FocusScope.of(context).unfocus();
+    final reference = _referenceController.text.trim();
     await showModalBottomSheet<void>(
       context: context,
       // The glass sheet draws its own floating surface.
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) => _ReviewSheet(
-        reference: _referenceController.text.trim(),
-        amountLabel: _openAmount
-            ? t.pix_hub_link_open_amount
-            : formatBrlCents(_amountInCents),
+        reference: reference.isEmpty ? t.pix_hub_link_no_reference : reference,
+        amountLabel: formatBrlCents(_amountInCents),
         usageLabel: _singleUse
             ? t.pix_hub_link_single_use
             : t.pix_hub_link_reusable,
@@ -144,7 +147,7 @@ class _PixPaymentLinkCreateScreenState
           reference: _referenceController.text.trim(),
           singleUse: _singleUse,
           asset: _asset,
-          amountInCents: _openAmount ? null : _amountInCents,
+          amountInCents: _amountInCents,
         );
 
     if (sheetContext.mounted) Navigator.of(sheetContext).pop();
@@ -190,44 +193,19 @@ class _PixPaymentLinkCreateScreenState
       children: [
         _Caption(t.pix_hub_amount_label),
         const SizedBox(height: 10),
-        // The field fades back while the payer chooses the amount, because
-        // it no longer takes input.
-        AnimatedOpacity(
-          opacity: _openAmount ? 0.4 : 1,
-          duration: Motion.of(context, Motion.durationFast),
-          curve: Motion.curveMove,
-          child: PixAmountField(
-            autofocus: false,
-            readOnly: _openAmount,
-            errorText: _amountError(t),
-            onChanged: (cents) => setState(() => _amountInCents = cents),
-          ),
+        PixAmountField(
+          autofocus: false,
+          errorText: _amountError(t),
+          onChanged: (cents) => setState(() => _amountInCents = cents),
         ),
         const SizedBox(height: 24),
         PixSurfaceCard(
-          child: Column(
-            children: [
-              _SwitchRow(
-                icon: PixIcons.amount,
-                title: t.pix_hub_charge_open_amount,
-                value: _openAmount,
-                onChanged: (value) => setState(() => _openAmount = value),
-              ),
-              Divider(
-                height: 1,
-                thickness: 1,
-                // The divider starts at the row text.
-                indent: PixActionTile.textInset,
-                color: AppSurfaces.hairline(context),
-              ),
-              _SwitchRow(
-                icon: PixIcons.lock,
-                title: t.pix_hub_link_single_use,
-                subtitle: t.pix_hub_link_single_use_hint,
-                value: _singleUse,
-                onChanged: (value) => setState(() => _singleUse = value),
-              ),
-            ],
+          child: _SwitchRow(
+            icon: PixIcons.lock,
+            title: t.pix_hub_link_single_use,
+            subtitle: t.pix_hub_link_single_use_hint,
+            value: _singleUse,
+            onChanged: (value) => setState(() => _singleUse = value),
           ),
         ),
         const SizedBox(height: 24),
@@ -255,10 +233,7 @@ class _PixPaymentLinkCreateScreenState
           ),
         ),
         const SizedBox(height: 24),
-        _ReferenceField(
-          controller: _referenceController,
-          onChanged: (_) => setState(() {}),
-        ),
+        _ReferenceField(controller: _referenceController),
       ],
     );
   }
@@ -395,49 +370,20 @@ class _AssetRow extends StatelessWidget {
   }
 }
 
-/// The reference of the link, drawn as a bare underline.
-///
-/// It follows the underline fields of the send flow. Unlike those, it keeps
-/// sentence capitalization and suggestions, because it holds free text.
+/// The optional reference of the link, with its caption.
 class _ReferenceField extends StatelessWidget {
   final TextEditingController controller;
-  final ValueChanged<String> onChanged;
 
-  const _ReferenceField({required this.controller, required this.onChanged});
+  const _ReferenceField({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    UnderlineInputBorder line(Color color, double width) =>
-        UnderlineInputBorder(
-          borderSide: BorderSide(color: color, width: width),
-        );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _Caption(t.pix_hub_link_reference_label),
-        TextField(
-          controller: controller,
-          textCapitalization: TextCapitalization.sentences,
-          textInputAction: TextInputAction.done,
-          onChanged: onChanged,
-          style: context.textTheme.titleMedium?.copyWith(
-            color: context.colors.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: t.pix_hub_link_reference_hint,
-            hintStyle: context.textTheme.titleMedium?.copyWith(
-              color: context.colors.textTertiary,
-            ),
-            filled: false,
-            contentPadding: const EdgeInsets.symmetric(vertical: 14),
-            // The field sits on the page, where the light outline variant
-            // has the page color. The outline shows in both themes.
-            border: line(context.colorScheme.outline, 1),
-            enabledBorder: line(context.colorScheme.outline, 1),
-            focusedBorder: line(context.colors.primaryColor, 1.5),
-          ),
-        ),
+        _Caption(t.pix_hub_link_reference_caption),
+        PixLinkReferenceField(controller: controller),
       ],
     );
   }

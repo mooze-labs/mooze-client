@@ -21,7 +21,7 @@ class PixPaymentLinkFormState {
 }
 
 /// The inputs that the API binds to one idempotency key.
-typedef _Charge = ({int? amountInCents, Asset asset, bool singleUse});
+typedef _Charge = ({int amountInCents, Asset asset, bool singleUse});
 
 /// Creates payment links through the payment-link API.
 ///
@@ -53,12 +53,16 @@ class PixPaymentLinkFormController
 
   void reset() => state = const PixPaymentLinkFormState();
 
-  /// Creates a link. Pass a null [amountInCents] for an open amount.
+  /// Creates a link that charges [amountInCents].
+  ///
+  /// The [reference] is optional: it only organizes the links of the owner.
+  /// An empty one keeps nothing on the device, and the link shows a generic
+  /// name.
   Future<PixPaymentLink?> create({
-    required String reference,
+    String reference = '',
     required bool singleUse,
     required Asset asset,
-    int? amountInCents,
+    required int amountInCents,
   }) async {
     if (state.isBusy) return null;
     state = const PixPaymentLinkFormState(isBusy: true);
@@ -79,7 +83,7 @@ class PixPaymentLinkFormController
     }
 
     final result = await _repository
-        .createLink(
+        .createFixedAmountLink(
           amountInCents: amountInCents,
           asset: asset,
           destinationAddress: address,
@@ -96,9 +100,11 @@ class PixPaymentLinkFormController
     }
 
     // The link exists even when the reference cannot be stored.
-    try {
-      await _references.save(link.id, reference);
-    } catch (_) {}
+    if (reference.isNotEmpty) {
+      try {
+        await _references.save(link.id, reference);
+      } catch (_) {}
+    }
     final named = link.withReference(reference);
     if (mounted) state = PixPaymentLinkFormState(created: named);
     return named;

@@ -70,15 +70,6 @@ class _FakeLinks implements PixPaymentLinkRepository {
     required bool singleUse,
     required String idempotencyKey,
   }) => throw UnimplementedError();
-
-  @override
-  TaskEither<PixHubFailure, PixPaymentLink> createLink({
-    int? amountInCents,
-    required Asset asset,
-    required String destinationAddress,
-    required bool singleUse,
-    required String idempotencyKey,
-  }) => throw UnimplementedError();
 }
 
 void main() {
@@ -147,8 +138,12 @@ void main() {
 
       expect(find.byType(PixPaymentLinkDetailScreen), findsOneWidget);
       expect(statusTitle(tester), 'Deactivated');
-      // A revoked link takes no second revoke: its menu is gone.
-      expect(find.byTooltip('More actions'), findsNothing);
+      // A revoked link takes no second revoke: its menu keeps only the
+      // name of the link.
+      await tester.tap(find.byTooltip('More actions'));
+      await settle(tester);
+      expect(find.text('Add a reference'), findsOneWidget);
+      expect(find.text('Deactivate link'), findsNothing);
     });
 
     testWidgets('shows before the list read of the API ends', (tester) async {
