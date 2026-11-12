@@ -6232,7 +6232,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String pix_hub_link_share_message(String url) {
-    return 'Enlace de pago de demostración: $url';
+    return 'Paga con Pix: $url';
   }
 
   @override
@@ -6281,6 +6281,23 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get pix_hub_link_disclaimer =>
       'Quien abre el enlace paga con Pix, y el valor llega a su billetera en el activo elegido.';
+
+  @override
+  String pix_hub_link_share_message_amount(String amount, String url) {
+    return 'Paga $amount con Pix: $url';
+  }
+
+  @override
+  String get pix_hub_link_inactive_paid =>
+      'Este enlace ya fue pagado y no recibe otro pago.';
+
+  @override
+  String get pix_hub_link_inactive_expired =>
+      'Este enlace expiró y no recibe más pagos.';
+
+  @override
+  String get pix_hub_link_inactive_revoked =>
+      'Este enlace fue desactivado y no recibe más pagos. Los pagos ya iniciados continúan.';
 
   @override
   String get pix_hub_link_level_locked_title =>

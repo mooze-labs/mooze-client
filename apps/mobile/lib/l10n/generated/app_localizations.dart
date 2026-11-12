@@ -11029,7 +11029,7 @@ abstract class AppLocalizations {
   /// No description provided for @pix_hub_link_share_message.
   ///
   /// In pt, this message translates to:
-  /// **'Link de pagamento de demonstração: {url}'**
+  /// **'Pague com Pix: {url}'**
   String pix_hub_link_share_message(String url);
 
   /// No description provided for @pix_hub_link_paid_at.
@@ -11121,6 +11121,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Quem abre o link paga com Pix, e o valor chega na sua carteira no ativo escolhido.'**
   String get pix_hub_link_disclaimer;
+
+  /// No description provided for @pix_hub_link_share_message_amount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pague {amount} com Pix: {url}'**
+  String pix_hub_link_share_message_amount(String amount, String url);
+
+  /// No description provided for @pix_hub_link_inactive_paid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este link já foi pago e não recebe outro pagamento.'**
+  String get pix_hub_link_inactive_paid;
+
+  /// No description provided for @pix_hub_link_inactive_expired.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este link expirou e não recebe mais pagamentos.'**
+  String get pix_hub_link_inactive_expired;
+
+  /// No description provided for @pix_hub_link_inactive_revoked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este link foi desativado e não recebe mais pagamentos. Pagamentos já iniciados continuam.'**
+  String get pix_hub_link_inactive_revoked;
 
   /// No description provided for @pix_hub_link_level_locked_title.
   ///

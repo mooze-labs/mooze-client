@@ -2923,7 +2923,7 @@
   "pix_hub_link_detail_title": "Link de pagamento",
   "pix_hub_link_url_label": "Endereço do link",
   "pix_hub_link_copied": "Link copiado.",
-  "pix_hub_link_share_message": "Link de pagamento de demonstração: {url}",
+  "pix_hub_link_share_message": "Pague com Pix: {url}",
   "@pix_hub_link_share_message": {
     "placeholders": {
       "url": {
@@ -2946,6 +2946,20 @@
   "pix_hub_link_revoke_confirm": "Desativar",
   "pix_hub_link_revoked": "Link desativado.",
   "pix_hub_link_disclaimer": "Quem abre o link paga com Pix, e o valor chega na sua carteira no ativo escolhido.",
+  "pix_hub_link_share_message_amount": "Pague {amount} com Pix: {url}",
+  "@pix_hub_link_share_message_amount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_hub_link_inactive_paid": "Este link já foi pago e não recebe outro pagamento.",
+  "pix_hub_link_inactive_expired": "Este link expirou e não recebe mais pagamentos.",
+  "pix_hub_link_inactive_revoked": "Este link foi desativado e não recebe mais pagamentos. Pagamentos já iniciados continuam.",
   "pix_hub_link_level_locked_title": "Disponível a partir do nível Prata",
   "pix_hub_link_level_locked_body": "Seu nível é Bronze. Continue usando o Pix na Mooze para subir de nível e liberar os links de pagamento.",
   "pix_hub_link_level_locked_tag": "A partir do Prata",
