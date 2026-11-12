@@ -3928,12 +3928,6 @@ abstract class AppLocalizations {
   /// **'Para pagar pessoalmente'**
   String get pix_deposit_qr_action_subtitle;
 
-  /// No description provided for @pix_deposit_share_message.
-  ///
-  /// In pt, this message translates to:
-  /// **'Pague {amount} com Pix copia e cola: {code}'**
-  String pix_deposit_share_message(String amount, String code);
-
   /// No description provided for @pix_deposit_qr_caption.
   ///
   /// In pt, this message translates to:
@@ -6544,6 +6538,12 @@ abstract class AppLocalizations {
   /// **'Compartilhar link'**
   String get merchant_payment_link_share;
 
+  /// No description provided for @merchant_payment_link_share_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Envie ao cliente por mensagem'**
+  String get merchant_payment_link_share_subtitle;
+
   /// No description provided for @merchant_payment_link_creating.
   ///
   /// In pt, this message translates to:
@@ -6555,6 +6555,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Abrir no navegador'**
   String get merchant_payment_link_open;
+
+  /// No description provided for @merchant_payment_link_open_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja a página que o cliente abre'**
+  String get merchant_payment_link_open_subtitle;
 
   /// No description provided for @merchant_payment_link_open_failed.
   ///

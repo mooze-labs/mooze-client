@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_status_view.dart';
 import 'package:mooze_mobile/shared/utils/error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_notice_sheet.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail_row.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/in_card_action_button.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/analytics/events.dart';
 import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
-import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
@@ -75,38 +77,38 @@ class ValidPixPaymentScreen extends StatefulWidget {
 // screen as it opens, and fades away to uncover it: see
 // `PixQrLoadingOverlay`.
 class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen> {
-  void _showExpiredDialog() {
+  /// Says that the charge expired, in a floating sheet, as the other
+  /// notices of the app.
+  ///
+  /// The Pix no longer pays, so the notice must be acted on: a tap outside,
+  /// a drag, and the system back keep it. Only its button closes it, and
+  /// the button leaves the expired charge.
+  void _showExpiredNotice() {
     final t = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => GlassAlertDialog(
-        title: Text(t.human_verif_time_expired_title),
-        content: Text(t.pix_payment_time_expired_body),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              _leavePayment(context);
-            },
-            child: Text(t.common_ok),
-          ),
-        ],
+    showFloatingGlassSheet<void>(
+      context,
+      dismissible: false,
+      builder: (sheetContext) => PopScope(
+        canPop: false,
+        child: PixNoticeSheet(
+          icon: PixIcons.clock,
+          tone: PixTone.warning,
+          title: t.human_verif_time_expired_title,
+          intro: t.pix_payment_time_expired_body,
+          actionLabel: t.common_back,
+          onAction: () {
+            Navigator.of(sheetContext).pop();
+            _leavePayment(context);
+          },
+        ),
       ),
     );
   }
 
-  /// Shares the amount and the Pix code, for someone else to pay.
+  /// Shares the Pix code, for someone else to pay. The code goes alone:
+  /// the payer pastes it in the bank app.
   Future<void> _share() async {
-    final t = AppLocalizations.of(context);
-    await SharePlus.instance.share(
-      ShareParams(
-        text: t.pix_deposit_share_message(
-          formatBrlCents(widget.deposit.amountInCents),
-          widget.deposit.pixKey,
-        ),
-      ),
-    );
+    await SharePlus.instance.share(ShareParams(text: widget.deposit.pixKey));
   }
 
   @override
@@ -123,7 +125,7 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen> {
         const SizedBox(height: 12),
         TimerCountdown(
           expireAt: deposit.createdAt.add(const Duration(minutes: 20)),
-          onExpired: _showExpiredDialog,
+          onExpired: _showExpiredNotice,
         ),
         const SizedBox(height: 28),
         PixQrCodeDisplay(

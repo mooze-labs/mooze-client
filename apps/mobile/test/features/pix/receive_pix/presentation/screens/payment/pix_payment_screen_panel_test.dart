@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
@@ -170,12 +169,14 @@ void main() {
     }
   });
 
-  testWidgets('the share sends the amount and the Pix code', (tester) async {
+  // The payer pastes what they receive in the bank app, so the share
+  // sends the Pix code alone, with no text around it.
+  testWidgets('the share sends only the Pix code', (tester) async {
     await open(tester);
 
     await tapBelow(tester, find.text(t.pix_deposit_share_action));
 
-    expect(shared, [t.pix_deposit_share_message(formatBrlCents(5000), _code)]);
+    expect(shared, [_code]);
   });
 
   // The copy keeps the event that the old copy field sent.

@@ -20,51 +20,62 @@ class TimerCountdown extends StatefulWidget {
   /// Time left at which the line changes to the warning tone.
   static const urgentThreshold = Duration(minutes: 3);
 
+  /// The clock of the countdown.
+  @visibleForTesting
+  static DateTime Function() clock = DateTime.now;
+
   @override
   State<TimerCountdown> createState() => _TimerCountdownState();
 }
 
 class _TimerCountdownState extends State<TimerCountdown> {
-  late Timer _timer;
+  Timer? _timer;
   Duration _remainingTime = Duration.zero;
-  bool _hasExpired = false;
 
   @override
   void initState() {
     super.initState();
-    _updateRemainingTime();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        _updateRemainingTime();
-      }
-    });
+    // A charge can open already expired, for example from the history. The
+    // first read sets the time without setState, and a charge with no
+    // time left needs no timer.
+    _remainingTime = _timeLeft();
+    if (_remainingTime == Duration.zero) {
+      _expire();
+    } else {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    }
   }
 
-  void _updateRemainingTime() {
-    final newRemainingTime = widget.expireAt.difference(DateTime.now());
+  /// Time left to pay. Zero once the charge has expired.
+  Duration _timeLeft() {
+    final left = widget.expireAt.difference(TimerCountdown.clock());
+    return left.isNegative || left.inSeconds == 0 ? Duration.zero : left;
+  }
 
-    setState(() {
-      if (newRemainingTime.isNegative || newRemainingTime.inSeconds == 0) {
-        _remainingTime = Duration.zero;
-        _timer.cancel();
+  void _tick() {
+    if (!mounted) return;
+    final left = _timeLeft();
+    setState(() => _remainingTime = left);
+    if (left == Duration.zero) {
+      _timer?.cancel();
+      _expire();
+    }
+  }
 
-        if (!_hasExpired && widget.onExpired != null) {
-          _hasExpired = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              widget.onExpired!();
-            }
-          });
-        }
-      } else {
-        _remainingTime = newRemainingTime;
-      }
+  /// Tells [TimerCountdown.onExpired], after the frame. It runs once: a
+  /// charge that opens expired starts no timer, and the timer stops before
+  /// it runs.
+  void _expire() {
+    final onExpired = widget.onExpired;
+    if (onExpired == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) onExpired();
     });
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 

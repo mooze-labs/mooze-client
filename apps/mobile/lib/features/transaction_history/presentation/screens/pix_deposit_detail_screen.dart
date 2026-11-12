@@ -326,17 +326,10 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
     );
   }
 
-  /// Shares the amount and the Pix code, for someone else to pay.
+  /// Shares the Pix code, for someone else to pay. The code goes alone:
+  /// the payer pastes it in the bank app.
   Future<void> _share() async {
-    final t = AppLocalizations.of(context);
-    await SharePlus.instance.share(
-      ShareParams(
-        text: t.pix_deposit_share_message(
-          formatBrlCents(_deposit.amountInCents),
-          _deposit.pixKey,
-        ),
-      ),
-    );
+    await SharePlus.instance.share(ShareParams(text: _deposit.pixKey));
   }
 
   /// Shows the Pix code as a QR Code, for a payer in person.

@@ -28,6 +28,11 @@ class TxStep {
 /// steps of the transaction from left to right. Reached steps and the
 /// lines between them take [color]; the step in progress breathes, unless
 /// reduced motion is on.
+///
+/// A new status, for example after a revoke or a payment, never jumps: the
+/// color moves from the old status to the new one, the glyph, the title,
+/// and each changed step crossfade, and the card resizes smoothly, over
+/// [Motion.durationSlow]. Reduced motion shows the new status at once.
 class TxStatusPanel extends StatelessWidget {
   const TxStatusPanel({
     super.key,
@@ -54,10 +59,24 @@ class TxStatusPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final duration = Motion.of(context, Motion.durationSlow);
+    // The color of the old status moves to the new one. On the first show,
+    // the tween starts at its end, so the card does not move.
+    return TweenAnimationBuilder<Color?>(
+      tween: ColorTween(end: color),
+      duration: duration,
+      curve: Motion.curveMove,
+      builder: (context, animated, _) =>
+          _buildCard(context, animated ?? color, duration),
+    );
+  }
+
+  Widget _buildCard(BuildContext context, Color color, Duration duration) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final content = Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           MergeSemantics(
@@ -88,10 +107,14 @@ class TxStatusPanel extends StatelessWidget {
                       ),
                       // Black on the status colors keeps the glyph readable
                       // in both themes.
-                      child: Icon(
-                        icon,
-                        size: 18,
-                        color: context.colors.absoluteBlack,
+                      child: _Swap(
+                        duration: duration,
+                        child: Icon(
+                          icon,
+                          key: ValueKey(icon),
+                          size: 18,
+                          color: context.colors.absoluteBlack,
+                        ),
                       ),
                     ),
                   ),
@@ -101,11 +124,16 @@ class TxStatusPanel extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: context.textTheme.titleMedium?.copyWith(
-                          color: context.colors.textPrimary,
-                          fontWeight: FontWeight.w700,
+                      _Swap(
+                        duration: duration,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          title,
+                          key: ValueKey(title),
+                          style: context.textTheme.titleMedium?.copyWith(
+                            color: context.colors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       for (final line in details) ...[
@@ -126,7 +154,7 @@ class TxStatusPanel extends StatelessWidget {
           ),
           if (steps.isNotEmpty) ...[
             const SizedBox(height: 18),
-            _Track(steps: steps, color: color),
+            _Track(steps: steps, color: color, duration: duration),
           ],
         ],
       ),
@@ -162,10 +190,58 @@ class TxStatusPanel extends StatelessWidget {
                 ),
               ),
             ),
-            content,
+            // A line that comes or goes resizes the card smoothly. With
+            // reduced motion the card takes its size at once: an
+            // AnimatedSize of zero duration would relayout itself during
+            // its own layout.
+            if (duration == Duration.zero)
+              content
+            else
+              AnimatedSize(
+                duration: duration,
+                curve: Motion.curveMove,
+                alignment: Alignment.topCenter,
+                child: content,
+              ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Crossfades [child] with the one before it when its key changes, with a
+/// light rise. Over [duration]; zero shows the new child at once.
+class _Swap extends StatelessWidget {
+  const _Swap({
+    required this.duration,
+    required this.child,
+    this.alignment = AlignmentDirectional.center,
+  });
+
+  final Duration duration;
+  final Widget child;
+  final AlignmentDirectional alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: duration,
+      switchInCurve: Motion.curveEnter,
+      switchOutCurve: Motion.curveExit,
+      layoutBuilder: (current, previous) =>
+          Stack(alignment: alignment, children: [...previous, ?current]),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.25),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        ),
+      ),
+      child: child,
     );
   }
 }
@@ -215,10 +291,17 @@ class _CornerRimPainter extends CustomPainter {
 }
 
 class _Track extends StatelessWidget {
-  const _Track({required this.steps, required this.color});
+  const _Track({
+    required this.steps,
+    required this.color,
+    required this.duration,
+  });
 
   final List<TxStep> steps;
   final Color color;
+
+  /// Time of the crossfade of a step that changes.
+  final Duration duration;
 
   @override
   Widget build(BuildContext context) {
@@ -248,7 +331,14 @@ class _Track extends StatelessWidget {
                                 gapAtEnd: true,
                               ),
                       ),
-                      _Node(state: steps[i].state, color: color),
+                      _Swap(
+                        duration: duration,
+                        child: _Node(
+                          key: ValueKey(steps[i].state),
+                          state: steps[i].state,
+                          color: color,
+                        ),
+                      ),
                       Expanded(
                         child: i == steps.length - 1
                             ? const SizedBox.shrink()
@@ -260,18 +350,22 @@ class _Track extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    steps[i].label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.labelSmall?.copyWith(
-                      color: steps[i].reached
-                          ? context.colors.textPrimary
-                          : context.colors.textSecondary,
-                      fontWeight: steps[i].reached
-                          ? FontWeight.w600
-                          : FontWeight.w500,
+                  _Swap(
+                    duration: duration,
+                    child: Text(
+                      steps[i].label,
+                      key: ValueKey(steps[i].label),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textTheme.labelSmall?.copyWith(
+                        color: steps[i].reached
+                            ? context.colors.textPrimary
+                            : context.colors.textSecondary,
+                        fontWeight: steps[i].reached
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -314,7 +408,7 @@ class _Line extends StatelessWidget {
 }
 
 class _Node extends StatelessWidget {
-  const _Node({required this.state, required this.color});
+  const _Node({super.key, required this.state, required this.color});
 
   final TxStepState state;
   final Color color;

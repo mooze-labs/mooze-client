@@ -20,7 +20,6 @@ import 'package:mooze_mobile/features/transaction_history/presentation/widgets/i
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
-import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Details of one payment link, laid out as the details of a wallet
@@ -149,7 +148,7 @@ class PixPaymentLinkDetailScreen extends ConsumerWidget {
               if (active)
                 DetailRow(
                   label: t.pix_hub_link_url_label,
-                  value: _shortUrl(link.url),
+                  value: shortLinkAddress(link.url),
                   copyable: true,
                   copyValue: link.url,
                 ),
@@ -259,15 +258,6 @@ class PixPaymentLinkDetailScreen extends ConsumerWidget {
     final time = (use24h ? DateFormat.Hm(locale) : DateFormat.jm(locale))
         .format(at);
     return AppLocalizations.of(context).tx_detail_datetime(date, time);
-  }
-
-  /// The address of the link, short enough for the value column: the ends
-  /// of its token, as a transaction ID shows its ends. The copy takes the
-  /// whole address.
-  static String _shortUrl(String url) {
-    final token = Uri.tryParse(url)?.pathSegments.lastOrNull;
-    if (token == null || token.isEmpty) return truncateHashId(url);
-    return truncateHashId(token);
   }
 
   /// Shows the QR Code of the link in a floating sheet, for a payer in

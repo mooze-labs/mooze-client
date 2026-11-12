@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/screens/pix_deposit_detail_screen.dart';
@@ -97,15 +96,15 @@ void main() {
   // As on the payment link: a Pix that still pays can be shared, or shown
   // as a QR Code to a payer in person.
   group('a pending deposit, still valid', () {
-    testWidgets('shares the amount and the Pix code', (tester) async {
+    // The payer pastes what they receive in the bank app, so the share
+    // sends the Pix code alone, with no text around it.
+    testWidgets('shares only the Pix code', (tester) async {
       await open(tester, _deposit(DepositStatus.pending));
 
       await tapAction(tester, t.pix_deposit_share_action);
       await tester.pump();
 
-      expect(shared, [
-        t.pix_deposit_share_message(formatBrlCents(10000), _code),
-      ]);
+      expect(shared, [_code]);
     });
 
     // The QR Code opens in the app: a chevron, as on the payment link.

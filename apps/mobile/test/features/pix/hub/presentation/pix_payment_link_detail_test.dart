@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
+import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_hub_failure.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_hub_providers.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_link_detail_screen.dart';
@@ -17,14 +19,25 @@ import 'package:mooze_mobile/features/transaction_history/presentation/widgets/i
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// The list of links has not loaded the link: the screen shows the one it
-/// was given.
+/// was given. It records the revokes instead of calling the API.
 class _NoLinks extends PixPaymentLinksController {
+  /// The IDs of the links that the screen asked to revoke.
+  final revoked = <String>[];
+
   @override
   Future<List<PixPaymentLink>> build() async => const [];
+
+  @override
+  Future<Either<PixHubFailure, Unit>> revoke(String id) async {
+    revoked.add(id);
+    return right(unit);
+  }
 }
 
 const _url = 'https://pay.mooze.app/pay/tok_8f3a9c2e7b1d4056a';
@@ -116,6 +129,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
   }
+
+  /// The list of links of the screen, which records the revokes.
+  _NoLinks links(WidgetTester tester) =>
+      ProviderScope.containerOf(
+            tester.element(find.byType(PixPaymentLinkDetailScreen)),
+          ).read(pixHubPaymentLinksProvider.notifier)
+          as _NoLinks;
 
   TxStatusPanel status(WidgetTester tester) =>
       tester.widget<TxStatusPanel>(find.byType(TxStatusPanel));
@@ -325,16 +345,52 @@ void main() {
   }
 
   // A destructive action stays out of the thumb zone: it lives in the menu
-  // of the bar, and still asks for a confirmation.
-  testWidgets('revoke lives in the menu and asks first', (tester) async {
-    await open(tester, _link());
-    expect(find.text(t.pix_hub_link_revoke), findsNothing);
+  // of the bar, and asks first in a floating sheet, as the other notices,
+  // with a red button that names the action.
+  group('revoke', () {
+    Future<void> openRevoke(WidgetTester tester) async {
+      await open(tester, _link());
+      expect(find.text(t.pix_hub_link_revoke), findsNothing);
+      await tester.tap(menuButton());
+      await frames(tester);
+      await tester.tap(find.text(t.pix_hub_link_revoke));
+      await frames(tester);
+    }
 
-    await tester.tap(menuButton());
-    await frames(tester);
-    await tester.tap(find.text(t.pix_hub_link_revoke));
-    await frames(tester);
+    testWidgets('asks in a floating sheet, with a red button', (tester) async {
+      await openRevoke(tester);
 
-    expect(find.text(t.pix_hub_link_revoke_title), findsOneWidget);
+      expect(find.byType(GlassSheet), findsOneWidget);
+      expect(find.text(t.pix_hub_link_revoke_title), findsOneWidget);
+      final confirm = tester.widget<PrimaryButton>(
+        find.widgetWithText(PrimaryButton, t.pix_hub_link_revoke_confirm),
+      );
+      final sheet = tester.element(find.byType(GlassSheet));
+      expect(confirm.color, sheet.colors.negativeColor);
+      // A sheet from the bottom, not a dialog in the middle.
+      expect(ModalRoute.of(sheet), isA<ModalBottomSheetRoute<bool>>());
+    });
+
+    testWidgets('the red button revokes the link', (tester) async {
+      await openRevoke(tester);
+
+      await tester.tap(find.text(t.pix_hub_link_revoke_confirm));
+      await frames(tester);
+
+      expect(find.byType(GlassSheet), findsNothing);
+      expect(links(tester).revoked, ['link-1']);
+    });
+
+    testWidgets('cancel closes the sheet and keeps the link', (tester) async {
+      await openRevoke(tester);
+
+      await tester.tap(find.text(t.common_cancel));
+      await frames(tester);
+
+      expect(find.byType(GlassSheet), findsNothing);
+      expect(links(tester).revoked, isEmpty);
+      expect(status(tester).title, t.pix_hub_link_status_pending);
+      expect(menuButton(), findsOneWidget);
+    });
   });
 }

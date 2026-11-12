@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:mooze_mobile/utils/formatters.dart';
 
 /// Formats [amountInCents] as Brazilian currency.
 String formatBrlCents(int amountInCents) {
@@ -7,6 +8,15 @@ String formatBrlCents(int amountInCents) {
     symbol: r'R$',
     decimalDigits: 2,
   ).format(amountInCents / 100);
+}
+
+/// The address of a payment link, short enough for one row: the ends of
+/// its token, as a transaction ID shows its ends. A copy takes the whole
+/// [url].
+String shortLinkAddress(String url) {
+  final token = Uri.tryParse(url)?.pathSegments.lastOrNull;
+  if (token == null || token.isEmpty) return truncateHashId(url);
+  return truncateHashId(token);
 }
 
 /// Formats DePix base units (8 decimals) as `1.234,56 DEPIX`.

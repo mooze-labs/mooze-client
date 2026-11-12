@@ -1,11 +1,12 @@
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:mooze_mobile/features/merchant/presentation/controllers/merchant_payment_link_controller.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_flow_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_meta_panel.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail_row.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/in_card_action_button.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -14,9 +15,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// Shows the payment link of a sale, as the QR Code flow shows its QR Code.
 ///
-/// The customer scans the QR Code of the link, or the merchant shares the
-/// link or opens it in the browser. Back returns to the charge screen.
-/// "Concluir venda" ends the sale.
+/// The customer scans the QR Code of the link, which always shows. Below
+/// it, one panel holds the address of the link with copy, the share, and
+/// the browser, as the link details of the Pix hub do. Back returns to the
+/// charge screen. "Concluir venda", the only bottom action, ends the sale.
 class MerchantPaymentLinkScreen extends StatefulWidget {
   final PixPaymentLink link;
   final MerchantPaymentLinkRequest request;
@@ -55,9 +57,10 @@ class MerchantPaymentLinkScreen extends StatefulWidget {
 // screen as it opens, and fades away to uncover it: see
 // `PixQrLoadingOverlay`.
 class _MerchantPaymentLinkScreenState extends State<MerchantPaymentLinkScreen> {
-  /// Side of the QR Code, small enough for the address and the browser
-  /// action to fit above the bottom buttons.
-  static const double _qrSize = 184;
+  /// Side of the QR Code, small enough for the panel of the link to fit
+  /// above the bottom button. It is the smallest side of the receive
+  /// screen of the wallet, still easy to scan from another phone.
+  static const double _qrSize = 160;
 
   Future<void> _share() async {
     final t = AppLocalizations.of(context);
@@ -113,30 +116,16 @@ class _MerchantPaymentLinkScreenState extends State<MerchantPaymentLinkScreen> {
             ),
         ],
       ),
-      // Sharing is the main action. Ending the sale is a quieter text
-      // button, so a stray tap does not end a sale before the payment.
-      bottomAction: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          PrimaryButton(text: t.merchant_payment_link_share, onPressed: _share),
-          const SizedBox(height: 4),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: context.colors.textPrimary,
-              minimumSize: const Size(double.infinity, 48),
-            ),
-            child: Text(
-              t.merchant_payment_link_done,
-              style: context.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
+      // The actions sit in the panel, so the bottom keeps only the end of
+      // the sale. It is outlined, not filled: it does not look like the
+      // next step of the payment, and a stray tap is less likely before
+      // the customer pays.
+      bottomAction: SecondaryButton(
+        text: t.merchant_payment_link_done,
+        onPressed: () => Navigator.of(context).pop(true),
       ),
-      // The code, the address and the browser fit a phone above the bottom
-      // buttons: the merchant shows the screen to the customer, and nothing
+      // The code, the address and the actions fit a phone above the bottom
+      // button: the merchant shows the screen to the customer, and nothing
       // should hide under a scroll.
       children: [
         PixQrPanel(
@@ -154,30 +143,30 @@ class _MerchantPaymentLinkScreenState extends State<MerchantPaymentLinkScreen> {
           ),
         ),
         const SizedBox(height: 20),
-        PixCopyField(
-          label: t.pix_hub_link_url_label,
-          value: widget.link.url,
-          icon: PixIcons.link,
-          maxLines: 1,
-        ),
-        const SizedBox(height: 4),
-        Center(
-          child: TextButton.icon(
-            onPressed: _openInBrowser,
-            icon: PixIcon(
-              PixIcons.externalLink,
-              size: 18,
-              color: context.colors.textPrimary,
+        TxMetaPanel(
+          cells: const [],
+          ids: [
+            DetailRow(
+              label: t.pix_hub_link_url_label,
+              value: shortLinkAddress(widget.link.url),
+              copyable: true,
+              copyValue: widget.link.url,
             ),
-            label: Text(t.merchant_payment_link_open),
-            style: TextButton.styleFrom(
-              foregroundColor: context.colors.textPrimary,
-              minimumSize: const Size(0, 44),
-              textStyle: context.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          ],
+          links: [
+            InCardActionButton(
+              label: t.merchant_payment_link_share,
+              subtitle: t.merchant_payment_link_share_subtitle,
+              icon: Icons.ios_share_rounded,
+              onPressed: _share,
             ),
-          ),
+            InCardActionButton(
+              label: t.merchant_payment_link_open,
+              subtitle: t.merchant_payment_link_open_subtitle,
+              icon: Icons.language_rounded,
+              onPressed: _openInBrowser,
+            ),
+          ],
         ),
       ],
     );

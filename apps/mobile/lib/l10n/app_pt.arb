@@ -906,17 +906,6 @@
   "pix_deposit_share_action_subtitle": "Envie para quem vai pagar",
   "pix_deposit_qr_action": "Mostrar QR Code",
   "pix_deposit_qr_action_subtitle": "Para pagar pessoalmente",
-  "pix_deposit_share_message": "Pague {amount} com Pix copia e cola: {code}",
-  "@pix_deposit_share_message": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      },
-      "code": {
-        "type": "String"
-      }
-    }
-  },
   "pix_deposit_qr_caption": "Mostre o QR Code ou compartilhe o código Pix",
   "pix_deposit_info": "Informações",
   "pix_deposit_view_explorer": "Ver no Explorer",
@@ -1588,8 +1577,10 @@
   },
   "merchant_payment_link_scan_hint": "O cliente escaneia o QR Code com a câmera do celular e paga pelo navegador.",
   "merchant_payment_link_share": "Compartilhar link",
+  "merchant_payment_link_share_subtitle": "Envie ao cliente por mensagem",
   "merchant_payment_link_creating": "Gerando link de pagamento...",
   "merchant_payment_link_open": "Abrir no navegador",
+  "merchant_payment_link_open_subtitle": "Veja a página que o cliente abre",
   "merchant_payment_link_open_failed": "Não foi possível abrir o navegador.",
   "merchant_payment_link_share_message": "Pague {amount} com Pix: {url}",
   "@merchant_payment_link_share_message": {

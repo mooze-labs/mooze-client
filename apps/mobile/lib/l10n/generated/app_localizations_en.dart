@@ -2133,11 +2133,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pix_deposit_qr_action_subtitle => 'To pay in person';
 
   @override
-  String pix_deposit_share_message(String amount, String code) {
-    return 'Pay $amount with Pix copy and paste: $code';
-  }
-
-  @override
   String get pix_deposit_qr_caption => 'Show the QR Code or share the Pix code';
 
   @override
@@ -3611,10 +3606,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get merchant_payment_link_share => 'Share link';
 
   @override
+  String get merchant_payment_link_share_subtitle =>
+      'Send it to the customer in a message';
+
+  @override
   String get merchant_payment_link_creating => 'Creating payment link...';
 
   @override
   String get merchant_payment_link_open => 'Open in browser';
+
+  @override
+  String get merchant_payment_link_open_subtitle =>
+      'See the page the customer opens';
 
   @override
   String get merchant_payment_link_open_failed =>

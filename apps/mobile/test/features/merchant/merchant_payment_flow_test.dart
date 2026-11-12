@@ -7,18 +7,25 @@ import 'package:mooze_mobile/features/merchant/domain/entities/merchant_payment_
 import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_payment_link_screen.dart';
 import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_payment_method_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/pix_cpf_config.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail_row.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/in_card_action_button.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/inline_copy_button.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_text_styles.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const _url = 'https://pay.mooze.app/pay/tok_abc123';
+// The token is long enough for the address to show short.
+const _url = 'https://pay.mooze.app/pay/tok_abc123def456ghi';
 const _request = (amountInCents: 4590, asset: Asset.depix);
 
 final _link = PixPaymentLink(
@@ -239,6 +246,20 @@ void main() {
   });
 
   group('payment link screen', () {
+    // The screen must fit a phone with no scroll. The wide test font would
+    // wrap every label, so this group lays out with the app font.
+    setUpAll(() async {
+      final loader = FontLoader(AppTextStyles.fontFamily);
+      for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
+        loader.addFont(
+          rootBundle.load(
+            'assets/fonts/geist-font/Geist/ttf/Geist-$weight.ttf',
+          ),
+        );
+      }
+      await loader.load();
+    });
+
     Future<void> openLink(
       WidgetTester tester,
       void Function(bool finished) onClosed,
@@ -294,40 +315,105 @@ void main() {
       await openLink(tester, (_) {});
 
       expect(find.byType(PrettyQrView), findsOneWidget);
-      expect(find.text(_url), findsOneWidget);
       expect(find.text('Endereço do link'), findsOneWidget);
       expect(find.textContaining('45,90'), findsOneWidget);
       expect(find.text('Você recebe em Depix'), findsOneWidget);
       expect(find.text('Uso único'), findsOneWidget);
       expect(find.text('Compartilhar link'), findsOneWidget);
-      expect(find.text('Concluir venda'), findsOneWidget);
-      // "Open in the browser" is below the link address.
-      await tester.scrollUntilVisible(
-        find.text('Abrir no navegador'),
-        100,
-        scrollable: find.byType(Scrollable).first,
-      );
       expect(find.text('Abrir no navegador'), findsOneWidget);
+      expect(find.text('Concluir venda'), findsOneWidget);
     });
 
-    testWidgets('the link and its actions fit a phone above the bottom '
-        'buttons, with no scroll', (tester) async {
+    // The address shows the ends of its token, as the link details in the
+    // Pix hub show it. The whole address goes to the copy.
+    testWidgets('the address shows short', (tester) async {
       await openLink(tester, (_) {});
 
-      final open = find.text('Abrir no navegador');
-      expect(open.hitTestable(), findsOneWidget);
-      expect(find.text(_url).hitTestable(), findsOneWidget);
-      final share = find.ancestor(
-        of: find.text('Compartilhar link'),
-        matching: find.byType(PrimaryButton),
+      expect(find.text(shortLinkAddress(_url)), findsOneWidget);
+      expect(find.text(_url), findsNothing);
+    });
+
+    // As in the link details of the Pix hub: one panel below the QR Code
+    // holds the address with copy, the share, and the browser.
+    testWidgets('one panel holds the address, the share and the browser', (
+      tester,
+    ) async {
+      await openLink(tester, (_) {});
+
+      Element panelOf(String text) => find
+          .ancestor(of: find.text(text), matching: find.byType(GlassPanel))
+          .evaluate()
+          .first;
+      final panel = panelOf('Endereço do link');
+      for (final text in ['Compartilhar link', 'Abrir no navegador']) {
+        expect(panelOf(text), same(panel), reason: text);
+        expect(
+          find.ancestor(
+            of: find.text(text),
+            matching: find.byType(InCardActionButton),
+          ),
+          findsOneWidget,
+          reason: text,
+        );
+      }
+    });
+
+    // The actions moved into the panel. The bottom keeps only the end of
+    // the sale, outlined: it is not filled, so it does not look like the
+    // next step of the payment.
+    testWidgets('the bottom holds only "Concluir venda", outlined', (
+      tester,
+    ) async {
+      await openLink(tester, (_) {});
+
+      expect(find.byType(PrimaryButton), findsNothing);
+      expect(
+        find.ancestor(
+          of: find.text('Concluir venda'),
+          matching: find.byType(SecondaryButton),
+        ),
+        findsOneWidget,
+      );
+      // Full width: as wide as the panel above it.
+      final button = tester.getRect(find.byType(SecondaryButton));
+      final panel = tester.getRect(
+        find
+            .ancestor(
+              of: find.text('Endereço do link'),
+              matching: find.byType(GlassPanel),
+            )
+            .first,
+      );
+      expect(button.width, panel.width);
+    });
+
+    testWidgets('the QR Code, the address and the actions fit a phone above '
+        'the bottom button, with no scroll', (tester) async {
+      // The status bar and the home indicator of an iPhone 15.
+      tester.view.padding = const FakeViewPadding(top: 59 * 3, bottom: 34 * 3);
+      await openLink(tester, (_) {});
+
+      for (final finder in [
+        find.byType(PrettyQrView),
+        find.text(shortLinkAddress(_url)),
+        find.text('Compartilhar link'),
+        find.text('Abrir no navegador'),
+      ]) {
+        expect(finder.hitTestable(), findsOneWidget);
+      }
+      final open = find.ancestor(
+        of: find.text('Abrir no navegador'),
+        matching: find.byType(InCardActionButton),
       );
       expect(
         tester.getRect(open).bottom,
-        lessThanOrEqualTo(tester.getRect(share).top),
+        lessThanOrEqualTo(tester.getRect(find.byType(SecondaryButton)).top),
       );
     });
 
-    testWidgets('a tap on the address copies the link', (tester) async {
+    testWidgets('the copy button of the address copies the whole link', (
+      tester,
+    ) async {
       String? copied;
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,
@@ -346,10 +432,43 @@ void main() {
       );
       await openLink(tester, (_) {});
 
-      await tester.tap(find.text(_url));
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(DetailRow, 'Endereço do link'),
+          matching: find.byType(InlineCopyButton),
+        ),
+      );
       await tester.pump();
       expect(copied, _url);
       await tester.pumpAndSettle(const Duration(seconds: 3));
+    });
+
+    testWidgets('"Compartilhar link" sends the amount and the link', (
+      tester,
+    ) async {
+      final t = lookupAppLocalizations(const Locale('pt'));
+      final shared = <String?>[];
+      const channel = MethodChannel('dev.fluttercommunity.plus/share');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        call,
+      ) async {
+        shared.add((call.arguments as Map)['text'] as String?);
+        return 'dev.fluttercommunity.plus/share/unavailable';
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+      await openLink(tester, (_) {});
+
+      await tester.tap(find.text('Compartilhar link'));
+      await tester.pump();
+
+      expect(shared, [
+        t.merchant_payment_link_share_message(formatBrlCents(4590), _url),
+      ]);
     });
 
     testWidgets('"Abrir no navegador" opens the link outside the app', (

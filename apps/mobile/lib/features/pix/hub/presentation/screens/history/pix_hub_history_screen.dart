@@ -322,39 +322,3 @@ class _HistorySkeleton extends StatelessWidget {
     );
   }
 }
-
-/// A short explanation at the end of the screen, with an info icon.
-class _Note extends StatelessWidget {
-  final String text;
-
-  const _Note({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    // Secondary, not tertiary: the tertiary gray fails 4.5:1 on the light
-    // page background.
-    final color = context.colors.textSecondary;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: PixIcon(PixIcons.info, size: 15, color: color),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: context.textTheme.bodySmall?.copyWith(
-                color: color,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
