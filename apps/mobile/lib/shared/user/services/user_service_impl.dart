@@ -7,11 +7,15 @@ import 'package:mooze_mobile/shared/exceptions/user_friendly_exception.dart';
 
 import '../entities.dart';
 import 'user_service.dart';
+import 'user_id_storage_service.dart';
 import 'user_level_storage_service.dart';
 
 class UserServiceImpl implements UserService {
   final Dio _dio;
   final UserLevelStorageService _levelStorageService;
+
+  /// Keeps the user id of each answer, for the support screen.
+  final UserIdStorageService? _idStorage;
 
   final _levelChangeController = StreamController<LevelChange>.broadcast();
 
@@ -21,7 +25,12 @@ class UserServiceImpl implements UserService {
 
   Stream<LevelChange> get levelChanges => _levelChangeController.stream;
 
-  UserServiceImpl(Dio dio, this._levelStorageService) : _dio = dio;
+  UserServiceImpl(
+    Dio dio,
+    this._levelStorageService, {
+    UserIdStorageService? idStorage,
+  }) : _dio = dio,
+       _idStorage = idStorage;
 
   @override
   TaskEither<String, User> getUser() {
@@ -44,6 +53,9 @@ class UserServiceImpl implements UserService {
       final response = await _dio.get('/users/me');
       final user = User.fromJson(response.data);
       await _detectLevelChange(user.spendingLevel);
+      // Any screen that reads the user saves the id, so the support screen
+      // has it even when a later request fails.
+      await _idStorage?.save(user.id);
       return Right(user);
     } catch (e) {
       return Left(_friendlyMessage(e));

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/shared/network/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services.dart';
+import '../services/user_id_storage_service.dart';
 import '../services/user_level_storage_service.dart';
 import '../services/mock_user_service.dart';
 
@@ -21,9 +22,18 @@ final userLevelStorageServiceProvider = Provider<UserLevelStorageService>((
   return UserLevelStorageService(prefs);
 });
 
+/// The user id that the API gave, kept for the support screen.
+final userIdStorageServiceProvider = Provider<UserIdStorageService>((ref) {
+  return UserIdStorageService(ref.watch(sharedPreferencesProvider));
+});
+
 final userServiceProvider = Provider<UserService>((ref) {
   // return MockUserService();
   final authHttpClient = ref.watch(authenticatedClientProvider);
   final levelStorageService = ref.watch(userLevelStorageServiceProvider);
-  return UserServiceImpl(authHttpClient, levelStorageService);
+  return UserServiceImpl(
+    authHttpClient,
+    levelStorageService,
+    idStorage: ref.watch(userIdStorageServiceProvider),
+  );
 });
