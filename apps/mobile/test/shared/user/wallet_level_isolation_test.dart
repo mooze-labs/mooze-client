@@ -56,8 +56,12 @@ void main() {
         'refetches /users/me when the user service rebuilds on wallet change',
         () async {
       var calls = 0;
+      // No saved answer: the wallet cleanup clears it on a wallet change.
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           // A fresh instance per build → invalidation produces a
           // non-identical value, so watchers recompute.
           userServiceProvider

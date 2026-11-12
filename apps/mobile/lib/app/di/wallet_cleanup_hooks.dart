@@ -17,6 +17,7 @@ import '../../shared/infra/db/providers.dart';
 import '../../shared/key_management/store/key_store_impl.dart';
 import '../../shared/key_management/store/pin_store_impl.dart';
 import '../../shared/user/providers/user_service_provider.dart';
+import '../../shared/user/services/user_data_cache_service.dart';
 import '../../shared/user/services/user_id_storage_service.dart';
 import '../../shared/user/services/user_level_storage_service.dart';
 import 'v2_providers.dart' show moozeCoreProvider;
@@ -122,6 +123,11 @@ List<Future<void> Function()> buildLegacyCleanupHooks() {
       // The support id of the user of the removed wallet.
       final prefs = await SharedPreferences.getInstance();
       await UserIdStorageService(prefs).clear();
+    },
+    () async {
+      // The saved level, progress, and limits of the removed wallet.
+      final prefs = await SharedPreferences.getInstance();
+      await UserDataCacheService(prefs).clear();
     },
   ];
 }

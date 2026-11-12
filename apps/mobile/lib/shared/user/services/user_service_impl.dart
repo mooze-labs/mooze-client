@@ -7,6 +7,7 @@ import 'package:mooze_mobile/shared/exceptions/user_friendly_exception.dart';
 
 import '../entities.dart';
 import 'user_service.dart';
+import 'user_data_cache_service.dart';
 import 'user_id_storage_service.dart';
 import 'user_level_storage_service.dart';
 
@@ -16,6 +17,9 @@ class UserServiceImpl implements UserService {
 
   /// Keeps the user id of each answer, for the support screen.
   final UserIdStorageService? _idStorage;
+
+  /// Keeps each answer, so the level screen opens with it at once.
+  final UserDataCacheService? _userCache;
 
   final _levelChangeController = StreamController<LevelChange>.broadcast();
 
@@ -29,8 +33,10 @@ class UserServiceImpl implements UserService {
     Dio dio,
     this._levelStorageService, {
     UserIdStorageService? idStorage,
+    UserDataCacheService? userCache,
   }) : _dio = dio,
-       _idStorage = idStorage;
+       _idStorage = idStorage,
+       _userCache = userCache;
 
   @override
   TaskEither<String, User> getUser() {
@@ -52,6 +58,11 @@ class UserServiceImpl implements UserService {
     try {
       final response = await _dio.get('/users/me');
       final user = User.fromJson(response.data);
+      // Saved before the level change is announced: whoever hears it reads
+      // the new level and progress from the saved answer.
+      if (response.data case final Map<String, dynamic> json) {
+        await _userCache?.save(json);
+      }
       await _detectLevelChange(user.spendingLevel);
       // Any screen that reads the user saves the id, so the support screen
       // has it even when a later request fails.

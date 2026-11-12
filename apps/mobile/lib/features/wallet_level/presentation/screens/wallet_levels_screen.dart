@@ -99,20 +99,12 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
 
   Widget _buildBody(List<WalletLevelEntity> walletLevels) {
     return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(walletLevelsProvider);
-        ref.invalidate(walletLevelsRemoteProvider);
-        ref.invalidate(userDataProvider);
-
-        try {
-          await Future.wait([
-            ref.read(walletLevelsProvider.future),
-            ref.read(levelsProvider.future),
-          ]);
-        } catch (_) {
-          // Ignore errors here as they will be handled by the when() widgets
-        }
-      },
+      // The screen already shows the saved level. A pull waits for the
+      // answers of the network, which replace it; a failure keeps it.
+      onRefresh: () => Future.wait([
+        ref.read(userDataProvider.notifier).refresh(),
+        ref.read(walletLevelsRemoteProvider.notifier).refresh(),
+      ]),
       child: CustomScrollView(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
