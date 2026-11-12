@@ -3904,6 +3904,42 @@ abstract class AppLocalizations {
   /// **'Este PIX não é mais válido'**
   String get pix_deposit_invalid;
 
+  /// No description provided for @pix_deposit_share_action.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar código Pix'**
+  String get pix_deposit_share_action;
+
+  /// No description provided for @pix_deposit_share_action_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Envie para quem vai pagar'**
+  String get pix_deposit_share_action_subtitle;
+
+  /// No description provided for @pix_deposit_qr_action.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostrar QR Code'**
+  String get pix_deposit_qr_action;
+
+  /// No description provided for @pix_deposit_qr_action_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para pagar pessoalmente'**
+  String get pix_deposit_qr_action_subtitle;
+
+  /// No description provided for @pix_deposit_share_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pague {amount} com Pix copia e cola: {code}'**
+  String pix_deposit_share_message(String amount, String code);
+
+  /// No description provided for @pix_deposit_qr_caption.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostre o QR Code ou compartilhe o código Pix'**
+  String get pix_deposit_qr_caption;
+
   /// No description provided for @pix_deposit_info.
   ///
   /// In pt, this message translates to:
@@ -11122,6 +11158,54 @@ abstract class AppLocalizations {
   /// **'Quem abre o link paga com Pix, e o valor chega na sua carteira no ativo escolhido.'**
   String get pix_hub_link_disclaimer;
 
+  /// No description provided for @pix_hub_link_step_created.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criado'**
+  String get pix_hub_link_step_created;
+
+  /// No description provided for @pix_hub_link_step_waiting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando'**
+  String get pix_hub_link_step_waiting;
+
+  /// No description provided for @pix_hub_link_share_action.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar link'**
+  String get pix_hub_link_share_action;
+
+  /// No description provided for @pix_hub_link_share_action_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Envie para quem vai pagar'**
+  String get pix_hub_link_share_action_subtitle;
+
+  /// No description provided for @pix_hub_link_qr_action.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostrar QR Code'**
+  String get pix_hub_link_qr_action;
+
+  /// No description provided for @pix_hub_link_qr_action_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para pagar pessoalmente'**
+  String get pix_hub_link_qr_action_subtitle;
+
+  /// No description provided for @pix_hub_link_qr_caption.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostre o QR Code ou compartilhe o link'**
+  String get pix_hub_link_qr_caption;
+
+  /// No description provided for @pix_hub_link_actions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais ações'**
+  String get pix_hub_link_actions;
+
   /// No description provided for @pix_hub_link_share_message_amount.
   ///
   /// In pt, this message translates to:
@@ -11187,12 +11271,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Recebidos'**
   String get pix_hub_history_filter_received;
-
-  /// No description provided for @pix_hub_history_note.
-  ///
-  /// In pt, this message translates to:
-  /// **'A lista mostra apenas movimentações Pix fictícias. As transações da carteira ficam no histórico da carteira.'**
-  String get pix_hub_history_note;
 
   /// No description provided for @pix_hub_tx_kind_sent.
   ///

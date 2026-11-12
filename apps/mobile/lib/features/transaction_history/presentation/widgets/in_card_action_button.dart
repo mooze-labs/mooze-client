@@ -6,7 +6,9 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 ///
 /// It sits inside a glass panel: an icon well on a neutral surface, a
 /// title, a subtitle, and an outward arrow at the end, because the link
-/// leaves the app. A row without [onPressed] is dimmed and takes no taps.
+/// leaves the app. An action that stays in the app passes another
+/// [trailingIcon], such as a chevron. A row without [onPressed] is dimmed
+/// and takes no taps.
 class InCardActionButton extends StatelessWidget {
   final String label;
   final String subtitle;
@@ -19,7 +21,11 @@ class InCardActionButton extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.onPressed,
+    this.trailingIcon = Icons.arrow_outward_rounded,
   });
+
+  /// Icon at the end of the row.
+  final IconData trailingIcon;
 
   /// Space between the panel edge and the row content.
   static const double horizontalPadding = 16;
@@ -74,11 +80,7 @@ class InCardActionButton extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Icon(
-              Icons.arrow_outward_rounded,
-              size: 18,
-              color: context.colors.textSecondary,
-            ),
+            Icon(trailingIcon, size: 18, color: context.colors.textSecondary),
           ],
         ),
       ),

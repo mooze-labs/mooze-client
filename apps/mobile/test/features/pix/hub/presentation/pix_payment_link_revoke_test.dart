@@ -13,6 +13,7 @@ import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_receive
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_link_detail_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_links_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/operations/pix_pending_requests_screen.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_status_panel.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
@@ -145,9 +146,9 @@ void main() {
       await revoke(tester);
 
       expect(find.byType(PixPaymentLinkDetailScreen), findsOneWidget);
-      expect(find.text('Deactivated'), findsOneWidget);
-      // A revoked link takes no second revoke.
-      expect(find.text('Deactivate link'), findsNothing);
+      expect(statusTitle(tester), 'Deactivated');
+      // A revoked link takes no second revoke: its menu is gone.
+      expect(find.byTooltip('More actions'), findsNothing);
     });
 
     testWidgets('shows before the list read of the API ends', (tester) async {
@@ -158,11 +159,11 @@ void main() {
       await revoke(tester);
 
       expect(links.lists, listsBefore + 1, reason: 'the list reloads');
-      expect(find.text('Deactivated'), findsOneWidget);
+      expect(statusTitle(tester), 'Deactivated');
 
       links.slowList!.complete();
       await settle(tester);
-      expect(find.text('Deactivated'), findsOneWidget);
+      expect(statusTitle(tester), 'Deactivated');
     });
 
     testWidgets('reaches the list below it', (tester) async {
@@ -187,7 +188,8 @@ void main() {
       await revoke(tester);
 
       expect(find.text('Pending'), findsOneWidget);
-      expect(find.text('Deactivate link'), findsOneWidget);
+      // The revoke stays on offer, in the menu.
+      expect(find.byTooltip('More actions'), findsOneWidget);
       // A timeout can hide a revoke that went through.
       expect(links.lists, listsBefore + 1);
     });
@@ -208,7 +210,15 @@ void main() {
   });
 }
 
+/// The status that the details show, in the title of the status panel.
+String statusTitle(WidgetTester tester) =>
+    tester.widget<TxStatusPanel>(find.byType(TxStatusPanel)).title;
+
+/// Revokes the link of the details: the revoke lives in the menu of the
+/// bar, and asks for a confirmation.
 Future<void> revoke(WidgetTester tester) async {
+  await tester.tap(find.byTooltip('More actions'));
+  await settle(tester);
   await tester.tap(find.text('Deactivate link'));
   await settle(tester);
   await tester.tap(find.text('Deactivate'));

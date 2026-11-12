@@ -2138,6 +2138,27 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pix_deposit_invalid => 'Este PIX ya no es válido';
 
   @override
+  String get pix_deposit_share_action => 'Compartir código Pix';
+
+  @override
+  String get pix_deposit_share_action_subtitle => 'Envíalo a quien va a pagar';
+
+  @override
+  String get pix_deposit_qr_action => 'Mostrar código QR';
+
+  @override
+  String get pix_deposit_qr_action_subtitle => 'Para pagar en persona';
+
+  @override
+  String pix_deposit_share_message(String amount, String code) {
+    return 'Paga $amount con Pix copia y pega: $code';
+  }
+
+  @override
+  String get pix_deposit_qr_caption =>
+      'Muestra el código QR o comparte el código Pix';
+
+  @override
   String get pix_deposit_info => 'Información';
 
   @override
@@ -6283,6 +6304,31 @@ class AppLocalizationsEs extends AppLocalizations {
       'Quien abre el enlace paga con Pix, y el valor llega a su billetera en el activo elegido.';
 
   @override
+  String get pix_hub_link_step_created => 'Creado';
+
+  @override
+  String get pix_hub_link_step_waiting => 'Esperando';
+
+  @override
+  String get pix_hub_link_share_action => 'Compartir enlace';
+
+  @override
+  String get pix_hub_link_share_action_subtitle => 'Envíalo a quien va a pagar';
+
+  @override
+  String get pix_hub_link_qr_action => 'Mostrar código QR';
+
+  @override
+  String get pix_hub_link_qr_action_subtitle => 'Para pagar en persona';
+
+  @override
+  String get pix_hub_link_qr_caption =>
+      'Muestra el código QR o comparte el enlace';
+
+  @override
+  String get pix_hub_link_actions => 'Más acciones';
+
+  @override
   String pix_hub_link_share_message_amount(String amount, String url) {
     return 'Paga $amount con Pix: $url';
   }
@@ -6321,10 +6367,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pix_hub_history_filter_received => 'Recibidos';
-
-  @override
-  String get pix_hub_history_note =>
-      'La lista muestra solo movimientos Pix ficticios. Las transacciones de la billetera quedan en el historial de la billetera.';
 
   @override
   String get pix_hub_tx_kind_sent => 'Pix enviado';

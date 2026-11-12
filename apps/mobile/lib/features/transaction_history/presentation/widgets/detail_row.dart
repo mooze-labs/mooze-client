@@ -21,12 +21,16 @@ class DetailRow extends StatefulWidget {
   /// letting callers display a truncated hash while copying the full one.
   final String? copyValue;
 
+  /// Called after a copy, for example to send an analytics event.
+  final VoidCallback? onCopied;
+
   const DetailRow({
     super.key,
     required this.label,
     required this.value,
     this.copyable = false,
     this.copyValue,
+    this.onCopied,
   });
 
   @override
@@ -46,6 +50,7 @@ class _DetailRowState extends State<DetailRow> {
   void _copyToClipboard() {
     Clipboard.setData(ClipboardData(text: widget.copyValue ?? widget.value));
     HapticFeedback.selectionClick();
+    widget.onCopied?.call();
 
     setState(() => _isCopied = true);
 

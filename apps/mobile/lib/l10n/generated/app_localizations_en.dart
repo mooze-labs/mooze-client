@@ -2121,6 +2121,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pix_deposit_invalid => 'This PIX is no longer valid';
 
   @override
+  String get pix_deposit_share_action => 'Share Pix code';
+
+  @override
+  String get pix_deposit_share_action_subtitle => 'Send it to the payer';
+
+  @override
+  String get pix_deposit_qr_action => 'Show QR Code';
+
+  @override
+  String get pix_deposit_qr_action_subtitle => 'To pay in person';
+
+  @override
+  String pix_deposit_share_message(String amount, String code) {
+    return 'Pay $amount with Pix copy and paste: $code';
+  }
+
+  @override
+  String get pix_deposit_qr_caption => 'Show the QR Code or share the Pix code';
+
+  @override
   String get pix_deposit_info => 'Information';
 
   @override
@@ -6236,6 +6256,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'The payer opens the link and pays with Pix. The funds arrive in your wallet in the chosen asset.';
 
   @override
+  String get pix_hub_link_step_created => 'Created';
+
+  @override
+  String get pix_hub_link_step_waiting => 'Waiting';
+
+  @override
+  String get pix_hub_link_share_action => 'Share link';
+
+  @override
+  String get pix_hub_link_share_action_subtitle => 'Send it to the payer';
+
+  @override
+  String get pix_hub_link_qr_action => 'Show QR Code';
+
+  @override
+  String get pix_hub_link_qr_action_subtitle => 'To pay in person';
+
+  @override
+  String get pix_hub_link_qr_caption => 'Show the QR Code or share the link';
+
+  @override
+  String get pix_hub_link_actions => 'More actions';
+
+  @override
   String pix_hub_link_share_message_amount(String amount, String url) {
     return 'Pay $amount with Pix: $url';
   }
@@ -6274,10 +6318,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pix_hub_history_filter_received => 'Received';
-
-  @override
-  String get pix_hub_history_note =>
-      'The list shows fictional Pix movements only. Wallet transactions stay in the wallet history.';
 
   @override
   String get pix_hub_tx_kind_sent => 'Pix sent';

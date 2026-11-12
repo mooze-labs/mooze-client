@@ -24,9 +24,13 @@ class TxDetailScaffold extends StatelessWidget {
     required this.entranceKey,
     required this.hero,
     required this.sections,
+    this.actions,
   });
 
   final String title;
+
+  /// Actions of the app bar, such as a menu.
+  final List<Widget>? actions;
 
   /// Identifies the transaction, so its entrance plays once per session.
   final Object entranceKey;
@@ -51,6 +55,7 @@ class TxDetailScaffold extends StatelessWidget {
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         foregroundColor: context.colors.textPrimary,
+        actions: actions,
         // The bar starts at the top of the screen, like the page layer, so
         // both paint the same background.
         flexibleSpace: const _PageBackground(),

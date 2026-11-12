@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_status_view.dart';
 import 'package:mooze_mobile/shared/utils/error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail_row.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/in_card_action_button.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/analytics/events.dart';
+import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/utils/formatters.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'providers/pix_deposit_provider.dart';
-import 'widgets/copyable_address.dart';
 import 'widgets/payment_details_display.dart';
 import 'widgets/qr_code_display.dart';
 import 'widgets/timer_countdown_widget.dart';
@@ -53,8 +59,10 @@ void _leavePayment(BuildContext context) {
   }
 }
 
-/// The Pix charge: amount, time left, QR code, copy and paste code, and
-/// what the deposit delivers.
+/// The Pix charge: amount, time left, and the QR code, always in view for
+/// the payer to scan. One panel follows, as in the details of a deposit:
+/// what the deposit delivers, its fees, the copy and paste code with copy,
+/// and the share of the code.
 class ValidPixPaymentScreen extends StatefulWidget {
   final PixDeposit deposit;
   const ValidPixPaymentScreen({super.key, required this.deposit});
@@ -88,6 +96,19 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen> {
     );
   }
 
+  /// Shares the amount and the Pix code, for someone else to pay.
+  Future<void> _share() async {
+    final t = AppLocalizations.of(context);
+    await SharePlus.instance.share(
+      ShareParams(
+        text: t.pix_deposit_share_message(
+          formatBrlCents(widget.deposit.amountInCents),
+          widget.deposit.pixKey,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
@@ -110,12 +131,18 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen> {
           boxConstraints: const BoxConstraints(),
         ),
         const SizedBox(height: 28),
-        CopyableAddress(
-          pixKey: deposit.pixKey,
-          label: t.pix_hub_charge_code_label,
+        PaymentDetailsDisplay(
+          deposit: deposit,
+          rows: [_CodeRow(code: deposit.pixKey)],
+          links: [
+            InCardActionButton(
+              label: t.pix_deposit_share_action,
+              subtitle: t.pix_deposit_share_action_subtitle,
+              icon: Icons.ios_share_rounded,
+              onPressed: _share,
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        PaymentDetailsDisplay(deposit: deposit),
         const SizedBox(height: 20),
         Center(
           child: Text(
@@ -127,6 +154,28 @@ class _ValidPixPaymentScreenState extends State<ValidPixPaymentScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The copy and paste code, short on screen and whole on copy.
+///
+/// A copy sends the `pix_code_copied` event, as the copy field before it.
+class _CodeRow extends ConsumerWidget {
+  const _CodeRow({required this.code});
+
+  final String code;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return DetailRow(
+      label: AppLocalizations.of(context).pix_hub_charge_code_label,
+      value: truncateHashId(code),
+      copyable: true,
+      copyValue: code,
+      onCopied: () => ref
+          .read(analyticsProvider)
+          .track(const AnalyticsEvent('pix_code_copied', {})),
     );
   }
 }

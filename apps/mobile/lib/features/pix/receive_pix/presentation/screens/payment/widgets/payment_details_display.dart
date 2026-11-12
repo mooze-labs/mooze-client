@@ -2,26 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_card.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_meta_panel.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/motion/skeleton.dart';
-import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 const minimumAmountForVariableFee = 55 * 100;
 
-/// What the deposit delivers and which fees apply, in one glass panel.
+/// What the deposit delivers and which fees apply, in the panel of the
+/// transaction details.
 ///
-/// Each row is a label on the left and a value on the right, as in
-/// `PixSummaryCard`. A value that waits for a quote shows a skeleton.
+/// Each row is a label on the left and a value on the right, split by
+/// hairlines. A value that waits for a quote shows a skeleton. [rows] follow
+/// the fees in the same list, such as the code to copy, and [links] close
+/// the panel, such as the share.
 class PaymentDetailsDisplay extends ConsumerWidget {
   final PixDeposit deposit;
 
-  const PaymentDetailsDisplay({super.key, required this.deposit});
+  /// Rows after the fees, in the same list.
+  final List<Widget> rows;
+
+  /// Actions at the end of the panel.
+  final List<Widget> links;
+
+  const PaymentDetailsDisplay({
+    super.key,
+    required this.deposit,
+    this.rows = const [],
+    this.links = const [],
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,59 +51,57 @@ class PaymentDetailsDisplay extends ConsumerWidget {
     );
     final isFixedFee = deposit.amountInCents < minimumAmountForVariableFee;
 
-    return PixSurfaceCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      child: Column(
-        children: [
+    return TxMetaPanel(
+      cells: const [],
+      links: links,
+      ids: [
+        _DetailRow(
+          label: t.pix_you_will_receive,
+          highlight: true,
+          value: FutureBuilder<String>(
+            future: assetQuantity,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return _ValueText(snapshot.data!, highlight: true);
+              }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const _ValueSkeleton(width: 96);
+              }
+              return const _ValueText('N/A', muted: true);
+            },
+          ),
+        ),
+        if (isFixedFee)
           _DetailRow(
-            label: t.pix_you_will_receive,
-            highlight: true,
-            value: FutureBuilder<String>(
-              future: assetQuantity,
+            label: t.pix_fee_fixed_label,
+            value: const _ValueText('R\$ 1,00'),
+          )
+        else
+          _DetailRow(
+            label: t.pix_fee_mooze,
+            value: FutureBuilder<double>(
+              future: feeRate,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
-                  return _ValueText(snapshot.data!, highlight: true);
+                  final feeAmount =
+                      depositAmountInReais * (snapshot.data! / 100);
+                  return _ValueText(
+                    'R\$ ${feeAmount.toStringAsFixed(2).replaceAll('.', ',')}',
+                  );
                 }
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const _ValueSkeleton(width: 96);
+                  return const _ValueSkeleton(width: 56);
                 }
                 return const _ValueText('N/A', muted: true);
               },
             ),
           ),
-          const _Hairline(),
-          if (isFixedFee)
-            _DetailRow(
-              label: t.pix_fee_fixed_label,
-              value: const _ValueText('R\$ 1,00'),
-            )
-          else
-            _DetailRow(
-              label: t.pix_fee_mooze,
-              value: FutureBuilder<double>(
-                future: feeRate,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    final feeAmount =
-                        depositAmountInReais * (snapshot.data! / 100);
-                    return _ValueText(
-                      'R\$ ${feeAmount.toStringAsFixed(2).replaceAll('.', ',')}',
-                    );
-                  }
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const _ValueSkeleton(width: 56);
-                  }
-                  return const _ValueText('N/A', muted: true);
-                },
-              ),
-            ),
-          const _Hairline(),
-          _DetailRow(
-            label: t.pix_fee_processor,
-            value: const _ValueText('R\$ 1,00'),
-          ),
-        ],
-      ),
+        _DetailRow(
+          label: t.pix_fee_processor,
+          value: const _ValueText('R\$ 1,00'),
+        ),
+        ...rows,
+      ],
     );
   }
 }
@@ -181,19 +192,6 @@ class _ValueSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SkeletonShimmer(
       child: SkeletonBox(width: width, height: 14, radius: 6),
-    );
-  }
-}
-
-class _Hairline extends StatelessWidget {
-  const _Hairline();
-
-  @override
-  Widget build(BuildContext context) {
-    return Divider(
-      height: 1,
-      thickness: 1,
-      color: AppSurfaces.hairline(context),
     );
   }
 }

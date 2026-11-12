@@ -59,9 +59,19 @@ class _PixHubHistoryScreenState extends ConsumerState<PixHubHistoryScreen> {
 
   /// Opens the screen that follows the movement: the send result, which
   /// reads the status again, or the deposit details.
+  ///
+  /// A deposit opens the same details as in the Pix history, so both
+  /// histories show a deposit the same way.
   void _open(PixTransaction transaction) {
     if (transaction.kind != PixTransactionKind.sent) {
-      context.push('/pix/payment/${transaction.id}');
+      final deposit = ref
+          .read(pixDepositHistoryProvider)
+          .valueOrNull
+          ?.getOrElse((_) => const [])
+          .where((d) => d.depositId == transaction.id)
+          .firstOrNull;
+      if (deposit == null) return;
+      context.push('/depix/transactions/details', extra: deposit);
       return;
     }
     final record = ref
@@ -155,8 +165,6 @@ class _PixHubHistoryScreenState extends ConsumerState<PixHubHistoryScreen> {
             onTap: () => context.push('/swaps-history'),
           ),
         ),
-        const SizedBox(height: 10),
-        _Note(text: t.pix_hub_history_note),
       ],
     );
   }

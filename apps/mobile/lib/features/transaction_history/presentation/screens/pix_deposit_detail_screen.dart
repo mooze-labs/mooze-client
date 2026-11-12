@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_sheet.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_detail_scaffold.dart';
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_meta_panel.dart';
@@ -23,7 +25,9 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 /// amount in reais), the status card with the steps of the deposit, and
 /// the details panel (facts, identifiers with copy, and the explorer
 /// link). While a deposit waits for its payment, the status card counts
-/// down the validity of the Pix.
+/// down the validity of the Pix, and the panel offers the actions of a
+/// payment link: share the Pix code, or show it as a QR Code. A Pix past
+/// its validity offers neither, as it would only fail for the payer.
 class PixDepositDetailScreen extends StatefulWidget {
   final PixDeposit deposit;
 
@@ -45,6 +49,9 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
   PixDeposit get _deposit => widget.deposit;
 
   bool get _isPending => _deposit.status == DepositStatus.pending;
+
+  /// True while the Pix code still pays: pending, within its validity.
+  bool get _canPay => _isPending && _remaining > Duration.zero;
 
   _Stage get _stage => switch (_deposit.status) {
     DepositStatus.depixSent ||
@@ -292,6 +299,22 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
           ),
       ],
       links: [
+        if (_canPay) ...[
+          InCardActionButton(
+            label: t.pix_deposit_share_action,
+            subtitle: t.pix_deposit_share_action_subtitle,
+            icon: Icons.ios_share_rounded,
+            onPressed: _share,
+          ),
+          InCardActionButton(
+            label: t.pix_deposit_qr_action,
+            subtitle: t.pix_deposit_qr_action_subtitle,
+            icon: Icons.qr_code_2_rounded,
+            // The QR Code opens in the app, not outside it.
+            trailingIcon: Icons.chevron_right_rounded,
+            onPressed: _showQrCode,
+          ),
+        ],
         if (_deposit.blockchainTxid != null)
           InCardActionButton(
             label: t.pix_deposit_view_explorer,
@@ -300,6 +323,30 @@ class _PixDepositDetailScreenState extends State<PixDepositDetailScreen> {
             onPressed: _openInExplorer,
           ),
       ],
+    );
+  }
+
+  /// Shares the amount and the Pix code, for someone else to pay.
+  Future<void> _share() async {
+    final t = AppLocalizations.of(context);
+    await SharePlus.instance.share(
+      ShareParams(
+        text: t.pix_deposit_share_message(
+          formatBrlCents(_deposit.amountInCents),
+          _deposit.pixKey,
+        ),
+      ),
+    );
+  }
+
+  /// Shows the Pix code as a QR Code, for a payer in person.
+  void _showQrCode() {
+    final t = AppLocalizations.of(context);
+    showPixQrSheet(
+      context,
+      data: _deposit.pixKey,
+      subtitle: formatBrlCents(_deposit.amountInCents),
+      caption: t.pix_deposit_qr_caption,
     );
   }
 

@@ -1,34 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_hub_providers.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_link_revoke.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_payment_links_screen.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_labels.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_card.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_card.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_sheet.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_detail_scaffold.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_meta_panel.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail/tx_status_panel.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/detail_row.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/hero_amount.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/in_card_action_button.dart';
+import 'package:mooze_mobile/features/transaction_history/presentation/widgets/info_banner.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+import 'package:mooze_mobile/utils/formatters.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Details of one payment link, with the actions to copy, to share and to
-/// turn it off.
+/// Details of one payment link, laid out as the details of a wallet
+/// transaction.
 ///
-/// The amount is the hero. The identification, which says which charge
-/// this is, sits below it, then the status chip. The QR Code of the link
-/// address sits on its white tile, and the address is a copy field. Share
-/// is the main action. A link that still takes payments can be revoked
-/// below it.
+/// The hero holds the coin of the asset that the link pays, with a link
+/// badge, the identification that says which charge this is, and the
+/// amount. The status panel follows, with the creation date and the track
+/// of the link: created, waiting, paid. A link that takes no more payments
+/// says why in a note. One glass panel holds the metadata: the asset and
+/// the usage, the address with copy, and the actions: share the link, or
+/// show its QR Code in a floating sheet.
 ///
-/// A paid, expired, or revoked link takes no more payments: its QR Code or
-/// address would only lead the payer to a dead page. The screen then says
-/// why in their place, keeps the details, and has no actions.
+/// Revoke is destructive, so it lives in the menu of the bar and asks for a
+/// confirmation. A paid, expired, or revoked link has no address, actions,
+/// or menu: they would only lead the payer to a dead page.
 ///
 /// The screen follows the link in the list, so a revoke turns the status
 /// and the actions here at once.
@@ -38,11 +46,6 @@ class PixPaymentLinkDetailScreen extends ConsumerWidget {
   final PixPaymentLink link;
 
   const PixPaymentLinkDetailScreen({super.key, required this.link});
-
-  /// Side of the QR Code, as on the link screen of the merchant mode. With
-  /// the identification above it, the address still shows on the first
-  /// screen of a phone.
-  static const double _qrSize = 184;
 
   /// Shares the link with the amount, as the merchant mode does. A link
   /// with an open amount goes alone: the payer chooses the amount.
@@ -73,158 +76,229 @@ class PixPaymentLinkDetailScreen extends ConsumerWidget {
           ),
         ) ??
         this.link;
-    final asset = link.asset;
     final active = link.isActive;
+    final asset = link.asset;
+    final notice = _inactiveNotice(context, link.status);
 
-    return PixScreenScaffold(
+    return TxDetailScaffold(
       title: t.pix_hub_link_detail_title,
-      bottomAction: !active
-          ? null
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                PrimaryButton(
-                  text: t.pix_hub_share,
+      entranceKey: 'payment-link-${link.id}',
+      actions: [
+        if (active)
+          _LinkMenu(
+            onRevoke: () => confirmAndRevokePaymentLink(context, ref, link),
+          ),
+      ],
+      hero: Column(
+        children: [
+          if (asset != null) ...[
+            HeroAssetIcon(asset: asset, glyph: Icons.link_rounded),
+            const SizedBox(height: 14),
+          ],
+          if (link.reference.isNotEmpty) ...[
+            Text(
+              link.reference,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 2),
+          ],
+          _HeroAmount(
+            amountInCents: link.amountInCents,
+            paid: link.status == PixPaymentLinkStatus.paid,
+          ),
+        ],
+      ),
+      sections: [
+        _status(context, ref, link),
+        if (notice != null)
+          Padding(padding: const EdgeInsets.only(top: 12), child: notice),
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: TxMetaPanel(
+            cells: [
+              if (asset != null)
+                MetaCell(
+                  t.pix_hub_link_asset_label,
+                  asset.name,
+                  leading: SvgPicture.asset(
+                    asset.iconPath,
+                    width: 18,
+                    height: 18,
+                  ),
+                ),
+              MetaCell(
+                t.pix_hub_link_usage_label,
+                link.singleUse
+                    ? t.pix_hub_link_single_use
+                    : t.pix_hub_link_reusable,
+              ),
+              if (link.paidAt case final paidAt?)
+                MetaCell(
+                  t.pix_hub_link_paid_at,
+                  _dateTime(context, ref, paidAt),
+                  wide: true,
+                ),
+            ],
+            ids: [
+              if (active)
+                DetailRow(
+                  label: t.pix_hub_link_url_label,
+                  value: _shortUrl(link.url),
+                  copyable: true,
+                  copyValue: link.url,
+                ),
+            ],
+            links: [
+              if (active) ...[
+                InCardActionButton(
+                  label: t.pix_hub_link_share_action,
+                  subtitle: t.pix_hub_link_share_action_subtitle,
+                  icon: Icons.ios_share_rounded,
                   onPressed: () => _share(context, link),
                 ),
-                const SizedBox(height: 4),
-                TextButton(
-                  onPressed: () =>
-                      confirmAndRevokePaymentLink(context, ref, link),
-                  style: TextButton.styleFrom(
-                    foregroundColor: context.colors.negativeColor,
-                    minimumSize: const Size(64, 48),
-                  ),
-                  child: Text(t.pix_hub_link_revoke),
+                InCardActionButton(
+                  label: t.pix_hub_link_qr_action,
+                  subtitle: t.pix_hub_link_qr_action_subtitle,
+                  icon: Icons.qr_code_2_rounded,
+                  // The QR Code opens in the app, not outside it.
+                  trailingIcon: Icons.chevron_right_rounded,
+                  onPressed: () => _showQrCode(context, link),
                 ),
               ],
-            ),
-      children: [
-        Center(child: _HeroAmount(amountInCents: link.amountInCents)),
-        if (link.reference.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(
-            link.reference,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: context.textTheme.titleMedium?.copyWith(
-              color: context.colors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
+            ],
           ),
-        ],
-        const SizedBox(height: 12),
-        Center(child: PixPaymentLinkStatusChip(status: link.status)),
-        const SizedBox(height: 24),
-        if (active) ...[
-          PixQrPanel(
-            data: link.url,
-            size: _qrSize,
-            semanticLabel: t.pix_hub_method_qr,
-          ),
-          const SizedBox(height: 28),
-          PixCopyField(
-            label: t.pix_hub_link_url_label,
-            value: link.url,
-            icon: PixIcons.link,
-          ),
-        ] else
-          _InactiveNotice(status: link.status),
-        const SizedBox(height: 24),
-        PixSummaryCard(
-          entries: [
-            if (asset != null)
-              PixSummaryEntry(t.pix_hub_link_asset_label, asset.ticker),
-            PixSummaryEntry(
-              t.pix_hub_link_usage_label,
-              link.singleUse
-                  ? t.pix_hub_link_single_use
-                  : t.pix_hub_link_reusable,
-            ),
-            PixSummaryEntry(
-              t.pix_hub_summary_created_at,
-              formatPixDateTime(link.createdAt),
-            ),
-            if (link.paidAt != null)
-              PixSummaryEntry(
-                t.pix_hub_link_paid_at,
-                formatPixDateTime(link.paidAt!),
-              ),
-          ],
         ),
-        if (active) ...[
-          const SizedBox(height: 14),
-          _Note(text: t.pix_hub_link_disclaimer),
-        ],
       ],
     );
   }
-}
 
-/// Says why a link takes no more payments, where its QR Code was.
-///
-/// The icon well and the text carry the state, never the color alone. A
-/// paid link has the positive tone. An expired or a revoked one is neutral,
-/// with the broken link of its status chip.
-class _InactiveNotice extends StatelessWidget {
-  final PixPaymentLinkStatus status;
-
-  const _InactiveNotice({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
+  /// The status panel: the status, the creation date, and the track of the
+  /// link, as the status of a transaction.
+  Widget _status(BuildContext context, WidgetRef ref, PixPaymentLink link) {
     final t = AppLocalizations.of(context);
-    final (icon, tone, text) = switch (status) {
-      PixPaymentLinkStatus.paid => (
-        PixIcons.check,
-        PixTone.positive,
-        t.pix_hub_link_inactive_paid,
-      ),
-      PixPaymentLinkStatus.expired => (
-        PixIcons.linkOff,
-        PixTone.neutral,
-        t.pix_hub_link_inactive_expired,
-      ),
-      PixPaymentLinkStatus.revoked => (
-        PixIcons.linkOff,
-        PixTone.neutral,
-        t.pix_hub_link_inactive_revoked,
-      ),
-      // A pending link shows its QR Code instead.
-      PixPaymentLinkStatus.pending => (PixIcons.clock, PixTone.warning, ''),
-    };
-    return PixSurfaceCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          PixIconWell(icon: icon, tone: tone),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              text,
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colors.textPrimary,
-                height: 1.4,
-              ),
-            ),
-          ),
+    final created = TxStep(t.pix_hub_link_step_created, TxStepState.done);
+    final paid = t.pix_hub_link_status_paid;
+    final (icon, tone, steps) = switch (link.status) {
+      PixPaymentLinkStatus.pending => (
+        Icons.schedule_rounded,
+        PixTone.warning,
+        [
+          created,
+          TxStep(t.pix_hub_link_step_waiting, TxStepState.active),
+          TxStep(paid, TxStepState.upcoming),
         ],
       ),
+      PixPaymentLinkStatus.paid => (
+        Icons.check_rounded,
+        PixTone.positive,
+        [
+          created,
+          TxStep(t.pix_hub_link_step_waiting, TxStepState.done),
+          TxStep(paid, TxStepState.done),
+        ],
+      ),
+      // The link stopped where it was: the track shows the step that
+      // ended it, and the payment it never got.
+      PixPaymentLinkStatus.expired || PixPaymentLinkStatus.revoked => (
+        Icons.link_off_rounded,
+        PixTone.neutral,
+        [
+          created,
+          TxStep(pixPaymentLinkStatusLabel(t, link.status), TxStepState.failed),
+          TxStep(paid, TxStepState.upcoming),
+        ],
+      ),
+    };
+    return TxStatusPanel(
+      icon: icon,
+      title: pixPaymentLinkStatusLabel(t, link.status),
+      // An expired or a revoked link is gray, as its chip in the list.
+      color: tone == PixTone.neutral
+          ? context.colors.textSecondary
+          : pixToneColor(context, tone),
+      details: [_dateTime(context, ref, link.createdAt)],
+      steps: steps,
+    );
+  }
+
+  /// Why a link takes no more payments, or null while it takes them.
+  Widget? _inactiveNotice(BuildContext context, PixPaymentLinkStatus status) {
+    final t = AppLocalizations.of(context);
+    return switch (status) {
+      PixPaymentLinkStatus.pending => null,
+      PixPaymentLinkStatus.paid => InfoBanner(
+        icon: Icons.check_circle_outline_rounded,
+        color: context.colors.positiveColor,
+        message: t.pix_hub_link_inactive_paid,
+      ),
+      PixPaymentLinkStatus.expired => InfoBanner(
+        icon: Icons.info_outline_rounded,
+        color: context.colors.textSecondary,
+        message: t.pix_hub_link_inactive_expired,
+      ),
+      PixPaymentLinkStatus.revoked => InfoBanner(
+        icon: Icons.info_outline_rounded,
+        color: context.colors.textSecondary,
+        message: t.pix_hub_link_inactive_revoked,
+      ),
+    };
+  }
+
+  /// A date and time as the transaction details write them, for example
+  /// "11 de nov. de 2026 às 14:32".
+  static String _dateTime(BuildContext context, WidgetRef ref, DateTime at) {
+    final locale = ref.watch(localeStringProvider);
+    final use24h = MediaQuery.alwaysUse24HourFormatOf(context);
+    final date = DateFormat.yMMMd(locale).format(at);
+    final time = (use24h ? DateFormat.Hm(locale) : DateFormat.jm(locale))
+        .format(at);
+    return AppLocalizations.of(context).tx_detail_datetime(date, time);
+  }
+
+  /// The address of the link, short enough for the value column: the ends
+  /// of its token, as a transaction ID shows its ends. The copy takes the
+  /// whole address.
+  static String _shortUrl(String url) {
+    final token = Uri.tryParse(url)?.pathSegments.lastOrNull;
+    if (token == null || token.isEmpty) return truncateHashId(url);
+    return truncateHashId(token);
+  }
+
+  /// Shows the QR Code of the link in a floating sheet, for a payer in
+  /// person.
+  void _showQrCode(BuildContext context, PixPaymentLink link) {
+    final t = AppLocalizations.of(context);
+    final cents = link.amountInCents;
+    showPixQrSheet(
+      context,
+      data: link.url,
+      subtitle: cents == null
+          ? t.pix_hub_link_open_amount
+          : formatBrlCents(cents),
+      caption: t.pix_hub_link_qr_caption,
     );
   }
 }
 
-/// The amount of the link as the hero of the screen.
+/// The amount of the link, at the size of a transaction amount.
 ///
-/// The digits are large and use tabular figures. The currency symbol is
-/// smaller and muted, so the eye goes to the digits. A long amount or a
-/// large text size scales the line down. It never wraps.
+/// The currency symbol is smaller and muted, so the eye goes to the digits.
+/// A paid link shows the amount it brought in, with a plus sign and the
+/// positive color, as a received transaction. A long amount or a large
+/// text size scales the line down. It never wraps.
 class _HeroAmount extends StatelessWidget {
   /// Amount in BRL cents, or null when the payer informs the amount.
   final int? amountInCents;
 
-  const _HeroAmount({required this.amountInCents});
+  final bool paid;
+
+  const _HeroAmount({required this.amountInCents, required this.paid});
 
   @override
   Widget build(BuildContext context) {
@@ -245,15 +319,18 @@ class _HeroAmount extends StatelessWidget {
     final split = formatted.indexOf(RegExp(r'\s'));
     final symbol = split < 0 ? '' : formatted.substring(0, split);
     final digits = split < 0 ? formatted : formatted.substring(split + 1);
+    // The sign carries the direction, so it never depends on color.
+    final sign = paid ? '+ ' : '';
 
     return Semantics(
-      label: formatted,
+      label: '$sign$formatted'.trim(),
       excludeSemantics: true,
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Text.rich(
           TextSpan(
             children: [
+              if (sign.isNotEmpty) TextSpan(text: sign),
               if (symbol.isNotEmpty)
                 TextSpan(
                   text: '$symbol ',
@@ -267,10 +344,13 @@ class _HeroAmount extends StatelessWidget {
             ],
           ),
           maxLines: 1,
-          style: context.textTheme.headlineLarge?.copyWith(
-            color: context.colors.textPrimary,
+          style: context.textTheme.displaySmall?.copyWith(
+            color: paid
+                ? context.colors.positiveColor
+                : context.colors.textPrimary,
             fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
+            letterSpacing: -1,
+            height: 1.1,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
@@ -279,38 +359,35 @@ class _HeroAmount extends StatelessWidget {
   }
 }
 
-/// A short explanation at the end of the screen, with an info icon.
-class _Note extends StatelessWidget {
-  final String text;
+/// The menu of the bar, with the revoke of a link that takes payments.
+///
+/// The revoke is destructive, so its icon and its text have the negative
+/// color, and it still asks for a confirmation.
+class _LinkMenu extends StatelessWidget {
+  final VoidCallback onRevoke;
 
-  const _Note({required this.text});
+  const _LinkMenu({required this.onRevoke});
 
   @override
   Widget build(BuildContext context) {
-    // Secondary, not tertiary: the tertiary gray fails 4.5:1 on the light
-    // page background.
-    final color = context.colors.textSecondary;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: PixIcon(PixIcons.info, size: 15, color: color),
+    final t = AppLocalizations.of(context);
+    final negative = context.colors.negativeColor;
+    return PopupMenuButton<VoidCallback>(
+      tooltip: t.pix_hub_link_actions,
+      icon: Icon(Icons.more_vert_rounded, color: context.colors.textPrimary),
+      onSelected: (action) => action(),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: onRevoke,
+          child: Row(
+            children: [
+              PixIcon(PixIcons.delete, size: 20, color: negative),
+              const SizedBox(width: 12),
+              Text(t.pix_hub_link_revoke, style: TextStyle(color: negative)),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: context.textTheme.bodySmall?.copyWith(
-                color: color,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

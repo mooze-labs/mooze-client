@@ -2132,6 +2132,27 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pix_deposit_invalid => 'Este PIX não é mais válido';
 
   @override
+  String get pix_deposit_share_action => 'Compartilhar código Pix';
+
+  @override
+  String get pix_deposit_share_action_subtitle => 'Envie para quem vai pagar';
+
+  @override
+  String get pix_deposit_qr_action => 'Mostrar QR Code';
+
+  @override
+  String get pix_deposit_qr_action_subtitle => 'Para pagar pessoalmente';
+
+  @override
+  String pix_deposit_share_message(String amount, String code) {
+    return 'Pague $amount com Pix copia e cola: $code';
+  }
+
+  @override
+  String get pix_deposit_qr_caption =>
+      'Mostre o QR Code ou compartilhe o código Pix';
+
+  @override
   String get pix_deposit_info => 'Informações';
 
   @override
@@ -6276,6 +6297,31 @@ class AppLocalizationsPt extends AppLocalizations {
       'Quem abre o link paga com Pix, e o valor chega na sua carteira no ativo escolhido.';
 
   @override
+  String get pix_hub_link_step_created => 'Criado';
+
+  @override
+  String get pix_hub_link_step_waiting => 'Aguardando';
+
+  @override
+  String get pix_hub_link_share_action => 'Compartilhar link';
+
+  @override
+  String get pix_hub_link_share_action_subtitle => 'Envie para quem vai pagar';
+
+  @override
+  String get pix_hub_link_qr_action => 'Mostrar QR Code';
+
+  @override
+  String get pix_hub_link_qr_action_subtitle => 'Para pagar pessoalmente';
+
+  @override
+  String get pix_hub_link_qr_caption =>
+      'Mostre o QR Code ou compartilhe o link';
+
+  @override
+  String get pix_hub_link_actions => 'Mais ações';
+
+  @override
   String pix_hub_link_share_message_amount(String amount, String url) {
     return 'Pague $amount com Pix: $url';
   }
@@ -6314,10 +6360,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pix_hub_history_filter_received => 'Recebidos';
-
-  @override
-  String get pix_hub_history_note =>
-      'A lista mostra apenas movimentações Pix fictícias. As transações da carteira ficam no histórico da carteira.';
 
   @override
   String get pix_hub_tx_kind_sent => 'Pix enviado';

@@ -902,6 +902,22 @@
   "pix_deposit_expired": "Prazo expirado",
   "pix_deposit_time_remaining": "Tempo restante para pagar",
   "pix_deposit_invalid": "Este PIX não é mais válido",
+  "pix_deposit_share_action": "Compartilhar código Pix",
+  "pix_deposit_share_action_subtitle": "Envie para quem vai pagar",
+  "pix_deposit_qr_action": "Mostrar QR Code",
+  "pix_deposit_qr_action_subtitle": "Para pagar pessoalmente",
+  "pix_deposit_share_message": "Pague {amount} com Pix copia e cola: {code}",
+  "@pix_deposit_share_message": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "pix_deposit_qr_caption": "Mostre o QR Code ou compartilhe o código Pix",
   "pix_deposit_info": "Informações",
   "pix_deposit_view_explorer": "Ver no Explorer",
   "pix_deposit_view_chain": "Visualizar na blockchain",
@@ -2946,6 +2962,14 @@
   "pix_hub_link_revoke_confirm": "Desativar",
   "pix_hub_link_revoked": "Link desativado.",
   "pix_hub_link_disclaimer": "Quem abre o link paga com Pix, e o valor chega na sua carteira no ativo escolhido.",
+  "pix_hub_link_step_created": "Criado",
+  "pix_hub_link_step_waiting": "Aguardando",
+  "pix_hub_link_share_action": "Compartilhar link",
+  "pix_hub_link_share_action_subtitle": "Envie para quem vai pagar",
+  "pix_hub_link_qr_action": "Mostrar QR Code",
+  "pix_hub_link_qr_action_subtitle": "Para pagar pessoalmente",
+  "pix_hub_link_qr_caption": "Mostre o QR Code ou compartilhe o link",
+  "pix_hub_link_actions": "Mais ações",
   "pix_hub_link_share_message_amount": "Pague {amount} com Pix: {url}",
   "@pix_hub_link_share_message_amount": {
     "placeholders": {
@@ -2967,7 +2991,6 @@
   "pix_hub_history_filter_all": "Tudo",
   "pix_hub_history_filter_sent": "Enviados",
   "pix_hub_history_filter_received": "Recebidos",
-  "pix_hub_history_note": "A lista mostra apenas movimentações Pix fictícias. As transações da carteira ficam no histórico da carteira.",
   "pix_hub_tx_kind_sent": "Pix enviado",
   "pix_hub_tx_kind_received": "Pix recebido",
   "pix_hub_tx_kind_deposit": "Depósito na carteira",
