@@ -38,6 +38,25 @@ Future<T?> showFloatingGlassSheet<T>(
   );
 }
 
+/// Drag handle of a floating glass sheet that a drag closes.
+class GlassSheetHandle extends StatelessWidget {
+  const GlassSheetHandle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 36,
+        height: 4,
+        decoration: BoxDecoration(
+          color: context.colorScheme.onSurface.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+}
+
 /// Top of a floating glass sheet: the drag handle, the title, and a close
 /// button. An optional [leading] widget sits before the title, and an
 /// optional [subtitle] below it.
@@ -67,16 +86,7 @@ class GlassSheetHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Center(
-          child: Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: context.colorScheme.onSurface.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
+        const GlassSheetHandle(),
         const SizedBox(height: 6),
         Row(
           children: [

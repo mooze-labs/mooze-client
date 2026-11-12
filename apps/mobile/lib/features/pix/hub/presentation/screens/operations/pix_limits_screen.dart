@@ -10,7 +10,7 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_section_h
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_card.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_card.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
@@ -41,7 +41,7 @@ class PixLimitsScreen extends ConsumerWidget {
       bottomAction: SecondaryButton(
         text: t.pix_hub_limits_how_it_works,
         height: isLargeText ? null : 55,
-        onPressed: () => PixLimitsInfoDialog.show(context),
+        onPressed: () => PixLimitsInfoSheet.show(context, mustRead: false),
       ),
       children: [
         const _CurrentLimits(),

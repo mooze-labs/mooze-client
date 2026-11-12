@@ -13,9 +13,9 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_operation
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_primary_action_cards.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_section_header.dart';
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_sheet.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_sheet.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -78,7 +78,7 @@ class _PixHubScreenState extends ConsumerState<PixHubScreen> {
     }
   }
 
-  /// Shows the terms and the limits dialogs the first time the user opens Pix.
+  /// Shows the terms and the limits notices the first time the user opens Pix.
   ///
   /// The hub keeps this behaviour from the previous Pix screen so the existing
   /// onboarding is not lost.
@@ -86,11 +86,11 @@ class _PixHubScreenState extends ConsumerState<PixHubScreen> {
     final onboarding = ref.read(pixOnboardingServiceProvider);
     if (await onboarding.hasSeenFirstTimeDialog() || !mounted) return;
 
-    final accepted = await FirstTimePixDialog.show(context);
+    final accepted = await FirstTimePixSheet.show(context);
     if (accepted != true || !mounted) return;
 
     await onboarding.markFirstTimeDialogAsSeen();
-    if (mounted) await PixLimitsInfoDialog.show(context);
+    if (mounted) await PixLimitsInfoSheet.show(context);
   }
 
   void _openDeposit() => openOwnPixDeposit(context, ref);

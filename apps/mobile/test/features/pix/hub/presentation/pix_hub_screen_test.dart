@@ -9,17 +9,35 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_forma
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_primary_action_cards.dart';
 import 'package:mooze_mobile/features/pix/shared/data/services/pix_onboarding_service.dart';
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_sheet.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_sheet.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 
 /// Height of the bar the shell places over the bottom of the hub.
 const double _navBarHeight = 110;
 
-/// Skips the first-access dialogs, which have their own tests.
+/// Skips the first-access notices, which have their own tests.
 class _SeenOnboarding implements PixOnboardingService {
   @override
   Future<bool> hasSeenFirstTimeDialog() async => true;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// The first access to Pix: the notices show, and an accept is recorded.
+class _FirstAccess implements PixOnboardingService {
+  bool marked = false;
+
+  @override
+  Future<bool> hasSeenFirstTimeDialog() async => false;
+
+  @override
+  Future<void> markFirstTimeDialogAsSeen() async => marked = true;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -32,10 +50,13 @@ class _SeenOnboarding implements PixOnboardingService {
 Widget host({
   List<PixWithdrawalRecord> pending = const [],
   void Function()? onStatusRead,
+  PixOnboardingService? onboarding,
 }) {
   return ProviderScope(
     overrides: [
-      pixOnboardingServiceProvider.overrideWithValue(_SeenOnboarding()),
+      pixOnboardingServiceProvider.overrideWithValue(
+        onboarding ?? _SeenOnboarding(),
+      ),
       pixPendingWithdrawalSyncProvider.overrideWith(
         (ref) async => onStatusRead?.call(),
       ),
@@ -152,5 +173,40 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(reads, 2);
+  });
+
+  // The hub shows the notices on its own, so both wait the reading time.
+  testWidgets('the first access shows the review notice and then the limits '
+      'in floating glass sheets', (tester) async {
+    final onboarding = _FirstAccess();
+    await tester.pumpWidget(host(onboarding: onboarding));
+    await tester.pumpAndSettle();
+
+    PrimaryButton button() =>
+        tester.widget<PrimaryButton>(find.byType(PrimaryButton).last);
+    Future<void> waitReading() async {
+      for (var i = 0; i < 7; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.byType(FirstTimePixSheet), findsOneWidget);
+    expect(find.byType(GlassSheet), findsOneWidget);
+    expect(button().isEnabled, isFalse);
+
+    await waitReading();
+    await tester.tap(find.text('Compreendo e aceito'));
+    await tester.pumpAndSettle();
+
+    expect(onboarding.marked, isTrue);
+    expect(find.byType(FirstTimePixSheet), findsNothing);
+    expect(find.byType(PixLimitsInfoSheet), findsOneWidget);
+    expect(button().isEnabled, isFalse);
+
+    await waitReading();
+    await tester.tap(find.text('Entendi'));
+    await tester.pumpAndSettle();
+    expect(find.byType(GlassSheet), findsNothing);
   });
 }

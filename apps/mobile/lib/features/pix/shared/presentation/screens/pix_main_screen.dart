@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/features/pix/shared/di/providers/pix_onboarding_service_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/screens/receive_pix_screen.dart';
 import 'package:mooze_mobile/features/pix/send_pix/presentation/screens/send_pix_tab_screen.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_sheet.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/offline_indicator.dart';
@@ -38,7 +38,7 @@ class _PixMainScreenState extends ConsumerState<PixMainScreen>
 
     // Verifica se já viu o dialog
     if (!await onboardingService.hasSeenFirstTimeDialog() && mounted) {
-      final accepted = await FirstTimePixDialog.show(context);
+      final accepted = await FirstTimePixSheet.show(context);
 
       if (accepted == true && mounted) {
         // Marca como visto localmente
@@ -46,7 +46,7 @@ class _PixMainScreenState extends ConsumerState<PixMainScreen>
 
         // Mostra o segundo dialog com informações sobre limites
         if (mounted) {
-          await PixLimitsInfoDialog.show(context);
+          await PixLimitsInfoSheet.show(context);
         }
 
         // TODO: Quando houver API, descomentar para sincronizar com backend

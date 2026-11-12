@@ -27,9 +27,9 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/pix_deposit_controller_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/asset_selector_widget.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/widgets/transaction_details_widget.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_sheet.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_qr_loading_overlay.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -97,13 +97,13 @@ class _MerchantChargeScreenState extends ConsumerState<MerchantChargeScreen> {
 
     if (!await onboardingService.hasSeenMerchantFirstTimeDialog() &&
         mounted) {
-      final accepted = await FirstTimePixDialog.show(context);
+      final accepted = await FirstTimePixSheet.show(context);
 
       if (accepted == true && mounted) {
         await onboardingService.markMerchantFirstTimeDialogAsSeen();
 
         if (mounted) {
-          await PixLimitsInfoDialog.show(context);
+          await PixLimitsInfoSheet.show(context);
         }
 
         // TODO: When there is an API, uncomment to sync with the backend

@@ -7,8 +7,8 @@ import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/dep
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/asset_quote_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/fee_rate_provider.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_validation_provider.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_dialog.dart';
-import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_dialog.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/first_time_pix_sheet.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_limits_info_sheet.dart';
 import 'package:mooze_mobile/features/wallet/routes.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_unavailable_overlay.dart';
@@ -83,13 +83,13 @@ class _ReceivePixScreenState extends ConsumerState<ReceivePixScreen> {
     final onboardingService = ref.read(pixOnboardingServiceProvider);
 
     if (!await onboardingService.hasSeenFirstTimeDialog() && mounted) {
-      final accepted = await FirstTimePixDialog.show(context);
+      final accepted = await FirstTimePixSheet.show(context);
 
       if (accepted == true && mounted) {
         await onboardingService.markFirstTimeDialogAsSeen();
 
         if (mounted) {
-          await PixLimitsInfoDialog.show(context);
+          await PixLimitsInfoSheet.show(context);
         }
 
         // await onboardingService.submitTermsAcceptance();
