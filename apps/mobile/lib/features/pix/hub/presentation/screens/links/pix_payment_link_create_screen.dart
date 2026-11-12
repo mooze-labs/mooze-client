@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/pix/hub/data/repositories/api_pix_payment_link_repository.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link_amount.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_hub_providers.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_payment_link_access_provider.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_receive_providers.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_action_tile.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_amount_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_labels.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_payment_link_level_notice.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_card.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_surface_card.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/presentation/providers/deposit_validation_provider.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_picker_sheet.dart'
     show AssetLensLogo;
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
@@ -26,9 +31,13 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Creates a payment link.
 ///
-/// The amount bounds come from [PaymentLinkAmount], the `AmountPolicy` of the
-/// payment-link API. The link pays a new address of the wallet, in the asset
-/// that the user picks.
+/// A link receives a Pix, so a fixed amount follows the Pix receive limits
+/// of the account, as on the deposit screen. The bounds of [PaymentLinkAmount],
+/// the `AmountPolicy` of the payment-link API, apply too. The link pays a new
+/// address of the wallet, in the asset that the user picks.
+///
+/// Payment links start at the Silver level. A Bronze account sees why, and
+/// the way to its level, in place of the form.
 ///
 /// The amount is the hero of the step. The two switches share one glass
 /// group, the assets another, and the reference is a bare underline field.
@@ -58,22 +67,46 @@ class _PixPaymentLinkCreateScreenState
     super.dispose();
   }
 
+  /// The amount against the Pix receive limits of the account. The build
+  /// watches the levels, so a change of the limits checks it again.
+  DepositValidation get _receiveValidation =>
+      validatePixReceiveAmount(_amountInCents / 100, ref.read(levelsProvider));
+
   bool get _amountIsValid =>
-      _openAmount || FixedPaymentLinkAmount(_amountInCents).isWithinBounds;
+      _openAmount ||
+      (FixedPaymentLinkAmount(_amountInCents).isWithinBounds &&
+          _receiveValidation.isValid);
 
   /// The review opens once the link has an identification and an amount.
   bool get _canReview =>
       _referenceController.text.trim().isNotEmpty && _amountIsValid;
 
   /// The limits show once an amount is typed, so the disabled review has a
-  /// visible reason.
+  /// visible reason. The receive limit of the account comes first, with the
+  /// words of the deposit screen: it is the one the user can change.
   String? _amountError(AppLocalizations t) {
     if (_amountInCents == 0 || _amountIsValid) return null;
+    final receive = _receiveValidation;
+    if (receive.limitAmount case final limit?) {
+      switch (receive.error) {
+        case DepositValidationError.belowMinimum:
+          return t.pix_receive_validation_below_min(_reais(limit));
+        case DepositValidationError.aboveTransaction:
+          return t.pix_receive_validation_above_transaction(_reais(limit));
+        default:
+          break;
+      }
+    }
     return t.pix_hub_link_amount_error(
       formatBrlCents(PaymentLinkAmount.minAmountInCents),
       formatBrlCents(PaymentLinkAmount.maxAmountInCents),
     );
   }
+
+  /// Formats reais without the symbol, which the message holds. Reais always
+  /// use the Brazilian format, as the amounts on screen.
+  static String _reais(double amount) =>
+      NumberFormat('#,##0.00', 'pt_BR').format(amount);
 
   /// Shows the review sheet, whose slide creates the link.
   Future<void> _reviewAndCreate() async {
@@ -132,6 +165,19 @@ class _PixPaymentLinkCreateScreenState
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final isBusy = ref.watch(pixPaymentLinkFormControllerProvider).isBusy;
+    // The limits of the amount, read by [_receiveValidation].
+    ref.watch(levelsProvider);
+
+    if (ref.watch(pixPaymentLinkLockedProvider)) {
+      return PixScreenScaffold(
+        title: t.pix_hub_link_create,
+        bottomAction: PrimaryButton(
+          text: t.pix_hub_link_level_view,
+          onPressed: () => context.push('/wallet-levels'),
+        ),
+        children: const [PixPaymentLinkLevelNotice()],
+      );
+    }
 
     return PixScreenScaffold(
       title: t.pix_hub_link_create,

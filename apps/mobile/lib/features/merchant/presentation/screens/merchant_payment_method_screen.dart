@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mooze_mobile/features/merchant/domain/entities/merchant_payment_method.dart';
 import 'package:mooze_mobile/features/merchant/presentation/widgets/merchant_flow_scaffold.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/providers/pix_payment_link_access_provider.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_method_card.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_payment_link_level_notice.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/pix_cpf_config.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -12,6 +14,9 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 ///
 /// The screen only returns the choice. The charge screen runs the flow, so
 /// the QR Code flow keeps its code and the amount stays with the caller.
+///
+/// Payment links start at the Silver level. For a Bronze account the link
+/// option says so, and a tap explains it instead of returning the link.
 class MerchantPaymentMethodScreen extends ConsumerWidget {
   /// The confirmed amount, shown in the header.
   final int amountInCents;
@@ -46,6 +51,7 @@ class MerchantPaymentMethodScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     final cpfRequired = ref.watch(pixCpfRequiredProvider);
+    final linkLocked = ref.watch(pixPaymentLinkLockedProvider);
 
     return MerchantFlowScaffold(
       title: t.merchant_payment_method_title,
@@ -73,11 +79,13 @@ class MerchantPaymentMethodScreen extends ConsumerWidget {
           title: t.merchant_payment_method_link_title,
           description: t.merchant_payment_method_link_description,
           tags: [
+            if (linkLocked) t.pix_hub_link_level_locked_tag,
             t.merchant_payment_method_tag_remote,
             t.merchant_payment_method_tag_browser,
           ],
-          onTap: () =>
-              Navigator.of(context).pop(MerchantPaymentMethod.paymentLink),
+          onTap: () => linkLocked
+              ? showPixPaymentLinkLevelSheet(context)
+              : Navigator.of(context).pop(MerchantPaymentMethod.paymentLink),
         ),
       ],
     );

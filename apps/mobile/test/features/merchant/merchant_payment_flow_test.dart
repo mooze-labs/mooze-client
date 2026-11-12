@@ -8,9 +8,12 @@ import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_pay
 import 'package:mooze_mobile/features/merchant/presentation/screens/merchant_payment_method_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_payment_link.dart';
 import 'package:mooze_mobile/features/pix/shared/cpf/pix_cpf_config.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -32,13 +35,31 @@ final _link = PixPaymentLink(
 /// tooltip, and these tests run in Portuguese.
 Future<void> _back(WidgetTester tester) => tester.tap(find.byType(BackButton));
 
-/// The app theme, the Portuguese texts and a button that runs [open].
+/// The levels of an account at [level]: 0 is Bronze, 1 is Silver.
+UserLevelsData _levels(int level) => UserLevelsData(
+  spendingLevel: level,
+  levelProgress: 0,
+  allowedSpending: 500,
+  dailySpending: 0,
+  currentLevelMinLimit: 0,
+  currentLevelMaxLimit: 500,
+  absoluteMinLimit: 20,
+  absoluteMaxLimit: 3000,
+  remainingLimit: 5000,
+);
+
+/// The app theme, the Portuguese texts and a button that runs [open]. The
+/// account is Silver unless [level] says otherwise.
 Widget _host(
   Future<void> Function(BuildContext context) open, {
   bool cpfRequired = true,
+  int level = 1,
 }) {
   return ProviderScope(
-    overrides: [pixCpfRequiredProvider.overrideWithValue(cpfRequired)],
+    overrides: [
+      pixCpfRequiredProvider.overrideWithValue(cpfRequired),
+      levelsProvider.overrideWith((ref) async => _levels(level)),
+    ],
     child: MaterialApp(
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -114,6 +135,64 @@ void main() {
       expect(find.text('Na hora'), findsOneWidget);
       expect(find.text('Pede CPF'), findsOneWidget);
       expect(find.text('À distância'), findsOneWidget);
+    });
+
+    // Payment links start at the Silver level. A Bronze merchant sees it on
+    // the option, and a tap explains it instead of creating a link.
+    testWidgets('a Bronze account sees that the link starts at Silver, and '
+        'a tap explains it', (tester) async {
+      final t = lookupAppLocalizations(const Locale('pt'));
+      var returned = false;
+      MerchantPaymentMethod? chosen;
+      await tester.pumpWidget(
+        _host((context) async {
+          chosen = await MerchantPaymentMethodScreen.choose(
+            context,
+            amountInCents: 4590,
+            asset: Asset.depix,
+          );
+          returned = true;
+        }, level: 0),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text(t.pix_hub_link_level_locked_tag), findsOneWidget);
+
+      await tester.tap(find.text('Link de pagamento'));
+      await tester.pumpAndSettle();
+      expect(returned, isFalse);
+      expect(find.byType(GlassSheet), findsOneWidget);
+      expect(find.text(t.pix_hub_link_level_locked_title), findsOneWidget);
+      expect(find.text(t.pix_hub_link_level_locked_body), findsOneWidget);
+      // The merchant opened it, so it shows that a drag closes it.
+      expect(find.byType(GlassSheetHandle), findsOneWidget);
+
+      await tester.tap(find.text(t.common_understood));
+      await tester.pumpAndSettle();
+      expect(find.byType(GlassSheet), findsNothing);
+      expect(returned, isFalse);
+
+      await tester.tap(find.text('QR Code Pix'));
+      await tester.pumpAndSettle();
+      expect(chosen, MerchantPaymentMethod.pixQrCode);
+    });
+
+    testWidgets('a Silver account sees no level tag', (tester) async {
+      final t = lookupAppLocalizations(const Locale('pt'));
+      await tester.pumpWidget(
+        _host(
+          (context) => MerchantPaymentMethodScreen.choose(
+            context,
+            amountInCents: 4590,
+            asset: Asset.depix,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text(t.pix_hub_link_level_locked_tag), findsNothing);
     });
 
     testWidgets('does not promise a CPF step that is off', (tester) async {

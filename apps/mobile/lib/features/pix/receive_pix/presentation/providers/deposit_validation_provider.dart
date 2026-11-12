@@ -56,8 +56,21 @@ class DepositValidation {
 }
 
 final depositValidationProvider = Provider<DepositValidation>((ref) {
-  final depositAmount = ref.watch(depositAmountProvider);
-  final levelsAsync = ref.watch(levelsProvider);
+  return validatePixReceiveAmount(
+    ref.watch(depositAmountProvider),
+    ref.watch(levelsProvider),
+  );
+});
+
+/// Checks [amountBrl] against the Pix receive limits of the account: the
+/// minimum and the limit per transaction of [levelsAsync].
+///
+/// Every screen that receives a Pix uses it, the deposit and the payment
+/// links, so they share one rule.
+DepositValidation validatePixReceiveAmount(
+  double amountBrl,
+  AsyncValue<UserLevelsData> levelsAsync,
+) {
   final levels = levelsAsync.isLoading || levelsAsync.hasError
       ? null
       : levelsAsync.valueOrNull;
@@ -65,7 +78,7 @@ final depositValidationProvider = Provider<DepositValidation>((ref) {
   // While the levels load, or after a load error, the core treats every
   // positive amount as valid.
   final result = CoreSyncHelpers.instance.pixValidateAmount(
-    amountBrl: depositAmount,
+    amountBrl: amountBrl,
     limits: levels == null
         ? null
         : DepositLimitsDto(
@@ -88,4 +101,4 @@ final depositValidationProvider = Provider<DepositValidation>((ref) {
     },
     limitAmount: result.limitAmount,
   );
-});
+}

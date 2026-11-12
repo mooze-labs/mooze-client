@@ -9,7 +9,7 @@ import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// A Pix notice in a floating glass sheet: an icon well, a title, an intro,
-/// the [body], and one button.
+/// an optional [body], and one button.
 ///
 /// The body scrolls when it does not fit, and the button stays visible
 /// below it. Open it with `showFloatingGlassSheet`, as the L-BTC notice of
@@ -26,7 +26,7 @@ class PixNoticeSheet extends StatefulWidget {
     this.tone = PixTone.neutral,
     required this.title,
     required this.intro,
-    required this.body,
+    this.body,
     required this.actionLabel,
     required this.onAction,
     this.readingSeconds = 0,
@@ -50,8 +50,8 @@ class PixNoticeSheet extends StatefulWidget {
   /// Short text below the title.
   final String intro;
 
-  /// Content below the intro.
-  final Widget body;
+  /// Content below the intro. Null when the intro says it all.
+  final Widget? body;
 
   /// Label of the button once it is unlocked.
   final String actionLabel;
@@ -153,8 +153,10 @@ class _PixNoticeSheetState extends State<PixNoticeSheet> {
                       height: 1.5,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  widget.body,
+                  if (widget.body case final body?) ...[
+                    const SizedBox(height: 20),
+                    body,
+                  ],
                 ],
               ),
             ),

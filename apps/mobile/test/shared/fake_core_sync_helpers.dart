@@ -63,6 +63,38 @@ class FakeCoreSyncHelpers extends CoreSyncHelpers {
 
   @override
   int pixPollIntervalMs() => 30000;
+
+  /// The Pix receive limits, as `validate_deposit_amount` of the core:
+  /// a positive amount, at least the minimum, at most the limit per
+  /// transaction. Without limits, every positive amount is valid.
+  @override
+  DepositValidationDto pixValidateAmount({
+    required double amountBrl,
+    DepositLimitsDto? limits,
+  }) {
+    if (amountBrl <= 0 || amountBrl.isNaN) {
+      return const DepositValidationDto(
+        isValid: false,
+        error: DepositValidationErrorDto.invalidAmount,
+      );
+    }
+    if (limits == null) return const DepositValidationDto(isValid: true);
+    if (amountBrl < limits.absoluteMinLimit) {
+      return DepositValidationDto(
+        isValid: false,
+        error: DepositValidationErrorDto.belowMinimum,
+        limitAmount: limits.absoluteMinLimit,
+      );
+    }
+    if (amountBrl > limits.allowedSpending) {
+      return DepositValidationDto(
+        isValid: false,
+        error: DepositValidationErrorDto.aboveTransaction,
+        limitAmount: limits.allowedSpending,
+      );
+    }
+    return const DepositValidationDto(isValid: true);
+  }
 }
 
 /// Installs [helpers] for each test of the enclosing group and restores the

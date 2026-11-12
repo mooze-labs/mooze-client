@@ -38,7 +38,7 @@ class PixLimitsScreen extends ConsumerWidget {
       title: t.pix_hub_preferences_limits,
       subtitle: t.pix_hub_limits_subtitle,
       onRefresh: () async => ref.invalidate(levelsProvider),
-      bottomAction: SecondaryButton(
+      bottomAction: PrimaryButton(
         text: t.pix_hub_limits_how_it_works,
         height: isLargeText ? null : 55,
         onPressed: () => PixLimitsInfoSheet.show(context, mustRead: false),

@@ -6283,6 +6283,20 @@ class AppLocalizationsEs extends AppLocalizations {
       'Quien abre el enlace paga con Pix, y el valor llega a su billetera en el activo elegido.';
 
   @override
+  String get pix_hub_link_level_locked_title =>
+      'Disponible a partir del nivel Plata';
+
+  @override
+  String get pix_hub_link_level_locked_body =>
+      'Tu nivel es Bronce. Sigue usando Pix en Mooze para subir de nivel y desbloquear los enlaces de pago.';
+
+  @override
+  String get pix_hub_link_level_locked_tag => 'Desde Plata';
+
+  @override
+  String get pix_hub_link_level_view => 'Ver mi nivel';
+
+  @override
   String get pix_hub_history_filter_all => 'Todo';
 
   @override

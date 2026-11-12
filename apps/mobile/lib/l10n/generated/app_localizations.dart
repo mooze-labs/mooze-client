@@ -11122,6 +11122,30 @@ abstract class AppLocalizations {
   /// **'Quem abre o link paga com Pix, e o valor chega na sua carteira no ativo escolhido.'**
   String get pix_hub_link_disclaimer;
 
+  /// No description provided for @pix_hub_link_level_locked_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disponível a partir do nível Prata'**
+  String get pix_hub_link_level_locked_title;
+
+  /// No description provided for @pix_hub_link_level_locked_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu nível é Bronze. Continue usando o Pix na Mooze para subir de nível e liberar os links de pagamento.'**
+  String get pix_hub_link_level_locked_body;
+
+  /// No description provided for @pix_hub_link_level_locked_tag.
+  ///
+  /// In pt, this message translates to:
+  /// **'A partir do Prata'**
+  String get pix_hub_link_level_locked_tag;
+
+  /// No description provided for @pix_hub_link_level_view.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver meu nível'**
+  String get pix_hub_link_level_view;
+
   /// No description provided for @pix_hub_history_filter_all.
   ///
   /// In pt, this message translates to:

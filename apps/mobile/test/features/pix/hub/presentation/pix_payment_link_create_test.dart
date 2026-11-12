@@ -16,10 +16,13 @@ import 'package:mooze_mobile/features/pix/hub/presentation/screens/links/pix_pay
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/user/providers/levels_provider.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../shared/fake_core_sync_helpers.dart';
 
 typedef _Create = ({int? amountInCents, Asset asset, bool singleUse});
 
@@ -66,6 +69,23 @@ class _FakeLinks implements PixPaymentLinkRepository {
       throw UnimplementedError();
 }
 
+/// The levels of an account, with its Pix receive limits in reais.
+UserLevelsData _levels({
+  int level = 1,
+  double minimum = 20,
+  double perTransaction = 500,
+}) => UserLevelsData(
+  spendingLevel: level,
+  levelProgress: 0,
+  allowedSpending: perTransaction,
+  dailySpending: 0,
+  currentLevelMinLimit: 0,
+  currentLevelMaxLimit: perTransaction,
+  absoluteMinLimit: minimum,
+  absoluteMaxLimit: 3000,
+  remainingLimit: 5000,
+);
+
 final _link = PixPaymentLink(
   id: 'link-1',
   url: 'https://pay.mooze.app/pay/tok',
@@ -78,6 +98,8 @@ final _link = PixPaymentLink(
 );
 
 void main() {
+  useCoreSyncHelpers();
+
   final t = lookupAppLocalizations(const Locale('pt'));
   late _FakeLinks links;
   late SharedPreferences prefs;
@@ -94,7 +116,12 @@ void main() {
     }
   }
 
-  Future<void> open(WidgetTester tester) async {
+  /// Opens the screen for an account with [levels]. By default the account
+  /// is Silver, with R\$ 20,00 to R\$ 500,00 per Pix received.
+  Future<void> open(
+    WidgetTester tester, {
+    Future<UserLevelsData> Function()? levels,
+  }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -104,6 +131,10 @@ void main() {
         GoRoute(
           path: '/pix/links/new',
           builder: (_, _) => const PixPaymentLinkCreateScreen(),
+        ),
+        GoRoute(
+          path: '/wallet-levels',
+          builder: (_, _) => const Scaffold(body: Text('wallet levels')),
         ),
         GoRoute(
           path: '/pix/links/detail',
@@ -117,6 +148,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          levelsProvider.overrideWith(
+            (ref) => levels?.call() ?? Future.value(_levels()),
+          ),
           pixPaymentLinkFormControllerProvider.overrideWith(
             (ref) => PixPaymentLinkFormController(
               repository: links,
@@ -238,12 +272,126 @@ void main() {
     await tester.enterText(find.byType(TextField).first, '100');
     await settle(tester);
     expect(reviewEnabled(), isFalse);
-    expect(find.text(amountError), findsOneWidget);
+    expect(
+      find.text(t.pix_receive_validation_below_min('20,00')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text(t.pix_hub_charge_open_amount));
     await settle(tester);
     expect(reviewEnabled(), isTrue);
-    expect(find.text(amountError), findsNothing);
+    expect(
+      find.text(t.pix_receive_validation_below_min('20,00')),
+      findsNothing,
+    );
+  });
+
+  bool reviewEnabled(WidgetTester tester) => tester
+      .widget<PrimaryButton>(
+        find.widgetWithText(PrimaryButton, t.pix_hub_link_review),
+      )
+      .isEnabled;
+
+  Future<void> typeAmount(WidgetTester tester, String cents) async {
+    await tester.enterText(find.byType(TextField).first, cents);
+    await tester.enterText(find.byType(TextField).last, 'Bolo de pote');
+    await settle(tester);
+  }
+
+  // A link receives a Pix, so its amount follows the same limits as a Pix
+  // received on the deposit screen.
+  testWidgets('a fixed amount follows the Pix receive limits of the account', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      levels: () async => _levels(minimum: 25, perTransaction: 500),
+    );
+
+    await typeAmount(tester, '60000');
+    expect(reviewEnabled(tester), isFalse);
+    expect(
+      find.text(t.pix_receive_validation_above_transaction('500,00')),
+      findsOneWidget,
+    );
+
+    await typeAmount(tester, '2100');
+    expect(reviewEnabled(tester), isFalse);
+    expect(
+      find.text(t.pix_receive_validation_below_min('25,00')),
+      findsOneWidget,
+    );
+
+    await typeAmount(tester, '50000');
+    expect(reviewEnabled(tester), isTrue);
+    expect(find.textContaining('Limite por transação'), findsNothing);
+    expect(find.textContaining('Valor mínimo'), findsNothing);
+  });
+
+  testWidgets('the bounds of the API still apply under a larger receive '
+      'limit', (tester) async {
+    await open(tester, levels: () async => _levels(perTransaction: 10000));
+
+    await typeAmount(tester, '600000');
+    expect(reviewEnabled(tester), isFalse);
+    expect(
+      find.text(
+        t.pix_hub_link_amount_error(
+          formatBrlCents(PaymentLinkAmount.minAmountInCents),
+          formatBrlCents(PaymentLinkAmount.maxAmountInCents),
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  // Until the limits arrive the app cannot tell them, as on the deposit
+  // screen. The API checks the amount again when it creates the link.
+  testWidgets('while the limits load, only the bounds of the API apply, and '
+      'the amount is checked again when they arrive', (tester) async {
+    final levels = Completer<UserLevelsData>();
+    await open(tester, levels: () => levels.future);
+
+    await typeAmount(tester, '60000');
+    expect(reviewEnabled(tester), isTrue);
+
+    levels.complete(_levels(perTransaction: 500));
+    await settle(tester);
+    expect(reviewEnabled(tester), isFalse);
+    expect(
+      find.text(t.pix_receive_validation_above_transaction('500,00')),
+      findsOneWidget,
+    );
+  });
+
+  // Payment links start at the Silver level. A Bronze account learns it
+  // before it fills a form it cannot send.
+  testWidgets('a Bronze account sees that links start at Silver, instead of '
+      'the form', (tester) async {
+    await open(tester, levels: () async => _levels(level: 0));
+
+    expect(find.text(t.pix_hub_link_level_locked_title), findsOneWidget);
+    expect(find.text(t.pix_hub_link_level_locked_body), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(
+      find.widgetWithText(PrimaryButton, t.pix_hub_link_review),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.widgetWithText(PrimaryButton, t.pix_hub_link_level_view),
+    );
+    await settle(tester);
+    expect(find.text('wallet levels'), findsOneWidget);
+  });
+
+  testWidgets('a Silver account sees the form and no level notice', (
+    tester,
+  ) async {
+    await open(tester);
+
+    expect(find.text(t.pix_hub_link_level_locked_title), findsNothing);
+    expect(find.byType(TextField), findsNWidgets(2));
   });
 
   testWidgets('an open amount and a reusable link reach the API as such', (
