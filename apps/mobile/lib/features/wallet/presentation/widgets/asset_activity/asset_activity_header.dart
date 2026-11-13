@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_activity/asset_activity_card.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Balance hero: the current balance, its fiat equivalent, and a flat
-/// market-price line. No tinted containers or chips — the balance is the
-/// focal point. The sheet header above it shows the asset logo and name.
+/// Balance hero: the current balance, its fiat equivalent, and the market
+/// price in a glass pill. The balance is the focal point. The sheet header
+/// above it shows the asset logo and name.
 class AssetActivityHeader extends ConsumerWidget {
   final Asset asset;
 
@@ -38,41 +40,67 @@ class AssetActivityHeader extends ConsumerWidget {
     final price = holding?.fiatPrice;
     final secondary = context.colors.textSecondary;
 
+    const tabular = [FontFeature.tabularFigures()];
+
     return Column(
       children: [
-        Text(
-          balanceText,
-          textAlign: TextAlign.center,
-          style: context.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            balanceText,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: context.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
+              fontFeatures: tabular,
+            ),
           ),
         ),
         if (fiatText != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             '≈ $fiatText',
-            style: context.textTheme.bodyMedium?.copyWith(color: secondary),
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: secondary,
+              fontFeatures: tabular,
+            ),
           ),
         ],
-        const SizedBox(height: 16),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              t.asset_activity_market_price(asset.ticker),
-              style: context.textTheme.bodySmall?.copyWith(color: secondary),
+        const SizedBox(height: 12),
+        // The market price, in a glass pill below the balance.
+        MergeSemantics(
+          child: AssetGlassLens(
+            borderRadius: const BorderRadius.all(Radius.circular(999)),
+            padding: const EdgeInsets.fromLTRB(12, 7, 14, 7),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PixIcon(PixIcons.trendingUp, size: 14, color: secondary),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    t.asset_activity_market_price(asset.ticker),
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: secondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  price != null
+                      ? '$currencyIcon ${NumberFormat('#,##0.00', locale).format(price)}'
+                      : '—',
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: tabular,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(
-              price != null
-                  ? '$currencyIcon ${NumberFormat('#,##0.00', locale).format(price)}'
-                  : '—',
-              style: context.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );

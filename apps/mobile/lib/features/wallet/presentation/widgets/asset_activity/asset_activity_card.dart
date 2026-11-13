@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Shared, theme-aware presentation primitives for the asset activity screen.
+/// Shared presentation pieces of the asset activity sheet.
 ///
-/// Borders and separators resolve from [ColorScheme.outline] (the design
-/// system's sanctioned divider token) so they stay legible in both light and
-/// dark themes — the previous faint `onSurface @ 0.06` hairline disappeared on
-/// dark backgrounds.
+/// The sheet is a floating glass sheet. Its panels are glass lenses on that
+/// glass, as the deal card of the swap sheet, and their icons are the app
+/// icons ([PixIcons]) in round wells, as in the Pix screens.
 
-/// Border/divider color with proper contrast in both themes.
-Color assetActivityBorderColor(BuildContext context) =>
-    context.colorScheme.outline.withValues(alpha: 0.45);
+/// Corner radius of a panel of the sheet.
+const double assetActivityPanelRadius = 20;
 
-/// Stronger separator (vertical dividers, timeline connectors).
-Color assetActivitySeparatorColor(BuildContext context) =>
-    context.colorScheme.outline.withValues(alpha: 0.6);
-
-/// SemiBold section header — the single weight used for titles.
+/// The title of a section of the sheet. The single weight of the titles.
 class AssetSectionTitle extends StatelessWidget {
   final String title;
 
@@ -24,94 +22,68 @@ class AssetSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: context.textTheme.titleSmall?.copyWith(
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.1,
+    return Semantics(
+      header: true,
+      child: Text(
+        title,
+        style: context.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
       ),
     );
   }
 }
 
-/// A refined surface card: [backgroundCard] fill, a contrast-safe hairline
-/// border, and a soft shadow in light mode only. The structural building
-/// block for every grouped section.
-class AssetSurfaceCard extends StatelessWidget {
+/// A panel of the sheet: a glass lens on the sheet glass, with [child] on
+/// top. The lens takes the fill, the soft shadow and the rim of the glass
+/// style, so it reads in both themes.
+class AssetGlassLens extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
-  final Color? background;
-  final Color? borderColor;
+  final BorderRadius borderRadius;
 
-  const AssetSurfaceCard({
+  const AssetGlassLens({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(18),
-    this.background,
-    this.borderColor,
+    this.padding = const EdgeInsets.all(16),
+    this.borderRadius = const BorderRadius.all(
+      Radius.circular(assetActivityPanelRadius),
+    ),
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.colorScheme.brightness == Brightness.dark;
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: background ?? context.colors.backgroundCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: borderColor ?? assetActivityBorderColor(context),
-        ),
-        boxShadow:
-            isDark
-                ? null
-                : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-      ),
-      child: child,
+    return Stack(
+      children: [
+        Positioned.fill(child: GlassLens(borderRadius: borderRadius)),
+        Padding(padding: padding, child: child),
+      ],
     );
   }
 }
 
-/// A small, subtly-tinted icon chip — the app's recurring icon treatment
-/// (see the PIX screens). Tint is derived from [color] at low alpha so it
-/// works on both themes without hardcoding.
-class AssetIconChip extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final double size;
-
-  const AssetIconChip({
-    super.key,
-    required this.icon,
-    required this.color,
-    this.size = 40,
-  });
+/// A hairline that separates the parts of a panel.
+class AssetPanelDivider extends StatelessWidget {
+  const AssetPanelDivider({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(size * 0.32),
-      ),
-      child: Icon(icon, size: size * 0.5, color: color),
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: AppSurfaces.hairline(context),
     );
   }
 }
 
-/// One metric in the summary strip: a subtle icon, a bold value, and a
-/// secondary label.
+/// One metric of the summary strip.
 class AssetSummaryMetric {
-  final IconData icon;
-  final Color? iconColor;
+  /// The app icon of the metric. Its shape tells the direction.
+  final PixIconData icon;
+
+  /// The tint of the well. [PixTone.positive] marks what came in.
+  final PixTone tone;
   final String value;
   final String label;
 
@@ -119,13 +91,13 @@ class AssetSummaryMetric {
     required this.icon,
     required this.value,
     required this.label,
-    this.iconColor,
+    this.tone = PixTone.neutral,
   });
 }
 
-/// The summary centerpiece: metrics laid out horizontally inside an elevated
-/// card, separated by contrast-safe vertical dividers. Each metric leads with
-/// a small icon, a prominent bold value, and an uppercase micro-label.
+/// The metrics of the summary side by side, split by hairlines. Each one
+/// shows its icon well, its value, and its label, and reads as one to a
+/// screen reader.
 class AssetSummaryStrip extends StatelessWidget {
   final List<AssetSummaryMetric> metrics;
 
@@ -133,149 +105,73 @@ class AssetSummaryStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final separator = assetActivitySeparatorColor(context);
     final children = <Widget>[];
     for (var i = 0; i < metrics.length; i++) {
-      children.add(Expanded(child: _metric(context, metrics[i])));
-      if (i != metrics.length - 1) {
+      if (i > 0) {
         children.add(
-          Container(
+          VerticalDivider(
             width: 1,
-            height: 46,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            color: separator,
+            thickness: 1,
+            indent: 4,
+            endIndent: 4,
+            color: AppSurfaces.hairline(context),
           ),
         );
       }
+      children.add(Expanded(child: _Metric(metric: metrics[i])));
     }
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: children,
-      ),
-    );
-  }
-
-  Widget _metric(BuildContext context, AssetSummaryMetric m) {
-    final tint = m.iconColor ?? context.colors.textSecondary;
-    return Column(
-      mainAxisSize: MainAxisSize.max,
-      children: [
-        Icon(m.icon, size: 18, color: tint),
-        const SizedBox(height: 10),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            m.value,
-            maxLines: 1,
-            style: context.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-            ),
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          m.label.toUpperCase(),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: context.textTheme.labelSmall?.copyWith(
-            color: context.colors.textSecondary,
-            letterSpacing: 0.4,
-            fontSize: 10.5,
-          ),
-        ),
-      ],
-    );
+    return IntrinsicHeight(child: Row(children: children));
   }
 }
 
-/// A premium metric card for the highlights section.
-///
-/// [featured] renders a full-width, horizontally-laid headline metric (the
-/// primary insight); the default compact form is a vertical block sized for a
-/// two-up row (secondary metrics).
-class AssetMetricCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-  final bool featured;
+class _Metric extends StatelessWidget {
+  final AssetSummaryMetric metric;
 
-  const AssetMetricCard({
-    super.key,
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.value,
-    this.featured = false,
-  });
+  const _Metric({required this.metric});
 
   @override
   Widget build(BuildContext context) {
-    if (featured) {
-      return Row(
-        children: [
-          AssetIconChip(icon: icon, color: iconColor, size: 44),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: context.textTheme.labelMedium?.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    value,
-                    maxLines: 1,
-                    style: context.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ),
-              ],
+    return MergeSemantics(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          children: [
+            ExcludeSemantics(
+              child: PixIconWell(
+                icon: metric.icon,
+                tone: metric.tone,
+                size: 36,
+              ),
             ),
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AssetIconChip(icon: icon, color: iconColor, size: 36),
-        const SizedBox(height: 14),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: context.textTheme.labelMedium?.copyWith(
-            color: context.colors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 3),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            value,
-            maxLines: 1,
-            style: context.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
+            const SizedBox(height: 8),
+            // A large amount shrinks to the width of its column.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                metric.value,
+                maxLines: 1,
+                style: context.textTheme.titleMedium?.copyWith(
+                  color: context.colors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 2),
+            Text(
+              metric.label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: context.textTheme.bodySmall?.copyWith(
+                color: context.colors.textSecondary,
+                height: 1.25,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

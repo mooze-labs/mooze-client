@@ -51,7 +51,7 @@ class AssetActivitySheet extends StatelessWidget {
             child: SvgPicture.asset(asset.iconPath, width: 36, height: 36),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Flexible(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -59,9 +59,9 @@ class AssetActivitySheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 AssetActivityHeader(asset: asset),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 AssetSummarySection(asset: asset),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 AssetHighlightsSection(asset: asset),
               ],
             ),

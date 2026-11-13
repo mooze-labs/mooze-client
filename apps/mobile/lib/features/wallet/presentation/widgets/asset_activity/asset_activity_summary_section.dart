@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/asset_activity_summary.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/asset_activity_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
@@ -7,11 +9,12 @@ import 'package:mooze_mobile/features/wallet/presentation/widgets/asset_activity
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
-import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Received / Sent / Balance / Transactions as a single horizontal metrics
-/// strip. Values are numeric only — the asset (and therefore the unit) is
-/// fixed for the whole screen, so repeating it per metric would be noise.
+/// Received, sent, and the number of transactions, side by side in a glass
+/// lens. The amounts carry no unit: the asset of the sheet fixes it.
+///
+/// The arrows of the app tell the direction, and the green well marks what
+/// came in.
 class AssetSummarySection extends ConsumerWidget {
   final Asset asset;
 
@@ -28,39 +31,36 @@ class AssetSummarySection extends ConsumerWidget {
 
     String amount(BigInt value) =>
         hidden ? '••••' : asset.formatAmount(value.toInt(), locale: locale);
-    final colorScheme = context.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: colorScheme.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.onSurface.withValues(alpha: 0.08),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AssetSectionTitle(t.asset_activity_summary_title),
+        const SizedBox(height: 8),
+        AssetGlassLens(
+          padding: const EdgeInsets.fromLTRB(8, 14, 8, 12),
+          child: AssetSummaryStrip(
+            metrics: [
+              AssetSummaryMetric(
+                icon: PixIcons.receive,
+                tone: PixTone.positive,
+                value: amount(summary.totalReceived),
+                label: t.asset_activity_received_total,
+              ),
+              AssetSummaryMetric(
+                icon: PixIcons.send,
+                value: amount(summary.totalSent),
+                label: t.asset_activity_sent_total,
+              ),
+              AssetSummaryMetric(
+                icon: PixIcons.history,
+                value: '${summary.transactionCount}',
+                label: t.asset_activity_transactions,
+              ),
+            ],
+          ),
         ),
-      ),
-      child: AssetSummaryStrip(
-        metrics: [
-          AssetSummaryMetric(
-            icon: Icons.arrow_downward,
-            iconColor: context.colors.positiveColor,
-            value: amount(summary.totalReceived),
-            label: t.asset_activity_received_total,
-          ),
-          AssetSummaryMetric(
-            icon: Icons.arrow_upward,
-            iconColor: context.colors.textSecondary,
-            value: amount(summary.totalSent),
-            label: t.asset_activity_sent_total,
-          ),
-          AssetSummaryMetric(
-            icon: Icons.format_list_bulleted,
-            iconColor: context.colors.primaryColor,
-            value: '${summary.transactionCount}',
-            label: t.asset_activity_transactions,
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

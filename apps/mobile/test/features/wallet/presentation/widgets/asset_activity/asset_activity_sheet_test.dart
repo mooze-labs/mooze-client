@@ -13,6 +13,12 @@ import 'package:mooze_mobile/shared/prices/providers/currency_controller_provide
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/shared/widgets/motion/skeleton.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/themes/app_text_styles.dart';
+import 'package:mooze_mobile/themes/app_theme.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../../shared/test_app.dart';
 
@@ -94,6 +100,59 @@ Widget _launcher({
   ),
 );
 
+/// [_launcher] with the app theme and its font, light or [dark], on a
+/// [screen] with [textScale].
+Widget _appLauncher({required bool dark}) => ProviderScope(
+  overrides: [
+    walletHoldingsProvider.overrideWithValue(const AsyncValue.loading()),
+    assetActivityProvider.overrideWith(
+      (ref, asset) => AsyncValue.data(_active),
+    ),
+    currencyControllerProvider.overrideWith((ref) => _FakeCurrency()),
+    isVisibleProvider.overrideWith((ref) => _FakeVisibility()),
+    localeStringProvider.overrideWithValue('pt_BR'),
+  ],
+  child: MaterialApp(
+    locale: const Locale('pt'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    builder: (context, child) => Theme(
+      data: dark ? AppTheme.darkTheme(context) : AppTheme.lightTheme(context),
+      child: child!,
+    ),
+    home: Scaffold(
+      body: Stack(
+        children: [
+          Positioned.fromRect(
+            rect: _originRect,
+            child: GlassSheetOrigin(
+              borderRadius: const BorderRadius.all(Radius.circular(20)),
+              child: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () =>
+                      showAssetActivitySheet(context, asset: Asset.btc),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+
+/// A widget inside the sheet.
+Finder _inSheet(Finder finder) =>
+    find.descendant(of: find.byType(AssetActivitySheet), matching: finder);
+
+/// The icon wells of [icon] with [tone].
+Finder _wells(PixIconData icon, PixTone tone) => _inSheet(
+  find.byWidgetPredicate(
+    (w) => w is PixIconWell && w.icon == icon && w.tone == tone,
+  ),
+);
+
 /// Bounds of the sheet glass. The panels of the content come after it.
 Rect _glass(WidgetTester tester) =>
     tester.getRect(find.byType(LiquidGlass).first);
@@ -142,14 +201,14 @@ void main() {
 
     double top(String text) => tester.getTopLeft(find.text(text)).dy;
     // The holdings are loading, so the balance shows zero.
-    expect(top('0 sat'), lessThan(top('RECEBIDO TOTAL')));
-    expect(top('RECEBIDO TOTAL'), lessThan(top('Volume movimentado')));
+    expect(top('0 sat'), lessThan(top('Recebido total')));
+    expect(top('Recebido total'), lessThan(top('Volume movimentado')));
     expect(top('Volume movimentado'), lessThan(top('Primeira movimentação')));
     expect(top('Primeira movimentação'), lessThan(top('Última movimentação')));
 
     // Summary: received, sent, and the number of transactions.
-    expect(find.text('ENVIADO TOTAL'), findsOneWidget);
-    expect(find.text('TRANSAÇÕES'), findsOneWidget);
+    expect(find.text('Enviado total'), findsOneWidget);
+    expect(find.text('Transações'), findsOneWidget);
     expect(find.text('300.000'), findsOneWidget);
     expect(find.text('100.000'), findsOneWidget);
     expect(find.text('12'), findsOneWidget);
@@ -186,7 +245,7 @@ void main() {
 
     // The panels keep their place, so the sheet does not jump when a
     // first movement arrives.
-    expect(find.text('RECEBIDO TOTAL'), findsOneWidget);
+    expect(find.text('Recebido total'), findsOneWidget);
     expect(find.text('Volume movimentado'), findsOneWidget);
     // Received, sent, and the count.
     expect(find.text('0'), findsNWidgets(3));
@@ -202,7 +261,7 @@ void main() {
     await _open(tester, _launcher(summary: const AsyncValue.loading()));
 
     expect(find.byType(SkeletonShimmer), findsNothing);
-    expect(find.text('RECEBIDO TOTAL'), findsOneWidget);
+    expect(find.text('Recebido total'), findsOneWidget);
     expect(find.text('0'), findsNWidgets(3));
     expect(find.text('300.000'), findsNothing);
   });
@@ -228,5 +287,89 @@ void main() {
     );
     expect(last.height, moreOrLessEquals(_originRect.height, epsilon: 2));
     expect(find.byType(LiquidGlass), findsNothing);
+  });
+
+  // The panels are glass lenses on the sheet glass, as the deal card of
+  // the swap sheet: one for the summary, one for the highlights, one for
+  // the timeline, and the pill of the market price.
+  testWidgets('the panels are glass lenses inside the sheet', (tester) async {
+    await _open(tester, _launcher());
+
+    expect(_inSheet(find.byType(GlassLens)), findsNWidgets(4));
+    // The section titles name the panels.
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    expect(top('Resumo'), lessThan(top('Recebido total')));
+    expect(top('Destaques'), lessThan(top('Volume movimentado')));
+    expect(top('Movimentações'), lessThan(top('Primeira movimentação')));
+  });
+
+  // The icons are those of the app, in round wells, as in the Pix screens.
+  // The shape tells the direction; the green well marks what came in.
+  testWidgets('the icons are the app icons, by meaning', (tester) async {
+    await _open(tester, _launcher());
+
+    // Received in the summary and the largest receive.
+    expect(_wells(PixIcons.receive, PixTone.positive), findsNWidgets(2));
+    // Sent in the summary and the largest send.
+    expect(_wells(PixIcons.send, PixTone.neutral), findsNWidgets(2));
+    expect(_wells(PixIcons.history, PixTone.neutral), findsOneWidget);
+    expect(_wells(PixIcons.exchange, PixTone.neutral), findsOneWidget);
+    expect(_wells(PixIcons.calendar, PixTone.neutral), findsOneWidget);
+    expect(_wells(PixIcons.clock, PixTone.neutral), findsOneWidget);
+    expect(
+      _inSheet(
+        find.byWidgetPredicate(
+          (w) => w is PixIcon && w.icon == PixIcons.trendingUp,
+        ),
+      ),
+      findsOneWidget,
+    );
+    // No Material icon is left.
+    expect(_inSheet(find.byType(Icon)), findsNothing);
+  });
+
+  // A screen reader reads a metric as one: its value and its label.
+  testWidgets('a metric reads its value with its label', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await _open(tester, _launcher());
+
+    expect(
+      find.bySemanticsLabel(RegExp(r'300\.000\s+Recebido total')),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel(RegExp(r'12\s+Transações')), findsOneWidget);
+    semantics.dispose();
+  });
+
+  group('the layout', () {
+    setUpAll(() async {
+      final geist = FontLoader(AppTextStyles.fontFamily);
+      for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
+        geist.addFont(
+          rootBundle.load(
+            'assets/fonts/geist-font/Geist/ttf/Geist-$weight.ttf',
+          ),
+        );
+      }
+      await geist.load();
+    });
+
+    for (final dark in [true, false]) {
+      testWidgets('it fits a small phone with large text '
+          '(${dark ? 'dark' : 'light'})', (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(320, 640);
+        tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+        await tester.pumpWidget(_appLauncher(dark: dark));
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Recebido total'), findsOneWidget);
+      });
+    }
   });
 }
