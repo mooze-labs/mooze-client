@@ -184,7 +184,7 @@ class SwapController extends StateNotifier<SwapState> {
   final _log = AppLoggerService();
   static const _tag = 'Swap';
 
-  // SideSwap quote_ids carry a ~40s server-side TTL, but for a tighter
+  // SideSwap quote_ids carry a ~30s server-side TTL, but for a tighter
   // confirmation UX we cap the displayed countdown at 15s. If the server
   // ever returns a shorter TTL we honor that instead.
   static const int _maxDisplayTtlMs = 15000;
@@ -822,16 +822,17 @@ class SwapController extends StateNotifier<SwapState> {
     final prevQuote = state.currentQuote?.quote;
 
     // SideSwap streams a fresh quote_id every ~3s on the same
-    // subscription (~40s TTL per quote_id). While we're still inside
-    // the TTL window of the first quote of this cycle, treat every
-    // push as a rolling refresh: the new quote replaces the displayed
-    // one, but the countdown keeps running. The next push after expiry
-    // starts a fresh cycle.
+    // subscription (~30s TTL per quote_id). The screen keeps one quote
+    // for at most 15s ([_maxDisplayTtlMs]), so the displayed quote is
+    // still alive when the user signs it. Inside that window, newer
+    // pushes are ignored: the screen and the quote that the confirm
+    // signs stay the same, and the user receives exactly what the
+    // screen says. The next push after expiry, or after a manual
+    // refresh, starts a fresh cycle.
     //
-    // The confirm signs the displayed quote. The window used to keep
-    // the first amounts on screen and sign the newest quote id, so the
-    // user signed amounts never shown: a swap on a moving price
-    // received less than the sheet said.
+    // The window used to keep the first amounts on screen but sign the
+    // newest quote id, so the user signed amounts never shown: on a
+    // moving price, a swap received less than the sheet said.
     final isWithinLockWindow =
         _ttlDeadline != null && DateTime.now().isBefore(_ttlDeadline!);
     final isRollingRefresh =
@@ -842,15 +843,13 @@ class SwapController extends StateNotifier<SwapState> {
         state.status == QuoteStatus.valid;
 
     // ── Rolling refresh ───────────────────────────────────────
-    // SideSwap rotates the quote_id every ~3s on the same
-    // subscription. While the displayed quote's TTL is still
-    // alive, the new quote takes the screen; the countdown stays.
+    // While the displayed quote's window is open, a newer quote
+    // changes nothing: the displayed one is the one to sign.
     if (isRollingRefresh) {
-      if (!mounted) return;
-      state = state.copyWith(
-        currentQuote: quote,
-        isInverseMarket: emissionIsInverse,
-        feeAssetId: emissionFeeAsset,
+      _log.debug(
+        _tag,
+        'Ignoring quote ${newQuote.quoteId} — quote ${prevQuote.quoteId} '
+        'stays on screen until its window ends',
       );
       return;
     }

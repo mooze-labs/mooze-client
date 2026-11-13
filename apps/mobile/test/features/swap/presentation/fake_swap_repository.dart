@@ -101,7 +101,7 @@ SideswapMarket market({
 );
 
 /// A quote of the market [base]/[quote], before fees. The fees are those
-/// of the swap of the report: 2 282 sats.
+/// of the swap of the report: 2 282 sats. A SideSwap quote lives ~30 s.
 QuoteResponse quoteOf({
   required int id,
   required String base,
@@ -109,6 +109,7 @@ QuoteResponse quoteOf({
   required int requested,
   required int baseAmount,
   required int quoteAmount,
+  int ttl = 30000,
 }) => QuoteResponse(
   quote: SideswapQuote(
     quoteId: id,
@@ -116,7 +117,7 @@ QuoteResponse quoteOf({
     quoteAmount: quoteAmount,
     serverFee: 2202,
     fixedFee: 80,
-    ttl: 30000,
+    ttl: ttl,
   ),
   baseAssetId: base,
   quoteAssetId: quote,
