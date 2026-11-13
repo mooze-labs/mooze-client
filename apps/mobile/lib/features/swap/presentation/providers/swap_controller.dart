@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,7 +84,6 @@ class SwapState {
   final List<SideswapMarket> markets;
   final QuoteResponse? currentQuote;
   final SwapError? error;
-  final int? activeQuoteId;
   final int? ttlMilliseconds;
   final int? millisecondsRemaining;
   final String? lastSendAssetId;
@@ -99,7 +99,6 @@ class SwapState {
     required this.markets,
     this.currentQuote,
     this.error,
-    this.activeQuoteId,
     this.ttlMilliseconds,
     this.millisecondsRemaining,
     this.lastSendAssetId,
@@ -110,18 +109,37 @@ class SwapState {
     this.status = QuoteStatus.idle,
   });
 
-  int? get sendAmount {
-    if (currentQuote?.quote == null) return null;
-    final quote = currentQuote!.quote!;
-    return isInverseMarket == true ? quote.quoteAmount : quote.baseAmount;
+  /// What the user sends, fees included when they are paid in the asset
+  /// sent. See [_amounts].
+  int? get sendAmount => _amounts?.send;
+
+  /// What the user receives, fees taken out when they are paid in the
+  /// asset received. See [_amounts].
+  int? get receiveAmount => _amounts?.receive;
+
+  /// SideSwap quotes the trade before fees, and charges the server fee and
+  /// the fixed fee in the fee asset of the market ([feeAssetId]). Fees in
+  /// the asset sent add to it, fees in the asset received come out of it.
+  /// The official SideSwap client computes the amounts the same way
+  /// (`get_send_recv_amount`).
+  ({int send, int receive})? get _amounts {
+    final quote = currentQuote?.quote;
+    if (quote == null) return null;
+    final sendsBase = isInverseMarket != true;
+    final send = sendsBase ? quote.baseAmount : quote.quoteAmount;
+    final receive = sendsBase ? quote.quoteAmount : quote.baseAmount;
+    final fees = quote.serverFee + quote.fixedFee;
+    if (feeAssetId != null && feeAssetId == lastSendAssetId) {
+      return (send: send + fees, receive: receive);
+    }
+    if (feeAssetId != null && feeAssetId == lastReceiveAssetId) {
+      return (send: send, receive: math.max(0, receive - fees));
+    }
+    return (send: send, receive: receive);
   }
 
-  int? get receiveAmount {
-    if (currentQuote?.quote == null) return null;
-    final quote = currentQuote!.quote!;
-    return isInverseMarket == true ? quote.baseAmount : quote.quoteAmount;
-  }
-
+  /// What the user receives per unit sent, fees included, so the amount
+  /// sent times the rate gives the amount received.
   double? get exchangeRate {
     final send = sendAmount;
     final receive = receiveAmount;
@@ -135,7 +153,6 @@ class SwapState {
     List<SideswapMarket>? markets,
     QuoteResponse? currentQuote,
     SwapError? error,
-    int? activeQuoteId,
     int? ttlMilliseconds,
     int? millisecondsRemaining,
     String? lastSendAssetId,
@@ -150,7 +167,6 @@ class SwapState {
     markets: markets ?? this.markets,
     currentQuote: currentQuote ?? this.currentQuote,
     error: error,
-    activeQuoteId: activeQuoteId ?? this.activeQuoteId,
     ttlMilliseconds: ttlMilliseconds ?? this.ttlMilliseconds,
     millisecondsRemaining: millisecondsRemaining ?? this.millisecondsRemaining,
     lastSendAssetId: lastSendAssetId ?? this.lastSendAssetId,
@@ -286,7 +302,6 @@ class SwapController extends StateNotifier<SwapState> {
     state = state.copyWith(
       loading: false,
       currentQuote: null,
-      activeQuoteId: null,
       ttlMilliseconds: null,
       millisecondsRemaining: null,
       lastSendAssetId: null,
@@ -505,6 +520,8 @@ class SwapController extends StateNotifier<SwapState> {
         return;
       }
       if (marketsRes.isRight()) {
+        // The markets also tell the fee asset of each pair.
+        state = state.copyWith(markets: marketsRes.getOrElse((_) => []));
         normalizedParams = repository.normalizeSwapParams(
           sendAsset: sendAsset,
           receiveAsset: receiveAsset,
@@ -627,6 +644,24 @@ class SwapController extends StateNotifier<SwapState> {
     );
   }
 
+  /// The asset in which SideSwap charges the fees of the market
+  /// [base]/[quote]: a field of the market, "Base" or "Quote".
+  ///
+  /// Without the market, the base asset, as before the markets carried
+  /// the field. The amounts of the sheet may then be off by the fees.
+  String _feeAssetOf(String base, String quote) {
+    for (final market in state.markets) {
+      if (market.baseAssetId == base && market.quoteAssetId == quote) {
+        return market.feeAsset == 'Quote' ? quote : base;
+      }
+    }
+    _log.warning(
+      _tag,
+      'No market $base/$quote to read the fee asset — assuming the base',
+    );
+    return base;
+  }
+
   /// Process one emission from the shared SideSwap broadcast stream.
   ///
   /// Called from two attachment points:
@@ -641,9 +676,10 @@ class SwapController extends StateNotifier<SwapState> {
   /// SideSwap may have a market in either direction. We accept any
   /// emission whose `{baseAssetId, quoteAssetId}` set equals
   /// `{sendAsset, receiveAsset}` and whose `requestedAmount` matches
-  /// the user's amount. The emission itself dictates `isInverse` and
-  /// `feeAsset` for this cycle, derived from `baseAssetId == sendAsset`
-  /// (direct) vs `baseAssetId == receiveAsset` (inverse).
+  /// the user's amount. The emission itself dictates `isInverse` for this
+  /// cycle, derived from `baseAssetId == sendAsset` (direct) vs
+  /// `baseAssetId == receiveAsset` (inverse). The fee asset comes from
+  /// the market of the pair (see [_feeAssetOf]).
   void _handleQuoteEmission(
     QuoteResponse quote, {
     required String sendAsset,
@@ -687,7 +723,7 @@ class SwapController extends StateNotifier<SwapState> {
     }
 
     final emissionIsInverse = emissionBase != sendAsset;
-    final emissionFeeAsset = emissionBase;
+    final emissionFeeAsset = _feeAssetOf(emissionBase, emissionQuote);
 
     // A matching emission is in flight — the fetching watchdog is no
     // longer needed and any pending startup retry should be cancelled
@@ -787,14 +823,15 @@ class SwapController extends StateNotifier<SwapState> {
 
     // SideSwap streams a fresh quote_id every ~3s on the same
     // subscription (~40s TTL per quote_id). While we're still inside
-    // the locked TTL window of the first quote of this cycle, treat
-    // every push as a rolling refresh — silently adopt the latest
-    // quote_id for signing fallback, but DO NOT replace the displayed
-    // quote, reset the countdown, or surface rate drift to the UI.
-    // The displayed amounts and timer stay anchored to the locked
-    // quote until its TTL naturally expires; the next push after
-    // expiry starts a fresh cycle. Works uniformly for stable pegs
-    // and volatile pairs.
+    // the TTL window of the first quote of this cycle, treat every
+    // push as a rolling refresh: the new quote replaces the displayed
+    // one, but the countdown keeps running. The next push after expiry
+    // starts a fresh cycle.
+    //
+    // The confirm signs the displayed quote. The window used to keep
+    // the first amounts on screen and sign the newest quote id, so the
+    // user signed amounts never shown: a swap on a moving price
+    // received less than the sheet said.
     final isWithinLockWindow =
         _ttlDeadline != null && DateTime.now().isBefore(_ttlDeadline!);
     final isRollingRefresh =
@@ -807,11 +844,14 @@ class SwapController extends StateNotifier<SwapState> {
     // ── Rolling refresh ───────────────────────────────────────
     // SideSwap rotates the quote_id every ~3s on the same
     // subscription. While the displayed quote's TTL is still
-    // alive, treat the push as a silent renewal — only the
-    // signable id moves forward, everything else stays anchored.
+    // alive, the new quote takes the screen; the countdown stays.
     if (isRollingRefresh) {
       if (!mounted) return;
-      state = state.copyWith(activeQuoteId: newQuote.quoteId);
+      state = state.copyWith(
+        currentQuote: quote,
+        isInverseMarket: emissionIsInverse,
+        feeAssetId: emissionFeeAsset,
+      );
       return;
     }
 
@@ -841,7 +881,6 @@ class SwapController extends StateNotifier<SwapState> {
       state = state.copyWith(
         loading: false,
         currentQuote: quote,
-        activeQuoteId: newQuote.quoteId,
         ttlMilliseconds: ttlMs ?? state.ttlMilliseconds,
         millisecondsRemaining: ttlMs,
         isInverseMarket: emissionIsInverse,
@@ -900,7 +939,6 @@ class SwapController extends StateNotifier<SwapState> {
       loading: false,
       currentQuote: quote,
       error: swapErr,
-      activeQuoteId: newQuote?.quoteId,
       ttlMilliseconds: ttlMs ?? state.ttlMilliseconds,
       lastSendAssetId: sendAsset,
       lastReceiveAssetId: receiveAsset,
@@ -1158,12 +1196,13 @@ class SwapController extends StateNotifier<SwapState> {
         ),
       );
     }
+    // The quote on the screen: its amounts are the ones the user agreed to.
     final quote = state.currentQuote?.quote;
-    final signingQuoteId = state.activeQuoteId ?? quote?.quoteId;
-    if (quote == null || signingQuoteId == null) {
+    if (quote == null) {
       _log.warning(_tag, 'confirmSwap: no active quote found');
       return Either.left(const SwapError(code: SwapErrorCode.noActiveQuote));
     }
+    final signingQuoteId = quote.quoteId;
     _log.debug(_tag, 'Confirming swap with quote id=$signingQuoteId');
     state = state.copyWith(loading: true, error: null);
 
@@ -1205,7 +1244,6 @@ class SwapController extends StateNotifier<SwapState> {
             loading: false,
             error: err,
             currentQuote: null,
-            activeQuoteId: null,
             ttlMilliseconds: null,
             millisecondsRemaining: null,
             lastSendAssetId: null,
@@ -1222,7 +1260,6 @@ class SwapController extends StateNotifier<SwapState> {
           state = state.copyWith(
             loading: false,
             currentQuote: null,
-            activeQuoteId: null,
             ttlMilliseconds: null,
             millisecondsRemaining: null,
             lastSendAssetId: null,
@@ -1251,7 +1288,6 @@ class SwapController extends StateNotifier<SwapState> {
         loading: false,
         error: unexpected,
         currentQuote: null,
-        activeQuoteId: null,
         ttlMilliseconds: null,
         millisecondsRemaining: null,
         lastSendAssetId: null,

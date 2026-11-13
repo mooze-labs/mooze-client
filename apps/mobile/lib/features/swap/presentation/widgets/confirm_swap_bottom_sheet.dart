@@ -4,6 +4,7 @@ import 'package:mooze_mobile/shared/analytics/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/features/swap/presentation/utils/post_swap_refresh.dart';
+import 'package:mooze_mobile/features/swap/presentation/utils/swap_rate_format.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/shared/widgets/platform_safe_area.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
@@ -458,20 +459,14 @@ class _ExchangeRateRow extends StatelessWidget {
         Icon(Icons.swap_horiz, size: 14, color: context.colors.textSecondary),
         const SizedBox(width: 6),
         Text(
-          '${t.swap_rate_label} · ${t.swap_rate_line(sendAsset.ticker, _formatRate(rate), receiveAsset.ticker)}',
+          // In sats when the user receives bitcoin, as on the swap screen.
+          '${t.swap_rate_label} · ${t.swap_rate_line(sendAsset.ticker, formatSwapRate(rate, receive: receiveAsset, locale: _localeStringFor(context)), receiveAsset.displayUnit)}',
           style: theme.textTheme.labelMedium?.copyWith(
             color: context.colors.textSecondary,
           ),
         ),
       ],
     );
-  }
-
-  static String _formatRate(double rate) {
-    if (rate == 0) return '0';
-    if (rate < 0.0001) return rate.toStringAsFixed(8);
-    if (rate < 1) return rate.toStringAsFixed(6);
-    return rate.toStringAsFixed(4);
   }
 }
 

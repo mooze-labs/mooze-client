@@ -20,6 +20,7 @@ import '../../domain/usecases/peg_amount_validation.dart';
 import '../../domain/usecases/peg_orchestrator.dart';
 import '../providers/peg_quote_controller.dart';
 import '../providers/swap_onboarding_provider.dart';
+import '../utils/swap_rate_format.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/fiat_price_provider.dart';
@@ -1043,41 +1044,14 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
     );
   }
 
-  String _formatRate(double? rate) {
-    if (rate == null) return '...';
-    // Adaptive precision: very small rates need many decimals to be
-    // useful (e.g. BTC per stablecoin = 0.00001307); large rates only
-    // need a couple. Thousands separators in the integer part stay
-    // locale-aware via `NumberFormat`.
-    final String pattern;
-    if (rate < 0.0001) {
-      pattern = '#,##0.########';
-    } else if (rate < 1) {
-      pattern = '#,##0.######';
-    } else if (rate < 1000) {
-      pattern = '#,##0.####';
-    } else {
-      pattern = '#,##0.##';
-    }
-    return NumberFormat(pattern, _locale).format(rate);
-  }
-
   /// Produces the rate text rendered in [_RateIndicator]. When the
   /// receive asset is BTC/LBTC we express the right-hand side in sats
   /// (e.g. `1 USDT = 1,300 SATS`) — matches how amounts are shown in
-  /// the deal cards. Otherwise the natural unit is used.
+  /// the deal cards. Otherwise the natural unit is used. The confirm
+  /// sheet formats its rate the same way ([formatSwapRate]).
   String _rateLineText(double? rate) {
     if (rate == null) return '...';
-    final isReceiveBtc =
-        _toAsset == core.Asset.btc || _toAsset == core.Asset.lbtc;
-    final scale = isReceiveBtc ? 100000000.0 : 1.0;
-    final scaled = rate * scale;
-    final formatted =
-        isReceiveBtc
-            // BTC/LBTC sats are always integer-valued for rate display —
-            // skip decimal noise like ".00".
-            ? NumberFormat('#,##0', _locale).format(scaled)
-            : _formatRate(scaled);
+    final formatted = formatSwapRate(rate, receive: _toAsset, locale: _locale);
     return '1 ${_fromAsset.ticker} = $formatted ${_toAsset.displayUnit}';
   }
 
