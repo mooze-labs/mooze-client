@@ -190,6 +190,10 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
     /// It never broadcasts an amount below the minimum of SideSwap, which
     /// does not process such a peg: the funds could be lost. The check does
     /// not rely on a previous [`Self::quote`].
+    ///
+    /// A peg-out also gets a return address before any L-BTC leaves (see
+    /// [`Self::register_return_address`]): if the deposit still falls below
+    /// the minimum, SideSwap sends it back to the wallet.
     pub async fn execute(
         &mut self,
         direction: PegDirection,
@@ -207,6 +211,14 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
 
         if let Err(e) = self.store.record_created(&order, amount_sat).await {
             return Err(PegError::WalletFailure(format!("falha ao registrar operação: {e}")));
+        }
+
+        if !order.direction.is_peg_in() {
+            if let Err(e) = self.register_return_address(&order).await {
+                // Nothing was broadcast: the order is dead, the user can retry.
+                self.mark_failed(&order.order_id, &e).await;
+                return Err(e);
+            }
         }
 
         let quote = if order.direction.is_peg_in() {
@@ -242,6 +254,25 @@ impl<R: PegRepository, W: PegWallet, S: PegStore> PegOrchestrator<R, W, S> {
                 Err(e)
             }
         }
+    }
+
+    /// Gives a peg-out order the address of our own Liquid wallet as its
+    /// return address, and reads it back from the order status.
+    ///
+    /// SideSwap returns a peg-out deposit below its minimum
+    /// (`InsufficientAmount`) to this address, minus the network fee.
+    /// Without it, SideSwap keeps the deposit. The address is ours even when
+    /// the BTC goes to an external address: the L-BTC left this wallet. A
+    /// peg-in has no return: SideSwap keeps BTC below the minimum, so the
+    /// minimum check is its only guard.
+    async fn register_return_address(&mut self, order: &PegOrder) -> std::result::Result<(), PegError> {
+        let address = self.wallet.liquid_payout_address().await?;
+        self.repository.set_return_address(&order.order_id, &address).await?;
+        let status = self.repository.get_status(order.direction, &order.order_id).await?;
+        if status.return_address.as_deref() != Some(address.as_str()) {
+            return Err(PegError::ProviderRejected("endereço de devolução não foi registrado".into()));
+        }
+        Ok(())
     }
 
     async fn mark_failed(&self, order_id: &str, error: &PegError) {
@@ -281,6 +312,27 @@ pub(crate) mod tests {
     pub(crate) struct FakeRepo {
         pub log: Log,
         pub status: Option<std::result::Result<PegProgress, PegError>>,
+        /// Answer to a return address registration.
+        pub return_answer: std::result::Result<(), PegError>,
+    }
+
+    impl FakeRepo {
+        pub(crate) fn new(log: Log, status: Option<std::result::Result<PegProgress, PegError>>) -> Self {
+            Self { log, status, return_answer: Ok(()) }
+        }
+    }
+
+    /// The status of `order-1`, a peg-out, with `return_address` registered.
+    fn peg_out_status(return_address: Option<&str>) -> PegProgress {
+        PegProgress {
+            order_id: "order-1".into(),
+            direction: PegDirection::PegOut,
+            phase: PegPhase::AwaitingDeposit,
+            deposits: vec![],
+            deposit_address: "lq1-deposit".into(),
+            payout_address: "bc1-own".into(),
+            return_address: return_address.map(str::to_owned),
+        }
     }
 
     impl PegRepository for FakeRepo {
@@ -309,6 +361,14 @@ pub(crate) mod tests {
         ) -> impl Future<Output = std::result::Result<PegProgress, PegError>> + MaybeSend {
             self.log.lock().unwrap().push("status".into());
             ready(self.status.clone().unwrap_or(Err(PegError::TransportFailure("none".into()))))
+        }
+        fn set_return_address(
+            &mut self,
+            order_id: &str,
+            address: &str,
+        ) -> impl Future<Output = std::result::Result<(), PegError>> + MaybeSend {
+            self.log.lock().unwrap().push(format!("return:{order_id}:{address}"));
+            ready(self.return_answer.clone())
         }
     }
 
@@ -418,7 +478,8 @@ pub(crate) mod tests {
         let log: Log = Arc::default();
         (
             PegOrchestrator::new(
-                FakeRepo { log: log.clone(), status: None },
+                // SideSwap keeps the return address that the peg-out registers.
+                FakeRepo::new(log.clone(), Some(Ok(peg_out_status(Some("lq1-own"))))),
                 FakeWallet { log: log.clone(), fail_quote, fail_broadcast, drain_balance },
                 LogStore { log: log.clone(), fail: fail_store },
             ),
@@ -483,6 +544,9 @@ pub(crate) mod tests {
         assert!(!log.lock().unwrap().iter().any(|l| l.starts_with("create")));
     }
 
+    // SideSwap returns a peg-out deposit below its minimum to the return
+    // address of the order, and only then. The order gets the address of our
+    // own Liquid wallet, confirmed in its status, before any L-BTC leaves.
     #[test]
     fn execute_persists_before_broadcast() {
         let (mut o, log) = orch(false, false, false);
@@ -493,11 +557,47 @@ pub(crate) mod tests {
             vec![
                 "create:bc1-own",
                 "created:order-1:30000",
+                "return:order-1:lq1-own",
+                "status",
                 "quote-lbtc:lq1-deposit",
                 "broadcast-lbtc:lq1-deposit",
                 "funded:order-1:lwk-txid"
             ]
         );
+    }
+
+    // A peg-in below the minimum is lost: SideSwap has no return for BTC.
+    // The minimum check is its only guard.
+    #[test]
+    fn a_peg_in_registers_no_return_address() {
+        let (mut o, log) = orch(false, false, false);
+        block_on(o.execute(PegDirection::PegIn, 30_000, None, false, None)).unwrap();
+        assert!(logged(&log, &["return", "status"]).is_empty());
+    }
+
+    // Without a confirmed return address, a peg-out deposit below the
+    // minimum would be lost. Nothing is sent yet, so the order dies and the
+    // user can try again.
+    #[test]
+    fn a_peg_out_without_a_confirmed_return_address_is_never_funded() {
+        let refused = PegError::ProviderRejected("parsing address failed".into());
+        let cases: Vec<(&str, std::result::Result<(), PegError>, std::result::Result<PegProgress, PegError>)> = vec![
+            ("refused", Err(refused.clone()), Ok(peg_out_status(Some("lq1-own")))),
+            ("not kept", Ok(()), Ok(peg_out_status(None))),
+            ("another address", Ok(()), Ok(peg_out_status(Some("lq1-other")))),
+            ("status unread", Ok(()), Err(PegError::TransportFailure("down".into()))),
+        ];
+        for (case, answer, status) in cases {
+            let (mut o, log) = orch(false, false, false);
+            o.repository_mut().return_answer = answer;
+            o.repository_mut().status = Some(status);
+
+            let result = block_on(o.execute(PegDirection::PegOut, 30_000, None, false, None));
+
+            assert!(result.is_err(), "{case}");
+            assert!(logged(&log, &["quote", "broadcast"]).is_empty(), "{case}");
+            assert_eq!(log.lock().unwrap().last().unwrap(), "terminal:order-1:failed", "{case}");
+        }
     }
 
     #[test]
@@ -528,6 +628,9 @@ pub(crate) mod tests {
         let (mut o, log) = orch(false, false, false);
         block_on(o.execute(PegDirection::PegOut, 30_000, None, false, Some(" bc1ext "))).unwrap();
         assert_eq!(log.lock().unwrap()[0], "create:bc1ext");
+        // The BTC goes to the external address, but a return still comes back
+        // to our own wallet, which sent the L-BTC.
+        assert!(log.lock().unwrap().contains(&"return:order-1:lq1-own".to_owned()));
         assert!(matches!(
             block_on(o.execute(PegDirection::PegIn, 30_000, None, false, Some("lq1ext"))),
             Err(PegError::WalletFailure(_))

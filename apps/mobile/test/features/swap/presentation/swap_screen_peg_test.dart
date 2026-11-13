@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mooze_mobile/features/swap/data/models.dart';
+import 'package:mooze_mobile/features/swap/data/services/swap_onboarding_service.dart';
 import 'package:mooze_mobile/features/swap/di/providers/peg_providers.dart';
 import 'package:mooze_mobile/features/swap/di/providers/swap_repository_provider.dart';
 import 'package:mooze_mobile/features/swap/domain/entities/peg.dart';
@@ -80,7 +81,7 @@ void main() {
     peg = FakePegOrchestrator();
     SharedPreferences.setMockInitialValues({
       // The BTC / L-BTC warning was already seen.
-      'btc_lbtc_swap_warning_shown1123123': true,
+      SwapOnboardingService.btcLbtcSwapWarningKey: true,
     });
   });
 
@@ -300,7 +301,7 @@ void main() {
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({
-        'btc_lbtc_swap_warning_shown1123123': true,
+        SwapOnboardingService.btcLbtcSwapWarningKey: true,
         'pegLowFeeEnabled': true,
       });
       await open(tester, widthPt: 600);

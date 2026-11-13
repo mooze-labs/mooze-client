@@ -350,6 +350,7 @@ mod tests {
             }],
             deposit_address: "lq1".into(),
             payout_address: "bc1".into(),
+            return_address: None,
         }
     }
 
@@ -357,7 +358,7 @@ mod tests {
         let log: Log = Arc::default();
         (
             PegTracker::new(),
-            FakeRepo { log: log.clone(), status: None },
+            FakeRepo::new(log.clone(), None),
             LogStore { log: log.clone(), fail: false },
             log,
         )
@@ -431,7 +432,7 @@ mod tests {
 
         // Store failure does not crash.
         let log: Log = Arc::default();
-        let mut repo = FakeRepo { log: log.clone(), status: Some(Ok(progress("p", PegPhase::Completed, None, None))) };
+        let mut repo = FakeRepo::new(log.clone(), Some(Ok(progress("p", PegPhase::Completed, None, None))));
         let store = LogStore { log, fail: true };
         t.track(pending("p"), 0);
         assert!(block_on(t.refresh(&mut repo, &store, "p", 0)).terminal.is_some());

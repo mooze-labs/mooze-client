@@ -140,6 +140,10 @@ pub struct PegProgress {
     pub deposits: Vec<PegDeposit>,
     pub deposit_address: String,
     pub payout_address: String,
+    /// Where SideSwap returns a peg-out deposit below its minimum. `None`
+    /// on a peg-in, which has no return.
+    #[serde(default)]
+    pub return_address: Option<String>,
 }
 
 impl PegProgress {
@@ -362,6 +366,7 @@ mod tests {
             deposits: vec![a.clone()],
             deposit_address: "d".into(),
             payout_address: "p".into(),
+            return_address: None,
         };
         assert_eq!(p.payout_tx_id(), Some("x"));
         assert_eq!((p.total_deposited_sat(), p.total_payout_sat()), (1000, 900));

@@ -5668,20 +5668,20 @@ class AppLocalizationsEs extends AppLocalizations {
       'Información importante sobre el swap de BTC a L-BTC:';
 
   @override
-  String get swap_btc_lbtc_warning_cross_chain =>
-      'Este es un swap entre diferentes blockchains (Bitcoin y Liquid Network).';
+  String get swap_btc_lbtc_warning_provider =>
+      'La conversión la hace SideSwap, entre la red Bitcoin y la red Liquid.';
 
   @override
-  String get swap_btc_lbtc_warning_confirmations =>
-      'El swap depende de confirmaciones en ambas blockchains, lo que puede llevar algún tiempo.';
+  String get swap_btc_lbtc_warning_timing =>
+      'Normalmente tarda de 20 minutos a algunas horas. Los montos altos pueden tardar hasta unas 17 horas.';
 
   @override
-  String get swap_btc_lbtc_warning_fee_changes =>
-      'En caso de cambios en las tarifas de la red, Breez puede dejar el activo como \"reembolso\".';
+  String get swap_btc_lbtc_warning_fee =>
+      'SideSwap cobra un 0,1%, más la tarifa de la red.';
 
   @override
-  String get swap_btc_lbtc_warning_manual_refund =>
-      'Si eso ocurre, deberás solicitar el reembolso manualmente dentro de la aplicación.';
+  String get swap_btc_lbtc_warning_peg_out_return =>
+      'Si un envío de L-BTC queda por debajo del mínimo, SideSwap devuelve el valor a tu billetera, menos la tarifa de la red.';
 
   @override
   String get swap_btc_lbtc_warning_funds_safe =>

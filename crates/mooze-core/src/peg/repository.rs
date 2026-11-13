@@ -30,6 +30,14 @@ pub trait PegRepository: MaybeSend {
         direction: PegDirection,
         order_id: &str,
     ) -> impl Future<Output = Result<PegProgress, PegError>> + MaybeSend;
+
+    /// Registers the Liquid address where SideSwap returns a peg-out
+    /// deposit below its minimum. Sending it again is harmless.
+    fn set_return_address(
+        &mut self,
+        order_id: &str,
+        address: &str,
+    ) -> impl Future<Output = Result<(), PegError>> + MaybeSend;
 }
 
 /// [`PegRepository`] backed by a [`SideSwapClient`].
@@ -88,6 +96,7 @@ pub fn to_progress(status: &PegOrderStatus, direction: PegDirection) -> PegProgr
         deposits,
         deposit_address: status.addr.clone(),
         payout_address: status.addr_recv.clone(),
+        return_address: status.return_address.clone(),
     }
 }
 
@@ -155,6 +164,16 @@ impl<C: WsConnector> PegRepository for SideSwapClient<C> {
         let status: PegOrderStatus = decode(v)?;
         Ok(to_progress(&status, direction))
     }
+
+    async fn set_return_address(&mut self, order_id: &str, address: &str) -> Result<(), PegError> {
+        let req = Request::peg_return_address(order_id, address);
+        match self.call(&req).await {
+            // The server answers an empty ack.
+            Ok(_) => Ok(()),
+            Err(Error::Protocol(m)) if looks_like_not_found(&m) => Err(PegError::OrderNotFound(order_id.to_owned())),
+            Err(e) => Err(read_failure(e)),
+        }
+    }
 }
 
 impl<C: WsConnector> PegRepository for SideSwapPegRepository<C> {
@@ -176,6 +195,14 @@ impl<C: WsConnector> PegRepository for SideSwapPegRepository<C> {
         order_id: &str,
     ) -> impl Future<Output = Result<PegProgress, PegError>> + MaybeSend {
         self.client.get_status(direction, order_id)
+    }
+
+    fn set_return_address(
+        &mut self,
+        order_id: &str,
+        address: &str,
+    ) -> impl Future<Output = Result<(), PegError>> + MaybeSend {
+        self.client.set_return_address(order_id, address)
     }
 }
 
@@ -199,6 +226,14 @@ impl<R: PegRepository> PegRepository for &mut R {
         order_id: &str,
     ) -> impl Future<Output = Result<PegProgress, PegError>> + MaybeSend {
         (**self).get_status(direction, order_id)
+    }
+
+    fn set_return_address(
+        &mut self,
+        order_id: &str,
+        address: &str,
+    ) -> impl Future<Output = Result<(), PegError>> + MaybeSend {
+        (**self).set_return_address(order_id, address)
     }
 }
 
@@ -280,6 +315,42 @@ mod tests {
         assert_eq!(p.total_deposited_sat(), 100_000);
         assert_eq!(p.payout_tx_id(), Some("pa"));
         assert_eq!(block_on(r.get_status(PegDirection::PegIn, "gone")), Err(PegError::OrderNotFound("gone".into())));
+    }
+
+    #[test]
+    fn status_maps_the_return_address() {
+        let mut r = SideSwapPegRepository::new(SideSwapClient::new(
+            ws(|_, _| {
+                json!({"result": {"addr": "lq1dep", "addr_recv": "bc1recv", "created_at": 1, "expires_at": 0,
+                "order_id": "o1", "peg_in": false, "list": [], "return_address": "lq1ret"}})
+            }),
+            "k",
+        ));
+        let p = block_on(r.get_status(PegDirection::PegOut, "o1")).unwrap();
+        assert_eq!(p.return_address.as_deref(), Some("lq1ret"));
+    }
+
+    // The answers of the production server: an ack, a lookup miss, and an
+    // address that does not parse.
+    #[test]
+    fn set_return_address_sends_order_and_address() {
+        let mut r = SideSwapPegRepository::new(SideSwapClient::new(
+            ws(|m, p| {
+                assert_eq!(m, "peg_return_address");
+                match p["order_id"].as_str().unwrap() {
+                    "gone" => json!({"error": {"code": -32600, "message": "not found"}}),
+                    "bad" => json!({"error": {"code": -32600, "message": "parsing address x failed"}}),
+                    _ => {
+                        assert_eq!(p["address"], "lq1ret");
+                        json!({"result": {}})
+                    }
+                }
+            }),
+            "k",
+        ));
+        assert_eq!(block_on(r.set_return_address("o1", "lq1ret")), Ok(()));
+        assert_eq!(block_on(r.set_return_address("gone", "lq1ret")), Err(PegError::OrderNotFound("gone".into())));
+        assert!(matches!(block_on(r.set_return_address("bad", "lq1ret")), Err(PegError::ProviderRejected(_))));
     }
 
     #[test]

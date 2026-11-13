@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:mooze_mobile/services/app_logger_service.dart';
+
+import '../../domain/entities/peg.dart';
 import '../../domain/usecases/peg_tracker.dart';
 import '../mappers/core_swap_mapper.dart';
 import '../services/core_sideswap_session.dart';
@@ -21,6 +24,9 @@ class CorePegTracker implements PegTracker {
   })  : _session = session,
         _walletId = walletId,
         _now = now ?? DateTime.now;
+
+  static const _tag = 'PegTracker';
+  final _log = AppLoggerService();
 
   final CoreSideswapSession _session;
   final Future<String> _walletId;
@@ -92,6 +98,10 @@ class CorePegTracker implements PegTracker {
       final result = await core.pegRefreshDue(walletId: await _walletId);
       if (_disposed) return;
       _publish(result.pegs.map(trackedPegFromDto).toList(growable: false));
+      // `finished` lists each peg once, in the refresh where it ended.
+      for (final peg in result.finished.map(trackedPegFromDto)) {
+        if (peg.phase == PegPhase.insufficientAmount) _logBelowMinimum(peg);
+      }
       final next = result.nextWakeupMs;
       if (next != null) {
         final delayMs = next.toInt() - _now().millisecondsSinceEpoch;
@@ -102,6 +112,30 @@ class CorePegTracker implements PegTracker {
       if (!_disposed && _current.any((p) => !p.isTerminal)) {
         _schedule(retryDelay);
       }
+    }
+  }
+
+  /// Logs a peg whose deposit SideSwap did not take: below its minimum.
+  ///
+  /// The core never sends below the minimum it reads, so this means the
+  /// minimum moved or the deposit shrank. A peg-in is lost: SideSwap has no
+  /// return for BTC. A peg-out comes back, minus the network fee, to the
+  /// return address that the core registered before the deposit.
+  void _logBelowMinimum(TrackedPeg peg) {
+    final id = peg.orderId;
+    final amount = peg.amountSat;
+    if (peg.direction == PegDirection.pegIn) {
+      _log.error(
+        _tag,
+        'Peg-in $id ended below the SideSwap minimum ($amount sats): '
+        'SideSwap has no return for BTC, the deposit is lost',
+      );
+    } else {
+      _log.warning(
+        _tag,
+        'Peg-out $id ended below the SideSwap minimum ($amount sats): '
+        'SideSwap returns the L-BTC to the return address of the order',
+      );
     }
   }
 

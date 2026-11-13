@@ -10,7 +10,7 @@ import 'package:mooze_mobile/shared/prices/models.dart' show Currency;
 
 import '../providers/swap_controller.dart';
 import '../widgets/confirm_swap_bottom_sheet.dart';
-import '../widgets/btc_lbtc_swap_warning_dialog.dart';
+import '../widgets/btc_lbtc_swap_warning_sheet.dart';
 import '../widgets/no_liquidity_dialog.dart';
 import '../helpers/peg_swap_helper.dart';
 import '../../di/providers/peg_providers.dart';
@@ -1280,7 +1280,7 @@ class _SwapScreenState extends ConsumerState<SwapScreen> {
 
       if (!service.hasSeenBtcLbtcSwapWarning()) {
         if (!mounted || !context.mounted) return;
-        await BtcLbtcSwapWarningDialog.show(context);
+        await BtcLbtcSwapWarningSheet.show(context);
         await service.markBtcLbtcSwapWarningAsSeen();
       }
     } catch (e) {

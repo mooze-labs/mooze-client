@@ -8,6 +8,7 @@ import 'package:mooze_mobile/features/swap/data/repositories/core_peg_tracker.da
 import 'package:mooze_mobile/features/swap/data/services/core_sideswap_session.dart';
 import 'package:mooze_mobile/features/swap/domain/entities/peg.dart';
 import 'package:mooze_mobile/features/swap/domain/usecases/peg_tracker.dart';
+import 'package:mooze_mobile/services/app_logger_service.dart';
 
 class _MockCore extends Mock implements MoozeCore {}
 
@@ -16,11 +17,12 @@ final _now = DateTime.fromMillisecondsSinceEpoch(1700000000000);
 TrackedPegDto _peg(
   String id, {
   PegPhaseDto phase = PegPhaseDto.awaitingDeposit,
+  PegDirectionDto direction = PegDirectionDto.pegOut,
   int? confirmations,
 }) =>
     TrackedPegDto(
       orderId: id,
-      direction: PegDirectionDto.pegOut,
+      direction: direction,
       phase: phase,
       amountSat: BigInt.from(50000),
       depositAddress: 'deposit-$id',
@@ -29,11 +31,15 @@ TrackedPegDto _peg(
       requiredConfirmations: confirmations == null ? null : 2,
     );
 
-PegRefreshDto _refresh(List<TrackedPegDto> pegs, {int? wakeupInMs}) =>
+PegRefreshDto _refresh(
+  List<TrackedPegDto> pegs, {
+  int? wakeupInMs,
+  List<TrackedPegDto> finished = const [],
+}) =>
     PegRefreshDto(
       pegs: pegs,
       changed: const [],
-      finished: const [],
+      finished: finished,
       nextWakeupMs: wakeupInMs == null
           ? null
           : BigInt.from(_now.millisecondsSinceEpoch + wakeupInMs),
@@ -167,5 +173,52 @@ void main() {
     await done.future.timeout(const Duration(seconds: 1));
     expect(tracker.hasScheduledRefresh, isFalse);
     verifyNever(() => core.pegRefreshDue(walletId: any(named: 'walletId')));
+  });
+
+  // SideSwap keeps a deposit below its minimum. A peg-in is lost: SideSwap
+  // has no return for BTC. A peg-out comes back to the return address that
+  // the core registered. Support reads the log to tell them apart.
+  group('a peg that ends below the minimum', () {
+    Future<List<LogEntry>> finish(TrackedPegDto peg) async {
+      when(
+        () => core.pegRefreshDue(walletId: 'wallet-1'),
+      ).thenAnswer((_) async => _refresh([peg], finished: [peg]));
+      final logs = <LogEntry>[];
+      final sub = AppLoggerService().logStream
+          .where((e) => e.message.contains(peg.orderId))
+          .listen(logs.add);
+      await tracker.refresh();
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+      return logs;
+    }
+
+    test('a peg-in is logged as a loss', () async {
+      final logs = await finish(
+        _peg(
+          'in-low',
+          direction: PegDirectionDto.pegIn,
+          phase: PegPhaseDto.insufficientAmount,
+        ),
+      );
+
+      expect(logs.single.level, LogLevel.error);
+      expect(logs.single.message, contains('lost'));
+    });
+
+    test('a peg-out is logged as a return to the wallet', () async {
+      final logs = await finish(
+        _peg('out-low', phase: PegPhaseDto.insufficientAmount),
+      );
+
+      expect(logs.single.level, LogLevel.warning);
+      expect(logs.single.message, contains('returns'));
+    });
+
+    test('a completed peg logs nothing', () async {
+      final logs = await finish(_peg('done', phase: PegPhaseDto.completed));
+
+      expect(logs, isEmpty);
+    });
   });
 }

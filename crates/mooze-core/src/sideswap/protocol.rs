@@ -32,6 +32,8 @@ pub mod method {
     pub const PEG: &str = "peg";
     /// Status of a peg order.
     pub const PEG_STATUS: &str = "peg_status";
+    /// Return address of a peg-out order. Not in the public docs.
+    pub const PEG_RETURN_ADDRESS: &str = "peg_return_address";
     /// Subscribe to a server value.
     pub const SUBSCRIBE_VALUE: &str = "subscribe_value";
     /// Unsubscribe from a server value.
@@ -118,6 +120,14 @@ impl Request {
     /// `peg_status` for one order.
     pub fn peg_status(peg_in: bool, order_id: &str) -> Self {
         Self::new(method::PEG_STATUS, json!({ "peg_in": peg_in, "order_id": order_id }))
+    }
+
+    /// `peg_return_address`: the Liquid address where SideSwap returns a
+    /// peg-out deposit below its minimum (`InsufficientAmount`). The method
+    /// is in the `sideswap_api` crate (`PegReturnAddressRequest`), not in the
+    /// public docs. The server answers an empty ack.
+    pub fn peg_return_address(order_id: &str, address: &str) -> Self {
+        Self::new(method::PEG_RETURN_ADDRESS, json!({ "order_id": order_id, "address": address }))
     }
 
     /// `subscribe_value`.
@@ -397,6 +407,10 @@ pub struct PegOrderStatus {
     /// `0` means no expiry.
     pub expires_at: u64,
     pub list: Vec<PegTransaction>,
+    /// Liquid address that refunds an `InsufficientAmount` peg-out, once
+    /// registered with [`Request::peg_return_address`].
+    #[serde(default)]
+    pub return_address: Option<String>,
 }
 
 impl PegOrderStatus {
@@ -671,6 +685,17 @@ mod tests {
         assert_eq!(Request::subscribe_value(PEG_IN_WALLET_BALANCE).params, json!({"value":"PegInWalletBalance"}));
     }
 
+    // Not in the public docs: the shape of `PegReturnAddressRequest` in the
+    // sideswap_api crate, checked against the production server.
+    #[test]
+    fn encodes_the_return_address_of_a_peg() {
+        let req = Request::peg_return_address("o1", "lq1ret");
+        let f: Value = serde_json::from_str(&req.encode(3)).unwrap();
+        assert_eq!(f, json!({"id":3,"method":"peg_return_address","params":{"order_id":"o1","address":"lq1ret"}}));
+        // The same address for the same order: a second send changes nothing.
+        assert!(req.is_resendable());
+    }
+
     #[test]
     fn encodes_start_quotes() {
         let utxo = LiquidUtxo {
@@ -743,6 +768,15 @@ mod tests {
         }))
         .unwrap();
         assert!(s.peg_in && s.list.is_empty());
+        assert_eq!(s.return_address, None);
+
+        // A peg-out with its return address registered.
+        let s: PegOrderStatus = serde_json::from_value(json!({
+            "addr": "lq1dep", "addr_recv": "bc1recv", "created_at": 1, "expires_at": 0,
+            "list": [], "order_id": "o2", "peg_in": false, "return_address": "lq1ret"
+        }))
+        .unwrap();
+        assert_eq!(s.return_address.as_deref(), Some("lq1ret"));
 
         let tx: PegTransaction = serde_json::from_value(json!({
             "tx_hash": "ab", "vout": 0, "status": "Detected", "amount": 100000,

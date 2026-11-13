@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_success_screen.dart';
-import 'package:mooze_mobile/features/swap/presentation/widgets/btc_lbtc_swap_warning_dialog.dart';
+import 'package:mooze_mobile/features/swap/presentation/widgets/btc_lbtc_swap_warning_sheet.dart';
 import 'package:mooze_mobile/features/swap/presentation/widgets/no_liquidity_dialog.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart' as core;
 import 'package:mooze_mobile/shared/widgets.dart';
@@ -176,26 +178,144 @@ void main() {
     });
   });
 
-  group('BTC to LBTC warning dialog', () {
-    testWidgets('is a glass alert that unlocks after 10 seconds', (
+  // The swap screen shows this notice on its own, the first time the user
+  // picks BTC and L-BTC. It is a floating glass sheet, as the other
+  // notices of the app, and only its button closes it.
+  group('BTC to LBTC warning', () {
+    final t = lookupAppLocalizations(const Locale('pt'));
+
+    Future<void> show(WidgetTester tester) async {
+      await _pump(
+        tester,
+        _app((context) => BtcLbtcSwapWarningSheet.show(context)),
+      );
+      await _open(tester);
+    }
+
+    PrimaryButton button(WidgetTester tester) =>
+        tester.widget<PrimaryButton>(find.byType(PrimaryButton));
+
+    testWidgets('opens as a floating glass sheet, not a dialog', (
+      tester,
+    ) async {
+      await show(tester);
+
+      expect(find.text(t.swap_btc_lbtc_warning_title), findsOneWidget);
+      expect(find.byType(GlassSheet), findsOneWidget);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(GlassAlertDialog), findsNothing);
+    });
+
+    testWidgets('it keeps every point of the warning', (tester) async {
+      await show(tester);
+
+      for (final text in [
+        t.swap_btc_lbtc_warning_intro,
+        t.swap_btc_lbtc_warning_provider,
+        t.swap_btc_lbtc_warning_timing,
+        t.swap_btc_lbtc_warning_fee,
+        t.swap_btc_lbtc_warning_peg_out_return,
+        t.swap_btc_lbtc_warning_funds_safe,
+      ]) {
+        expect(find.text(text), findsOneWidget, reason: text);
+      }
+    });
+
+    // The user must read about refunds before the swap: a tap outside or a
+    // drag down does not close the sheet.
+    testWidgets('a tap outside or a drag down does not close it', (
+      tester,
+    ) async {
+      await show(tester);
+      // No handle: nothing hints at a drag that does not close it.
+      expect(find.byType(GlassSheetHandle), findsNothing);
+
+      await tester.tapAt(const Offset(20, 20));
+      await _finishRoute(tester);
+      expect(find.byType(GlassSheet), findsOneWidget);
+
+      final top = tester.getRect(find.byType(GlassSheet)).topCenter;
+      await tester.dragFrom(top + const Offset(0, 16), const Offset(0, 500));
+      await _finishRoute(tester);
+      expect(find.byType(GlassSheet), findsOneWidget);
+    });
+
+    testWidgets('the button unlocks after 10 seconds and closes the sheet', (
       tester,
     ) async {
       await _pump(
         tester,
-        _app((context) => BtcLbtcSwapWarningDialog.show(context)),
+        _app((context) => BtcLbtcSwapWarningSheet.show(context)),
       );
-      await _open(tester);
+      await tester.tap(find.text('open'));
+      // The countdown starts with the sheet. Its entrance takes less than
+      // a second, so all 10 seconds are left once it is up.
+      await tester.pump();
+      await tester.pump(Motion.durationSlow);
 
-      expect(find.byType(GlassAlertDialog), findsOneWidget);
-      final button = find.byType(FilledButton);
-      expect(tester.widget<FilledButton>(button).onPressed, isNull);
+      expect(button(tester).isEnabled, isFalse);
+      expect(
+        find.text(t.swap_btc_lbtc_warning_accept_button_counting(10)),
+        findsOneWidget,
+      );
 
-      await tester.pump(const Duration(seconds: 10));
-      expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
+      // One second short of the reading time, the button is still locked.
+      for (var i = 0; i < 9; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      expect(button(tester).isEnabled, isFalse);
+      expect(
+        find.text(t.swap_btc_lbtc_warning_accept_button_counting(1)),
+        findsOneWidget,
+      );
 
-      await tester.tap(button);
+      await tester.pump(const Duration(seconds: 1));
+      expect(button(tester).isEnabled, isTrue);
+      expect(find.text(t.swap_btc_lbtc_warning_accept_button), findsOneWidget);
+
+      await tester.tap(find.byType(PrimaryButton));
       await _finishRoute(tester);
-      expect(find.byType(BtcLbtcSwapWarningDialog), findsNothing);
+      expect(find.byType(GlassSheet), findsNothing);
     });
+
+    // The text scrolls inside the sheet, and the button stays on screen.
+    for (final dark in [true, false]) {
+      testWidgets('it fits a small phone with large text '
+          '(${dark ? 'dark' : 'light'})', (tester) async {
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.textScaleFactorTestValue = 2;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        // The media query of the view, so the text scale applies.
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('pt'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) => Theme(
+              data: dark
+                  ? AppTheme.darkTheme(context)
+                  : AppTheme.lightTheme(context),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => BtcLbtcSwapWarningSheet.show(context),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await _open(tester);
+
+        expect(tester.takeException(), isNull);
+        final action = tester.getRect(find.byType(PrimaryButton));
+        expect(action.top, greaterThanOrEqualTo(0));
+        expect(action.bottom, lessThanOrEqualTo(568));
+      });
+    }
   });
 }
