@@ -116,7 +116,7 @@ class _MainSettingsScreenState extends State<MainSettingsScreen> {
                   title: t.main_settings_btc_services,
                   iconSvgPath: 'assets/icons/menu/settings/pix_out_line.svg',
                   action: ExternalNavigation(
-                    rota: 'https://pagbitcoin.com/?ref=0099',
+                    rota: 'https://services-btc.keepo.bio/',
                     context: context,
                   ),
                 ),
