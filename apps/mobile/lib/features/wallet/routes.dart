@@ -18,6 +18,7 @@ import 'package:mooze_mobile/features/wallet/presentation/screens/receive_funds/
 import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
+import 'package:mooze_mobile/shared/user/widgets/user_data_auto_refresh.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 
 class PageVisibilityProvider extends InheritedNotifier<ValueNotifier<int>> {
@@ -225,9 +226,11 @@ final walletRoutes = [
   ShellRoute(
     builder: (context, state, child) {
       final currentLocation = state.uri.toString();
-      return _MainNavigationScaffold(
-        currentLocation: currentLocation,
-        child: child,
+      return UserDataAutoRefresh(
+        child: _MainNavigationScaffold(
+          currentLocation: currentLocation,
+          child: child,
+        ),
       );
     },
     routes: [
