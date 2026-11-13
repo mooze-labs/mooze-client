@@ -8,19 +8,20 @@ import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// Chip that states the result of a Pix movement.
+/// Chip that states the status of a Pix movement.
 ///
 /// The chip carries an icon and a label with its color, so the status
-/// never depends on color alone.
+/// never depends on color alone. The label reads as the screen the movement
+/// opens; the icon and the color tell done, pending or failed.
 class PixStatusChip extends StatelessWidget {
-  final PixTransactionStatus status;
+  final PixTransaction transaction;
 
-  const PixStatusChip({super.key, required this.status});
+  const PixStatusChip({super.key, required this.transaction});
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final (tone, icon) = switch (status) {
+    final (tone, icon) = switch (transaction.status) {
       PixTransactionStatus.completed => (PixTone.positive, PixIcons.check),
       PixTransactionStatus.pending => (PixTone.warning, PixIcons.clock),
       PixTransactionStatus.failed => (PixTone.negative, PixIcons.close),
@@ -38,7 +39,7 @@ class PixStatusChip extends StatelessWidget {
           PixIcon(icon, size: 12, color: color),
           const SizedBox(width: 4),
           Text(
-            pixTransactionStatusLabel(t, status),
+            pixTransactionStatusLabel(t, transaction),
             style: context.textTheme.labelSmall?.copyWith(
               color: color,
               fontWeight: FontWeight.w700,
@@ -112,18 +113,20 @@ class PixTransactionTile extends StatelessWidget {
                 const SizedBox(width: 10),
                 // The amount gets at most 45% of the row and scales down when
                 // it does not fit, so a large amount or large text never
-                // overflows. The name gives way first.
+                // overflows. The name gives way first. The amount and the
+                // chip scale apart: a long status never shrinks the amount.
                 ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: constraints.maxWidth * 0.45,
                   ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: Text(
                           '${isIncoming ? '+' : '−'} '
                           '${formatBrlCents(transaction.amountInCents)}',
                           style: context.textTheme.bodyLarge?.copyWith(
@@ -135,13 +138,17 @@ class PixTransactionTile extends StatelessWidget {
                                 : null,
                           ),
                         ),
-                        if (transaction.status !=
-                            PixTransactionStatus.completed) ...[
-                          const SizedBox(height: 4),
-                          PixStatusChip(status: transaction.status),
-                        ],
+                      ),
+                      if (transaction.status !=
+                          PixTransactionStatus.completed) ...[
+                        const SizedBox(height: 4),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: PixStatusChip(transaction: transaction),
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ],

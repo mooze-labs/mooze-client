@@ -25,6 +25,7 @@ PixTransaction? pixTransactionFromWithdrawal(PixWithdrawalRecord record) {
     amountInCents: record.payoutAmountInCents,
     createdAt: record.createdAt,
     reference: record.id,
+    withdrawalStatus: status,
   );
 }
 
@@ -51,5 +52,6 @@ PixTransaction pixTransactionFromDeposit(PixDeposit deposit) {
     amountInCents: deposit.amountInCents,
     createdAt: deposit.createdAt,
     reference: deposit.depositId,
+    depositStatus: deposit.status,
   );
 }

@@ -65,8 +65,12 @@ enum DepositStatus {
 }
 
 extension DepositStatusExtension on DepositStatus {
-  String localizedLabel(BuildContext context) {
-    final t = AppLocalizations.of(context);
+  String localizedLabel(BuildContext context) =>
+      label(AppLocalizations.of(context));
+
+  /// The label of the status. The Pix history, the deposit details and the
+  /// hub history all read it, so a deposit shows the same status on each.
+  String label(AppLocalizations t) {
     switch (this) {
       case DepositStatus.pending:
         return t.pix_deposit_status_pending_label;

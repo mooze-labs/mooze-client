@@ -1,4 +1,6 @@
 import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_send_method.dart';
+import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_withdrawal.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 
 /// Whether money enters or leaves the wallet.
 enum PixTransactionDirection { incoming, outgoing }
@@ -46,6 +48,14 @@ class PixTransaction {
   /// Id of the source record: the withdrawal or the deposit.
   final String reference;
 
+  /// Status of the deposit behind a deposit row. [status] only sorts it into
+  /// done, pending or failed. The row shows this one, as the deposit details.
+  final DepositStatus? depositStatus;
+
+  /// Last status read of the withdrawal behind a send row, or null before
+  /// the first read. The row shows it, as the send result screen.
+  final PixWithdrawalStatus? withdrawalStatus;
+
   const PixTransaction({
     required this.id,
     required this.kind,
@@ -56,6 +66,8 @@ class PixTransaction {
     required this.reference,
     this.description,
     this.method,
+    this.depositStatus,
+    this.withdrawalStatus,
   });
 
   PixTransactionDirection get direction => kind == PixTransactionKind.sent

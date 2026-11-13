@@ -7,6 +7,7 @@ import 'package:mooze_mobile/features/pix/hub/domain/entities/pix_withdrawal.dar
 import 'package:mooze_mobile/features/pix/hub/domain/validation/pix_br_code.dart';
 import 'package:mooze_mobile/features/pix/hub/domain/validation/pix_key_validator.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
+import 'package:mooze_mobile/features/pix/receive_pix/domain/entities/pix_deposit.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 
 /// Translations of the Pix hub enums.
@@ -32,11 +33,20 @@ String pixTransactionKindLabel(AppLocalizations t, PixTransactionKind kind) {
   };
 }
 
+/// The status of a history row, in the words of the screen the row opens.
+///
+/// A deposit reads as the Pix history and the deposit details, and a send
+/// reads as the send result screen. A row with neither falls back to its
+/// done, pending or failed label.
 String pixTransactionStatusLabel(
   AppLocalizations t,
-  PixTransactionStatus status,
+  PixTransaction transaction,
 ) {
-  return switch (status) {
+  if (transaction.depositStatus case final status?) return status.label(t);
+  if (transaction.kind == PixTransactionKind.sent) {
+    return pixWithdrawalStatusLabel(t, transaction.withdrawalStatus);
+  }
+  return switch (transaction.status) {
     PixTransactionStatus.completed => t.pix_hub_tx_status_completed,
     PixTransactionStatus.pending => t.pix_hub_tx_status_pending,
     PixTransactionStatus.failed => t.pix_hub_tx_status_failed,
