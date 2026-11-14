@@ -18,16 +18,34 @@ import 'package:mooze_mobile/features/sync/domain/sync_orchestrator.dart';
 import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/features/wallet/domain/usecases/refresh_wallet.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/converting_details_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/dev/swap_simulator_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/transaction_sent_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/converting_completed_view.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/screens/level_downgrade_screen.dart';
 import 'package:mooze_mobile/features/wallet_level/presentation/screens/level_upgrade_screen.dart';
 import 'package:mooze_mobile/features/wallet_level/routes.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/prices/models/price_service_config.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quote.dart';
+import 'package:mooze_mobile/shared/prices/store/price_quotes_notifier.dart';
+import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
+
+/// Price quotes without network or cache access.
+class _FakeQuotes extends StateNotifier<PriceQuotes>
+    implements PriceQuotesNotifier {
+  _FakeQuotes() : super(PriceQuotes.initial(Currency.brl));
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
 
 /// No pending swaps, without storage.
 class _NoSwaps extends PendingSwapsNotifier {
@@ -74,14 +92,24 @@ void main() {
     await tester.tap(button);
   }
 
-  Future<void> pump(WidgetTester tester) async {
+  /// The simulator, with no pending swaps. With [storage], the swaps are
+  /// the real store on an empty in-memory storage, as the live preview of a
+  /// peg needs.
+  Future<void> pump(WidgetTester tester, {bool storage = false}) async {
     tester.view.physicalSize = const Size(390, 844) * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          pendingSwapsProvider.overrideWith(_NoSwaps.new),
+          if (storage)
+            sharedPreferencesProvider.overrideWithValue(preferences)
+          else
+            pendingSwapsProvider.overrideWith(_NoSwaps.new),
+          priceQuotesProvider.overrideWith((ref) => _FakeQuotes()),
+          localeStringProvider.overrideWithValue('pt_BR'),
           currencySymbolProvider.overrideWithValue(r'R$'),
           onboardingServiceProvider.overrideWithValue(onboarding),
           refreshWalletProvider.overrideWith(
@@ -100,6 +128,12 @@ void main() {
               GoRoute(
                 path: '/dev/swap-simulator',
                 builder: (_, _) => const SwapSimulatorScreen(),
+              ),
+              GoRoute(
+                path: '/swap/converting/:localId',
+                builder: (_, state) => ConvertingDetailsScreen(
+                  localId: state.pathParameters['localId']!,
+                ),
               ),
               ...walletLevelsRoutes,
             ],
@@ -202,6 +236,48 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(SwapSuccessScreen), findsNothing);
     }
+  });
+
+  testWidgets('every peg preview opens its end with its two coins, and '
+      'closes', (tester) async {
+    await pump(tester);
+
+    for (final (from, to) in [
+      (Asset.btc, Asset.lbtc),
+      (Asset.lbtc, Asset.btc),
+    ]) {
+      await tapPreview(tester, 'Peg done ${from.ticker} → ${to.ticker}');
+      await tester.pumpAndSettle();
+      final view = tester.widget<ConvertingCompletedView>(
+        find.byType(ConvertingCompletedView),
+      );
+      expect((view.fromAsset, view.toAsset), (from, to));
+
+      // The preview closes: it neither goes home nor leaves the simulator.
+      await tester.tap(find.text('Voltar para início'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ConvertingCompletedView), findsNothing);
+      expect(find.byType(SwapSimulatorScreen), findsOneWidget);
+    }
+  });
+
+  testWidgets('the live peg preview opens the details of a fake peg, which '
+      'turn into its end when its credit lands', (tester) async {
+    await pump(tester, storage: true);
+
+    await tapPreview(tester, 'Peg live BTC → L-BTC');
+    await tester.pump();
+    // The step in progress breathes, so the details never settle.
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(ConvertingDetailsScreen), findsOneWidget);
+    expect(find.byType(ConvertingCompletedView), findsNothing);
+
+    await tester.pump(SwapSimulatorScreen.pegLiveWait);
+    await tester.pump(const Duration(seconds: 2));
+    final view = tester.widget<ConvertingCompletedView>(
+      find.byType(ConvertingCompletedView),
+    );
+    expect((view.fromAsset, view.toAsset), (Asset.btc, Asset.lbtc));
   });
 
   testWidgets('every level up and level down opens', (tester) async {

@@ -21,9 +21,11 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/prices/providers/currency_controller_provider.dart';
 import 'package:mooze_mobile/shared/prices/store/locale_string_provider.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:mooze_mobile/utils/formatters.dart';
 
+import '../widgets/converting_completed_view.dart';
 import '../widgets/send_funds/send_flow_parts.dart';
 
 /// Detail surface for an in-progress peg-in / peg-out.
@@ -31,28 +33,53 @@ import '../widgets/send_funds/send_flow_parts.dart';
 /// Reads the optimistic swap from [pendingSwapsProvider] by [localId]
 /// and updates live as the notifier walks through its phase machine.
 /// If the swap is reconciled or cleared while this screen is open,
-/// the body switches to a "Completed" state pointing the user back
-/// home, where the unified swap row in the transaction list takes
-/// over the narrative.
+/// the body fades into the [ConvertingCompletedView] of its two coins,
+/// which points the user back home, where the unified swap row in the
+/// transaction list takes over the narrative.
 ///
 /// The screen has the layout of the transaction detail: the two coins and
 /// the expected amount as the hero, then the status with its track, the
 /// conversion strip, a note on the phase, and the identifiers in one glass
 /// panel.
-class ConvertingDetailsScreen extends ConsumerWidget {
+class ConvertingDetailsScreen extends ConsumerStatefulWidget {
   final String localId;
 
   const ConvertingDetailsScreen({super.key, required this.localId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConvertingDetailsScreen> createState() =>
+      _ConvertingDetailsScreenState();
+}
+
+class _ConvertingDetailsScreenState
+    extends ConsumerState<ConvertingDetailsScreen> {
+  /// The swap as last seen. Once it leaves the list, its coins are what
+  /// the completed state shows.
+  PendingSwap? _lastSwap;
+
+  @override
+  Widget build(BuildContext context) {
     final swap = ref.watch(
       pendingSwapsProvider.select(
-        (list) => list.where((s) => s.localId == localId).firstOrNull,
+        (list) => list.where((s) => s.localId == widget.localId).firstOrNull,
       ),
     );
+    if (swap != null) _lastSwap = swap;
+    final last = _lastSwap;
 
-    return swap == null ? const _CompletedView() : _ActiveView(swap: swap);
+    return AnimatedSwitcher(
+      duration: Motion.of(context, Motion.durationBase),
+      switchInCurve: Motion.curveEnter,
+      switchOutCurve: Motion.curveExit,
+      child: switch ((swap, last)) {
+        (final swap?, _) => _ActiveView(swap: swap),
+        (null, final last?) => ConvertingCompletedView(
+          fromAsset: last.fromAsset,
+          toAsset: last.toAsset,
+        ),
+        (null, null) => const _CompletedView(),
+      },
+    );
   }
 }
 
@@ -325,7 +352,8 @@ class _Details extends StatelessWidget {
 }
 
 /// The swap left the pending list: it finished, and the home list now
-/// shows it.
+/// shows it. The screen opened after the swap left knows neither of its
+/// coins, so it states the end without the scene.
 class _CompletedView extends StatelessWidget {
   const _CompletedView();
 

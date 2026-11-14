@@ -10,6 +10,7 @@ import 'package:mooze_mobile/features/transaction_history/presentation/widgets/h
 import 'package:mooze_mobile/features/transaction_history/presentation/widgets/in_card_action_button.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/converting_details_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/converting_completed_view.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/prices/models/price_service_config.dart';
@@ -36,6 +37,9 @@ class _FakeSwaps extends PendingSwapsNotifier {
 
   @override
   List<PendingSwap> build() => swaps;
+
+  /// The reconciler retires every swap: their credits reached the wallet.
+  void retireAll() => state = [];
 }
 
 /// A peg-in of 100 000 sats in [phase].
@@ -60,6 +64,8 @@ PendingSwap _swap(
 void main() {
   final t = lookupAppLocalizations(const Locale('pt'));
 
+  late _FakeSwaps store;
+
   /// The details of `local-1` with [swaps] pending, in [locale].
   Future<void> pump(
     WidgetTester tester,
@@ -72,7 +78,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          pendingSwapsProvider.overrideWith(() => _FakeSwaps(swaps)),
+          pendingSwapsProvider.overrideWith(() => store = _FakeSwaps(swaps)),
           priceQuotesProvider.overrideWith((ref) => _FakeQuotes()),
           currencySymbolProvider.overrideWithValue(r'R$'),
           localeStringProvider.overrideWithValue('pt_BR'),
@@ -192,8 +198,33 @@ void main() {
     );
   });
 
-  testWidgets('a swap that left the list shows the completed state, and '
-      'its button leads home', (tester) async {
+  testWidgets('a swap that finishes while the screen is open turns into '
+      'the scene of its two coins, and its button leads home', (tester) async {
+    await pump(tester, [_swap(PendingSwapPhase.broadcasted, txId: 'tx-1')]);
+
+    store.retireAll();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+
+    final completed = tester.widget<ConvertingCompletedView>(
+      find.byType(ConvertingCompletedView),
+    );
+    expect(completed.fromAsset, Asset.btc);
+    expect(completed.toAsset, Asset.lbtc);
+    expect(find.byType(TxDetailScaffold), findsNothing);
+    expect(find.text(t.converting_details_completed_title), findsOneWidget);
+    expect(find.text(t.converting_details_completed_message), findsOneWidget);
+
+    await tester.tap(find.text(t.converting_details_back_to_home));
+    await tester.pumpAndSettle();
+    expect(find.text('home'), findsOneWidget);
+  });
+
+  // Opened after the swap left, the screen knows neither of its coins.
+  testWidgets('a swap already gone when the screen opens shows the '
+      'completed state without the scene, and its button leads home', (
+    tester,
+  ) async {
     await pump(tester, []);
 
     expect(
@@ -201,6 +232,7 @@ void main() {
       PixStatusKind.success,
     );
     expect(find.text(t.converting_details_completed_title), findsOneWidget);
+    expect(find.byType(ConvertingCompletedView), findsNothing);
 
     await tester.tap(find.text(t.converting_details_back_to_home));
     await tester.pumpAndSettle();

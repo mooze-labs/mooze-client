@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart' hide State;
@@ -12,6 +14,7 @@ import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/transaction_sent_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/converting_completed_view.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/values_to_receive_card.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
@@ -33,13 +36,16 @@ import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 ///
 /// It also opens the screens that only real events show, with sample
 /// data: the confirmation of a received transaction and the end of a send
-/// for each asset, a level up, a level down, the pending DePix receipts of
-/// the holdings screen, and the scene that covers a screen while a Pix QR
-/// code is created.
+/// for each asset, the end of a peg-in and a peg-out, a level up, a level
+/// down, the pending DePix receipts of the holdings screen, and the scene
+/// that covers a screen while a Pix QR code is created.
 ///
 /// Route: `/dev/swap-simulator` (registered in `walletRoutes`).
 class SwapSimulatorScreen extends ConsumerStatefulWidget {
   const SwapSimulatorScreen({super.key});
+
+  /// How long the live peg preview waits before its credit lands.
+  static const pegLiveWait = Duration(seconds: 4);
 
   @override
   ConsumerState<SwapSimulatorScreen> createState() =>
@@ -139,6 +145,30 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
                   ),
                   icon: const Icon(Icons.swap_horiz),
                   label: Text('Swap ${from.ticker} → ${to.ticker}'),
+                ),
+              // The end of a peg, as its details show it once its credit
+              // lands. Its button closes the preview.
+              for (final (from, to) in _pegs)
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (route) => ConvertingCompletedView(
+                        fromAsset: from,
+                        toAsset: to,
+                        onDone: () => Navigator.of(route).pop(),
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.currency_exchange),
+                  label: Text('Peg done ${from.ticker} → ${to.ticker}'),
+                ),
+              // The same end, live: the details of a fake peg open, and its
+              // credit lands a few seconds later.
+              for (final (from, to) in _pegs)
+                OutlinedButton.icon(
+                  onPressed: () => _previewPegLive(from, to),
+                  icon: const Icon(Icons.play_circle_outline),
+                  label: Text('Peg live ${from.ticker} → ${to.ticker}'),
                 ),
               // Every medal, up and down.
               for (final (from, to) in [
@@ -365,6 +395,30 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
       loading.fail();
       AppSnackBar.error(context, 'Simulated failure');
     }
+  }
+
+  /// The two pegs: in, then out.
+  static const _pegs = [(Asset.btc, Asset.lbtc), (Asset.lbtc, Asset.btc)];
+
+  /// Starts a fake peg from [from] to [to], opens its details, and retires
+  /// it after [SwapSimulatorScreen.pegLiveWait], as the reconciler does
+  /// when its credit lands: the details then turn into their completed
+  /// view. Nothing is sent.
+  void _previewPegLive(Asset from, Asset to) {
+    final notifier = ref.read(pendingSwapsProvider.notifier);
+    final localId = notifier.start(
+      fromAsset: from,
+      toAsset: to,
+      sentAmount: BigInt.from(28000),
+      estimatedReceivedAmount: BigInt.from(27440),
+    );
+    notifier.markBroadcasted(
+      localId,
+      breezSwapId: 'fakeSwap_$localId',
+      breezTxId: _fakeLeg64('a', localId.hashCode),
+    );
+    context.push('/swap/converting/$localId');
+    Timer(SwapSimulatorScreen.pegLiveWait, () => notifier.clear(localId));
   }
 
   /// A destination on the network of [asset], for the previews. It is not
