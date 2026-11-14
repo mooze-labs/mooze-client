@@ -1497,6 +1497,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receive_qr_copied => 'Copied!';
 
   @override
+  String get receive_qr_request_copied => 'Full address copied';
+
+  @override
   String receive_qr_error(String error) {
     return 'Error generating QR: $error';
   }

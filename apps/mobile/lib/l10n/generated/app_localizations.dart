@@ -2770,6 +2770,12 @@ abstract class AppLocalizations {
   /// **'Copiado!'**
   String get receive_qr_copied;
 
+  /// No description provided for @receive_qr_request_copied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço completo copiado'**
+  String get receive_qr_request_copied;
+
   /// No description provided for @receive_qr_error.
   ///
   /// In pt, this message translates to:

@@ -595,6 +595,7 @@
   "receive_qr_address_title": "Endereço de Recebimento",
   "receive_qr_copy_address": "Copiar Endereço",
   "receive_qr_copied": "Copiado!",
+  "receive_qr_request_copied": "Endereço completo copiado",
   "receive_qr_error": "Erro ao gerar QR: {error}",
   "@receive_qr_error": {
     "placeholders": {

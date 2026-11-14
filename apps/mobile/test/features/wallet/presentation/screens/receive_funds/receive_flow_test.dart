@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart' hide State;
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/visibility_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/wallet_holdings_provider.dart';
@@ -12,6 +12,7 @@ import 'package:mooze_mobile/features/wallet/presentation/screens/receive_funds/
 import 'package:mooze_mobile/features/wallet/presentation/widgets/holding_asset/asset_transaction_item.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/asset_selector_receive.dart';
 import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/description_field_receive.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/receive_address_field.dart';
 import 'package:mooze_mobile/features/wallet/providers/receive_funds/receive_conversion_providers.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
@@ -22,6 +23,12 @@ import '../../../../../shared/test_app.dart';
 
 const _uri = 'bitcoin:bc1qtest?amount=0.001';
 const _address = 'bc1qtest';
+const _liquidAddress = 'lq1qqtest';
+const _usdtId =
+    'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2';
+const _liquidUri =
+    'liquidnetwork:$_liquidAddress?amount=10.00000000&assetid=$_usdtId';
+const _liquidNoAmountUri = 'liquidnetwork:$_liquidAddress?assetid=$_usdtId';
 
 /// Gives the test a phone screen, so the whole QR screen is built.
 void _phone(WidgetTester tester) {
@@ -32,14 +39,25 @@ void _phone(WidgetTester tester) {
 
 void main() {
   group('ReceiveQRScreen', () {
-    Future<String?> copyFrom(WidgetTester tester, {double? amount}) async {
+    /// What reached the clipboard, in order.
+    late List<String?> copied;
+
+    /// The screen of a request whose QR data is [request], as the receive
+    /// flow opens it: the same text as the QR data and the address.
+    Future<void> pumpRequest(
+      WidgetTester tester, {
+      required String request,
+      Asset asset = Asset.btc,
+      NetworkType network = NetworkType.bitcoin,
+      double? amount = 0.001,
+    }) async {
       _phone(tester);
-      String? copied;
+      copied = [];
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,
         (call) async {
           if (call.method == 'Clipboard.setData') {
-            copied = (call.arguments as Map)['text'] as String?;
+            copied.add((call.arguments as Map)['text'] as String?);
           }
           return null;
         },
@@ -50,28 +68,114 @@ void main() {
           null,
         ),
       );
-
       await tester.pumpWidget(
         ProviderScope(
           child: wrapForTest(
             ReceiveQRScreen(
-              qrData: _uri,
-              displayAddress: _address,
-              asset: Asset.btc,
-              network: NetworkType.bitcoin,
+              qrData: request,
+              displayAddress: request,
+              asset: asset,
+              network: network,
               amount: amount,
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(PixCopyField));
-      await tester.pump();
-      expect(find.text('Copiado!'), findsOneWidget);
-      await tester.pump(PixCopyField.copiedDuration);
-      return copied;
     }
+
+    // The QR code carries the whole request: a wallet that scans it fills
+    // the asset and the amount. The field below is for pasting the
+    // address alone, which every wallet and exchange accepts.
+    for (final (request, address, asset, network, amount) in [
+      (_uri, _address, Asset.btc, NetworkType.bitcoin, 0.001),
+      (_liquidUri, _liquidAddress, Asset.usdt, NetworkType.liquid, 10.0),
+      // A stablecoin request names its asset even without an amount.
+      (
+        _liquidNoAmountUri,
+        _liquidAddress,
+        Asset.usdt,
+        NetworkType.liquid,
+        null,
+      ),
+    ]) {
+      testWidgets('the address field shows and copies only the bare '
+          'address of $request', (tester) async {
+        await pumpRequest(
+          tester,
+          request: request,
+          asset: asset,
+          network: network,
+          amount: amount,
+        );
+
+        final field = tester.widget<ReceiveAddressField>(
+          find.byType(ReceiveAddressField),
+        );
+        expect(field.address, address);
+        expect(find.text(address), findsOneWidget);
+        expect(find.textContaining('?'), findsNothing);
+        // The QR code keeps the whole request.
+        expect(
+          tester.widget<PixQrPanel>(find.byType(PixQrPanel)).data,
+          request,
+        );
+
+        await tester.tap(find.byType(ReceiveAddressField));
+        await tester.pump();
+        expect(copied, [address]);
+        await tester.pump(ReceiveAddressField.copiedDuration);
+      });
+    }
+
+    testWidgets('a tap on the QR code copies the whole request, with its '
+        'asset and amount, and says so', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpRequest(
+        tester,
+        request: _liquidUri,
+        asset: Asset.usdt,
+        network: NetworkType.liquid,
+        amount: 10,
+      );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('QR Code')),
+        isSemantics(isButton: true, hasTapAction: true, hint: 'Copiar'),
+      );
+
+      await tester.tap(find.byType(PixQrPanel));
+      await tester.pump();
+      expect(copied, [_liquidUri]);
+      expect(find.text('Endereço completo copiado'), findsOneWidget);
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+      semantics.dispose();
+    });
+
+    testWidgets('the address field shows only the copy icon, never the '
+        'word, and the icon turns into a check', (tester) async {
+      await pumpRequest(tester, request: _uri);
+      PixIconData icon() => tester
+          .widget<PixIcon>(
+            find.descendant(
+              of: find.byType(ReceiveAddressField),
+              matching: find.byType(PixIcon),
+            ),
+          )
+          .icon;
+
+      expect(find.text('Copiar'), findsNothing);
+      expect(icon(), PixIcons.copy);
+
+      await tester.tap(find.byType(ReceiveAddressField));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Copiado!'), findsNothing);
+      expect(icon(), PixIcons.check);
+
+      await tester.pump(ReceiveAddressField.copiedDuration);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(icon(), PixIcons.copy);
+    });
 
     testWidgets('shows the exact QR data on the shared backdrop', (
       tester,
@@ -100,18 +204,6 @@ void main() {
       expect(find.byType(BackdropFilter), findsNothing);
       expect(find.text('Compartilhar'), findsOneWidget);
       expect(find.text('Almoço'), findsOneWidget);
-    });
-
-    testWidgets('copies the payment URI when the request has an amount', (
-      tester,
-    ) async {
-      expect(await copyFrom(tester, amount: 0.001), _uri);
-    });
-
-    testWidgets('copies the bare address when the request has no amount', (
-      tester,
-    ) async {
-      expect(await copyFrom(tester), _address);
     });
   });
 

@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_screen_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_card.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/receive_funds/receive_address_field.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/shared/widgets/motion/press_scale.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -18,9 +19,13 @@ import 'package:share_plus/share_plus.dart';
 /// Shows the receive request as a QR code.
 ///
 /// The QR code is the hero. The requested amount sits above it, and the
-/// asset and network sit between them as one quiet pill. Below the code,
-/// a copy field holds the address or the payment URI. Share is the
-/// secondary action at the bottom.
+/// asset and network sit between them as one quiet pill.
+///
+/// The code holds the whole request, with its asset and amount, so a
+/// wallet that scans it fills them in; a tap on it copies that request.
+/// Below the code, a field holds the bare address, which every wallet and
+/// exchange accepts when pasted, and a tap on it copies only that. Share is
+/// the secondary action at the bottom, and sends the whole request.
 class ReceiveQRScreen extends ConsumerStatefulWidget {
   final String qrData;
   final String displayAddress;
@@ -69,21 +74,31 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
         ),
         const SizedBox(height: 20),
         // The code grows with the screen, up to a size that still leaves
-        // the address in view on a regular phone.
-        LayoutBuilder(
-          builder: (context, constraints) => PixQrPanel(
-            data: widget.qrData,
-            size: (constraints.maxWidth - 32).clamp(160.0, 248.0),
-            semanticLabel: t.pix_hub_method_qr,
+        // the address in view on a regular phone. Only the white tile takes
+        // the tap, not the space beside it.
+        MergeSemantics(
+          child: Semantics(
+            button: true,
+            hint: t.pix_hub_copy,
+            onTap: _copyRequest,
+            child: GestureDetector(
+              onTap: _copyRequest,
+              child: PressScale(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => PixQrPanel(
+                    data: widget.qrData,
+                    size: (constraints.maxWidth - 32).clamp(160.0, 248.0),
+                    semanticLabel: t.pix_hub_method_qr,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 24),
-        // The field copies the same text as before: the full URI when the
-        // request has an amount, else the bare address.
-        PixCopyField(
+        ReceiveAddressField(
           label: t.receive_qr_address_title,
-          value: _getCleanAddress(),
-          maxLines: 10,
+          address: _bareAddress(widget.displayAddress),
         ),
         if (hasDescription) ...[
           const SizedBox(height: 12),
@@ -102,11 +117,17 @@ class _ReceiveQRScreenState extends ConsumerState<ReceiveQRScreen> {
 
   Future<void> _shareAddress() async {
     HapticFeedback.selectionClick();
-    await SharePlus.instance.share(ShareParams(text: _getCleanAddress()));
+    await SharePlus.instance.share(ShareParams(text: widget.qrData));
   }
 
-  String _getCleanAddress() {
-    return widget.amount != null ? widget.qrData : widget.displayAddress;
+  /// Copies the whole request of the QR code, and says so: the field below
+  /// copies something else, the bare address.
+  Future<void> _copyRequest() async {
+    final t = AppLocalizations.of(context);
+    HapticFeedback.selectionClick();
+    await Clipboard.setData(ClipboardData(text: widget.qrData));
+    if (!mounted) return;
+    AppSnackBar.success(context, t.receive_qr_request_copied);
   }
 
   String _networkLabel() {
@@ -283,6 +304,22 @@ class _ShareButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The address of a payment request: without its `bitcoin:`,
+/// `liquidnetwork:` or `liquid:` scheme, and without the query that carries
+/// the asset, the amount, and the message. A bare address stays as it is.
+String _bareAddress(String request) {
+  var address = request.trim();
+  final lower = address.toLowerCase();
+  for (final scheme in const ['bitcoin:', 'liquidnetwork:', 'liquid:']) {
+    if (lower.startsWith(scheme)) {
+      address = address.substring(scheme.length);
+      break;
+    }
+  }
+  final query = address.indexOf('?');
+  return query == -1 ? address : address.substring(0, query);
 }
 
 /// Some l10n strings include a trailing ":" baked into the value
