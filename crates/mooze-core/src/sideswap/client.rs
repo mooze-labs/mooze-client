@@ -111,7 +111,7 @@ impl<C: WsConnector> SideSwapClient<C> {
         self.conn = Some(conn);
         self.touch();
         let login = Request::login(&self.api_key);
-        let result = self.call_connected(&login).await?;
+        let result = self.call_connected(&login, Value::is_object).await?;
         self.login_result = Some(result);
         Ok(())
     }
@@ -156,23 +156,37 @@ impl<C: WsConnector> SideSwapClient<C> {
     /// connection's `recv` returns [`Error::Timeout`] after
     /// [`super::protocol::DEFAULT_REQUEST_TIMEOUT_MS`].
     pub async fn call(&mut self, req: &Request) -> Result<Value> {
+        self.call_with(req, Value::is_object).await
+    }
+
+    /// Sends `req` and waits for an acknowledgement without data.
+    ///
+    /// SideSwap answers such a method (`Empty` in its API crate, for example
+    /// `peg_return_address`) with `"result": null`, which [`Self::call`]
+    /// refuses. An object is taken too. Errors are those of [`Self::call`].
+    pub async fn call_ack(&mut self, req: &Request) -> Result<()> {
+        self.call_with(req, |r| r.is_null() || r.is_object()).await.map(drop)
+    }
+
+    /// [`Self::call`], taking a `result` that passes `accept`.
+    async fn call_with(&mut self, req: &Request, accept: fn(&Value) -> bool) -> Result<Value> {
         if self.disposed {
             return Err(Error::Protocol(CLOSED_MESSAGE.into()));
         }
         self.connect().await?;
-        match self.call_connected(req).await {
+        match self.call_connected(req, accept).await {
             // The server, a proxy or the OS dropped an idle connection, for
             // example while the app slept: the request got no answer. A new
             // connection answers it, once. A signed swap is not sent again.
             Err(Error::Network(_)) if !self.is_connected() && req.is_resendable() => {
                 self.connect().await?;
-                self.call_connected(req).await
+                self.call_connected(req, accept).await
             }
             result => result,
         }
     }
 
-    async fn call_connected(&mut self, req: &Request) -> Result<Value> {
+    async fn call_connected(&mut self, req: &Request, accept: fn(&Value) -> bool) -> Result<Value> {
         let id = self.ids.allocate();
         self.send_raw(req.encode(id)).await?;
         loop {
@@ -186,7 +200,7 @@ impl<C: WsConnector> SideSwapClient<C> {
                     return Err(Error::Protocol(describe_rpc_error(err)));
                 }
                 return match frame.get("result") {
-                    Some(r @ Value::Object(_)) => Ok(r.clone()),
+                    Some(r) if accept(r) => Ok(r.clone()),
                     _ => Err(Error::Protocol(UNEXPECTED_RESULT.into())),
                 };
             }
@@ -455,6 +469,33 @@ mod tests {
         let mut c = SideSwapClient::new(ws, "k");
         assert_eq!(block_on(c.call(&Request::peg(true, "x"))), Err(Error::Protocol("peg disabled".into())));
         assert_eq!(block_on(c.call(&Request::peg_status(true, "x"))), Err(Error::Protocol(UNEXPECTED_RESULT.into())));
+    }
+
+    // A method without data, as `peg_return_address`, answers
+    // `"result": null` (`Empty` in the sideswap_api crate). An ack takes it.
+    // A data call still needs an object.
+    #[test]
+    fn an_ack_takes_a_null_result() {
+        let ws = MockWs::new(|f| {
+            login_ok(f).unwrap_or_else(|| {
+                let id = id_of(f);
+                let order = serde_json::from_str::<Value>(f).unwrap()["params"]["order_id"].clone();
+                let frame = match order.as_str().unwrap() {
+                    "null" => json!({"id": id, "method": "peg_return_address", "result": null}),
+                    "object" => json!({"id": id, "method": "peg_return_address", "result": {}}),
+                    "text" => json!({"id": id, "method": "peg_return_address", "result": "ok"}),
+                    _ => json!({"id": id, "method": "peg_return_address"}),
+                };
+                vec![frame.to_string()]
+            })
+        });
+        let mut c = SideSwapClient::new(ws, "k");
+        let ack = |order: &str| Request::peg_return_address(order, "lq1ret");
+        assert_eq!(block_on(c.call_ack(&ack("null"))), Ok(()));
+        assert_eq!(block_on(c.call_ack(&ack("object"))), Ok(()));
+        assert_eq!(block_on(c.call_ack(&ack("text"))), Err(Error::Protocol(UNEXPECTED_RESULT.into())));
+        assert_eq!(block_on(c.call_ack(&ack("missing"))), Err(Error::Protocol(UNEXPECTED_RESULT.into())));
+        assert_eq!(block_on(c.call(&ack("null"))), Err(Error::Protocol(UNEXPECTED_RESULT.into())));
     }
 
     fn count(ws: &MockWs, method: &str) -> usize {

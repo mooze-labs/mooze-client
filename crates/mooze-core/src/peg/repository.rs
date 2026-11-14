@@ -167,9 +167,9 @@ impl<C: WsConnector> PegRepository for SideSwapClient<C> {
 
     async fn set_return_address(&mut self, order_id: &str, address: &str) -> Result<(), PegError> {
         let req = Request::peg_return_address(order_id, address);
-        match self.call(&req).await {
-            // The server answers an empty ack.
-            Ok(_) => Ok(()),
+        // The server acks with `"result": null`, so this is an ack call.
+        match self.call_ack(&req).await {
+            Ok(()) => Ok(()),
             Err(Error::Protocol(m)) if looks_like_not_found(&m) => Err(PegError::OrderNotFound(order_id.to_owned())),
             Err(e) => Err(read_failure(e)),
         }
@@ -331,7 +331,9 @@ mod tests {
     }
 
     // The answers of the production server: an ack, a lookup miss, and an
-    // address that does not parse.
+    // address that does not parse. The ack is `"result": null`: the response
+    // type of the method in the sideswap_api crate is `Empty`, which is
+    // `Option<Void>`. An ack read as `{}` failed every peg-out.
     #[test]
     fn set_return_address_sends_order_and_address() {
         let mut r = SideSwapPegRepository::new(SideSwapClient::new(
@@ -340,15 +342,18 @@ mod tests {
                 match p["order_id"].as_str().unwrap() {
                     "gone" => json!({"error": {"code": -32600, "message": "not found"}}),
                     "bad" => json!({"error": {"code": -32600, "message": "parsing address x failed"}}),
+                    // An object ack, if the server ever answers one.
+                    "object" => json!({"result": {}}),
                     _ => {
                         assert_eq!(p["address"], "lq1ret");
-                        json!({"result": {}})
+                        json!({"result": null})
                     }
                 }
             }),
             "k",
         ));
         assert_eq!(block_on(r.set_return_address("o1", "lq1ret")), Ok(()));
+        assert_eq!(block_on(r.set_return_address("object", "lq1ret")), Ok(()));
         assert_eq!(block_on(r.set_return_address("gone", "lq1ret")), Err(PegError::OrderNotFound("gone".into())));
         assert!(matches!(block_on(r.set_return_address("bad", "lq1ret")), Err(PegError::ProviderRejected(_))));
     }

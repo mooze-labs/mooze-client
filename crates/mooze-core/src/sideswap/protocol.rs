@@ -125,7 +125,8 @@ impl Request {
     /// `peg_return_address`: the Liquid address where SideSwap returns a
     /// peg-out deposit below its minimum (`InsufficientAmount`). The method
     /// is in the `sideswap_api` crate (`PegReturnAddressRequest`), not in the
-    /// public docs. The server answers an empty ack.
+    /// public docs. The server acks with `"result": null` (`Empty`): send it
+    /// with [`super::client::SideSwapClient::call_ack`].
     pub fn peg_return_address(order_id: &str, address: &str) -> Self {
         Self::new(method::PEG_RETURN_ADDRESS, json!({ "order_id": order_id, "address": address }))
     }
