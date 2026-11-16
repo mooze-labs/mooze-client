@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/motion.dart';
@@ -13,9 +14,10 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// [Motion.durationFast].
 ///
 /// A rise of [errorCount] shakes the capsule over
-/// [Motion.durationEmphasis], and [hasError] paints the dots in the error
-/// color until the next digit. With reduced motion the capsule does not
-/// shake; the error color still shows.
+/// [Motion.durationEmphasis] with a heavy haptic, and [hasError] paints the
+/// dots in the error color until the next digit. With reduced motion the
+/// capsule does not shake; the haptic and the error color still tell the
+/// error. The system haptic setting applies.
 ///
 /// Screen readers read how many digits are typed, never the digits.
 class PinDots extends StatefulWidget {
@@ -30,7 +32,8 @@ class PinDots extends StatefulWidget {
   final int length;
   final int filled;
 
-  /// Number of failed attempts so far. Each rise plays the shake once.
+  /// Number of failed attempts so far. Each rise plays the shake and the
+  /// haptic once.
   final int errorCount;
 
   /// Paints the dots in the error color.
@@ -61,9 +64,10 @@ class _PinDotsState extends State<PinDots> with SingleTickerProviderStateMixin {
   @override
   void didUpdateWidget(PinDots oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.errorCount > oldWidget.errorCount &&
-        !Motion.isReduced(context)) {
-      _shake.forward(from: 0);
+    if (widget.errorCount > oldWidget.errorCount) {
+      // A wrong PIN is felt as well as seen, with or without motion.
+      HapticFeedback.heavyImpact();
+      if (!Motion.isReduced(context)) _shake.forward(from: 0);
     }
   }
 
