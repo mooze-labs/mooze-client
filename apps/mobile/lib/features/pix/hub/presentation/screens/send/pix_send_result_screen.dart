@@ -43,7 +43,11 @@ import 'package:url_launcher/url_launcher.dart';
 /// with the details and the request ID to copy. "Back to Pix" is the main
 /// action. A quieter text action opens the receipt or refreshes the status.
 class PixSendResultScreen extends ConsumerStatefulWidget {
-  const PixSendResultScreen({super.key});
+  const PixSendResultScreen({super.key, this.onClose});
+
+  /// Closes the screen, from "Back to Pix" and the system back. By default
+  /// it goes back to the Pix hub; a preview passes its own.
+  final VoidCallback? onClose;
 
   /// Side margin of the content.
   static const double _gutter = 20;
@@ -70,6 +74,10 @@ class _PixSendResultScreenState extends ConsumerState<PixSendResultScreen>
   /// Whether the scene shows the Pix token, so the title tells the
   /// delivery.
   bool _showsPix = false;
+
+  /// Whether the content scrolls under the app bar, which then takes its
+  /// backdrop again.
+  bool _scrolledUnder = false;
 
   @override
   Animation<double> get stageAnimation => _stage.delivered;
@@ -147,7 +155,16 @@ class _PixSendResultScreenState extends ConsumerState<PixSendResultScreen>
     }
   }
 
+  bool _onScroll(ScrollNotification notification) {
+    if (notification.depth != 0) return false;
+    final under = notification.metrics.pixels > 0;
+    if (under != _scrolledUnder) setState(() => _scrolledUnder = under);
+    return false;
+  }
+
   void _close(BuildContext context, WidgetRef ref) {
+    final onClose = widget.onClose;
+    if (onClose != null) return onClose();
     ref.invalidate(pixPendingWithdrawalSyncProvider);
     context.go('/pix');
   }
@@ -172,63 +189,76 @@ class _PixSendResultScreenState extends ConsumerState<PixSendResultScreen>
         if (!didPop && !state.isBusy) _close(context, ref);
       },
       child: Scaffold(
-        // The app bar is clear and paints its slice of the backdrop. Its
-        // back button goes through the pop handler above.
+        // The app bar is clear: only its back button covers the scene,
+        // which reaches the top of the screen. It takes its slice of the
+        // backdrop once the content scrolls under it. Its back button goes
+        // through the pop handler above.
         extendBodyBehindAppBar: true,
-        appBar: const BackdropAppBar(),
+        appBar: BackdropAppBar(showsBackdrop: _scrolledUnder),
         body: Stack(
           children: [
             const Positioned.fill(child: AppBackdrop()),
+            // The list starts at the top of the screen, under the bar, so
+            // the light of the scene is not cut at the bar.
             SafeArea(
+              top: false,
               child: _Entrance(
                 child: Column(
                   children: [
                     Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: () => ref
-                            .read(pixSendControllerProvider.notifier)
-                            .refreshStatus(),
-                        child: ListView(
-                          // A pull-to-refresh needs a list that always
-                          // scrolls.
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(
-                            gutter,
-                            16,
-                            gutter,
-                            16,
-                          ),
-                          children: [
-                            PixStatusView(
-                              kind: look.kind,
-                              title: look.title,
-                              message: look.body,
-                              art: PixSendSceneView(stage: _stage),
-                              child: Column(
-                                children: [
-                                  _AmountHero(
-                                    record: record,
-                                    details: state.details,
-                                  ),
-                                  // The note explains a stopped or failed
-                                  // status read next to the emblem.
-                                  SizeFadeSwitcher(
-                                    child: _StatusNote(state: state),
-                                  ),
-                                ],
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: _onScroll,
+                        child: RefreshIndicator(
+                          edgeOffset:
+                              MediaQuery.paddingOf(context).top +
+                              kToolbarHeight,
+                          onRefresh: () => ref
+                              .read(pixSendControllerProvider.notifier)
+                              .refreshStatus(),
+                          child: ListView(
+                            // A pull-to-refresh needs a list that always
+                            // scrolls.
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.fromLTRB(
+                              gutter,
+                              MediaQuery.paddingOf(context).top +
+                                  kToolbarHeight +
+                                  16,
+                              gutter,
+                              16,
+                            ),
+                            children: [
+                              PixStatusView(
+                                kind: look.kind,
+                                title: look.title,
+                                message: look.body,
+                                art: PixSendSceneView(stage: _stage),
+                                child: Column(
+                                  children: [
+                                    _AmountHero(
+                                      record: record,
+                                      details: state.details,
+                                    ),
+                                    // The note explains a stopped or failed
+                                    // status read next to the emblem.
+                                    SizeFadeSwitcher(
+                                      child: _StatusNote(state: state),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 28),
-                            _DetailsCard(
-                              record: record,
-                              details: state.details,
-                            ),
-                            const SizedBox(height: 12),
-                            PixCopyField(
-                              label: t.pix_hub_summary_withdrawal_id,
-                              value: record.id,
-                            ),
-                          ],
+                              const SizedBox(height: 28),
+                              _DetailsCard(
+                                record: record,
+                                details: state.details,
+                              ),
+                              const SizedBox(height: 12),
+                              PixCopyField(
+                                label: t.pix_hub_summary_withdrawal_id,
+                                value: record.id,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

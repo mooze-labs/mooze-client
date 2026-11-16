@@ -31,6 +31,7 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_status_vi
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_underline_field.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:mooze_mobile/themes/motion.dart';
@@ -935,6 +936,62 @@ void main() {
 
       expect(motion(tester).entrance, 1);
       expect(motion(tester).wait, 0);
+    });
+
+    group('the app bar', () {
+      /// A phone, where the page scrolls.
+      void usePhone(WidgetTester tester) {
+        tester.view.physicalSize = const Size(390, 844) * 3;
+        tester.view.devicePixelRatio = 3;
+        addTearDown(tester.view.reset);
+      }
+
+      /// The opacity the slice of the backdrop of the bar goes to.
+      double backdrop(WidgetTester tester) => tester
+          .widget<AnimatedOpacity>(
+            find.descendant(
+              of: find.byType(BackdropAppBar),
+              matching: find.byType(AnimatedOpacity),
+            ),
+          )
+          .opacity;
+
+      testWidgets('leaves the scene uncut: the list starts at the top of '
+          'the screen, and the scene and the refresh start below the bar', (
+        tester,
+      ) async {
+        await open(tester);
+        usePhone(tester);
+        await advance(tester, const Duration(milliseconds: 400));
+
+        expect(tester.getRect(find.byType(ListView)).top, 0);
+        expect(
+          tester.getRect(find.byType(PixSendScene)).top,
+          greaterThanOrEqualTo(kToolbarHeight),
+        );
+        expect(
+          tester
+              .widget<RefreshIndicator>(find.byType(RefreshIndicator))
+              .edgeOffset,
+          kToolbarHeight,
+        );
+      });
+
+      testWidgets('shows only its button over the scene, and takes its '
+          'backdrop once the content scrolls under it', (tester) async {
+        await open(tester);
+        usePhone(tester);
+        await advance(tester, const Duration(milliseconds: 400));
+        expect(backdrop(tester), 0);
+
+        await tester.drag(find.byType(ListView), const Offset(0, -200));
+        await advance(tester, const Duration(milliseconds: 400));
+        expect(backdrop(tester), 1);
+
+        await tester.drag(find.byType(ListView), const Offset(0, 400));
+        await advance(tester, const Duration(milliseconds: 400));
+        expect(backdrop(tester), 0);
+      });
     });
 
     testWidgets('with reduced motion, nothing loops, and the Pix token shows '

@@ -253,12 +253,11 @@ class PixSendScene extends StatelessWidget {
                       token,
                       stageProgress(d, revealAt - 0.02, revealAt + 0.12),
                     )
-                    // The page clips its list, so the beam fades out at
-                    // the top of the stage rather than at the top of the
-                    // screen.
+                    // The beam reaches past the top of the screen, so it
+                    // shows no end: the list of the page starts there.
                     ..beam(
                       stage,
-                      0,
+                      -reach,
                       Curves.easeOut.transform(stageProgress(d, 0.5, 0.8)),
                     )
                     ..floor(

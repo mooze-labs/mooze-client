@@ -8,7 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/domain/events/sync_outcome.dart';
 import 'package:mooze_mobile/domain/failures/failure.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/screens/send/pix_send_result_screen.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_qr_panel.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_send_scene.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_status_view.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_qr_scene.dart';
 import 'package:mooze_mobile/features/setup/presentation/providers/onboarding_provider.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
@@ -19,6 +22,7 @@ import 'package:mooze_mobile/features/sync/domain/sync_strategy.dart';
 import 'package:mooze_mobile/features/wallet/domain/usecases/refresh_wallet.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/converting_details_screen.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/dev/pix_send_preview.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/dev/swap_simulator_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/transaction_sent_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
@@ -328,5 +332,80 @@ void main() {
     expect(find.text(r'R$ 50,00'), findsOneWidget);
     expect(find.text(r'R$ 129,90'), findsOneWidget);
     expect(find.text(r'Total: R$ 179,90'), findsOneWidget);
+  });
+
+  group('Pix send', () {
+    /// Whether the title of the result tells [text].
+    bool titled(String text) => find
+        .descendant(of: find.byType(PixStatusView), matching: find.text(text))
+        .evaluate()
+        .isNotEmpty;
+
+    PixSendMotion motion(WidgetTester tester) =>
+        tester.widget<PixSendScene>(find.byType(PixSendScene)).motion;
+
+    /// Taps the preview with [label] and lets its result open.
+    Future<void> open(WidgetTester tester, String label) async {
+      await tapPreview(tester, label);
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    testWidgets('the preview runs the result as the provider answers: the '
+        'DePix coin waits, then becomes the Pix; its button returns to the '
+        'simulator, and nothing is stored', (tester) async {
+      await pump(tester);
+      await open(tester, 'Pix send: delivered');
+
+      expect(find.byType(PixSendResultScreen), findsOneWidget);
+      expect(titled('Pix em processamento'), isTrue);
+      expect(motion(tester).delivered, 0);
+      // Reads at 3 s and at 6 s, then the turn.
+      for (var i = 0; i < 90; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(motion(tester).delivered, 1);
+      expect(titled('Pix entregue'), isTrue);
+      expect(find.text('Ana Souza'), findsOneWidget);
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getString('pix_withdrawal_records'), isNull);
+
+      await tester.tap(find.text('Voltar ao Pix'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PixSendResultScreen), findsNothing);
+      expect(find.byType(SwapSimulatorScreen), findsOneWidget);
+    });
+
+    testWidgets('every preview opens its result, and the back returns to '
+        'the simulator', (tester) async {
+      await pump(tester);
+
+      for (final preview in PixSendPreview.all) {
+        await open(tester, preview.label);
+        expect(find.byType(PixSendResultScreen), findsOneWidget);
+        expect(
+          motion(tester).delivered,
+          preview.atOutcome ? 1 : 0,
+          reason: preview.label,
+        );
+
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(find.byType(PixSendResultScreen), findsNothing);
+        expect(find.byType(SwapSimulatorScreen), findsOneWidget);
+      }
+    });
+
+    testWidgets('a refund ends without the Pix', (tester) async {
+      await pump(tester);
+      await open(tester, 'Pix send: refunded');
+      for (var i = 0; i < 90; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(titled('Pix não concluído'), isTrue);
+      expect(motion(tester).returned, 1);
+      expect(motion(tester).delivered, 0);
+    });
   });
 }

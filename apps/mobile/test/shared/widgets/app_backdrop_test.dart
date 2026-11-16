@@ -239,7 +239,31 @@ void main() {
 
     final bar = tester.widget<AppBar>(find.byType(AppBar));
     expect(bar.backgroundColor, Colors.transparent);
-    expect(bar.flexibleSpace, isA<AppBackdrop>());
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(AppBackdrop),
+      ),
+      findsOneWidget,
+    );
+    expect(_barBackdrop(tester), 1);
+    expect(find.text('Ativos'), findsOneWidget);
+  });
+
+  testWidgets('without its backdrop, the app bar shows only its title and '
+      'buttons', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: BackdropAppBar(title: Text('Ativos'), showsBackdrop: false),
+          body: AppBackdrop(),
+        ),
+        brightness: Brightness.dark,
+      ),
+    );
+
+    expect(_barBackdrop(tester), 0);
     expect(find.text('Ativos'), findsOneWidget);
   });
 
@@ -270,3 +294,13 @@ void main() {
     });
   }
 }
+
+/// The opacity the slice of the backdrop of the app bar goes to.
+double _barBackdrop(WidgetTester tester) => tester
+    .widget<AnimatedOpacity>(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(AnimatedOpacity),
+      ),
+    )
+    .opacity;

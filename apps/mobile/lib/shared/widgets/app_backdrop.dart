@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Paints the backdrop of the main screens (see [BackdropStyle]).
@@ -201,7 +202,14 @@ class BackdropAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.leading,
     this.automaticallyImplyLeading = true,
+    this.showsBackdrop = true,
   });
+
+  /// Whether the bar paints its slice of the backdrop. A screen whose art
+  /// reaches the top of the screen turns it off while nothing scrolls under
+  /// the bar, so only the buttons of the bar cover the art. The slice fades
+  /// in and out.
+  final bool showsBackdrop;
 
   final Widget? title;
   final List<Widget>? actions;
@@ -222,7 +230,12 @@ class BackdropAppBar extends StatelessWidget implements PreferredSizeWidget {
       surfaceTintColor: Colors.transparent,
       foregroundColor: context.colors.textPrimary,
       // The bar starts at the top of the screen, so its slice has origin 0.
-      flexibleSpace: const AppBackdrop(),
+      flexibleSpace: AnimatedOpacity(
+        opacity: showsBackdrop ? 1 : 0,
+        duration: Motion.of(context, Motion.durationFast),
+        curve: Motion.curveMove,
+        child: const AppBackdrop(),
+      ),
     );
   }
 }

@@ -11,6 +11,7 @@ import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onbo
 import 'package:mooze_mobile/features/swap/presentation/screens/swap_success_screen.dart';
 import 'package:mooze_mobile/features/wallet/domain/entities/transaction.dart';
 import 'package:mooze_mobile/features/wallet/domain/enums/blockchain.dart';
+import 'package:mooze_mobile/features/wallet/presentation/screens/dev/pix_send_preview.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/pending_swaps_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/send_funds/transaction_sent_screen.dart';
 import 'package:mooze_mobile/features/wallet/presentation/screens/transaction_confirmed_screen.dart';
@@ -37,8 +38,10 @@ import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 /// It also opens the screens that only real events show, with sample
 /// data: the confirmation of a received transaction and the end of a send
 /// for each asset, the end of a peg-in and a peg-out, a level up, a level
-/// down, the pending DePix receipts of the holdings screen, and the scene
-/// that covers a screen while a Pix QR code is created.
+/// down, the pending DePix receipts of the holdings screen, the scene
+/// that covers a screen while a Pix QR code is created, and the result of a
+/// Pix send as the provider answers it (see [PixSendPreview]): nothing is
+/// sent and nothing is stored.
 ///
 /// Route: `/dev/swap-simulator` (registered in `walletRoutes`).
 class SwapSimulatorScreen extends ConsumerStatefulWidget {
@@ -227,6 +230,14 @@ class _SwapSimulatorScreenState extends ConsumerState<SwapSimulatorScreen> {
                       _previewQrLoading(wait: wait, created: created),
                   icon: const Icon(Icons.qr_code_2),
                   label: Text(label),
+                ),
+              // The result of a Pix send: the DePix coin waits while the
+              // provider pays, then becomes the Pix, or not.
+              for (final preview in PixSendPreview.all)
+                OutlinedButton.icon(
+                  onPressed: () => preview.open(context),
+                  icon: const Icon(Icons.pix),
+                  label: Text(preview.label),
                 ),
             ],
           ),
