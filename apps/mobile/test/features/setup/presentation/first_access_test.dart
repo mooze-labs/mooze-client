@@ -112,6 +112,71 @@ void main() {
     expect(importEnabled(tester), isTrue);
   });
 
+  group('the acceptance of the terms', () {
+    /// First access, the import screen it opens, and the wallet past the
+    /// setup.
+    Future<GoRouter> openFlow(WidgetTester tester) async {
+      usePhoneSize(tester);
+      final router = GoRouter(
+        initialLocation: '/setup/first-access',
+        routes: [
+          GoRoute(
+            path: '/setup/first-access',
+            builder: (_, _) => const FirstAccessScreen(),
+          ),
+          opened.stub('/setup/import-wallet'),
+          opened.stub('/home'),
+        ],
+      );
+      await tester.pumpWidget(
+        setupTestApp(
+          router: router,
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        ),
+      );
+      await settle(tester);
+      return router;
+    }
+
+    bool checked(WidgetTester tester) =>
+        tester.widget<Checkbox>(find.byType(Checkbox)).value!;
+
+    testWidgets('stays while the setup goes forward and back', (tester) async {
+      final router = await openFlow(tester);
+      await tester.tap(find.byType(Checkbox));
+      await settle(tester);
+
+      await tester.tap(find.text('Importar carteira'));
+      await settle(tester);
+      expect(opened.last, '/setup/import-wallet');
+      router.pop();
+      await settle(tester);
+
+      expect(checked(tester), isTrue);
+      expect(importEnabled(tester), isTrue);
+    });
+
+    testWidgets('does not outlive the setup: once the wallet is deleted, '
+        'first access asks again', (tester) async {
+      final router = await openFlow(tester);
+      await tester.tap(find.byType(Checkbox));
+      await settle(tester);
+      await tester.tap(find.text('Importar carteira'));
+      await settle(tester);
+
+      // The setup ends: the wallet replaces the whole stack.
+      router.go('/home');
+      await settle(tester);
+      // The wallet is deleted, and the app starts over.
+      router.go('/setup/first-access');
+      await settle(tester);
+
+      expect(checked(tester), isFalse);
+      expect(createEnabled(tester), isFalse);
+      expect(importEnabled(tester), isFalse);
+    });
+  });
+
   testWidgets('create opens the phrase length step', (tester) async {
     await open(tester);
     await tester.tap(find.byType(Checkbox));
