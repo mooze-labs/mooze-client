@@ -165,9 +165,44 @@
       }
     }
   },
-  "biometric_setup_enable_q": "Ativar biometria?",
-  "biometric_setup_explanation": "Use Face ID, impressão digital ou a senha do dispositivo para acessar sua carteira com mais rapidez e segurança.",
-  "biometric_setup_enable": "Ativar biometria",
+  "biometric_method_face_id": "Face ID",
+  "biometric_method_touch_id": "Touch ID",
+  "biometric_method_generic": "biometria",
+  "biometric_setup_title": "Ativar {method}?",
+  "@biometric_setup_title": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "biometric_setup_body": "Abra sua carteira com {method}, com mais rapidez e segurança.",
+  "@biometric_setup_body": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "biometric_setup_button": "Ativar {method}",
+  "@biometric_setup_button": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "biometric_setup_done_title": "Tudo certo!",
+  "biometric_setup_done_body": "Agora você abre sua carteira com {method}.",
+  "@biometric_setup_done_body": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "biometric_setup_failed": "Não conseguimos confirmar. Tente de novo.",
+  "biometric_setup_locked": "Bloqueado por muitas tentativas. Desbloqueie o aparelho e tente de novo.",
   "seed_fetch_error": "Erro: {error}",
   "@seed_fetch_error": {
     "placeholders": {

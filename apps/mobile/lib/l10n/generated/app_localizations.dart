@@ -922,23 +922,65 @@ abstract class AppLocalizations {
   /// **'{error}'**
   String biometric_auth_error(String error);
 
-  /// No description provided for @biometric_setup_enable_q.
+  /// No description provided for @biometric_method_face_id.
   ///
   /// In pt, this message translates to:
-  /// **'Ativar biometria?'**
-  String get biometric_setup_enable_q;
+  /// **'Face ID'**
+  String get biometric_method_face_id;
 
-  /// No description provided for @biometric_setup_explanation.
+  /// No description provided for @biometric_method_touch_id.
   ///
   /// In pt, this message translates to:
-  /// **'Use Face ID, impressão digital ou a senha do dispositivo para acessar sua carteira com mais rapidez e segurança.'**
-  String get biometric_setup_explanation;
+  /// **'Touch ID'**
+  String get biometric_method_touch_id;
 
-  /// No description provided for @biometric_setup_enable.
+  /// No description provided for @biometric_method_generic.
   ///
   /// In pt, this message translates to:
-  /// **'Ativar biometria'**
-  String get biometric_setup_enable;
+  /// **'biometria'**
+  String get biometric_method_generic;
+
+  /// No description provided for @biometric_setup_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativar {method}?'**
+  String biometric_setup_title(String method);
+
+  /// No description provided for @biometric_setup_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abra sua carteira com {method}, com mais rapidez e segurança.'**
+  String biometric_setup_body(String method);
+
+  /// No description provided for @biometric_setup_button.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativar {method}'**
+  String biometric_setup_button(String method);
+
+  /// No description provided for @biometric_setup_done_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tudo certo!'**
+  String get biometric_setup_done_title;
+
+  /// No description provided for @biometric_setup_done_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agora você abre sua carteira com {method}.'**
+  String biometric_setup_done_body(String method);
+
+  /// No description provided for @biometric_setup_failed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não conseguimos confirmar. Tente de novo.'**
+  String get biometric_setup_failed;
+
+  /// No description provided for @biometric_setup_locked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bloqueado por muitas tentativas. Desbloqueie o aparelho e tente de novo.'**
+  String get biometric_setup_locked;
 
   /// No description provided for @seed_fetch_error.
   ///

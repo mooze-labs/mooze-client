@@ -5,7 +5,9 @@ import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/biome
 import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/verify_pin_screen.dart';
 import 'presentation/screens.dart';
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/shared/authentication/services/biometric_service.dart';
 import 'package:mooze_mobile/shared/security/secure_screen.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/shared/widgets/motion/fade_through_page.dart';
 
 final setupRoutes = [
@@ -101,31 +103,54 @@ final setupRoutes = [
   ),
   GoRoute(
     path: "/setup/wallet-import-loading",
-    builder: (context, state) => const WalletImportLoadingScreen(),
+    pageBuilder: (context, state) => _scenePage(
+      context,
+      state,
+      (entrance) => WalletImportLoadingScreen(entrance: entrance),
+    ),
   ),
 
   GoRoute(
     path: "/setup/onboarding",
-    pageBuilder: (context, state) {
-      final entrance = state.extra is OnboardingEntrance
-          ? state.extra! as OnboardingEntrance
-          : OnboardingEntrance.standard;
-      final screen = OnboardingScreen(entrance: entrance);
-      // The Mooze coin flies in from the screen before: the page fades in
-      // around it, so the coin is the one thing that moves.
-      if (entrance == OnboardingEntrance.coinInPlace) {
-        return fadeThroughPage(context: context, state: state, child: screen);
-      }
-      return MaterialPage(
-        key: state.pageKey,
-        name: state.name ?? state.path,
-        restorationId: state.pageKey.value,
-        child: screen,
-      );
-    },
+    pageBuilder: (context, state) => _scenePage(
+      context,
+      state,
+      (entrance) => OnboardingScreen(entrance: entrance),
+    ),
   ),
   GoRoute(
     path: "/setup/biometric",
-    builder: (context, state) => const BiometricSetupScreen(),
+    builder: (context, state) => BiometricSetupScreen(
+      capabilities: state.extra is BiometricCapabilities
+          ? state.extra! as BiometricCapabilities
+          : null,
+    ),
   ),
 ];
+
+/// The page of a screen whose scene holds the Mooze coin, built for the
+/// [StageEntrance] the route got as its extra.
+///
+/// When the coin flies in from the screen before, the page fades in around
+/// it, so the coin is the one thing that moves. Otherwise the page slides
+/// in as any other.
+Page<void> _scenePage(
+  BuildContext context,
+  GoRouterState state,
+  Widget Function(StageEntrance entrance) screen,
+) {
+  final entrance = StageEntrance.of(state.extra);
+  if (entrance == StageEntrance.coinInPlace) {
+    return fadeThroughPage(
+      context: context,
+      state: state,
+      child: screen(entrance),
+    );
+  }
+  return MaterialPage(
+    key: state.pageKey,
+    name: state.name ?? state.path,
+    restorationId: state.pageKey.value,
+    child: screen(entrance),
+  );
+}

@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/di/providers/pix_repository_provider.dart';
-import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
@@ -21,6 +20,7 @@ import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/shared/widgets/motion/route_entrance.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_haptics.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -247,7 +247,7 @@ class _WalletDeletingScreenState extends ConsumerState<WalletDeletingScreen>
     // The Mooze coin flies on into the onboarding, and the asset coins of
     // a new wallet come back out of it there.
     if (mounted) {
-      context.go('/setup/onboarding', extra: OnboardingEntrance.coinInPlace);
+      context.go('/setup/onboarding', extra: StageEntrance.coinInPlace);
     }
   }
 

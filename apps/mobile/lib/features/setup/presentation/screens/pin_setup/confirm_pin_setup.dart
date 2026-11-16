@@ -98,16 +98,19 @@ class _ConfirmPinSetupScreenState extends ConsumerState<ConfirmPinSetupScreen> {
       if (widget.isChangingPin) {
         context.pop();
       } else {
-        // For new wallet setup, offer biometric opt-in if the device
-        // supports it. Otherwise go straight to the loading screen.
+        // For new wallet setup, offer biometric opt-in only when a
+        // biometric is enrolled: a device with just a passcode has nothing
+        // to turn on. Otherwise go straight to the loading screen.
         final biometricService = ref.read(biometricServiceProvider);
-        final isAvailable = await biometricService.isAvailable().run();
+        final capabilities = await biometricService.capabilities().run();
 
         if (!mounted) return;
 
-        if (isAvailable) {
+        if (capabilities.hasBiometrics) {
           BootTracer.mark('pin_confirm.nav.biometric');
-          context.go('/setup/biometric');
+          // The biometric screen shows the enrolled kind from its first
+          // frame.
+          context.go('/setup/biometric', extra: capabilities);
         } else {
           BootTracer.mark('pin_confirm.nav.import_loading');
           context.go('/setup/wallet-import-loading');

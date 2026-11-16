@@ -17,6 +17,8 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/shared/widgets/motion/route_entrance.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -84,7 +86,15 @@ enum OpeningFailure {
 /// it. If the balances take longer than [syncPatience], the home screen
 /// opens anyway and they arrive there.
 class WalletImportLoadingScreen extends ConsumerStatefulWidget {
-  const WalletImportLoadingScreen({super.key});
+  const WalletImportLoadingScreen({
+    super.key,
+    this.entrance = StageEntrance.standard,
+  });
+
+  /// How the scene begins. With [StageEntrance.coinInPlace], the Mooze coin
+  /// flies in from the biometric seal of the screen before, and the scene
+  /// starts to turn once it has landed.
+  final StageEntrance entrance;
 
   /// Starts before the screen asks the user: the first one and two
   /// automatic retries.
@@ -153,7 +163,16 @@ class _WalletImportLoadingScreenState
     _still = Motion.isReduced(context);
     if (_started) return;
     _started = true;
-    if (!_still) _spin.repeat();
+    if (!_still) {
+      if (widget.entrance == StageEntrance.coinInPlace) {
+        // The coin is still flying in: the scene turns once it has landed.
+        afterRouteEntrance(context, () {
+          if (_failure == null && _step != OpeningStep.done) _spin.repeat();
+        });
+      } else {
+        _spin.repeat();
+      }
+    }
     _minimumTimer = Timer(
       WalletImportLoadingScreen.minimumShow,
       _minimumShown.complete,

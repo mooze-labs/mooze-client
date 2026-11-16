@@ -76,6 +76,15 @@ abstract final class Motion {
   /// rests (1.8 s).
   static const durationFarewell = Duration(milliseconds: 1800);
 
+  /// One sweep of the scan beam over the biometric seal, down and back up,
+  /// while the system prompt is up (1.6 s).
+  static const durationScan = Duration(milliseconds: 1600);
+
+  /// Success of the biometric seal: its ridges light up and turn into a
+  /// check with a flash and a shockwave, then the seal turns into the
+  /// Mooze coin, until the scene rests (2 s).
+  static const durationBiometricSuccess = Duration(milliseconds: 2000);
+
   /// Entrance of an onboarding scene: its art takes its place the first
   /// time its page shows (1.2 s). A slow drift follows, within
   /// [durationAmbient] forward and back.

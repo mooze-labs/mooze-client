@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_coins.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_effects.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_palette.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -146,13 +147,19 @@ class OpeningScene extends StatelessWidget {
                 at: center,
                 size: coreSize,
                 scale: 1 + 0.06 * math.sin(math.pi * f),
-                child: GlyphToken(
-                  glyphPath: _moozeGlyph,
-                  size: coreSize,
-                  yaw: 0.3 + 0.18 * math.sin(2 * cycle),
-                  tint: brand,
-                  palette: palette,
-                  glyphScale: 0.5,
+                // At rest, at the yaw of the coin the biometric seal turns
+                // into, so the coin that flies in from it lands without a
+                // jump.
+                child: StageHero(
+                  tag: StageHero.moozeCoin,
+                  child: GlyphToken(
+                    glyphPath: _moozeGlyph,
+                    size: coreSize,
+                    yaw: 0.3 + 0.18 * math.sin(2 * cycle),
+                    tint: brand,
+                    palette: palette,
+                    glyphScale: 0.5,
+                  ),
                 ),
               ),
               StagePaintLayer((canvas, size) {

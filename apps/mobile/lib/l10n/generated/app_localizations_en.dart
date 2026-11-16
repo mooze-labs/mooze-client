@@ -450,14 +450,43 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get biometric_setup_enable_q => 'Enable biometrics?';
+  String get biometric_method_face_id => 'Face ID';
 
   @override
-  String get biometric_setup_explanation =>
-      'Use Face ID, fingerprint, or your device password to access your wallet faster and more securely.';
+  String get biometric_method_touch_id => 'Touch ID';
 
   @override
-  String get biometric_setup_enable => 'Enable biometrics';
+  String get biometric_method_generic => 'biometrics';
+
+  @override
+  String biometric_setup_title(String method) {
+    return 'Enable $method?';
+  }
+
+  @override
+  String biometric_setup_body(String method) {
+    return 'Open your wallet with $method, faster and more securely.';
+  }
+
+  @override
+  String biometric_setup_button(String method) {
+    return 'Enable $method';
+  }
+
+  @override
+  String get biometric_setup_done_title => 'All set!';
+
+  @override
+  String biometric_setup_done_body(String method) {
+    return 'From now on, you open your wallet with $method.';
+  }
+
+  @override
+  String get biometric_setup_failed => 'We couldn\'t confirm it. Try again.';
+
+  @override
+  String get biometric_setup_locked =>
+      'Locked after too many attempts. Unlock your device and try again.';
 
   @override
   String seed_fetch_error(String error) {

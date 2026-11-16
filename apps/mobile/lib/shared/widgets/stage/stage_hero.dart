@@ -1,5 +1,21 @@
 import 'package:flutter/material.dart';
 
+/// How a screen whose scene holds the Mooze coin begins: the route that
+/// opens it passes one as its extra (see [StageEntrance.of]).
+enum StageEntrance {
+  /// The scene enters on its own.
+  standard,
+
+  /// The Mooze coin is already there: it flies in from the screen before
+  /// (see [StageHero.moozeCoin]) while the page fades in around it. The
+  /// scene does not grow the coin in, and starts once it has landed.
+  coinInPlace;
+
+  /// The entrance that a route passed as [extra], [standard] if none.
+  static StageEntrance of(Object? extra) =>
+      extra is StageEntrance ? extra : standard;
+}
+
 /// A token that flies from the scene of one screen into the scene of the
 /// next, so the two scenes read as one shot: the Mooze coin flies from the
 /// end of the deleting screen into the onboarding.

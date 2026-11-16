@@ -13,7 +13,6 @@ import 'package:mooze_mobile/app/lifecycle/app_state.dart';
 import 'package:mooze_mobile/domain/failures/failure.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/wallet_deleting/wallet_deleting_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/wallet_deleting/widgets/closing_scene.dart';
-import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/widgets/onboarding_scene.dart';
 import 'package:mooze_mobile/features/setup/routes.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
@@ -21,6 +20,7 @@ import 'package:mooze_mobile/shared/authentication/providers.dart';
 import 'package:mooze_mobile/shared/authentication/services/session_manager_service.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_coins.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 
@@ -309,7 +309,7 @@ void main() {
     verify(() => session.resetIdentity()).called(1);
     expect(lifecycle.deletes, hasLength(1));
     // The onboarding takes the Mooze coin as it is.
-    expect(opened.extras.last, OnboardingEntrance.coinInPlace);
+    expect(opened.extras.last, StageEntrance.coinInPlace);
   });
 
   testWidgets('the Mooze coin flies on into the onboarding as one coin, and '

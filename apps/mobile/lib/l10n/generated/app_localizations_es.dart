@@ -454,14 +454,44 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get biometric_setup_enable_q => '¿Activar biometría?';
+  String get biometric_method_face_id => 'Face ID';
 
   @override
-  String get biometric_setup_explanation =>
-      'Usa Face ID, huella digital o la contraseña del dispositivo para acceder a tu billetera de forma más rápida y segura.';
+  String get biometric_method_touch_id => 'Touch ID';
 
   @override
-  String get biometric_setup_enable => 'Activar biometría';
+  String get biometric_method_generic => 'biometría';
+
+  @override
+  String biometric_setup_title(String method) {
+    return '¿Activar $method?';
+  }
+
+  @override
+  String biometric_setup_body(String method) {
+    return 'Abre tu billetera con $method, de forma más rápida y segura.';
+  }
+
+  @override
+  String biometric_setup_button(String method) {
+    return 'Activar $method';
+  }
+
+  @override
+  String get biometric_setup_done_title => '¡Listo!';
+
+  @override
+  String biometric_setup_done_body(String method) {
+    return 'Ahora abres tu billetera con $method.';
+  }
+
+  @override
+  String get biometric_setup_failed =>
+      'No pudimos confirmarlo. Inténtalo de nuevo.';
+
+  @override
+  String get biometric_setup_locked =>
+      'Bloqueado por demasiados intentos. Desbloquea tu dispositivo e inténtalo de nuevo.';
 
   @override
   String seed_fetch_error(String error) {

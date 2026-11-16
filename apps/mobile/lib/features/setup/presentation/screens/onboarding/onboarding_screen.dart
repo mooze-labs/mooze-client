@@ -11,21 +11,9 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets/motion/route_entrance.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
-
-/// How the onboarding begins: the route that opens it passes one as its
-/// extra.
-enum OnboardingEntrance {
-  /// The art of the first page enters on its own: the Mooze coin grows in,
-  /// then the asset coins spiral out of it.
-  standard,
-
-  /// The Mooze coin is already there: it flies in from the screen before,
-  /// the end of a deleted wallet, while the page fades in around it. Once
-  /// it has landed, the asset coins of a new wallet spiral out of it.
-  coinInPlace,
-}
 
 /// The first screens of a new install: four pages about the wallet, Pix,
 /// swaps, and security, before the choice to create or import a wallet.
@@ -42,15 +30,18 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({
     super.key,
     this.onDone,
-    this.entrance = OnboardingEntrance.standard,
+    this.entrance = StageEntrance.standard,
   });
 
   /// Runs instead of the end of the onboarding, for example to close a
   /// preview.
   final VoidCallback? onDone;
 
-  /// How the art of the first page begins.
-  final OnboardingEntrance entrance;
+  /// How the art of the first page begins. With
+  /// [StageEntrance.coinInPlace], the Mooze coin flies in from the end of a
+  /// deleted wallet, and the asset coins of a new wallet spiral out of it
+  /// once it has landed.
+  final StageEntrance entrance;
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -78,7 +69,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
-    if (widget.entrance == OnboardingEntrance.coinInPlace) {
+    if (widget.entrance == StageEntrance.coinInPlace) {
       // The coin is still flying in: the art starts once it has landed.
       afterRouteEntrance(context, () => _play(0));
     } else {
@@ -204,7 +195,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                 offset: offset,
                                 coinInPlace:
                                     widget.entrance ==
-                                    OnboardingEntrance.coinInPlace,
+                                    StageEntrance.coinInPlace,
                               ),
                             ),
                           );

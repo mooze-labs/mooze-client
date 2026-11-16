@@ -348,7 +348,7 @@ void main() {
         'which is already in place, and the art waits for it to land', (
       tester,
     ) async {
-      await openFrom(tester, extra: OnboardingEntrance.coinInPlace);
+      await openFrom(tester, extra: StageEntrance.coinInPlace);
       final art = find.byType(OnboardingSceneView);
       expect(
         routeOf(tester),
