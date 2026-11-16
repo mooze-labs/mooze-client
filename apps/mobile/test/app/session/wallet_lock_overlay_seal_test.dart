@@ -8,6 +8,7 @@ import 'package:mooze_mobile/app/session/lock_seal_provider.dart';
 import 'package:mooze_mobile/app/session/privacy_shield_controller.dart';
 import 'package:mooze_mobile/app/session/session_lock_controller.dart';
 import 'package:mooze_mobile/app/session/session_lock_state.dart';
+import 'package:mooze_mobile/app/session/widgets/lock_vault.dart';
 import 'package:mooze_mobile/app/session/widgets/privacy_shield_overlay.dart';
 import 'package:mooze_mobile/app/session/widgets/session_lock_gate.dart';
 import 'package:mooze_mobile/app/session/widgets/wallet_lock_overlay.dart';
@@ -18,6 +19,7 @@ import 'package:mooze_mobile/shared/authentication/providers/biometric_service_p
 import 'package:mooze_mobile/shared/authentication/services/biometric_service.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_coins.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -212,11 +214,30 @@ void main() {
       expect(surface.color!.a, 1);
     });
 
-    testWidgets('shows the padlock to a user of a PIN alone', (tester) async {
+    testWidgets('shows the vault, still, to a user of a PIN alone, in the '
+        'place of the seal', (tester) async {
       await start(tester);
+      await tester.pumpWidget(overlay(locked: false));
+      await advance(tester, const Duration(milliseconds: 500));
+      final seal = tester.getRect(find.byType(StageToken));
+      final title = tester.getRect(find.text(t.privacy_shield_locked_title));
+
       await tester.pumpWidget(overlay(locked: false, kind: null));
+      await advance(tester, const Duration(milliseconds: 500));
       expect(find.byType(BiometricScene), findsNothing);
-      expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.lock_rounded), findsNothing);
+      final vault = tester.widget<GlyphToken>(
+        find.descendant(
+          of: find.byType(LockVault),
+          matching: find.byType(GlyphToken),
+        ),
+      );
+      expect(vault.glyphPath, stageVaultGlyph);
+      expect(vault.shape, stageVaultShape);
+      // The cover reads the same: the art and the texts keep their place.
+      expect(tester.getRect(find.byType(StageToken)), seal);
+      expect(tester.getRect(find.text(t.privacy_shield_locked_title)), title);
+      expect(tester.binding.hasScheduledFrame, isFalse);
     });
   });
 

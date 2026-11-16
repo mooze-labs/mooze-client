@@ -51,7 +51,7 @@ class WalletLockOverlay extends StatefulWidget {
   final VoidCallback onAuthenticated;
 
   /// The biometric on the seal of the cover, when the user unlocks with one.
-  /// Without it, the cover shows a padlock.
+  /// Without it, the cover shows the vault of the onboarding.
   final BiometricKind? sealKind;
 
   const WalletLockOverlay({

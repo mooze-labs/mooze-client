@@ -9,6 +9,8 @@ import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
+import 'lock_vault.dart';
+
 /// The branded, fully opaque privacy / lock face.
 ///
 /// Two roles with the same look so transitions are seamless: a cosmetic shield
@@ -19,8 +21,8 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 ///
 /// When the user unlocks with a biometric, its art is the biometric seal
 /// ([sealKind]): at rest on the cosmetic shield, driven by [seal] on the lock
-/// face, where it scans while the system prompt is up. Otherwise it is a
-/// padlock. The room of the actions is kept in both roles, so the art and
+/// face, where it scans while the system prompt is up. Otherwise it is the
+/// vault of the onboarding, at rest ([LockVault]), in the same place. The room of the actions is kept in both roles, so the art and
 /// the texts stay in place when the actions fade in.
 ///
 /// It sits on the backdrop of the screens of the app ([AppBackdrop]), the
@@ -38,7 +40,7 @@ class PrivacyShieldOverlay extends StatelessWidget {
   final bool isBiometricLoading;
 
   /// The biometric on the seal, when the user unlocks with one. Without it,
-  /// the art is a padlock.
+  /// the art is the vault ([LockVault]).
   final BiometricKind? sealKind;
 
   /// Drives the seal on the lock face. Without it, the seal rests.
@@ -60,31 +62,19 @@ class PrivacyShieldOverlay extends StatelessWidget {
     final kind = sealKind;
     final seal = this.seal;
 
-    final art = switch ((kind, seal)) {
-      (null, _) => Padding(
-        padding: const EdgeInsets.only(bottom: 28),
-        child: Container(
-          width: 96,
-          height: 96,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: colorScheme.primary.withValues(alpha: 0.12),
-          ),
-          child: Icon(Icons.lock_rounded, size: 48, color: colorScheme.primary),
+    // The floor of the stage reaches its bottom: the logo keeps clear of it.
+    final art = Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: switch ((kind, seal)) {
+        (null, _) => const LockVault(),
+        (final kind?, null) => BiometricScene(
+          kind: kind,
+          motion: const BiometricMotion(),
+          finale: BiometricFinale.check,
         ),
-      ),
-      (final kind?, null) => BiometricScene(
-        kind: kind,
-        motion: const BiometricMotion(),
-        finale: BiometricFinale.check,
-      ),
-      (final kind?, final seal?) => BiometricSealView(seal: seal, kind: kind),
-    };
-    // The floor of the seal reaches the bottom of its stage: the logo keeps
-    // clear of it.
-    final spaced = kind == null
-        ? art
-        : Padding(padding: const EdgeInsets.only(bottom: 16), child: art);
+        (final kind?, final seal?) => BiometricSealView(seal: seal, kind: kind),
+      },
+    );
 
     return SizedBox.expand(
       child: Material(
@@ -105,7 +95,7 @@ class PrivacyShieldOverlay extends StatelessWidget {
                           clipBehavior: Clip.none,
                           child: Column(
                             children: [
-                              spaced,
+                              art,
                               SvgPicture.asset(
                                 'assets/logos/logo_primary.svg',
                                 width: 160,

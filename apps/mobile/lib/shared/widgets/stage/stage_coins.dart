@@ -17,6 +17,12 @@ const stagePixShape = StarBorder.polygon(sides: 4, pointRounding: 0.32);
 /// Share of the width of the Pix token that its glyph takes.
 const stagePixGlyphScale = 0.42;
 
+/// The glyph of the vault: a padlock.
+const stageVaultGlyph = 'assets/images/onboarding/vault_lock.svg';
+
+/// The vault: a hexagon, like the medals of the levels.
+const stageVaultShape = StarBorder.polygon(sides: 6, pointRounding: 0.24);
+
 /// The coin of [asset] on a stage, [size] wide, turned by [yaw]: its icon
 /// in [tint] on the metal of the [palette].
 class AssetCoin extends StatelessWidget {

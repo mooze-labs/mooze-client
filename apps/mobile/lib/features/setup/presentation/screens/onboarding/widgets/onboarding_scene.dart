@@ -145,10 +145,6 @@ class _Look {
 }
 
 const _moozeGlyph = 'assets/images/onboarding/mooze_m.svg';
-const _lockGlyph = 'assets/images/onboarding/vault_lock.svg';
-
-/// The vault: a hexagon, like the medals of the levels.
-const _hexagon = StarBorder.polygon(sides: 6, pointRounding: 0.24);
 
 // ── 1. Wallet: the four asset coins orbit the Mooze coin ───────────────────
 
@@ -523,10 +519,10 @@ List<Widget> _securityScene(_Look look, Size size, SceneMotion motion) {
           (1 + 0.06 * seal),
       opacity: stageProgress(e, 0, 0.2),
       child: look.token(
-        _lockGlyph,
+        stageVaultGlyph,
         vaultSize,
         -0.36 + 0.22 * motion.drift + 0.6 * motion.offset,
-        shape: _hexagon,
+        shape: stageVaultShape,
       ),
     ),
     StagePaintLayer((canvas, size) {
