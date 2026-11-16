@@ -10,8 +10,22 @@ import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/widg
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/motion/route_entrance.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
+
+/// How the onboarding begins: the route that opens it passes one as its
+/// extra.
+enum OnboardingEntrance {
+  /// The art of the first page enters on its own: the Mooze coin grows in,
+  /// then the asset coins spiral out of it.
+  standard,
+
+  /// The Mooze coin is already there: it flies in from the screen before,
+  /// the end of a deleted wallet, while the page fades in around it. Once
+  /// it has landed, the asset coins of a new wallet spiral out of it.
+  coinInPlace,
+}
 
 /// The first screens of a new install: four pages about the wallet, Pix,
 /// swaps, and security, before the choice to create or import a wallet.
@@ -25,11 +39,18 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// "Skip" and the button of the last page mark the onboarding as done and
 /// open the first access screen, or run [onDone] instead.
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({super.key, this.onDone});
+  const OnboardingScreen({
+    super.key,
+    this.onDone,
+    this.entrance = OnboardingEntrance.standard,
+  });
 
   /// Runs instead of the end of the onboarding, for example to close a
   /// preview.
   final VoidCallback? onDone;
+
+  /// How the art of the first page begins.
+  final OnboardingEntrance entrance;
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -57,7 +78,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
-    _play(0);
+    if (widget.entrance == OnboardingEntrance.coinInPlace) {
+      // The coin is still flying in: the art starts once it has landed.
+      afterRouteEntrance(context, () => _play(0));
+    } else {
+      _play(0);
+    }
   }
 
   @override
@@ -176,6 +202,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                               motion: SceneMotion(
                                 time: _clocks[index].value,
                                 offset: offset,
+                                coinInPlace:
+                                    widget.entrance ==
+                                    OnboardingEntrance.coinInPlace,
                               ),
                             ),
                           );

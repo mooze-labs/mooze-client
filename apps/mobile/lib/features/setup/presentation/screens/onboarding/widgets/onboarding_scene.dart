@@ -6,6 +6,7 @@ import 'package:mooze_mobile/features/setup/data/onboarding/onboarding_data.dart
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_coins.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_effects.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_palette.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -13,7 +14,7 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// Where an onboarding scene is in its motion.
 @immutable
 class SceneMotion {
-  const SceneMotion({this.time = 1, this.offset = 0});
+  const SceneMotion({this.time = 1, this.offset = 0, this.coinInPlace = false});
 
   /// The motion of a page shown before, or under reduced motion: at rest.
   static const rest = SceneMotion();
@@ -27,6 +28,11 @@ class SceneMotion {
   /// page to the left, 1 one page to the right. The art turns with it, so
   /// it follows the finger.
   final double offset;
+
+  /// Whether the Mooze coin of the wallet scene is already in place: it
+  /// flew in from the screen before (see [StageHero.moozeCoin]), so it
+  /// does not grow in. The asset coins still spiral out of it.
+  final bool coinInPlace;
 
   /// The entrance, from 0 to 1.
   double get entrance => stageProgress(
@@ -211,17 +217,24 @@ List<Widget> _walletScene(_Look look, Size size, SceneMotion motion) {
     StagePlaced(
       at: center,
       size: coreSize,
-      scale: lerpDouble(
-        0.6,
-        1,
-        Curves.easeOutBack.transform(stageProgress(e, 0, 0.5)),
-      )!,
-      opacity: stageProgress(e, 0, 0.25),
-      child: look.token(
-        _moozeGlyph,
-        coreSize,
-        0.3 + 0.25 * motion.drift + 0.6 * motion.offset,
-        glyphScale: 0.5,
+      scale: motion.coinInPlace
+          ? 1
+          : lerpDouble(
+              0.6,
+              1,
+              Curves.easeOutBack.transform(stageProgress(e, 0, 0.5)),
+            )!,
+      opacity: motion.coinInPlace ? 1 : stageProgress(e, 0, 0.25),
+      // At the yaw of the coin at the end of the deleting screen, so the
+      // coin that flies in from it lands without a jump.
+      child: StageHero(
+        tag: StageHero.moozeCoin,
+        child: look.token(
+          _moozeGlyph,
+          coreSize,
+          0.3 + 0.25 * motion.drift + 0.6 * motion.offset,
+          glyphScale: 0.5,
+        ),
       ),
     ),
     StagePaintLayer((canvas, size) {

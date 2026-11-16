@@ -106,7 +106,23 @@ final setupRoutes = [
 
   GoRoute(
     path: "/setup/onboarding",
-    builder: (context, state) => const OnboardingScreen(),
+    pageBuilder: (context, state) {
+      final entrance = state.extra is OnboardingEntrance
+          ? state.extra! as OnboardingEntrance
+          : OnboardingEntrance.standard;
+      final screen = OnboardingScreen(entrance: entrance);
+      // The Mooze coin flies in from the screen before: the page fades in
+      // around it, so the coin is the one thing that moves.
+      if (entrance == OnboardingEntrance.coinInPlace) {
+        return fadeThroughPage(context: context, state: state, child: screen);
+      }
+      return MaterialPage(
+        key: state.pageKey,
+        name: state.name ?? state.path,
+        restorationId: state.pageKey.value,
+        child: screen,
+      );
+    },
   ),
   GoRoute(
     path: "/setup/biometric",

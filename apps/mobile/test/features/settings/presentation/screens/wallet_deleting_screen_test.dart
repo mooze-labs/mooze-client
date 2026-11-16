@@ -13,10 +13,14 @@ import 'package:mooze_mobile/app/lifecycle/app_state.dart';
 import 'package:mooze_mobile/domain/failures/failure.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/wallet_deleting/wallet_deleting_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/wallet_deleting/widgets/closing_scene.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/widgets/onboarding_scene.dart';
+import 'package:mooze_mobile/features/setup/routes.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers.dart';
 import 'package:mooze_mobile/shared/authentication/services/session_manager_service.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_coins.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 
@@ -90,7 +94,9 @@ void main() {
 
   /// Opens the deleting screen over another one, as it opens over the
   /// delete screen, and waits for its page transition.
-  Future<void> open(WidgetTester tester) async {
+  /// With [realOnboarding], the onboarding is the one of the app, not a
+  /// stub.
+  Future<void> open(WidgetTester tester, {bool realOnboarding = false}) async {
     usePhoneSize(tester);
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
@@ -113,7 +119,12 @@ void main() {
           path: deleting,
           builder: (_, _) => const WalletDeletingScreen(),
         ),
-        opened.stub('/setup/onboarding'),
+        if (realOnboarding)
+          setupRoutes.whereType<GoRoute>().singleWhere(
+            (route) => route.path == '/setup/onboarding',
+          )
+        else
+          opened.stub('/setup/onboarding'),
       ],
     );
     await tester.pumpWidget(
@@ -297,6 +308,66 @@ void main() {
     expect(forgotAt, greaterThanOrEqualTo(run.farewellEnd));
     verify(() => session.resetIdentity()).called(1);
     expect(lifecycle.deletes, hasLength(1));
+    // The onboarding takes the Mooze coin as it is.
+    expect(opened.extras.last, OnboardingEntrance.coinInPlace);
+  });
+
+  testWidgets('the Mooze coin flies on into the onboarding as one coin, and '
+      'the asset coins of a new wallet come out of it once it has landed', (
+    tester,
+  ) async {
+    await open(tester, realOnboarding: true);
+    lifecycle.deletes.single.complete(const Right(unit));
+    final mooze = find.byWidgetPredicate(
+      (widget) =>
+          widget is GlyphToken &&
+          widget.glyphPath == 'assets/images/onboarding/mooze_m.svg',
+    );
+    final onboarding = find.byType(OnboardingSceneView);
+
+    // Until the onboarding opens, the coin rests on the deleting screen.
+    while (onboarding.evaluate().isEmpty) {
+      expect(clock, lessThan(const Duration(seconds: 15)));
+      await advance(tester, step);
+    }
+    final from = tester.getCenter(mooze);
+    expect(find.byType(ClosingScene), findsOneWidget);
+    // The caption has left: only the coin is on the stage.
+    expect(
+      tester
+          .widget<AnimatedOpacity>(find.byKey(const ValueKey('captions')))
+          .opacity,
+      0,
+    );
+
+    // One coin all the way, rising from its place to the onboarding's,
+    // while the onboarding waits for it.
+    final heights = <double>[from.dy];
+    while (find.byType(ClosingScene).evaluate().isNotEmpty) {
+      expect(mooze, findsOneWidget);
+      heights.add(tester.getCenter(mooze).dy);
+      expect(tester.widget<OnboardingSceneView>(onboarding).motion.time, 0);
+      await advance(tester, step);
+    }
+    expect(mooze, findsOneWidget);
+    final to = tester.getCenter(mooze);
+    expect(to.dy, lessThan(from.dy));
+    for (var i = 1; i < heights.length; i++) {
+      expect(heights[i], lessThanOrEqualTo(heights[i - 1] + 0.01));
+    }
+    expect(heights.where((dy) => dy < from.dy && dy > to.dy), isNotEmpty);
+
+    // Landed: the coin keeps its place and size, and the scene starts.
+    final landed = tester.getRect(mooze);
+    final motion = tester.widget<OnboardingSceneView>(onboarding).motion;
+    expect(motion.coinInPlace, isTrue);
+    await advance(tester, const Duration(milliseconds: 300));
+    expect(
+      tester.widget<OnboardingSceneView>(onboarding).motion.time,
+      greaterThan(0),
+    );
+    expect(tester.getRect(mooze).center.dx, landed.center.dx);
+    expect(tester.getRect(mooze).width, moreOrLessEquals(landed.width));
   });
 
   testWidgets('a fast delete still plays the whole scene: every coin leaves '

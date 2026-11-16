@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/features/pix/receive_pix/di/providers/pix_repository_provider.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
@@ -18,6 +19,7 @@ import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/shared/widgets/motion/route_entrance.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_haptics.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/motion.dart';
@@ -32,8 +34,9 @@ import 'widgets/closing_scene.dart';
 /// and put to rest (see [ClosingScene]). The coins of the assets leave the
 /// orbit one after another while the wallet is deleted. Once it is
 /// deleted, and every coin has left, the farewell plays, "Wallet deleted"
-/// stays for [doneHold], and the onboarding opens. A fast delete does not
-/// cut the scene short.
+/// stays for [doneHold], and the onboarding fades in around the Mooze
+/// coin, which flies into its place there: the two screens read as one
+/// shot. A fast delete does not cut the scene short.
 ///
 /// The delete cannot stop halfway, so the screen cannot be left while it
 /// runs. If it fails, the coins come back to the orbit, and a glass panel
@@ -92,6 +95,9 @@ class _WalletDeletingScreenState extends ConsumerState<WalletDeletingScreen>
   /// Whether the caption tells that the wallet is deleted.
   bool _done = false;
 
+  /// Whether the caption has left, before the onboarding opens.
+  bool _leaving = false;
+
   @override
   Animation<double> get stageAnimation => _farewell;
 
@@ -118,7 +124,8 @@ class _WalletDeletingScreenState extends ConsumerState<WalletDeletingScreen>
     _started = true;
     if (!_still) _spin.repeat();
     WidgetsBinding.instance.addPostFrameCallback((_) => _delete());
-    _afterEntrance(_depart);
+    // The first coin does not leave under the page transition.
+    afterRouteEntrance(context, _depart);
   }
 
   @override
@@ -130,23 +137,6 @@ class _WalletDeletingScreenState extends ConsumerState<WalletDeletingScreen>
       departure.dispose();
     }
     super.dispose();
-  }
-
-  /// Runs [action] once the route has come in, so the first coin does not
-  /// leave under the page transition.
-  void _afterEntrance(VoidCallback action) {
-    final route = ModalRoute.of(context)?.animation;
-    if (route == null || route.isCompleted) {
-      action();
-      return;
-    }
-    void onStatus(AnimationStatus status) {
-      if (status != AnimationStatus.completed) return;
-      route.removeStatusListener(onStatus);
-      if (mounted) action();
-    }
-
-    route.addStatusListener(onStatus);
   }
 
   /// The coins leave the orbit one after another, the last one in first.
@@ -230,14 +220,16 @@ class _WalletDeletingScreenState extends ConsumerState<WalletDeletingScreen>
   }
 
   /// The ending: the coins still on the orbit leave, the farewell plays,
-  /// and "Wallet deleted" stays for a beat. Then the app starts over at
-  /// the onboarding. Under reduced motion, the scene shows its end at once.
+  /// and "Wallet deleted" stays for a beat, then leaves. Then the app
+  /// starts over at the onboarding, which takes the Mooze coin as it is.
+  /// Under reduced motion, the scene shows its end at once.
   Future<void> _finish() async {
     await Future.wait([
       for (final departure in _departures.values) _left(departure),
     ]);
     if (!mounted) return;
     // The picture rests as the farewell plays.
+    _spin.stop();
     if (_still) {
       _farewell.value = 1;
       HapticFeedback.lightImpact();
@@ -246,8 +238,17 @@ class _WalletDeletingScreenState extends ConsumerState<WalletDeletingScreen>
     }
     await Future<void>.delayed(WalletDeletingScreen.doneHold);
     if (!mounted) return;
+    // The caption leaves first, so only the coin is on the stage when the
+    // onboarding fades in around it.
+    setState(() => _leaving = true);
+    await Future<void>.delayed(Motion.of(context, Motion.durationExit));
+    if (!mounted) return;
     await _forget();
-    if (mounted) context.go('/setup/onboarding');
+    // The Mooze coin flies on into the onboarding, and the asset coins of
+    // a new wallet come back out of it there.
+    if (mounted) {
+      context.go('/setup/onboarding', extra: OnboardingEntrance.coinInPlace);
+    }
   }
 
   /// Forgets what the app kept in memory about the deleted wallet, so the
@@ -322,24 +323,29 @@ class _WalletDeletingScreenState extends ConsumerState<WalletDeletingScreen>
                               onRetry: _tryAgain,
                               onBack: () => context.pop(),
                             )
-                          // Sized by the taller caption, so the scene
-                          // does not move when the caption changes.
-                          : IndexedStack(
+                          : AnimatedOpacity(
                               key: const ValueKey('captions'),
-                              index: _done ? 1 : 0,
-                              alignment: Alignment.topCenter,
-                              children: [
-                                _Caption(
-                                  title: t.wallet_delete_step_deleting,
-                                  hint: t.wallet_delete_hint,
-                                  reveal: _captionOut,
-                                ),
-                                _Caption(
-                                  title: t.wallet_delete_step_done,
-                                  hint: t.wallet_delete_done_hint,
-                                  reveal: _captionIn,
-                                ),
-                              ],
+                              opacity: _leaving ? 0 : 1,
+                              duration: Motion.of(context, Motion.durationExit),
+                              curve: Motion.curveExit,
+                              // Sized by the taller caption, so the scene
+                              // does not move when the caption changes.
+                              child: IndexedStack(
+                                index: _done ? 1 : 0,
+                                alignment: Alignment.topCenter,
+                                children: [
+                                  _Caption(
+                                    title: t.wallet_delete_step_deleting,
+                                    hint: t.wallet_delete_hint,
+                                    reveal: _captionOut,
+                                  ),
+                                  _Caption(
+                                    title: t.wallet_delete_step_done,
+                                    hint: t.wallet_delete_done_hint,
+                                    reveal: _captionIn,
+                                  ),
+                                ],
+                              ),
                             ),
                     ),
                   ],

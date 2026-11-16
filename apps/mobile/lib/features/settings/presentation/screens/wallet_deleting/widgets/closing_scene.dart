@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_coins.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_effects.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_palette.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
@@ -56,6 +57,8 @@ class ClosingMotion {
 /// | 0.6 → 0.95   | A faint floor appears under the coin.                |
 ///
 /// At 1 the scene rests: the Mooze coin alone, dimly lit, on its floor.
+/// At the same yaw as the Mooze coin of the onboarding, it then flies into
+/// it, see [StageHero.moozeCoin].
 ///
 /// It is decorative: the caption of the screen tells the step.
 class ClosingScene extends StatelessWidget {
@@ -220,15 +223,19 @@ class ClosingScene extends StatelessWidget {
                 at: token,
                 size: coreSize,
                 scale: 1 - 0.05 * core.sink,
-                child: GlyphToken(
-                  glyphPath: _moozeGlyph,
-                  size: coreSize,
-                  yaw: StageToken.faceYaw(core.turn),
-                  tint: brand,
-                  palette: palette,
-                  glyphScale: 0.5,
-                  // It turns past edge-on, so it turns around its middle.
-                  centered: true,
+                // At rest, it flies on into the onboarding.
+                child: StageHero(
+                  tag: StageHero.moozeCoin,
+                  child: GlyphToken(
+                    glyphPath: _moozeGlyph,
+                    size: coreSize,
+                    yaw: StageToken.faceYaw(core.turn),
+                    tint: brand,
+                    palette: palette,
+                    glyphScale: 0.5,
+                    // It turns past edge-on, so it turns around its middle.
+                    centered: true,
+                  ),
                 ),
               ),
               StagePaintLayer((canvas, size) {

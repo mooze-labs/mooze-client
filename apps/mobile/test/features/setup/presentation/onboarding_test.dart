@@ -6,7 +6,10 @@ import 'package:mooze_mobile/features/setup/presentation/providers/onboarding_pr
 import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/onboarding/widgets/onboarding_scene.dart';
 import 'package:mooze_mobile/features/setup/presentation/services/onboarding_service.dart';
+import 'package:mooze_mobile/features/setup/routes.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_coins.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 
@@ -294,5 +297,79 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text(t.onboarding_get_started), findsOneWidget);
+  });
+
+  group('opened from another screen', () {
+    /// Opens the onboarding of the app over another screen, as the splash
+    /// or the deleting screen do, with [extra].
+    Future<void> openFrom(WidgetTester tester, {Object? extra}) async {
+      usePhoneSize(tester);
+      final router = GoRouter(
+        initialLocation: '/before',
+        routes: [
+          GoRoute(path: '/before', builder: (_, _) => const Scaffold()),
+          setupRoutes.whereType<GoRoute>().singleWhere(
+            (route) => route.path == '/setup/onboarding',
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        setupTestApp(
+          router: router,
+          overrides: [onboardingServiceProvider.overrideWithValue(service)],
+        ),
+      );
+      router.go('/setup/onboarding', extra: extra);
+      await tester.pump();
+      await tester.pump();
+    }
+
+    /// The Mooze coin of the wallet scene, placed on the stage.
+    StagePlaced moozeCoin(WidgetTester tester) => tester.widget<StagePlaced>(
+      find.ancestor(
+        of: find.byType(StageHero),
+        matching: find.byType(StagePlaced),
+      ),
+    );
+
+    ModalRoute<dynamic> routeOf(WidgetTester tester) =>
+        ModalRoute.of(tester.element(find.byType(OnboardingScreen)))!;
+
+    testWidgets('by default, it slides in, and the Mooze coin grows in', (
+      tester,
+    ) async {
+      await openFrom(tester);
+      expect(routeOf(tester), isA<MaterialRouteTransitionMixin<dynamic>>());
+      expect(moozeCoin(tester).scale, lessThan(1));
+      expect(moozeCoin(tester).opacity, lessThan(1));
+    });
+
+    testWidgets('after a deleted wallet, it fades in around the Mooze coin, '
+        'which is already in place, and the art waits for it to land', (
+      tester,
+    ) async {
+      await openFrom(tester, extra: OnboardingEntrance.coinInPlace);
+      final art = find.byType(OnboardingSceneView);
+      expect(
+        routeOf(tester),
+        isNot(isA<MaterialRouteTransitionMixin<dynamic>>()),
+      );
+      expect(motionOf(tester, art).coinInPlace, isTrue);
+      expect(moozeCoin(tester).scale, 1);
+      expect(moozeCoin(tester).opacity, 1);
+
+      // The coin is in the air while the page fades in.
+      final entrance = routeOf(tester).animation!;
+      while (!entrance.isCompleted) {
+        expect(motionOf(tester, art).time, 0);
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      // Landed: the asset coins of a new wallet come out of it.
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(Motion.durationOnboardingScene ~/ 2);
+      expect(motionOf(tester, art).entrance, inExclusiveRange(0, 1));
+      expect(moozeCoin(tester).scale, 1);
+    });
   });
 }
