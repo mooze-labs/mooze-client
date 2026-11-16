@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mooze_mobile/app/session/auth_prompt_controller.dart';
-import 'package:mooze_mobile/features/setup/presentation/widgets/pin/biometric_hero.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/widgets/biometric_scene.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/widgets/biometric_seal.dart';
 import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_entry_view.dart';
 import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_keypad.dart';
 import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_screen_scaffold.dart';
@@ -13,6 +14,8 @@ import 'package:mooze_mobile/shared/authentication/services/biometric_service.da
 import 'package:mooze_mobile/shared/diagnostics/boot_tracer.dart';
 import 'package:mooze_mobile/utils/store_mode.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/motion/route_entrance.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_haptics.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -23,8 +26,9 @@ enum _AuthMode {
   /// Initial state: deciding which authentication path to take.
   loading,
 
-  /// Native biometric prompt is up (or about to be). UI is intentionally
-  /// minimal so nothing flickers behind the system dialog.
+  /// Native biometric prompt is up (or about to be). The biometric seal
+  /// follows it: it scans while the prompt is up, shakes when it fails,
+  /// and shows a check when it succeeds.
   biometric,
 
   /// Biometric is unavailable, declined, or the user chose PIN entry.
@@ -56,8 +60,13 @@ class VerifyPinScreen extends ConsumerStatefulWidget {
   ConsumerState<VerifyPinScreen> createState() => _VerifyPinScreenState();
 }
 
-class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
+class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen>
+    with TickerProviderStateMixin, StageHaptics<VerifyPinScreen> {
   final TextEditingController _pinController = TextEditingController();
+  late final BiometricSeal _seal = BiometricSeal(
+    vsync: this,
+    finale: BiometricFinale.check,
+  );
   final AuthenticationService _authService = AuthenticationService();
 
   _AuthMode _mode = _AuthMode.loading;
@@ -72,6 +81,16 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
   bool _biometricEnabled = false;
   bool _isBiometricLoading = false;
 
+  /// Whether the biometric succeeded: the seal shows its check, then the
+  /// screen goes on.
+  bool _confirmed = false;
+
+  @override
+  Animation<double> get stageAnimation => _seal.success;
+
+  @override
+  List<StageBeat> get stageBeats => _seal.beats;
+
   @override
   void initState() {
     super.initState();
@@ -81,6 +100,19 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
       });
     });
     _checkSession();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _seal.still = Motion.isReduced(context);
+  }
+
+  @override
+  void dispose() {
+    _seal.dispose();
+    _pinController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkSession() async {
@@ -123,6 +155,9 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     });
 
     if (shouldUseBiometric) {
+      // The seal comes in once the page is in place. On the lock of the
+      // app, which is no route, at once.
+      afterRouteEntrance(context, _seal.enter);
       _authWithBiometrics();
     }
   }
@@ -173,6 +208,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     if (_isBiometricLoading) return;
 
     setState(() => _isBiometricLoading = true);
+    _seal.scan();
 
     final t = AppLocalizations.of(context);
     final biometricService = ref.read(biometricServiceProvider);
@@ -192,19 +228,29 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
 
     result.fold(
       (error) {
+        _seal.fail();
         AppSnackBar.error(context, t.biometric_auth_error(error.message));
         setState(() => _isBiometricLoading = false);
       },
       (authenticated) {
         if (authenticated) {
           BootTracer.mark('pin.confirmed.biometric');
-          widget.onPinConfirmed();
+          _succeed();
           return;
         }
         // User dismissed the prompt — stay put, the inline PIN input is there.
+        _seal.stopScanning();
         setState(() => _isBiometricLoading = false);
       },
     );
+  }
+
+  /// The seal shows a check, and the screen goes on while its shockwave
+  /// still spreads.
+  Future<void> _succeed() async {
+    setState(() => _confirmed = true);
+    await _seal.succeed();
+    if (mounted) widget.onPinConfirmed();
   }
 
   /// Emergency fallback: lets users who forgot their PIN unlock using only
@@ -278,14 +324,13 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     );
   }
 
-  /// Lightweight splash shown while the native biometric prompt is up.
-  /// Deliberately minimal so nothing flickers when the system dialog dismisses.
+  /// The biometric seal, shown while the native biometric prompt is up.
   Widget _buildBiometricView(BuildContext context, AppLocalizations t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Spacer(),
-        const Center(child: BiometricHero()),
+        BiometricSealView(seal: _seal, kind: BiometricKind.of(_capabilities)),
         const SizedBox(height: 8),
         Text(
           t.pin_biometric_access_reason,
@@ -307,7 +352,9 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
         const SizedBox(height: 4),
         PinTextAction(
           label: t.pin_use_pin,
-          onPressed: () => setState(() => _mode = _AuthMode.pin),
+          onPressed: _confirmed
+              ? null
+              : () => setState(() => _mode = _AuthMode.pin),
         ),
       ],
     );
@@ -335,6 +382,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                   ? null
                   : () {
                       setState(() => _mode = _AuthMode.biometric);
+                      _seal.enter();
                       _authWithBiometrics();
                     },
             )

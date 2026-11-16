@@ -85,6 +85,11 @@ abstract final class Motion {
   /// Mooze coin, until the scene rests (2 s).
   static const durationBiometricSuccess = Duration(milliseconds: 2000);
 
+  /// Unlock with the biometric seal: its ridges light up and turn into a
+  /// check with a flash and a shockwave, until the scene rests (1 s). The
+  /// app goes on at 60% of it, while the shockwave still spreads.
+  static const durationUnlock = Duration(milliseconds: 1000);
+
   /// Entrance of an onboarding scene: its art takes its place the first
   /// time its page shows (1.2 s). A slow drift follows, within
   /// [durationAmbient] forward and back.

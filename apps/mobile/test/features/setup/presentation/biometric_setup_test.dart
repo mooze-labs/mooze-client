@@ -33,52 +33,10 @@ import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../shared/authentication/fake_biometrics.dart';
 import '../../../shared/widgets/motion/motion_test_helpers.dart';
 import 'setup_test_app.dart';
 
-/// Biometrics whose prompts the test settles by hand.
-class _FakeBiometrics implements BiometricService {
-  _FakeBiometrics(this.enrolled);
-
-  BiometricCapabilities enrolled;
-
-  /// One completer per prompt.
-  final prompts = <Completer<Either<AuthError, bool>>>[];
-  final saved = <bool>[];
-  bool saveFails = false;
-
-  @override
-  TaskEither<AuthError, bool> unlockWithBiometric({required String reason}) {
-    final prompt = Completer<Either<AuthError, bool>>();
-    prompts.add(prompt);
-    return TaskEither(() => prompt.future);
-  }
-
-  @override
-  TaskEither<String, Unit> setEnabled(bool enabled) => TaskEither(() async {
-    if (saveFails) return const Left('disk full');
-    saved.add(enabled);
-    return const Right(unit);
-  });
-
-  @override
-  Task<BiometricCapabilities> capabilities() => Task.of(enrolled);
-
-  @override
-  Task<bool> isAvailable() => Task.of(enrolled.hasAnyAuth);
-
-  @override
-  Task<bool> isEnabled() => Task.of(saved.lastOrNull ?? false);
-
-  @override
-  TaskEither<AuthError, bool> unlockWithDeviceCredential({
-    required String reason,
-    String? title,
-    String? subtitle,
-  }) => throw UnimplementedError();
-}
-
-/// A lifecycle controller that opens the wallet when the test says so.
 class _FakeLifecycle implements AppLifecycleController {
   final starts = <Completer<Either<Failure, AppState>>>[];
 
@@ -114,25 +72,6 @@ class _FakePins implements PinSetupRepository {
   TaskEither<String, bool> validatePin(String pin) => TaskEither.right(true);
 }
 
-const _faceId = BiometricCapabilities(
-  hasBiometrics: true,
-  hasAnyAuth: true,
-  hasFaceId: true,
-  hasFingerprint: false,
-);
-const _fingerprint = BiometricCapabilities(
-  hasBiometrics: true,
-  hasAnyAuth: true,
-  hasFaceId: false,
-  hasFingerprint: true,
-);
-const _passcodeOnly = BiometricCapabilities(
-  hasBiometrics: false,
-  hasAnyAuth: true,
-  hasFaceId: false,
-  hasFingerprint: false,
-);
-
 GoRoute _route(String path) =>
     setupRoutes.whereType<GoRoute>().singleWhere((route) => route.path == path);
 
@@ -143,13 +82,13 @@ void main() {
   const light = 'HapticFeedbackType.lightImpact';
   const heavy = 'HapticFeedbackType.heavyImpact';
 
-  late _FakeBiometrics biometrics;
+  late FakeBiometrics biometrics;
   late OpenedRoutes opened;
   late List<(String, Duration)> haptics;
   late Duration clock;
 
   setUp(() {
-    biometrics = _FakeBiometrics(_fingerprint);
+    biometrics = FakeBiometrics(fingerprintDevice);
     opened = OpenedRoutes();
     haptics = [];
     clock = Duration.zero;
@@ -180,7 +119,7 @@ void main() {
   /// confirmation of the PIN does, with [capabilities] as its extra.
   Future<void> open(
     WidgetTester tester, {
-    BiometricCapabilities? capabilities = _fingerprint,
+    BiometricCapabilities? capabilities = fingerprintDevice,
     List<Override> overrides = const [],
   }) async {
     usePhoneSize(tester);
@@ -236,8 +175,8 @@ void main() {
 
   group('BiometricKind', () {
     test('an iPhone shows what it has: a face or a fingerprint', () {
-      expect(BiometricKind.of(_faceId), BiometricKind.face);
-      expect(BiometricKind.of(_fingerprint), BiometricKind.fingerprint);
+      expect(BiometricKind.of(faceIdDevice), BiometricKind.face);
+      expect(BiometricKind.of(fingerprintDevice), BiometricKind.fingerprint);
     });
 
     test('Android, which mostly reports only a strength, shows a '
@@ -262,22 +201,34 @@ void main() {
       for (var ambient = 0.0; ambient <= 1; ambient += 0.05) {
         BiometricMotion at(double success) =>
             BiometricMotion(ambient: ambient, success: success);
-        final edge = BiometricScene.sealAt(at(BiometricScene.edgeOnAt));
+        final edge = BiometricScene.sealAt(
+          at(BiometricScene.edgeOnAt),
+          finale: BiometricFinale.coin,
+        );
         expect(edge.turn, math.pi / 2);
         expect(edge.showsCoin, isTrue);
         // No jump: the turn comes to edge-on smoothly.
         expect(
-          BiometricScene.sealAt(at(BiometricScene.edgeOnAt - 0.001)).turn,
+          BiometricScene.sealAt(
+            at(BiometricScene.edgeOnAt - 0.001),
+            finale: BiometricFinale.coin,
+          ).turn,
           closeTo(math.pi / 2, 0.03),
         );
         final before = BiometricScene.sealAt(
           at(BiometricScene.edgeOnAt - 0.01),
+          finale: BiometricFinale.coin,
         );
         expect(before.turn, lessThan(math.pi / 2));
         expect(before.showsCoin, isFalse);
         for (final success in [BiometricScene.restAt, 1.0]) {
           expect(
-            StageToken.faceYaw(BiometricScene.sealAt(at(success)).turn),
+            StageToken.faceYaw(
+              BiometricScene.sealAt(
+                at(success),
+                finale: BiometricFinale.coin,
+              ).turn,
+            ),
             closeTo(BiometricScene.restYaw, 1e-9),
           );
         }
@@ -288,10 +239,19 @@ void main() {
 
     test('a shake ends where it started', () {
       expect(
-        BiometricScene.sealAt(const BiometricMotion(shake: 0.3)).dx,
+        BiometricScene.sealAt(
+          const BiometricMotion(shake: 0.3),
+          finale: BiometricFinale.coin,
+        ).dx,
         isNot(0),
       );
-      expect(BiometricScene.sealAt(const BiometricMotion(shake: 1)).dx, 0);
+      expect(
+        BiometricScene.sealAt(
+          const BiometricMotion(shake: 1),
+          finale: BiometricFinale.coin,
+        ).dx,
+        0,
+      );
     });
   });
 
@@ -299,7 +259,7 @@ void main() {
     testWidgets(
       'an iPhone with Face ID says Face ID, and its seal shows a face',
       (tester) async {
-        await open(tester, capabilities: _faceId);
+        await open(tester, capabilities: faceIdDevice);
         expect(
           shows(t.biometric_setup_title(t.biometric_method_face_id)),
           isTrue,
@@ -333,7 +293,7 @@ void main() {
     testWidgets(
       'without them from the route, the screen reads them',
       (tester) async {
-        biometrics.enrolled = _faceId;
+        biometrics.enrolled = faceIdDevice;
         await open(tester, capabilities: null);
         expect(button(t.biometric_method_face_id), findsOneWidget);
       },
@@ -638,15 +598,15 @@ void main() {
     testWidgets('a device with a biometric offers it, with what it has', (
       tester,
     ) async {
-      await confirm(tester, _faceId);
+      await confirm(tester, faceIdDevice);
       expect(opened.last, '/setup/biometric');
-      expect(opened.extras.last, same(_faceId));
+      expect(opened.extras.last, same(faceIdDevice));
     });
 
     testWidgets('a device with only a passcode goes straight to the wallet', (
       tester,
     ) async {
-      await confirm(tester, _passcodeOnly);
+      await confirm(tester, passcodeDevice);
       expect(opened.last, '/setup/wallet-import-loading');
     });
   });
@@ -679,7 +639,7 @@ void main() {
         ],
       ),
     );
-    router.go('/setup/biometric', extra: _fingerprint);
+    router.go('/setup/biometric', extra: fingerprintDevice);
     await advance(tester, const Duration(milliseconds: 600));
     await tester.tap(button(t.biometric_method_generic));
     await tester.pump();

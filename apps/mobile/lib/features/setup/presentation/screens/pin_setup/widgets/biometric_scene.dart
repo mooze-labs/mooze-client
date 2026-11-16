@@ -11,6 +11,7 @@ import 'package:mooze_mobile/shared/widgets/stage/stage_face.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_hero.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_palette.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// What the biometric seal shows on its face.
@@ -30,6 +31,95 @@ enum BiometricKind {
       capabilities.hasFaceId && !capabilities.hasFingerprint
       ? face
       : fingerprint;
+}
+
+/// How the seal plays a success, over its [duration]. Each window is a
+/// share of [duration].
+enum BiometricFinale {
+  /// Turning on biometrics: the check, then the seal turns into the Mooze
+  /// coin, which flies on into the opening of the wallet.
+  coin(
+    duration: Motion.durationBiometricSuccess,
+    lit: 0.15,
+    beamOut: 0.12,
+    checkDraws: (0.12, 0.28),
+    peakAt: BiometricScene.peakAt,
+    swell: (0.16, 0.36),
+    glow: (0.18, 0.6),
+    flashTo: BiometricScene.peakAt + 0.18,
+    waveTo: 0.75,
+    burstTo: 0.85,
+    sparkleDelay: 0,
+    handOffAt: 1,
+  ),
+
+  /// An unlock: the check alone, quick. The app goes on at [handOffAt],
+  /// while the shockwave still spreads.
+  check(
+    duration: Motion.durationUnlock,
+    lit: 0.2,
+    beamOut: 0.15,
+    checkDraws: (0.16, 0.38),
+    peakAt: 0.3,
+    swell: (0.22, 0.5),
+    glow: (0.24, 0.8),
+    flashTo: 0.48,
+    waveTo: 0.95,
+    burstTo: 0.95,
+    sparkleDelay: -0.14,
+    handOffAt: 0.6,
+  );
+
+  const BiometricFinale({
+    required this.duration,
+    required this.lit,
+    required this.beamOut,
+    required this.checkDraws,
+    required this.peakAt,
+    required this.swell,
+    required this.glow,
+    required this.flashTo,
+    required this.waveTo,
+    required this.burstTo,
+    required this.sparkleDelay,
+    required this.handOffAt,
+  });
+
+  /// The length of the success.
+  final Duration duration;
+
+  /// When every ridge has lit up.
+  final double lit;
+
+  /// When the scan beam has faded.
+  final double beamOut;
+
+  /// The window in which the check draws itself.
+  final (double, double) checkDraws;
+
+  /// The peak: the flash, the shockwave, and a medium haptic.
+  final double peakAt;
+
+  /// The window in which the seal swells and settles back.
+  final (double, double) swell;
+
+  /// The window in which the light behind the seal rises and falls.
+  final (double, double) glow;
+
+  /// When the flash has faded.
+  final double flashTo;
+
+  /// When the shockwave has left.
+  final double waveTo;
+
+  /// When the burst has faded.
+  final double burstTo;
+
+  /// How much sooner than in the kit the sparkles twinkle.
+  final double sparkleDelay;
+
+  /// When the screen goes on: to the next page, or off the lock.
+  final double handOffAt;
 }
 
 /// Where the biometric scene is in its motion.
@@ -56,7 +146,8 @@ class BiometricMotion {
   /// back up.
   final double sweep;
 
-  /// The success, from 0 to 1 over `Motion.durationBiometricSuccess`.
+  /// The success, from 0 to 1 over the duration of its
+  /// [BiometricFinale].
   final double success;
 
   /// A failure, from 0 to 1 over `Motion.durationEmphasis`.
@@ -69,9 +160,9 @@ class BiometricMotion {
   double get drift => math.sin(math.pi * ambient);
 }
 
-/// The art of the screen that turns on biometrics: a seal of the stage kit
-/// with the biometric of the device on its face, which reacts to the state
-/// of the system prompt.
+/// The art of the biometric screens: a seal of the stage kit with the
+/// biometric of the device on its face, which reacts to the state of the
+/// system prompt. [BiometricSeal] drives it.
 ///
 /// - **Entrance**: the seal grows in, the light comes up, a ring appears,
 ///   and the seal sways for a few seconds, then rests.
@@ -81,7 +172,8 @@ class BiometricMotion {
 ///   beam stays quiet there; on Android the prompt is a sheet at the
 ///   bottom, and the beam shows in full above it.
 /// - **Failure**: a short shake while the ridges dim.
-/// - **Success**, over [BiometricMotion.success]:
+/// - **Success** of [BiometricFinale.coin], when biometrics are turned on,
+///   over [BiometricMotion.success]:
 ///
 /// | Success      | What happens                                         |
 /// |--------------|------------------------------------------------------|
@@ -96,12 +188,28 @@ class BiometricMotion {
 /// |              | opening of the wallet, which it then flies into (see |
 /// |              | [StageHero.moozeCoin]).                              |
 ///
+/// - **Success** of [BiometricFinale.check], an unlock:
+///
+/// | Success      | What happens                                         |
+/// |--------------|------------------------------------------------------|
+/// | 0 → 0.2      | Every ridge lights up; the beam fades.               |
+/// | 0.16 → 0.38  | The ridges give way to a check that draws itself.    |
+/// | **0.3**      | **Peak**: flash, shockwave, burst, a medium haptic.  |
+/// | **0.6**      | The app goes on.                                     |
+/// | 0.6 → 1      | The shockwave and the sparkles fade; the check rests.|
+///
 /// It is decorative: the caption of the screen tells the state.
 class BiometricScene extends StatelessWidget {
-  const BiometricScene({super.key, required this.kind, required this.motion});
+  const BiometricScene({
+    super.key,
+    required this.kind,
+    required this.motion,
+    required this.finale,
+  });
 
   final BiometricKind kind;
   final BiometricMotion motion;
+  final BiometricFinale finale;
 
   /// Height of the stage. The shockwave reaches past it.
   static const double height = 240;
@@ -109,7 +217,8 @@ class BiometricScene extends StatelessWidget {
   /// Diameter of the seal.
   static const double sealSize = 124;
 
-  /// Success at which the check appears with the flash: the peak.
+  /// Success at which the check appears with the flash, when biometrics
+  /// are turned on: the peak of [BiometricFinale.coin].
   static const double peakAt = 0.22;
 
   /// Success after which the caption tells that biometrics are on.
@@ -131,8 +240,9 @@ class BiometricScene extends StatelessWidget {
   /// yaw; its sideways [dx] while it shakes; its [scale] and [opacity]; and
   /// whether it [showsCoin], the Mooze coin, rather than the biometric.
   ///
-  /// The turn speeds up to edge-on and slows down after it, in two halves,
-  /// so edge-on falls at [edgeOnAt] wherever the sway stopped.
+  /// In [BiometricFinale.coin], the turn speeds up to edge-on and slows
+  /// down after it, in two halves, so edge-on falls at [edgeOnAt] wherever
+  /// the sway stopped. In [BiometricFinale.check], the seal does not turn.
   @visibleForTesting
   static ({
     double turn,
@@ -141,10 +251,13 @@ class BiometricScene extends StatelessWidget {
     double opacity,
     bool showsCoin,
   })
-  sealAt(BiometricMotion motion) {
+  sealAt(BiometricMotion motion, {required BiometricFinale finale}) {
     final s = motion.success;
     final sway = restYaw + 0.12 * motion.drift;
-    final turn = s < edgeOnAt
+    final turns = finale == BiometricFinale.coin;
+    final turn = !turns
+        ? sway
+        : s < edgeOnAt
         ? lerpDouble(
             sway,
             math.pi / 2,
@@ -162,13 +275,14 @@ class BiometricScene extends StatelessWidget {
     final grow = Curves.easeOutBack.transform(
       stageProgress(motion.entrance, 0, 0.5),
     );
-    final swell = math.sin(math.pi * stageProgress(s, 0.16, 0.36));
+    final (swellFrom, swellTo) = finale.swell;
+    final swell = math.sin(math.pi * stageProgress(s, swellFrom, swellTo));
     return (
       turn: turn,
       dx: dx,
       scale: lerpDouble(0.82, 1, grow)! * (1 + 0.06 * swell),
       opacity: stageProgress(motion.entrance, 0, 0.25),
-      showsCoin: s >= edgeOnAt,
+      showsCoin: turns && s >= edgeOnAt,
     );
   }
 
@@ -182,7 +296,8 @@ class BiometricScene extends StatelessWidget {
     final scanPeak = Theme.of(context).platform == TargetPlatform.iOS
         ? 0.6
         : 1.0;
-    final seal = sealAt(motion);
+    final seal = sealAt(motion, finale: finale);
+    final f = finale;
     final m = motion;
     final s = m.success;
     final e = m.entrance;
@@ -205,41 +320,38 @@ class BiometricScene extends StatelessWidget {
           lerpDouble(
             lerpDouble(0.85, 0.3, scan)!,
             1,
-            Curves.easeOut.transform(stageProgress(s, 0, 0.15)),
+            Curves.easeOut.transform(stageProgress(s, 0, f.lit)),
           )! *
           (1 - 0.5 * math.sin(math.pi * m.shake)),
-      beam: scan * (1 - stageProgress(s, 0, 0.12)),
+      beam: scan * (1 - stageProgress(s, 0, f.beamOut)),
       beamY: 0.5 - 0.5 * math.cos(2 * math.pi * m.sweep),
-      check: Curves.easeInOutCubic.transform(stageProgress(s, 0.12, 0.28)),
+      check: Curves.easeInOutCubic.transform(
+        stageProgress(s, f.checkDraws.$1, f.checkDraws.$2),
+      ),
     );
-    final faces = [
-      RepaintBoundary(
-        child: StageFace(
-          size: sealSize,
-          tint: brand,
-          palette: palette,
-          glyph: (color) => _BiometricGlyph(
-            kind: kind,
-            color: color,
-            look: look,
-            size: sealSize * _GlyphPainter._glyphShare,
-          ),
+    final biometricFace = RepaintBoundary(
+      child: StageFace(
+        size: sealSize,
+        tint: brand,
+        palette: palette,
+        glyph: (color) => _BiometricGlyph(
+          kind: kind,
+          color: color,
+          look: look,
+          size: sealSize * _GlyphPainter._glyphShare,
         ),
       ),
-      RepaintBoundary(
-        child: StageFace(
-          size: sealSize,
-          tint: brand,
-          palette: palette,
-          glyph: (color) => SvgPicture.asset(
-            _moozeGlyph,
-            width: sealSize * 0.5,
-            height: sealSize * 0.5,
-            colorMapper: TwoToneGlyphColors(color),
-          ),
-        ),
-      ),
-    ];
+    );
+    StageToken token(Widget face) => StageToken(
+      size: sealSize,
+      yaw: StageToken.faceYaw(seal.turn),
+      tint: brand,
+      base: palette.base,
+      // When it turns into the coin, it turns past edge-on, so it turns
+      // around its middle.
+      centered: true,
+      face: face,
+    );
 
     return ExcludeSemantics(
       child: SizedBox(
@@ -250,7 +362,9 @@ class BiometricScene extends StatelessWidget {
           children: [
             StagePaintLayer((canvas, size) {
               final center = size.center(Offset(seal.dx, 0));
-              final peak = math.sin(math.pi * stageProgress(s, 0.18, 0.6));
+              final peak = math.sin(
+                math.pi * stageProgress(s, f.glow.$1, f.glow.$2),
+              );
               effects(canvas)
                 ..glow(
                   center,
@@ -269,11 +383,16 @@ class BiometricScene extends StatelessWidget {
                   appear: ringAppear,
                   orbit: ringOrbit,
                 );
-              if (s >= peakAt && s < 1) {
+              if (s >= f.peakAt && s < 1) {
                 effects(canvas)
-                  ..shockwave(center, reach, stageProgress(s, peakAt, 0.75), 1)
-                  ..flash(center, stageProgress(s, peakAt, peakAt + 0.18))
-                  ..burst(center, s, start: peakAt, end: 0.85);
+                  ..shockwave(
+                    center,
+                    reach,
+                    stageProgress(s, f.peakAt, f.waveTo),
+                    1,
+                  )
+                  ..flash(center, stageProgress(s, f.peakAt, f.flashTo))
+                  ..burst(center, s, start: f.peakAt, end: f.burstTo);
               }
             }),
             Transform.translate(
@@ -282,29 +401,40 @@ class BiometricScene extends StatelessWidget {
                 opacity: seal.opacity,
                 child: Transform.scale(
                   scale: seal.scale,
-                  // Once it shows the Mooze coin, it flies on into the
-                  // opening of the wallet; before, it stays here.
-                  child: HeroMode(
-                    enabled: seal.showsCoin,
-                    child: StageHero(
-                      tag: StageHero.moozeCoin,
-                      child: StageToken(
-                        size: sealSize,
-                        yaw: StageToken.faceYaw(seal.turn),
-                        tint: brand,
-                        base: palette.base,
-                        // It turns past edge-on, so it turns around its
-                        // middle.
-                        centered: true,
+                  child: switch (finale) {
+                    BiometricFinale.check => token(biometricFace),
+                    // Once it shows the Mooze coin, it flies on into the
+                    // opening of the wallet; before, it stays here.
+                    BiometricFinale.coin => HeroMode(
+                      enabled: seal.showsCoin,
+                      child: StageHero(
+                        tag: StageHero.moozeCoin,
                         // Both faces are built, so the coin shows at once
                         // at edge-on.
-                        face: IndexedStack(
-                          index: seal.showsCoin ? 1 : 0,
-                          children: faces,
+                        child: token(
+                          IndexedStack(
+                            index: seal.showsCoin ? 1 : 0,
+                            children: [
+                              biometricFace,
+                              RepaintBoundary(
+                                child: StageFace(
+                                  size: sealSize,
+                                  tint: brand,
+                                  palette: palette,
+                                  glyph: (color) => SvgPicture.asset(
+                                    _moozeGlyph,
+                                    width: sealSize * 0.5,
+                                    height: sealSize * 0.5,
+                                    colorMapper: TwoToneGlyphColors(color),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  },
                 ),
               ),
             ),
@@ -318,7 +448,7 @@ class BiometricScene extends StatelessWidget {
                   appear: ringAppear,
                   orbit: ringOrbit,
                 )
-                ..sparkles(center, s);
+                ..sparkles(center, s, delay: f.sparkleDelay);
             }),
           ],
         ),

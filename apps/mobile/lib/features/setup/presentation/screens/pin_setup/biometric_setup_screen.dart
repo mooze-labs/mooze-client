@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 
 import 'package:mooze_mobile/app/session/auth_prompt_controller.dart';
 import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/widgets/biometric_scene.dart';
+import 'package:mooze_mobile/features/setup/presentation/screens/pin_setup/widgets/biometric_seal.dart';
 import 'package:mooze_mobile/features/setup/presentation/widgets/pin/pin_screen_scaffold.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
@@ -49,33 +49,16 @@ enum _Problem { failed, locked, notSaved }
 
 class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
     with TickerProviderStateMixin, StageHaptics<BiometricSetupScreen> {
-  /// The entrance of the seal, then its sway, until it rests.
-  late final AnimationController _ambient = AnimationController(
+  late final BiometricSeal _seal = BiometricSeal(
     vsync: this,
-    duration: Motion.durationAmbient * 2,
-  );
-  late final AnimationController _scan = AnimationController(
-    vsync: this,
-    duration: Motion.durationBase,
-  );
-  late final AnimationController _sweep = AnimationController(
-    vsync: this,
-    duration: Motion.durationScan,
-  );
-  late final AnimationController _success = AnimationController(
-    vsync: this,
-    duration: Motion.durationBiometricSuccess,
-  );
-  late final AnimationController _shake = AnimationController(
-    vsync: this,
-    duration: Motion.durationEmphasis,
+    finale: BiometricFinale.coin,
   );
 
   /// The question fades out after the peak, and the caption of success
   /// comes in, on the same timeline as the success.
   late final Animation<double> _questionOut = ReverseAnimation(
     CurvedAnimation(
-      parent: _success,
+      parent: _seal.success,
       curve: const Interval(
         0.18,
         BiometricScene.revealAt,
@@ -84,7 +67,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
     ),
   );
   late final Animation<double> _doneIn = CurvedAnimation(
-    parent: _success,
+    parent: _seal.success,
     curve: const Interval(
       BiometricScene.revealAt,
       0.55,
@@ -98,7 +81,6 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
   _Phase _phase = _Phase.idle;
   _Problem? _problem;
   bool _started = false;
-  bool _still = false;
 
   /// Whether the caption tells that biometrics are on.
   bool _done = false;
@@ -107,13 +89,10 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
   bool _leaving = false;
 
   @override
-  Animation<double> get stageAnimation => _success;
+  Animation<double> get stageAnimation => _seal.success;
 
   @override
-  List<StageBeat> get stageBeats => const [
-    (at: BiometricScene.peakAt, play: HapticFeedback.mediumImpact),
-    (at: BiometricScene.edgeOnAt, play: HapticFeedback.lightImpact),
-  ];
+  List<StageBeat> get stageBeats => _seal.beats;
 
   bool get _busy =>
       _phase == _Phase.scanning ||
@@ -123,8 +102,8 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
   @override
   void initState() {
     super.initState();
-    _success.addListener(() {
-      final done = _success.value >= BiometricScene.revealAt;
+    _seal.success.addListener(() {
+      final done = _seal.success.value >= BiometricScene.revealAt;
       if (done != _done) setState(() => _done = done);
     });
     if (widget.capabilities == null) _readCapabilities();
@@ -141,25 +120,15 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _still = Motion.isReduced(context);
+    _seal.still = Motion.isReduced(context);
     if (_started) return;
     _started = true;
-    afterRouteEntrance(context, () {
-      if (_still) {
-        _ambient.value = 1;
-      } else {
-        _ambient.forward();
-      }
-    });
+    afterRouteEntrance(context, _seal.enter);
   }
 
   @override
   void dispose() {
-    _ambient.dispose();
-    _scan.dispose();
-    _sweep.dispose();
-    _success.dispose();
-    _shake.dispose();
+    _seal.dispose();
     super.dispose();
   }
 
@@ -185,14 +154,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
       _phase = _Phase.scanning;
       _problem = null;
     });
-    if (_still) {
-      _scan.value = 1;
-      // The beam rests across the middle of the seal.
-      _sweep.value = 0.25;
-    } else {
-      _scan.forward();
-      _sweep.repeat();
-    }
+    _seal.scan();
 
     // Confirm a biometric works before persisting the preference. MUST be
     // biometric-only — otherwise a user could enable "biometric unlock" while
@@ -217,7 +179,10 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
         _ => _Problem.failed,
       }),
       (authenticated) async {
-        if (!authenticated) return _stopScanning(_Phase.idle);
+        if (!authenticated) {
+          _seal.stopScanning();
+          return setState(() => _phase = _Phase.idle);
+        }
         setState(() => _phase = _Phase.saving);
         final saved = await biometrics.setEnabled(true).run();
         if (!mounted) return;
@@ -230,36 +195,20 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
     );
   }
 
-  void _stopScanning(_Phase phase) {
-    _sweep.stop();
-    if (_still) {
-      _scan.value = 0;
-    } else {
-      _scan.reverse();
-    }
-    setState(() => _phase = phase);
-  }
-
   void _fail(_Problem problem) {
-    _stopScanning(_Phase.failed);
-    HapticFeedback.heavyImpact();
-    if (!_still) _shake.forward(from: 0);
-    setState(() => _problem = problem);
+    _seal.fail();
+    setState(() {
+      _phase = _Phase.failed;
+      _problem = problem;
+    });
   }
 
   /// The seal turns into a check, then into the Mooze coin, which flies on
   /// into the opening of the wallet. Under reduced motion it shows its end
   /// at once.
   Future<void> _succeed() async {
-    _stopScanning(_Phase.success);
-    // The picture rests as the success plays.
-    _ambient.stop();
-    if (_still) {
-      _success.value = 1;
-      HapticFeedback.lightImpact();
-    } else {
-      await _success.forward();
-    }
+    setState(() => _phase = _Phase.success);
+    await _seal.succeed();
     if (!mounted) return;
     // The caption leaves first, so only the coin is on the stage when the
     // opening fades in around it.
@@ -286,25 +235,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Spacer(),
-          AnimatedBuilder(
-            animation: Listenable.merge([
-              _ambient,
-              _scan,
-              _sweep,
-              _success,
-              _shake,
-            ]),
-            builder: (context, _) => BiometricScene(
-              kind: _kind,
-              motion: BiometricMotion(
-                ambient: _ambient.value,
-                scan: _scan.value,
-                sweep: _sweep.value,
-                success: _success.value,
-                shake: _shake.value,
-              ),
-            ),
-          ),
+          BiometricSealView(seal: _seal, kind: _kind),
           const SizedBox(height: 8),
           AnimatedOpacity(
             key: const ValueKey('captions'),
