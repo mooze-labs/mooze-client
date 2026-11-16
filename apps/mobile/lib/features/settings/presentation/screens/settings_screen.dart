@@ -34,10 +34,27 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  /// Called when the user taps the biometric toggle. Enabling triggers the
-  /// native prompt to confirm it works before persisting; disabling clears the
-  /// preference immediately.
+  /// Whether a change of the biometric preference runs. The switch takes no
+  /// tap until it ends: each tap would open another system prompt, which
+  /// Android refuses while one is up and iOS replays on its own once the app
+  /// is active again, and the end of the extra prompt would drop the flag of
+  /// the one still on screen.
+  bool _biometricBusy = false;
+
+  /// Called when the user taps the biometric toggle, one change at a time.
   Future<void> _handleBiometricToggle(bool enable) async {
+    if (_biometricBusy) return;
+    setState(() => _biometricBusy = true);
+    try {
+      await _changeBiometric(enable);
+    } finally {
+      if (mounted) setState(() => _biometricBusy = false);
+    }
+  }
+
+  /// Enabling triggers the native prompt to confirm it works before
+  /// persisting; disabling clears the preference immediately.
+  Future<void> _changeBiometric(bool enable) async {
     final biometricService = ref.read(biometricServiceProvider);
     final t = AppLocalizations.of(context);
 
@@ -176,7 +193,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     iconSvgPath: 'assets/icons/menu/settings/biometrics.svg',
                     action: Toggle(
                       value: biometricEnabled,
-                      onChange: _handleBiometricToggle,
+                      onChange: _biometricBusy ? null : _handleBiometricToggle,
                     ),
                   ),
                 ConfigStructure(
