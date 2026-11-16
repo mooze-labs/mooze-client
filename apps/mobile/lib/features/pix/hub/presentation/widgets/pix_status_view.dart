@@ -24,6 +24,7 @@ class PixStatusView extends StatelessWidget {
     required this.title,
     this.message,
     this.child,
+    this.art,
   });
 
   /// Diameter of the emblem.
@@ -35,6 +36,10 @@ class PixStatusView extends StatelessWidget {
 
   /// Extra content below the message, for example the amount.
   final Widget? child;
+
+  /// A scene that tells the state in place of the emblem, such as the
+  /// result of a Pix send.
+  final Widget? art;
 
   static PixTone toneOf(PixStatusKind kind) => switch (kind) {
     PixStatusKind.processing => PixTone.brand,
@@ -50,19 +55,22 @@ class PixStatusView extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AnimatedSwitcher(
-          duration: duration,
-          switchInCurve: Motion.curveEnter,
-          switchOutCurve: Motion.curveExit,
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.88, end: 1).animate(animation),
-              child: child,
+        if (art case final art?)
+          art
+        else
+          AnimatedSwitcher(
+            duration: duration,
+            switchInCurve: Motion.curveEnter,
+            switchOutCurve: Motion.curveExit,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.88, end: 1).animate(animation),
+                child: child,
+              ),
             ),
+            child: _Emblem(key: ValueKey(kind), kind: kind),
           ),
-          child: _Emblem(key: ValueKey(kind), kind: kind),
-        ),
         const SizedBox(height: 24),
         Semantics(
           liveRegion: true,

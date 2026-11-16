@@ -8,6 +8,15 @@ import 'package:mooze_mobile/shared/widgets/stage/stage_face.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_palette.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
 
+/// The glyph of the Pix token: the Pix symbol.
+const stagePixGlyph = 'assets/icons/menu/navigation/pix.svg';
+
+/// The Pix token: a diamond, like the Pix symbol on its face.
+const stagePixShape = StarBorder.polygon(sides: 4, pointRounding: 0.32);
+
+/// Share of the width of the Pix token that its glyph takes.
+const stagePixGlyphScale = 0.42;
+
 /// The coin of [asset] on a stage, [size] wide, turned by [yaw]: its icon
 /// in [tint] on the metal of the [palette].
 class AssetCoin extends StatelessWidget {

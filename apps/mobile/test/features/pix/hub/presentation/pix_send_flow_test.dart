@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,13 +26,18 @@ import 'package:mooze_mobile/features/pix/hub/presentation/screens/send/pix_send
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_amount_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_field.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_send_scene.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_status_view.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_underline_field.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../shared/fake_core_sync_helpers.dart';
+import '../../../../shared/widgets/motion/motion_test_helpers.dart';
 import '../check_digit_core_sync_helpers.dart';
 import '../pix_send_fakes.dart';
 
@@ -669,6 +676,281 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Refresh status'), findsNothing);
+    });
+  });
+
+  group('result scene', () {
+    const step = Duration(milliseconds: 16);
+    const light = 'HapticFeedbackType.lightImpact';
+    const heavy = 'HapticFeedbackType.heavyImpact';
+    late List<(String, Duration)> haptics;
+    late Duration clock;
+
+    /// Funds a payment whose first status read finds it open, and opens
+    /// the result, recording the haptics.
+    Future<void> open(WidgetTester tester) async {
+      useTallView(tester);
+      haptics = [];
+      clock = Duration.zero;
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          haptics.add((call.arguments as String, clock));
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      repository.statusAnswers.add(
+        Right([testDetails('w-1', PixWithdrawalStatus.unsent)]),
+      );
+      wallet.sendResult = const PixFundingSent(txid: 'txid-1');
+      await quoted();
+      await controller.confirmAndFund();
+      await tester.pumpWidget(host(initial: '/pix/send/result'));
+    }
+
+    Future<void> advance(WidgetTester tester, Duration time) async {
+      final end = clock + time;
+      while (clock < end) {
+        await tester.pump(step);
+        clock += step;
+      }
+    }
+
+    /// The next status read finds [status].
+    Future<void> answer(WidgetTester tester, PixWithdrawalStatus status) async {
+      repository.statusAnswers.add(Right([testDetails('w-1', status)]));
+      scheduled.last();
+      await tester.pump();
+    }
+
+    PixSendMotion motion(WidgetTester tester) =>
+        tester.widget<PixSendScene>(find.byType(PixSendScene)).motion;
+
+    /// Whether the title of the result tells [text]. The status in the
+    /// details tells the backend status at once.
+    bool titled(String text) => find
+        .descendant(of: find.byType(PixStatusView), matching: find.text(text))
+        .evaluate()
+        .isNotEmpty;
+
+    test('the coin is edge-on as it becomes the Pix token, wherever the '
+        'wait stopped, and rests at its yaw', () {
+      for (var wait = 0.0; wait <= 1; wait += 0.05) {
+        PixSendMotion at(double delivered) =>
+            PixSendMotion(wait: wait, delivered: delivered);
+        final edge = PixSendScene.poseAt(at(PixSendScene.revealAt));
+        expect(edge.turn, 2.5 * math.pi);
+        expect(edge.showsPix, isTrue);
+        // No jump: the turn comes to edge-on smoothly.
+        final before = PixSendScene.poseAt(at(PixSendScene.revealAt - 1e-6));
+        expect(before.showsPix, isFalse);
+        expect(before.turn, closeTo(2.5 * math.pi, 1e-3));
+        for (final delivered in [PixSendScene.landAt, 1.0]) {
+          expect(
+            StageToken.faceYaw(PixSendScene.poseAt(at(delivered)).turn),
+            closeTo(PixSendScene.restYaw, 1e-9),
+          );
+          expect(PixSendScene.poseAt(at(delivered)).lift, closeTo(0, 1e-9));
+        }
+      }
+    });
+
+    test('the wait wraps with no jump, and a Pix not paid never shows the '
+        'Pix token', () {
+      final start = PixSendScene.poseAt(const PixSendMotion(wait: 0));
+      final end = PixSendScene.poseAt(const PixSendMotion(wait: 1));
+      expect(end.turn, closeTo(start.turn, 1e-9));
+      for (var r = 0.0; r <= 1; r += 0.05) {
+        final pose = PixSendScene.poseAt(PixSendMotion(wait: 0.3, returned: r));
+        expect(pose.showsPix, isFalse);
+      }
+      final rest = PixSendScene.poseAt(
+        const PixSendMotion(wait: 0.3, returned: 1),
+      );
+      expect(rest.turn, PixSendScene.restYaw);
+      expect(rest.lift, greaterThan(0));
+    });
+
+    testWidgets('the DePix coin comes in, then waits while the provider '
+        'pays', (tester) async {
+      await open(tester);
+      expect(motion(tester).entrance, lessThan(0.1));
+      await advance(tester, Motion.durationPixSendEntrance);
+      expect(motion(tester).entrance, 1);
+      final wait = motion(tester).wait;
+      await advance(tester, const Duration(milliseconds: 500));
+      expect(motion(tester).wait, isNot(wait));
+      expect(motion(tester).delivered, 0);
+      expect(titled('Pix in progress'), isTrue);
+    });
+
+    testWidgets('the status sent turns the coin into the Pix token, with a '
+        'haptic as it spins, as it turns, and as it lands; the title tells '
+        'it as the Pix token shows', (tester) async {
+      await open(tester);
+      await advance(tester, const Duration(seconds: 2));
+      await answer(tester, PixWithdrawalStatus.sent);
+
+      Duration? start, titledAt;
+      var titleBeforePix = false;
+      final waits = <double>{};
+      while (clock < const Duration(seconds: 5)) {
+        await tester.pump(step);
+        clock += step;
+        final m = motion(tester);
+        if (m.delivered > 0) {
+          start ??= clock;
+          waits.add(m.wait);
+        }
+        final pix = PixSendScene.poseAt(m).showsPix;
+        if (titled('Pix delivered')) {
+          titledAt ??= clock;
+          if (!pix) titleBeforePix = true;
+        }
+      }
+
+      final duration = Motion.durationPixDelivered;
+      expect(motion(tester).delivered, 1);
+      // The wait holds still while the coin turns.
+      expect(waits, hasLength(1));
+      expect(titleBeforePix, isFalse);
+      expect(
+        (titledAt! - start! - duration * PixSendScene.revealAt).abs(),
+        lessThanOrEqualTo(step * 2),
+      );
+      expect([for (final (type, _) in haptics) type], [light, heavy, light]);
+      for (final ((_, at), share) in [
+        (haptics[1], PixSendScene.revealAt),
+        (haptics[2], PixSendScene.landAt),
+      ]) {
+        expect(
+          (at - start - duration * share).abs(),
+          lessThanOrEqualTo(step * 2),
+        );
+      }
+    });
+
+    testWidgets('a status sent before the coin is in place waits for it', (
+      tester,
+    ) async {
+      await open(tester);
+      await advance(tester, const Duration(milliseconds: 200));
+      await answer(tester, PixWithdrawalStatus.sent);
+      Duration? start;
+      while (start == null && clock < const Duration(seconds: 4)) {
+        await tester.pump(step);
+        clock += step;
+        if (motion(tester).delivered > 0) start = clock;
+      }
+      // The entrance, then a moment in place.
+      expect(start, greaterThanOrEqualTo(const Duration(milliseconds: 1600)));
+      expect(titled('Pix delivered'), isFalse);
+    });
+
+    testWidgets('a refund lets the coin sink, with one light haptic and no '
+        'Pix token', (tester) async {
+      await open(tester);
+      await advance(tester, const Duration(seconds: 2));
+      await answer(tester, PixWithdrawalStatus.refunded);
+      await advance(tester, Motion.durationPixReturned);
+
+      expect(motion(tester).returned, 1);
+      expect(motion(tester).delivered, 0);
+      expect(PixSendScene.poseAt(motion(tester)).showsPix, isFalse);
+      expect([for (final (type, _) in haptics) type], [light]);
+      expect(titled('Pix not completed'), isTrue);
+    });
+
+    testWidgets('opened after the outcome, the scene rests on it, with no '
+        'haptic', (tester) async {
+      useTallView(tester);
+      haptics = [];
+      repository.statusAnswers.add(
+        Right([testDetails('w-1', PixWithdrawalStatus.sent)]),
+      );
+      wallet.sendResult = const PixFundingSent(txid: 'txid-1');
+      await quoted();
+      await controller.confirmAndFund();
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          haptics.add((call.arguments as String, Duration.zero));
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      await tester.pumpWidget(host(initial: '/pix/send/result'));
+      await tester.pump();
+
+      expect(motion(tester).delivered, 1);
+      expect(motion(tester).entrance, 1);
+      expect(titled('Pix delivered'), isTrue);
+      await settle(tester);
+      expect(haptics, isEmpty);
+    });
+
+    testWidgets('when the status reads stop, the wait ends its cycle and '
+        'rests', (tester) async {
+      await open(tester);
+      await advance(tester, const Duration(seconds: 2));
+      for (var i = 0; i < PixSendController.defaultMaxPolls; i++) {
+        scheduled.last();
+        await tester.pump();
+      }
+      expect(controller.state.pollingExhausted, isTrue);
+      await advance(tester, Motion.durationPixSendWait);
+      final rest = motion(tester);
+      expect(rest.wait, 1);
+      await advance(tester, const Duration(seconds: 1));
+      expect(motion(tester).wait, 1);
+      expect(
+        PixSendScene.poseAt(rest).turn,
+        closeTo(PixSendScene.restYaw, 1e-9),
+      );
+    });
+
+    testWidgets('opened after the status reads stopped, the coin comes in '
+        'and rests: nothing loops', (tester) async {
+      useTallView(tester);
+      repository.statusAnswers.add(
+        Right([testDetails('w-1', PixWithdrawalStatus.unsent)]),
+      );
+      wallet.sendResult = const PixFundingSent(txid: 'txid-1');
+      await quoted();
+      await controller.confirmAndFund();
+      await tester.pump();
+      for (var i = 0; i < PixSendController.defaultMaxPolls; i++) {
+        scheduled.last();
+        await tester.pump();
+      }
+      expect(controller.state.pollingExhausted, isTrue);
+      clock = Duration.zero;
+      await tester.pumpWidget(host(initial: '/pix/send/result'));
+      await advance(tester, const Duration(seconds: 2));
+
+      expect(motion(tester).entrance, 1);
+      expect(motion(tester).wait, 0);
+    });
+
+    testWidgets('with reduced motion, nothing loops, and the Pix token shows '
+        'at once with one light haptic', (tester) async {
+      reduceMotion(tester);
+      await open(tester);
+      await tester.pump();
+      expect(motion(tester).entrance, 1);
+      await advance(tester, const Duration(seconds: 1));
+      expect(motion(tester).wait, 0);
+
+      await answer(tester, PixWithdrawalStatus.sent);
+      await tester.pump();
+      expect(motion(tester).delivered, 1);
+      expect(titled('Pix delivered'), isTrue);
+      expect([for (final (type, _) in haptics) type], [light]);
     });
   });
 

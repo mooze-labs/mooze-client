@@ -145,11 +145,7 @@ class _Look {
 }
 
 const _moozeGlyph = 'assets/images/onboarding/mooze_m.svg';
-const _pixGlyph = 'assets/icons/menu/navigation/pix.svg';
 const _lockGlyph = 'assets/images/onboarding/vault_lock.svg';
-
-/// The Pix token: a diamond, like the Pix symbol on its face.
-const _diamond = StarBorder.polygon(sides: 4, pointRounding: 0.32);
 
 /// The vault: a hexagon, like the medals of the levels.
 const _hexagon = StarBorder.polygon(sides: 6, pointRounding: 0.24);
@@ -345,11 +341,11 @@ List<Widget> _pixScene(_Look look, Size size, SceneMotion motion) {
       )!,
       opacity: stageProgress(e, 0, 0.2),
       child: look.token(
-        _pixGlyph,
+        stagePixGlyph,
         tokenSize,
         -0.36 + 0.2 * motion.drift + 0.5 * motion.offset,
-        shape: _diamond,
-        glyphScale: 0.42,
+        shape: stagePixShape,
+        glyphScale: stagePixGlyphScale,
       ),
     ),
     StagePlaced(

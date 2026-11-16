@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,7 @@ import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_copy_fiel
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_flow_expired_scaffold.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_formatters.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_hub_labels.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_send_scene.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_status_view.dart';
 import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_summary_card.dart';
 import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
@@ -16,7 +19,9 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/motion/fade_slide_in.dart';
+import 'package:mooze_mobile/shared/widgets/motion/route_entrance.dart';
 import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
+import 'package:mooze_mobile/shared/widgets/stage/stage_haptics.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -27,15 +32,120 @@ import 'package:url_launcher/url_launcher.dart';
 /// a completed payment. A broadcast with an uncertain outcome tells the user
 /// not to pay again and keeps reading the status.
 ///
-/// The state emblem, the title, and the message lead. The amount and the
-/// recipient follow on the page, then one glass panel with the details and
-/// the request ID to copy. "Back to Pix" is the main action. A quieter text
-/// action opens the receipt or refreshes the status.
-class PixSendResultScreen extends ConsumerWidget {
+/// The scene, the title, and the message lead. The scene follows the send,
+/// see [PixSendScene]: the DePix coin comes in, waits while the provider
+/// pays, and becomes the Pix token when the status is `sent`, or settles
+/// and sinks when the Pix is not paid. The title tells the delivery as the
+/// Pix token shows. An outcome reached before the screen opened, as a
+/// payment opened from the history, shows at rest.
+///
+/// The amount and the recipient follow on the page, then one glass panel
+/// with the details and the request ID to copy. "Back to Pix" is the main
+/// action. A quieter text action opens the receipt or refreshes the status.
+class PixSendResultScreen extends ConsumerStatefulWidget {
   const PixSendResultScreen({super.key});
 
   /// Side margin of the content.
   static const double _gutter = 20;
+
+  @override
+  ConsumerState<PixSendResultScreen> createState() =>
+      _PixSendResultScreenState();
+}
+
+class _PixSendResultScreenState extends ConsumerState<PixSendResultScreen>
+    with TickerProviderStateMixin, StageHaptics<PixSendResultScreen> {
+  /// How long the coin shows in place before an outcome moves it, so a
+  /// fast provider does not cut the scene short.
+  static const _holdFor = Duration(milliseconds: 600);
+
+  late final PixSendStage _stage = PixSendStage(vsync: this);
+
+  /// Completes once the coin is in place and has shown for [_holdFor].
+  final _ready = Completer<void>();
+  Timer? _hold;
+
+  bool _started = false;
+
+  /// Whether the scene shows the Pix token, so the title tells the
+  /// delivery.
+  bool _showsPix = false;
+
+  @override
+  Animation<double> get stageAnimation => _stage.delivered;
+
+  @override
+  List<StageBeat> get stageBeats => PixSendStage.beats;
+
+  @override
+  void initState() {
+    super.initState();
+    _stage.delivered.addListener(() {
+      final shows = _stage.showsPix;
+      if (shows != _showsPix) setState(() => _showsPix = shows);
+    });
+    // An outcome reached before the screen opened shows at rest.
+    final phase = ref.read(pixSendControllerProvider).phase;
+    if (phase == PixSendPhase.completed || phase == PixSendPhase.failed) {
+      _stage.restAt(delivered: phase == PixSendPhase.completed);
+      _ready.complete();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _stage.still = Motion.isReduced(context);
+    if (_started) return;
+    _started = true;
+    afterRouteEntrance(context, _begin);
+  }
+
+  @override
+  void dispose() {
+    _hold?.cancel();
+    _stage.dispose();
+    super.dispose();
+  }
+
+  /// The coin comes in once the page is in place, and waits while the
+  /// provider pays.
+  Future<void> _begin() async {
+    if (_ready.isCompleted) return;
+    await _stage.enter();
+    if (!mounted) return;
+    if (_waits(ref.read(pixSendControllerProvider))) _stage.wait();
+    _hold = Timer(Motion.of(context, _holdFor), _ready.complete);
+  }
+
+  /// Whether the screen still reads the status of a payment in progress.
+  static bool _waits(PixSendState state) =>
+      !state.pollingExhausted &&
+      state.phase != PixSendPhase.completed &&
+      state.phase != PixSendPhase.failed;
+
+  Future<void> _deliver() async {
+    await _ready.future;
+    if (mounted) await _stage.deliver();
+  }
+
+  Future<void> _giveBack() async {
+    await _ready.future;
+    if (mounted) _stage.giveBack();
+  }
+
+  void _onChange(PixSendState? previous, PixSendState next) {
+    final was = previous?.phase;
+    if (next.phase == PixSendPhase.completed && was != PixSendPhase.completed) {
+      _deliver();
+    } else if (next.phase == PixSendPhase.failed &&
+        was != PixSendPhase.failed) {
+      _giveBack();
+    }
+    if (next.pollingExhausted && !(previous?.pollingExhausted ?? false)) {
+      _stage.settle();
+    }
+  }
 
   void _close(BuildContext context, WidgetRef ref) {
     ref.invalidate(pixPendingWithdrawalSyncProvider);
@@ -43,8 +153,9 @@ class PixSendResultScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    ref.listen(pixSendControllerProvider, _onChange);
     final state = ref.watch(pixSendControllerProvider);
     final record = state.record;
 
@@ -52,7 +163,8 @@ class PixSendResultScreen extends ConsumerWidget {
       return PixFlowExpiredScaffold(title: t.pix_hub_result_title);
     }
 
-    final look = _ResultLook.of(t, state);
+    final look = _ResultLook.of(t, state, showsPix: _showsPix);
+    const gutter = PixSendResultScreen._gutter;
 
     return PopScope(
       canPop: false,
@@ -81,9 +193,9 @@ class PixSendResultScreen extends ConsumerWidget {
                           // scrolls.
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(
-                            _gutter,
+                            gutter,
                             16,
-                            _gutter,
+                            gutter,
                             16,
                           ),
                           children: [
@@ -91,6 +203,7 @@ class PixSendResultScreen extends ConsumerWidget {
                               kind: look.kind,
                               title: look.title,
                               message: look.body,
+                              art: PixSendSceneView(stage: _stage),
                               child: Column(
                                 children: [
                                   _AmountHero(
@@ -120,12 +233,7 @@ class PixSendResultScreen extends ConsumerWidget {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        _gutter,
-                        8,
-                        _gutter,
-                        12,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(gutter, 8, gutter, 12),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -157,9 +265,15 @@ class _ResultLook {
 
   const _ResultLook(this.kind, this.title, this.body);
 
-  factory _ResultLook.of(AppLocalizations t, PixSendState state) {
+  /// The look of [state]. A delivered Pix keeps the look of a payment in
+  /// progress until the scene [showsPix].
+  factory _ResultLook.of(
+    AppLocalizations t,
+    PixSendState state, {
+    required bool showsPix,
+  }) {
     return switch (state.phase) {
-      PixSendPhase.completed => _ResultLook(
+      PixSendPhase.completed when showsPix => _ResultLook(
         PixStatusKind.success,
         t.pix_hub_result_completed_title,
         t.pix_hub_result_completed_body,

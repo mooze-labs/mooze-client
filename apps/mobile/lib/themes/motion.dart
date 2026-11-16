@@ -71,6 +71,21 @@ abstract final class Motion {
   /// distance, until the scene rests (1.8 s).
   static const durationSend = Duration(milliseconds: 1800);
 
+  /// Entrance of the DePix coin on the result of a Pix send (1 s).
+  static const durationPixSendEntrance = Duration(milliseconds: 1000);
+
+  /// One cycle of the wait for a Pix to be paid: the DePix coin sways, its
+  /// light breathes, its ring turns once, and a soft wave leaves it (4 s).
+  static const durationPixSendWait = Duration(milliseconds: 4000);
+
+  /// A delivered Pix: the DePix coin spins up and turns into the Pix token
+  /// with a flash and a shockwave, until the scene rests (1.8 s).
+  static const durationPixDelivered = Duration(milliseconds: 1800);
+
+  /// A Pix not paid: the DePix coin settles and sinks a little, its ring
+  /// drifts away, and embers fall, until the scene rests (1.6 s).
+  static const durationPixReturned = Duration(milliseconds: 1600);
+
   /// Farewell of a deleted wallet: the orbit ring drifts away, the Mooze
   /// coin turns once and sinks, and embers fall from it, until the scene
   /// rests (1.8 s).
