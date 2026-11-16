@@ -2953,6 +2953,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wallet_open_import_again => 'Import again';
 
   @override
+  String get wallet_delete_step_deleting => 'Deleting your wallet';
+
+  @override
+  String get wallet_delete_hint =>
+      'Don\'t close the app. This only takes a moment.';
+
+  @override
+  String get wallet_delete_step_done => 'Wallet deleted';
+
+  @override
+  String get wallet_delete_done_hint =>
+      'You can create or import a wallet whenever you like.';
+
+  @override
+  String get wallet_delete_error_title => 'We couldn\'t delete your wallet';
+
+  @override
+  String get wallet_delete_error_body =>
+      'Something went wrong along the way. Try again in a moment.';
+
+  @override
   String get send_pix_appbar => 'Send PIX';
 
   @override

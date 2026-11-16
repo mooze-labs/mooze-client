@@ -2978,6 +2978,27 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wallet_open_import_again => 'Importar de nuevo';
 
   @override
+  String get wallet_delete_step_deleting => 'Eliminando tu billetera';
+
+  @override
+  String get wallet_delete_hint =>
+      'No cierres la app. Esto solo toma unos instantes.';
+
+  @override
+  String get wallet_delete_step_done => 'Billetera eliminada';
+
+  @override
+  String get wallet_delete_done_hint =>
+      'Puedes crear o importar una billetera cuando quieras.';
+
+  @override
+  String get wallet_delete_error_title => 'No pudimos eliminar tu billetera';
+
+  @override
+  String get wallet_delete_error_body =>
+      'Algo salió mal en el camino. Inténtalo de nuevo en unos instantes.';
+
+  @override
   String get send_pix_appbar => 'Enviar PIX';
 
   @override

@@ -9,15 +9,6 @@ import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
-import 'package:mooze_mobile/app/di/v2_providers.dart';
-import 'package:mooze_mobile/features/pix/receive_pix/di/providers/pix_repository_provider.dart';
-import 'package:mooze_mobile/features/wallet/di/providers/wallet_id_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/balance_provider.dart';
-import 'package:mooze_mobile/features/wallet/presentation/providers/cached_data_provider.dart';
-import 'package:mooze_mobile/shared/authentication/providers.dart';
-import 'package:mooze_mobile/shared/key_management/providers/mnemonic_provider.dart';
-import 'package:mooze_mobile/shared/network/providers.dart';
-import 'package:mooze_mobile/shared/user/providers/user_data_provider.dart';
 
 class DeleteWalletScreen extends ConsumerStatefulWidget {
   const DeleteWalletScreen({super.key});
@@ -90,71 +81,14 @@ class _DeleteWalletScreenState extends ConsumerState<DeleteWalletScreen> {
   }
 
   Future<void> _verifyAndDeleteWallet(BuildContext context) async {
-    final t = AppLocalizations.of(context);
     final verifyPinArgs = VerifyPinArgs(
-      onPinConfirmed: () async {
-        final navigator = Navigator.of(context);
-
-        try {
-          // Show loading indicator using captured navigator
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (dialogContext) => const PopScope(
-              canPop: false,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          );
-
-          ref.invalidate(pixRepositoryProvider);
-
-          final controller = await ref.read(
-            appLifecycleControllerProvider.future,
-          );
-          final result = await controller.deleteWalletAndReimport();
-
-          // Close loading dialog using captured navigator
-          navigator.pop();
-
-          final success = result.isRight();
-          if (success) {
-            ref.invalidate(mnemonicProvider);
-            // The core forgets the identity of the deleted mnemonic.
-            await ref.read(sessionManagerServiceProvider).resetIdentity().run();
-            ref.invalidate(sessionManagerServiceProvider);
-            ref.invalidate(authenticatedClientProvider);
-            ref.invalidate(pixRepositoryProvider);
-            ref.invalidate(userDataProvider);
-            ref.invalidate(balanceCacheProvider);
-            ref.invalidate(transactionHistoryCacheProvider);
-            // Drop the V2 cache-first balance state and force the walletId to
-            // be regenerated, so the next wallet starts from an empty snapshot
-            // and never sees the deleted wallet's persisted balances.
-            ref.invalidate(walletIdProvider);
-            ref.invalidate(allBalancesProvider);
-
-            // The delete also reset the onboarding: the app starts over as
-            // on its first launch.
-            if (context.mounted) {
-              context.go('/setup/onboarding');
-            }
-          } else {
-            if (context.mounted) {
-              AppSnackBar.error(context, t.delete_wallet_error);
-            }
-          }
-        } catch (e) {
-          // Close loading dialog if it's open
-          try {
-            navigator.pop();
-          } catch (_) {
-            // Dialog may already be closed
-          }
-
-          if (context.mounted) {
-            AppSnackBar.error(context, t.error_unexpected(e.toString()));
-          }
-        }
+      onPinConfirmed: () {
+        if (!mounted) return;
+        // The deleting screen takes the place of the PIN screen, whose push
+        // then never returns. The slide comes back now, for when the user
+        // comes back here after a failed delete.
+        setState(() => _awaitingPin = false);
+        context.pushReplacement('/settings/delete-wallet/deleting');
       },
       forceAuth: true,
     );

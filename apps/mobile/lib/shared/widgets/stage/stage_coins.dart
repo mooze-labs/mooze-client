@@ -44,7 +44,8 @@ class AssetCoin extends StatelessWidget {
 /// such as the Mooze coin: [glyphScale] of its width, in [tint].
 ///
 /// A token in another shape than a circle turns around the middle of its
-/// thickness, see [StageToken.centered].
+/// thickness, see [StageToken.centered]. So does a coin with [centered]:
+/// one that turns past edge-on.
 class GlyphToken extends StatelessWidget {
   const GlyphToken({
     super.key,
@@ -55,6 +56,7 @@ class GlyphToken extends StatelessWidget {
     required this.palette,
     this.shape = const CircleBorder(),
     this.glyphScale = 0.48,
+    this.centered,
   });
 
   final String glyphPath;
@@ -65,6 +67,10 @@ class GlyphToken extends StatelessWidget {
   final OutlinedBorder shape;
   final double glyphScale;
 
+  /// Whether the token turns around the middle of its thickness. By
+  /// default, only a token in another shape than a circle does.
+  final bool? centered;
+
   @override
   Widget build(BuildContext context) {
     final glyph = size * glyphScale;
@@ -74,7 +80,7 @@ class GlyphToken extends StatelessWidget {
       yaw: yaw,
       tint: tint,
       base: palette.base,
-      centered: shape is! CircleBorder,
+      centered: centered ?? shape is! CircleBorder,
       face: RepaintBoundary(
         child: StageFace(
           shape: shape,

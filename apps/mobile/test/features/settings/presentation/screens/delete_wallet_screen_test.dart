@@ -9,15 +9,11 @@ import 'package:mooze_mobile/app/lifecycle/app_lifecycle_controller.dart';
 import 'package:mooze_mobile/features/settings/presentation/actions/navigation_action.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/delete_wallet_screen.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/authentication/providers.dart';
-import 'package:mooze_mobile/shared/authentication/services/session_manager_service.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/slide_to_confirm_button.dart';
 
 import '../../../setup/presentation/setup_test_app.dart';
 
 class _MockLifecycle extends Mock implements AppLifecycleController {}
-
-class _MockSession extends Mock implements SessionManagerService {}
 
 void main() {
   final t = lookupAppLocalizations(const Locale('pt'));
@@ -33,8 +29,6 @@ void main() {
   });
 
   Future<void> open(WidgetTester tester) async {
-    final session = _MockSession();
-    when(() => session.resetIdentity()).thenReturn(TaskEither.right(unit));
     usePhoneSize(tester);
 
     await tester.pumpWidget(
@@ -56,13 +50,11 @@ void main() {
                 ),
               ),
             ),
-            opened.stub('/setup/onboarding'),
-            opened.stub('/setup/first-access'),
+            opened.stub('/settings/delete-wallet/deleting'),
           ],
         ),
         overrides: [
           appLifecycleControllerProvider.overrideWith((_) async => lifecycle),
-          sessionManagerServiceProvider.overrideWithValue(session),
         ],
       ),
     );
@@ -123,7 +115,8 @@ void main() {
     expect(find.text('PIN'), findsOneWidget);
   });
 
-  testWidgets('a deleted wallet starts over at the onboarding', (tester) async {
+  testWidgets('a confirmed PIN gives its place to the deleting screen, and the '
+      'slide is back for when the user returns', (tester) async {
     await open(tester);
     await acknowledgeBothRisks(tester);
 
@@ -132,8 +125,20 @@ void main() {
     await tester.tap(find.text('PIN'));
     await settle(tester);
 
-    verify(() => lifecycle.deleteWalletAndReimport()).called(1);
-    expect(opened.last, '/setup/onboarding');
+    expect(opened.last, '/settings/delete-wallet/deleting');
+    expect(find.text('PIN'), findsNothing);
+    // The deleting screen deletes, not this one.
+    verifyNever(() => lifecycle.deleteWalletAndReimport());
+
+    // Back from a failed delete, straight to this screen, ready again.
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    expect(find.text('PIN'), findsNothing);
+    expect(slideOf(tester).isLoading, isFalse);
+    expect(
+      tester.getRect(thumb).left,
+      moreOrLessEquals(tester.getRect(slide).left),
+    );
   });
 
   testWidgets('the slide waits at its end while the PIN is asked, and comes '

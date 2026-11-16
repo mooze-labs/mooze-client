@@ -13,13 +13,25 @@ import 'package:mooze_mobile/features/settings/presentation/screens/language_sel
 import 'package:mooze_mobile/features/support/presentations/srcreens/support_screen.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/terms_and_conditions.dart';
 import 'package:mooze_mobile/features/settings/presentation/screens/view_mnemonic.dart';
+import 'package:mooze_mobile/features/settings/presentation/screens/wallet_deleting/wallet_deleting_screen.dart';
 import 'package:mooze_mobile/shared/security/secure_screen.dart';
+import 'package:mooze_mobile/shared/widgets/motion/fade_through_page.dart';
 
 final settingsRoutes = [
   GoRoute(path: "/settings", builder: (context, state) => SettingsScreen()),
   GoRoute(
     path: "/settings/delete-wallet",
     builder: (context, state) => DeleteWalletScreen(),
+  ),
+  // Takes the place of the PIN screen once the delete is confirmed: it
+  // rises out of it instead of sliding in, as a step with no way back.
+  GoRoute(
+    path: "/settings/delete-wallet/deleting",
+    pageBuilder: (context, state) => fadeThroughPage(
+      context: context,
+      state: state,
+      child: const WalletDeletingScreen(),
+    ),
   ),
   GoRoute(
     path: '/settings/license',

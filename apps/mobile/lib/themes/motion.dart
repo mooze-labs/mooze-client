@@ -71,6 +71,11 @@ abstract final class Motion {
   /// distance, until the scene rests (1.8 s).
   static const durationSend = Duration(milliseconds: 1800);
 
+  /// Farewell of a deleted wallet: the orbit ring drifts away, the Mooze
+  /// coin turns once and sinks, and embers fall from it, until the scene
+  /// rests (1.8 s).
+  static const durationFarewell = Duration(milliseconds: 1800);
+
   /// Entrance of an onboarding scene: its art takes its place the first
   /// time its page shows (1.2 s). A slow drift follows, within
   /// [durationAmbient] forward and back.

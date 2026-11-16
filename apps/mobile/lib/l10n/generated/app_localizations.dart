@@ -5356,6 +5356,42 @@ abstract class AppLocalizations {
   /// **'Importar de novo'**
   String get wallet_open_import_again;
 
+  /// No description provided for @wallet_delete_step_deleting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deletando sua carteira'**
+  String get wallet_delete_step_deleting;
+
+  /// No description provided for @wallet_delete_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não feche o app. Isso leva só alguns instantes.'**
+  String get wallet_delete_hint;
+
+  /// No description provided for @wallet_delete_step_done.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carteira deletada'**
+  String get wallet_delete_step_done;
+
+  /// No description provided for @wallet_delete_done_hint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você pode criar ou importar uma carteira quando quiser.'**
+  String get wallet_delete_done_hint;
+
+  /// No description provided for @wallet_delete_error_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não conseguimos deletar sua carteira'**
+  String get wallet_delete_error_title;
+
+  /// No description provided for @wallet_delete_error_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Algo deu errado no caminho. Tente de novo em instantes.'**
+  String get wallet_delete_error_body;
+
   /// No description provided for @send_pix_appbar.
   ///
   /// In pt, this message translates to:

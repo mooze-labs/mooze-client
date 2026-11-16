@@ -2970,6 +2970,28 @@ class AppLocalizationsPt extends AppLocalizations {
   String get wallet_open_import_again => 'Importar de novo';
 
   @override
+  String get wallet_delete_step_deleting => 'Deletando sua carteira';
+
+  @override
+  String get wallet_delete_hint =>
+      'Não feche o app. Isso leva só alguns instantes.';
+
+  @override
+  String get wallet_delete_step_done => 'Carteira deletada';
+
+  @override
+  String get wallet_delete_done_hint =>
+      'Você pode criar ou importar uma carteira quando quiser.';
+
+  @override
+  String get wallet_delete_error_title =>
+      'Não conseguimos deletar sua carteira';
+
+  @override
+  String get wallet_delete_error_body =>
+      'Algo deu errado no caminho. Tente de novo em instantes.';
+
+  @override
   String get send_pix_appbar => 'Enviar PIX';
 
   @override
