@@ -16,7 +16,12 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// The content fades and rises in once, when the screen opens, over
 /// [Motion.durationBase]. It never blocks a tap. With reduced motion it
 /// appears at once.
-class PinScreenScaffold extends StatelessWidget {
+///
+/// The content starts at the top of the screen, under the app bar, so the
+/// light of a scene crosses the bar: only its buttons and title cover it.
+/// The bar takes its slice of the backdrop once the content scrolls under
+/// it.
+class PinScreenScaffold extends StatefulWidget {
   const PinScreenScaffold({
     super.key,
     required this.child,
@@ -37,32 +42,57 @@ class PinScreenScaffold extends StatelessWidget {
   static const double gutter = 20;
 
   @override
+  State<PinScreenScaffold> createState() => _PinScreenScaffoldState();
+}
+
+class _PinScreenScaffoldState extends State<PinScreenScaffold> {
+  /// Whether the content scrolls under the app bar.
+  bool _scrolledUnder = false;
+
+  bool _onScroll(ScrollNotification notification) {
+    if (notification.depth != 0) return false;
+    final under = notification.metrics.pixels > 0;
+    if (under != _scrolledUnder) setState(() => _scrolledUnder = under);
+    return false;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    const gutter = PinScreenScaffold.gutter;
+    final title = widget.appBarTitle;
+    final onBack = widget.onBack;
     return Scaffold(
-      // The app bar is clear and paints its slice of the backdrop, so the
-      // bar and the page read as one surface.
+      // The app bar is clear: the page and the bar read as one surface, and
+      // only its title and buttons cover what passes under it.
       extendBodyBehindAppBar: true,
       appBar: BackdropAppBar(
-        title: appBarTitle == null ? null : Text(appBarTitle!),
+        title: title == null ? null : Text(title),
         automaticallyImplyLeading: false,
-        leading: onBack == null
-            ? null
-            : BackButton(onPressed: onBack),
+        leading: onBack == null ? null : BackButton(onPressed: onBack),
+        showsBackdrop: _scrolledUnder,
       ),
       body: Stack(
         children: [
           const Positioned.fill(child: AppBackdrop()),
           SafeArea(
+            top: false,
             child: _ContentEntrance(
-              child: LayoutBuilder(
-                builder: (context, constraints) => SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(gutter, 8, gutter, 12),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - 20,
-                    ),
-                    child: IntrinsicHeight(child: child),
-                  ),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _onScroll,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Below the status bar and the app bar.
+                    final top = MediaQuery.paddingOf(context).top;
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(gutter, top + 8, gutter, 12),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight - top - 20,
+                        ),
+                        child: IntrinsicHeight(child: widget.child),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
