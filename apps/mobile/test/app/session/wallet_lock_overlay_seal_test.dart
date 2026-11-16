@@ -17,6 +17,7 @@ import 'package:mooze_mobile/services/auth.dart';
 import 'package:mooze_mobile/shared/authentication/providers/biometric_service_provider.dart';
 import 'package:mooze_mobile/shared/authentication/services/biometric_service.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
+import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/stage/stage_token.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -186,6 +187,29 @@ void main() {
       // It offers nothing to tap.
       expect(action(tester, t.pin_use_biometric), 0);
       expect(action(tester, t.pin_use_pin), 0);
+    });
+
+    testWidgets('sits on the backdrop of the screens of the app, over an '
+        'opaque surface, so the wallet never shows through', (tester) async {
+      await start(tester);
+      await tester.pumpWidget(overlay(locked: false));
+
+      expect(
+        find.descendant(
+          of: find.byType(PrivacyShieldOverlay),
+          matching: find.byType(AppBackdrop),
+        ),
+        findsOneWidget,
+      );
+      final surface = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(PrivacyShieldOverlay),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(surface.color!.a, 1);
     });
 
     testWidgets('shows the padlock to a user of a PIN alone', (tester) async {
