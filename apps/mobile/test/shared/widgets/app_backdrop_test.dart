@@ -115,6 +115,70 @@ void main() {
     });
   }
 
+  for (final brightness in Brightness.values) {
+    testWidgets('the pages of a pager show one backdrop during a swipe in the '
+        '${brightness.name} theme', (tester) async {
+      tester.view.physicalSize = const Size(400, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final controller = PageController();
+      addTearDown(controller.dispose);
+      final pageKeys = [GlobalKey(), GlobalKey()];
+      final screenKey = GlobalKey();
+      await tester.pumpWidget(
+        _app(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: 300,
+                child: PageView(
+                  controller: controller,
+                  children: [
+                    for (final key in pageKeys)
+                      RepaintBoundary(key: key, child: const AppBackdrop()),
+                  ],
+                ),
+              ),
+              // The backdrop of a screen without pages, for reference.
+              SizedBox(
+                height: 300,
+                child: RepaintBoundary(
+                  key: screenKey,
+                  child: const AppBackdrop(),
+                ),
+              ),
+            ],
+          ),
+          brightness: brightness,
+        ),
+      );
+
+      // Halfway through the swipe, each page covers half of the screen.
+      controller.jumpTo(200);
+      await tester.pump();
+
+      final screen = await _pixels(tester, screenKey);
+      final left = await _pixels(tester, pageKeys[0]);
+      final right = await _pixels(tester, pageKeys[1]);
+      for (final y in [0, 40, 120, 250]) {
+        for (final x in [0, 100, 199]) {
+          expect(
+            _pixel(left, 400, x + 200, y),
+            _sameColorAs(_pixel(screen, 400, x, y)),
+            reason: 'left page at screen pixel ($x, $y)',
+          );
+          expect(
+            _pixel(right, 400, x, y),
+            _sameColorAs(_pixel(screen, 400, x + 200, y)),
+            reason: 'right page at screen pixel (${x + 200}, $y)',
+          );
+        }
+      }
+    });
+  }
+
   testWidgets('the dark backdrop fades graphite into the page', (tester) async {
     late BackdropStyle style;
     late ColorScheme scheme;

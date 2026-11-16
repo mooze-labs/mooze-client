@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -8,6 +10,11 @@ import 'package:mooze_mobile/themes/theme_context_x.dart';
 /// header or an app bar that must hide the content below it paints its own
 /// [AppBackdrop] with its distance from the top of the screen as [origin].
 /// The two then match without a seam.
+///
+/// Inside a horizontal pager, such as the swipeable main screens, the glow
+/// is placed on the pager, not on the page. During a swipe the glow then
+/// stays in the corner of the screen, and two pages side by side read as one
+/// backdrop instead of two glows cut at the page edge.
 class AppBackdrop extends StatelessWidget {
   const AppBackdrop({super.key, this.origin = 0});
 
@@ -16,73 +23,169 @@ class AppBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = BackdropStyle.of(context);
     return IgnorePointer(
-      child: RepaintBoundary(
-        child: CustomPaint(
-          painter: _BackdropPainter(BackdropStyle.of(context), origin),
-          child: const SizedBox.expand(),
-        ),
+      child: _BackdropBox(
+        style: style,
+        origin: origin,
+        // Only the glow changes across the width. A backdrop without it,
+        // like the dark one, is the same on every page and needs no pager.
+        pager: style.glow == null
+            ? null
+            : Scrollable.maybeOf(context, axis: Axis.horizontal),
       ),
     );
   }
 }
 
-class _BackdropPainter extends CustomPainter {
-  _BackdropPainter(this.style, this.origin);
+class _BackdropBox extends LeafRenderObjectWidget {
+  const _BackdropBox({required this.style, required this.origin, this.pager});
 
   final BackdropStyle style;
   final double origin;
+  final ScrollableState? pager;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final area = Offset.zero & size;
-    canvas.drawRect(area, Paint()..color = style.base);
+  _RenderBackdrop createRenderObject(BuildContext context) =>
+      _RenderBackdrop(style: style, origin: origin, pager: pager);
 
-    // The gradient box starts at the top of the screen, not of this widget.
-    final box = Rect.fromLTWH(0, -origin, size.width, style.extent);
-    final gradientArea = area.intersect(box);
-    if (!gradientArea.isEmpty) {
+  @override
+  void updateRenderObject(BuildContext context, _RenderBackdrop renderObject) {
+    renderObject
+      ..style = style
+      ..origin = origin
+      ..pager = pager;
+  }
+}
+
+/// Fills its box with the backdrop, in its own layer.
+class _RenderBackdrop extends RenderBox {
+  _RenderBackdrop({
+    required BackdropStyle style,
+    required double origin,
+    ScrollableState? pager,
+  }) : _style = style,
+       _origin = origin,
+       _pager = pager;
+
+  BackdropStyle _style;
+  set style(BackdropStyle value) {
+    if (_samePaint(_style, value)) return;
+    _style = value;
+    markNeedsPaint();
+  }
+
+  double _origin;
+  set origin(double value) {
+    if (_origin == value) return;
+    _origin = value;
+    markNeedsPaint();
+  }
+
+  ScrollableState? _pager;
+  set pager(ScrollableState? value) {
+    _pager = value;
+    if (attached) _listenToPager();
+  }
+
+  /// The position this box listens to. A pager can swap its position, so
+  /// the box keeps the one it subscribed to.
+  ScrollPosition? _position;
+
+  void _listenToPager() {
+    final position = _pager?.position;
+    if (position == _position) return;
+    _position?.removeListener(markNeedsPaint);
+    _position = position?..addListener(markNeedsPaint);
+    markNeedsPaint();
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _listenToPager();
+  }
+
+  @override
+  void detach() {
+    _position?.removeListener(markNeedsPaint);
+    _position = null;
+    super.detach();
+  }
+
+  @override
+  bool get isRepaintBoundary => true;
+
+  @override
+  bool get sizedByParent => true;
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) => constraints.biggest;
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final canvas = context.canvas;
+    final area = offset & size;
+    canvas.drawRect(area, Paint()..color = _style.base);
+
+    // The wash starts at the top of the screen, not of this widget.
+    final wash = Rect.fromLTWH(
+      area.left,
+      area.top - _origin,
+      size.width,
+      _style.extent,
+    );
+    final washArea = area.intersect(wash);
+    if (!washArea.isEmpty) {
       canvas.drawRect(
-        gradientArea,
+        washArea,
         Paint()
           ..shader = LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: style.colors,
-            stops: style.stops,
-          ).createShader(box),
+            colors: _style.colors,
+            stops: _style.stops,
+          ).createShader(wash),
       );
     }
 
-    final glow = style.glow;
+    final glow = _style.glow;
     if (glow != null) {
       canvas.drawRect(
         area,
         Paint()
           ..shader = RadialGradient(
-            center: style.glowCenter,
-            radius: style.glowRadius,
+            center: _style.glowCenter,
+            radius: _style.glowRadius,
             colors: [glow, glow.withValues(alpha: 0)],
-          ).createShader(box),
+          ).createShader(_glowBox(wash)),
       );
     }
   }
 
-  @override
-  bool shouldRepaint(_BackdropPainter oldDelegate) =>
-      oldDelegate.origin != origin ||
-      oldDelegate.style.base != style.base ||
-      oldDelegate.style.glow != style.glow ||
-      oldDelegate.style.extent != style.extent ||
-      !_sameColors(oldDelegate.style.colors, style.colors);
-
-  static bool _sameColors(List<Color> a, List<Color> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
+  /// The box of the glow: the [wash] box, moved onto the pager if any.
+  Rect _glowBox(Rect wash) {
+    final pagerBox = _pager?.context.findRenderObject();
+    if (pagerBox is! RenderBox || !pagerBox.hasSize) return wash;
+    // Where this widget sits in the pager. A page swiped halfway out sits
+    // half a page to the left or right.
+    final inPager = localToGlobal(Offset.zero, ancestor: pagerBox).dx;
+    return Rect.fromLTWH(
+      wash.left - inPager,
+      wash.top,
+      pagerBox.size.width,
+      wash.height,
+    );
   }
+
+  static bool _samePaint(BackdropStyle a, BackdropStyle b) =>
+      a.base == b.base &&
+      a.glow == b.glow &&
+      a.glowCenter == b.glowCenter &&
+      a.glowRadius == b.glowRadius &&
+      a.extent == b.extent &&
+      listEquals(a.colors, b.colors) &&
+      listEquals(a.stops, b.stops);
 }
 
 /// An app bar that shows the backdrop behind its title.
