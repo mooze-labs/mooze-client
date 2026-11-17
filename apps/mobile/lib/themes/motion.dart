@@ -115,6 +115,16 @@ abstract final class Motion {
   /// the doorway (1.2 s). It shuts in [durationSlow].
   static const durationDoorOpen = Duration(milliseconds: 1200);
 
+  /// Opening of the shop of Merchant Mode: the shop rises and turns toward
+  /// the viewer, its lights turn on with a flash and a shockwave, and Pix
+  /// payments swing into its orbit (1.4 s). The orbit slows down to rest
+  /// within [durationAmbient] forward and back.
+  static const durationShopOpen = Duration(milliseconds: 1400);
+
+  /// The shop of Merchant Mode after a tap: it turns once, and its lights
+  /// go off and turn on again (700 ms).
+  static const durationShopTap = Duration(milliseconds: 700);
+
   /// Count-up of a balance from 0 to its value after a tap (700 ms). Use it
   /// only for a figure the user asked to see, never on screen open.
   static const durationCountUp = Duration(milliseconds: 700);

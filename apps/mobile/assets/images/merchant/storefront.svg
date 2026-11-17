@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <!-- A shop: the walls in shade, the frames of its window and door in light, under an awning of stripes in light and in shade. -->
+  <g stroke-width="2" stroke-linejoin="round">
+    <path d="M14 22H50V51H14Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M18.5 31H29.5V41H18.5Z" stroke="#FFFFFF"/>
+    <path d="M34.5 31H45.5V51H34.5Z" stroke="#FFFFFF"/>
+    <path d="M21 11H32V21A5.5 5.5 0 0 1 21 21Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M43 11H54V21A5.5 5.5 0 0 1 43 21Z" fill="#8E8E93" stroke="#8E8E93"/>
+    <path d="M10 11H21V21A5.5 5.5 0 0 1 10 21Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+    <path d="M32 11H43V21A5.5 5.5 0 0 1 32 21Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+  </g>
+</svg>

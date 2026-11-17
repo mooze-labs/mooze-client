@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <!-- The lights of the shop: its window and its door, lit. It lies over storefront.svg, in the same place. -->
+  <g stroke-width="2" stroke-linejoin="round">
+    <path d="M18.5 31H29.5V41H18.5Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+    <path d="M34.5 31H45.5V51H34.5Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+  </g>
+</svg>
