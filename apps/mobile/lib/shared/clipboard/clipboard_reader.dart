@@ -21,6 +21,10 @@ abstract final class ClipboardReader {
   static int _reads = 0;
   static DateTime? _lastAnswer;
 
+  /// Whether a read waits for its answer. The native privacy cover of iOS
+  /// stays down meanwhile, since the alert of the read is no app switch.
+  static final ValueNotifier<bool> reading = ValueNotifier<bool>(false);
+
   /// True while a read waits, and for [alertSettle] after its answer.
   static bool get mayShowPasteAlert {
     if (_reads > 0) return true;
@@ -31,12 +35,14 @@ abstract final class ClipboardReader {
   /// The text of the clipboard, or null when it has none.
   static Future<String?> readText() async {
     _reads++;
+    reading.value = true;
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
       return data?.text;
     } finally {
       _reads--;
       _lastAnswer = now();
+      if (_reads == 0) reading.value = false;
     }
   }
 
@@ -45,5 +51,6 @@ abstract final class ClipboardReader {
   static void debugReset() {
     _reads = 0;
     _lastAnswer = null;
+    reading.value = false;
   }
 }

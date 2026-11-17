@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mooze_mobile/app/di/v2_providers.dart';
 import 'package:mooze_mobile/app/lifecycle/app_foreground_observer.dart';
+import 'package:mooze_mobile/app/session/widgets/native_privacy_cover_bridge.dart';
 import 'package:mooze_mobile/app/session/widgets/session_lock_gate.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/theme_mode_provider.dart';
 import 'package:mooze_mobile/features/settings/presentation/providers/locale_provider.dart';
@@ -122,12 +123,18 @@ class _MyAppState extends ConsumerState<MyApp> {
               // it over the navigator keeps the current screen mounted, so the
               // lock clears back to exactly where the user was, with no route
               // push/pop. The gate collapses to nothing while unlocked.
+              //
+              // The native cover of iOS hides the app as it leaves the
+              // foreground, before the snapshot of the app switcher and the
+              // screen turning off, which the shield of Flutter may miss.
               builder: (context, navigator) {
-                return Stack(
-                  children: [
-                    navigator ?? const SizedBox.shrink(),
-                    const SessionLockGate(),
-                  ],
+                return NativePrivacyCoverBridge(
+                  child: Stack(
+                    children: [
+                      navigator ?? const SizedBox.shrink(),
+                      const SessionLockGate(),
+                    ],
+                  ),
                 );
               },
             ),
