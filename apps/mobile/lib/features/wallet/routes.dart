@@ -20,6 +20,7 @@ import 'package:mooze_mobile/shared/entities/asset.dart';
 import 'package:mooze_mobile/features/wallet/presentation/providers/send_funds/network_detection_provider.dart';
 import 'package:mooze_mobile/shared/user/widgets/user_data_auto_refresh.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/motion/fade_through_page.dart';
 
 class PageVisibilityProvider extends InheritedNotifier<ValueNotifier<int>> {
   PageVisibilityProvider({
@@ -223,16 +224,22 @@ final walletRoutes = [
       );
     },
   ),
+  // The tabs open from a screen that replaces the whole stack: the PIN on
+  // launch, the opening of an imported wallet, the end of a flow. They fade
+  // in over it instead of sliding in from the side. A page opened over the
+  // tabs keeps the transition of the platform, and the tabs move under it
+  // as any page does.
   ShellRoute(
-    builder: (context, state, child) {
-      final currentLocation = state.uri.toString();
-      return UserDataAutoRefresh(
+    pageBuilder: (context, state, child) => fadeThroughPage(
+      context: context,
+      state: state,
+      child: UserDataAutoRefresh(
         child: _MainNavigationScaffold(
-          currentLocation: currentLocation,
+          currentLocation: state.uri.toString(),
           child: child,
         ),
-      );
-    },
+      ),
+    ),
     routes: [
       GoRoute(
         path: '/home',
