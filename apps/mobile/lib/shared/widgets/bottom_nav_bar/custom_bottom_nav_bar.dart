@@ -289,7 +289,8 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
         label: t.wallet_assets_tab,
         icon: 'assets/icons/menu/navigation/asset.svg',
       ),
-      // Pix keeps its brand orb: it is the main product of the app.
+      // Pix keeps its brand orb off its tab: it is the main product of the
+      // app.
       _Destination(label: t.nav_pix, isPix: true),
       _Destination(
         label: t.swap_title,
@@ -462,7 +463,7 @@ class _NavSlot extends StatelessWidget {
                   dimension: iconArea,
                   child: Center(
                     child: destination.isPix || icon == null
-                        ? const _PixOrb()
+                        ? _PixOrb(selected: selected)
                         : TweenAnimationBuilder<Color?>(
                             tween: ColorTween(end: iconColor),
                             duration: Motion.of(context, Motion.durationFast),
@@ -516,38 +517,79 @@ class _NavSlot extends StatelessWidget {
   }
 }
 
-/// The Pix mark in a small brand orb.
+/// The Pix mark. Off its tab, it sits white in a small brand orb, so the
+/// main product of the app stands out. On its tab, the lens marks it: the
+/// orb shrinks and fades, and the mark stays alone in the brand color, as
+/// the icons of the other tabs do. A round orb inside the capsule of the
+/// lens would clash with it.
 class _PixOrb extends StatelessWidget {
-  const _PixOrb();
+  const _PixOrb({required this.selected});
+
+  final bool selected;
+
+  /// Diameter of the orb.
+  static const double orbSize = 32;
+
+  /// Size of the mark in the orb, and alone on its tab. Alone, it is a bit
+  /// smaller than the outline icons, since it is a solid shape.
+  static const double markInOrb = 16;
+  static const double markAlone = 22;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        // Same color pair as the Pix action card.
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [colors.primaryColor, colors.navBarFabBackground],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: colors.primaryColor.withValues(alpha: 0.35),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: selected ? 1 : 0),
+      duration: Motion.of(context, Motion.durationBase),
+      curve: Motion.curveMove,
+      builder: (context, t, _) {
+        final mark = lerpDouble(markInOrb, markAlone, t)!;
+        return SizedBox.square(
+          dimension: orbSize,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Opacity(
+                opacity: (1 - t).clamp(0.0, 1.0),
+                child: Transform.scale(
+                  scale: lerpDouble(1, 0.5, t)!,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      // Same color pair as the Pix action card.
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          colors.primaryColor,
+                          colors.navBarFabBackground,
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.primaryColor.withValues(alpha: 0.35),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const SizedBox.square(dimension: orbSize),
+                  ),
+                ),
+              ),
+              SvgPicture.asset(
+                'assets/icons/menu/navigation/pix.svg',
+                width: mark,
+                height: mark,
+                colorFilter: ColorFilter.mode(
+                  Color.lerp(Colors.white, colors.primaryColor, t)!,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: SvgPicture.asset(
-        'assets/icons/menu/navigation/pix.svg',
-        width: 16,
-        height: 16,
-      ),
+        );
+      },
     );
   }
 }

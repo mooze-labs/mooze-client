@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/bottom_nav_bar/custom_bottom_nav_bar.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/app_theme.dart';
+import 'package:mooze_mobile/themes/theme_context_x.dart';
 
 /// Renders the navigation bar at the bottom of a page, as the shell does.
 Widget host({required int currentIndex, required ValueChanged<int> onTap}) {
@@ -70,6 +73,84 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Início'), findsOneWidget);
+  });
+
+  group('the Pix mark', () {
+    Finder mark() => find.byWidgetPredicate(
+      (w) =>
+          w is SvgPicture &&
+          w.bytesLoader is SvgAssetLoader &&
+          (w.bytesLoader as SvgAssetLoader).assetName ==
+              'assets/icons/menu/navigation/pix.svg',
+    );
+
+    /// How much of the brand orb around the mark shows.
+    double orb(WidgetTester tester) => tester
+        .widget<Opacity>(
+          find
+              .ancestor(
+                of: find.byWidgetPredicate(
+                  (w) =>
+                      w is DecoratedBox &&
+                      w.decoration is BoxDecoration &&
+                      (w.decoration as BoxDecoration).shape == BoxShape.circle,
+                ),
+                matching: find.byType(Opacity),
+              )
+              .first,
+        )
+        .opacity;
+
+    ColorFilter? markColor(WidgetTester tester) =>
+        tester.widget<SvgPicture>(mark()).colorFilter;
+
+    Color brand(WidgetTester tester) =>
+        tester.element(mark()).colors.primaryColor;
+
+    testWidgets('sits white in the brand orb off its tab', (tester) async {
+      await tester.pumpWidget(host(currentIndex: 0, onTap: (_) {}));
+      await tester.pumpAndSettle();
+
+      expect(orb(tester), 1);
+      expect(
+        markColor(tester),
+        const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+      );
+    });
+
+    testWidgets('on its tab, stays alone in the brand color, clear of the '
+        'edge of the lens: the orb shrinks and fades', (tester) async {
+      await tester.pumpWidget(host(currentIndex: 0, onTap: (_) {}));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(host(currentIndex: 2, onTap: (_) {}));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(orb(tester), inExclusiveRange(0, 1));
+
+      await tester.pumpAndSettle();
+      expect(orb(tester), 0);
+      expect(
+        markColor(tester),
+        ColorFilter.mode(brand(tester), BlendMode.srcIn),
+      );
+      final lens = tester.getRect(find.byType(GlassLens));
+      final pix = tester.getRect(mark());
+      expect(pix.top - lens.top, greaterThanOrEqualTo(4));
+      expect(lens.contains(pix.center), isTrue);
+    });
+
+    testWidgets('with reduced motion, the orb goes at once', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await tester.pumpWidget(host(currentIndex: 0, onTap: (_) {}));
+      await tester.pumpWidget(host(currentIndex: 2, onTap: (_) {}));
+      await tester.pump();
+
+      expect(orb(tester), 0);
+    });
   });
 
   testWidgets('a tap on the Pix label opens the Pix tab', (tester) async {
