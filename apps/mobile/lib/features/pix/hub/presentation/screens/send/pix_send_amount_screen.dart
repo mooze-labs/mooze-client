@@ -154,7 +154,7 @@ class _PixSendAmountScreenState extends ConsumerState<PixSendAmountScreen> {
           ],
           PrimaryButton(
             text: t.common_continue,
-            isEnabled: _amountInCents > 0,
+            isEnabled: _amountInCents > 0 && !isBusy,
             isLoading: isBusy,
             onPressed: () => _continue(draft, balanceSats),
           ),
