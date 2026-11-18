@@ -16,10 +16,6 @@
         <meta-data android:name="com.posthog.posthog.CAPTURE_PUSH_NOTIFICATION_OPENED" android:value="false" />
         <meta-data android:name="com.posthog.posthog.CAPTURE_PUSH_NOTIFICATION_SUBSCRIPTIONS" android:value="false" />
 
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_stat_mooze_logo" />
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
