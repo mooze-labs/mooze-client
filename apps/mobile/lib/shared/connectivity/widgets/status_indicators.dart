@@ -13,15 +13,19 @@ class StatusIndicators extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final banners = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [ApiDownIndicator(onRetry: onRetrySync)],
+    );
+    // `AnimatedSize` with a zero duration changes its own layout during
+    // layout and asserts, so reduced motion skips it.
+    if (Motion.isReduced(context)) return banners;
     // A banner that shows or hides moves the content below it smoothly.
     return AnimatedSize(
-      duration: Motion.of(context, Motion.durationBase),
+      duration: Motion.durationBase,
       curve: Motion.curveMove,
       alignment: Alignment.topCenter,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [ApiDownIndicator(onRetry: onRetrySync)],
-      ),
+      child: banners,
     );
   }
 }
