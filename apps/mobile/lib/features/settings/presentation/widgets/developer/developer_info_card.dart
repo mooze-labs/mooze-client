@@ -95,16 +95,6 @@ class DeveloperInfoCard extends StatelessWidget {
             ],
           ),
         ),
-        SettingsGlassSection(
-          title: 'SDK versions',
-          child: Column(
-            children: [
-              _InfoRow(label: 'LWK', value: lwkVersion),
-              const PanelDivider(indent: _InfoRow.padding),
-              _InfoRow(label: 'BDK', value: bdkVersion),
-            ],
-          ),
-        ),
       ],
     );
   }
