@@ -4285,7 +4285,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get update_available_body => 'Update for improvements and fixes';
 
   @override
-  String get update_available_button => 'UPDATE';
+  String get update_available_button => 'Update';
 
   @override
   String get update_dialog_title => 'Update Available';
@@ -4304,7 +4304,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'We recommend updating to get the latest improvements and bug fixes.';
 
   @override
-  String get update_later => 'LATER';
+  String get update_later => 'Later';
 
   @override
   String get info_overlay_dismiss_hint => 'Tap outside this area to close';

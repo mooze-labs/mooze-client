@@ -2,385 +2,270 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
+import 'package:mooze_mobile/features/wallet/presentation/widgets/glass_info_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/connectivity/widgets/status_banner.dart';
 import 'package:mooze_mobile/shared/providers/update_provider.dart';
-import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/buttons/primary_button.dart';
+import 'package:mooze_mobile/shared/widgets/glass/glass_sheet_badge.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/shared/widgets/motion/size_fade_switcher.dart';
+import 'package:mooze_mobile/themes/app_surfaces.dart';
+import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-class UpdateNotificationWidget extends ConsumerStatefulWidget {
+/// A new version of the app, as a glass banner under the home header.
+///
+/// The banner names the new version. A tap opens the [UpdateSheet], with
+/// the current and the new version and the button to the store. The close
+/// button puts the banner away for this session. The banner fades in and
+/// out, and the content below it moves smoothly.
+class UpdateNotificationWidget extends ConsumerWidget {
   const UpdateNotificationWidget({super.key});
 
   @override
-  ConsumerState<UpdateNotificationWidget> createState() =>
-      _UpdateNotificationWidgetState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final shouldShow = ref.watch(shouldShowUpdateNotificationProvider);
+    final state = ref.watch(updateNotifierProvider);
+    final newVersion = state.newVersion ?? '';
+    final localVersion = state.localVersion ?? '';
+    return SizeFadeSwitcher(
+      duration: Motion.durationBase,
+      child: shouldShow
+          ? Padding(
+              key: const ValueKey('update-banner'),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: StatusBanner(
+                icon: PixIcons.refresh,
+                color: context.colors.primaryColor,
+                title: t.update_available_short,
+                message:
+                    '${t.update_version_label(newVersion)} · '
+                    '${t.update_available_body}',
+                onTap: () => showUpdateSheet(
+                  context,
+                  newVersion: newVersion,
+                  localVersion: localVersion,
+                ),
+                onDismiss: () =>
+                    ref.read(updateNotifierProvider.notifier).dismissUpdate(),
+                dismissTooltip: t.common_close,
+              ),
+            )
+          : const SizedBox(key: ValueKey('no-update'), width: double.infinity),
+    );
+  }
 }
 
-class _UpdateNotificationWidgetState
-    extends ConsumerState<UpdateNotificationWidget>
-    with TickerProviderStateMixin {
-  late AnimationController _slideController;
-  late AnimationController _fadeController;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
+/// Shows the [UpdateSheet] of [newVersion] in a floating glass sheet.
+Future<void> showUpdateSheet(
+  BuildContext context, {
+  required String newVersion,
+  required String localVersion,
+}) {
+  return showFloatingGlassSheet<void>(
+    context,
+    builder: (_) => UpdateSheet(
+      newVersion: newVersion,
+      localVersion: localVersion,
+      onUpdate: _openUpdateStore,
+    ),
+  );
+}
 
-  bool _isVisible = false;
-  bool _isDismissing = false;
+/// A floating glass sheet about a new version of the app.
+///
+/// The header names the new version. Below it, why to update, and the
+/// current and the new version side by side. The button to the store
+/// closes the sheet first and then runs [onUpdate]. "Later" only closes
+/// the sheet: the banner stays on the home.
+class UpdateSheet extends StatelessWidget {
+  const UpdateSheet({
+    super.key,
+    required this.newVersion,
+    required this.localVersion,
+    required this.onUpdate,
+  });
 
-  @override
-  void initState() {
-    super.initState();
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -1),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
-  }
-
-  @override
-  void dispose() {
-    _slideController.dispose();
-    _fadeController.dispose();
-    super.dispose();
-  }
-
-  void _showWithAnimation() {
-    if (!_isVisible && !_isDismissing) {
-      setState(() {
-        _isVisible = true;
-      });
-      _slideController.forward();
-      _fadeController.forward();
-    }
-  }
-
-  Future<void> _dismissWithAnimation() async {
-    if (_isVisible && !_isDismissing) {
-      setState(() {
-        _isDismissing = true;
-      });
-
-      await Future.wait([
-        _slideController.reverse(),
-        _fadeController.reverse(),
-      ]);
-
-      if (mounted) {
-        ref.read(updateNotifierProvider.notifier).dismissUpdate();
-        setState(() {
-          _isVisible = false;
-          _isDismissing = false;
-        });
-      }
-    }
-  }
+  final String newVersion;
+  final String localVersion;
+  final VoidCallback onUpdate;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final shouldShow = ref.watch(shouldShowUpdateNotificationProvider);
-    final updateState = ref.watch(updateNotifierProvider);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (shouldShow && !_isVisible && !_isDismissing) {
-        _showWithAnimation();
-      } else if (!shouldShow && _isVisible && !_isDismissing) {
-        _dismissWithAnimation();
-      }
-    });
-
-    if (!shouldShow && !_isVisible) {
-      return const SizedBox.shrink();
-    }
-
-    return SlideTransition(
-      position: _slideAnimation,
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Container(
-          margin: const EdgeInsets.only(top: 16, bottom: 8),
-          decoration: BoxDecoration(
-            color: context.colors.backgroundCard,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: context.colors.primaryColor.withValues(alpha: 0.3),
-              width: 1,
+    return GlassSheet(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GlassSheetHeader(
+            title: t.update_dialog_title,
+            subtitle: t.update_version_label(newVersion),
+            leading: GlassSheetBadge(
+              icon: PixIcons.refresh,
+              color: context.colors.primaryColor,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: context.colors.primaryColor.withValues(alpha: 0.1),
-                offset: Offset(0, 4),
-                blurRadius: 12,
-                spreadRadius: 0,
+          ),
+          const SizedBox(height: 12),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '${t.update_dialog_body} ${t.update_dialog_recommend}',
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: context.colors.textSecondary,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _VersionStep(current: localVersion, next: newVersion),
+                ],
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: context.colors.primaryColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.system_update_outlined,
-                        color: context.colors.primaryColor,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            t.update_available_short,
-                            style: TextStyle(
-                              color: context.colors.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            t.update_version_label(
-                              updateState.newVersion ?? '',
-                            ),
-                            style: TextStyle(
-                              color: context.colors.textSecondary,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _dismissWithAnimation,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: context.colors.textSecondary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          color: context.colors.textSecondary,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  t.update_available_body,
-                  style: TextStyle(color: context.colors.textTertiary, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                PrimaryButton(
-                  text: t.update_available_button,
-                  height: 44,
-                  onPressed: () {
-                    _showUpdateDialog(
-                      context,
-                      updateState.newVersion ?? '',
-                      updateState.localVersion ?? '',
-                    );
-                  },
-                ),
-              ],
             ),
           ),
-        ),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: PrimaryButton(
+              text: t.update_available_button,
+              onPressed: () {
+                Navigator.of(context).pop();
+                onUpdate();
+              },
+            ),
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                // The way back stays neutral. The brand color is for the
+                // main action.
+                foregroundColor: context.colors.textPrimary,
+                minimumSize: const Size(64, 48),
+              ),
+              child: Text(t.update_later),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  void _showUpdateDialog(
-    BuildContext context,
-    String newVersion,
-    String localVersion,
-  ) {
+/// The current and the new version side by side in a glass lens, with an
+/// arrow between them. The new version carries the emphasis.
+class _VersionStep extends StatelessWidget {
+  const _VersionStep({required this.current, required this.next});
+
+  final String current;
+  final String next;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    showGeneralDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      barrierDismissible: true,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return const SizedBox.shrink();
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return ScaleTransition(
-          scale: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-          child: FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-            child: AlertDialog(
-              backgroundColor: context.colors.backgroundCard,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: context.colors.primaryColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.system_update_outlined,
-                      color: context.colors.primaryColor,
-                      size: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    t.update_dialog_title,
-                    style: TextStyle(
-                      color: context.colors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t.update_dialog_body,
-                    style: TextStyle(
-                      color: context.colors.textPrimary,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            t.update_current_version,
-                            style: TextStyle(
-                              color: context.colors.textSecondary,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            localVersion,
-                            style: TextStyle(
-                              color: context.colors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            t.update_new_version,
-                            style: TextStyle(
-                              color: context.colors.textSecondary,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            newVersion,
-                            style: TextStyle(
-                              color: context.colors.primaryColor,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    t.update_dialog_recommend,
-                    style: TextStyle(
-                      color: context.colors.textTertiary,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: SecondaryButton(
-                        text: t.update_later,
-                        height: 44,
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: PrimaryButton(
-                        text: t.update_available_button,
-                        height: 44,
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          _openUpdateStore();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: GlassStyle.of(context).lensFill,
+        borderRadius: const BorderRadius.all(Radius.circular(16)),
+        border: Border.all(color: AppSurfaces.hairline(context)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _Version(
+              label: _withoutColon(t.update_current_version),
+              version: current,
+              emphasized: false,
             ),
           ),
-        );
-      },
+          PixIcon(
+            PixIcons.arrowRight,
+            size: 18,
+            color: context.colors.textTertiary,
+          ),
+          Expanded(
+            child: _Version(
+              label: _withoutColon(t.update_new_version),
+              version: next,
+              emphasized: true,
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
 
-  void _openUpdateStore() {
-    if (Platform.isAndroid) {
-      launchUrlString(
-        "https://mooze.app",
-        mode: LaunchMode.externalApplication,
-      );
-    } else if (Platform.isIOS) {
-      launchUrlString(
-        "https://testflight.apple.com/join/BmxNjKb1",
-        mode: LaunchMode.externalApplication,
-      );
-    }
+/// One version: its label, and the number below it.
+class _Version extends StatelessWidget {
+  const _Version({
+    required this.label,
+    required this.version,
+    required this.emphasized,
+  });
+
+  final String label;
+  final String version;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    return MergeSemantics(
+      child: Column(
+        children: [
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: context.textTheme.labelSmall?.copyWith(
+              color: context.colors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            version.isEmpty ? '—' : version,
+            textAlign: TextAlign.center,
+            style: context.textTheme.titleMedium?.copyWith(
+              color: emphasized
+                  ? context.colors.textPrimary
+                  : context.colors.textSecondary,
+              fontWeight: emphasized ? FontWeight.w700 : FontWeight.w500,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Some labels end with a ":" in the translations, such as "Versão atual:".
+/// The label sits above its value here, so it goes without.
+String _withoutColon(String label) =>
+    label.endsWith(':') ? label.substring(0, label.length - 1) : label;
+
+void _openUpdateStore() {
+  if (Platform.isAndroid) {
+    launchUrlString("https://mooze.app", mode: LaunchMode.externalApplication);
+  } else if (Platform.isIOS) {
+    launchUrlString(
+      "https://testflight.apple.com/join/BmxNjKb1",
+      mode: LaunchMode.externalApplication,
+    );
   }
 }

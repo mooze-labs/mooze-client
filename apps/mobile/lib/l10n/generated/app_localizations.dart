@@ -7723,7 +7723,7 @@ abstract class AppLocalizations {
   /// No description provided for @update_available_button.
   ///
   /// In pt, this message translates to:
-  /// **'ATUALIZAR'**
+  /// **'Atualizar'**
   String get update_available_button;
 
   /// No description provided for @update_dialog_title.
@@ -7759,7 +7759,7 @@ abstract class AppLocalizations {
   /// No description provided for @update_later.
   ///
   /// In pt, this message translates to:
-  /// **'MAIS TARDE'**
+  /// **'Mais tarde'**
   String get update_later;
 
   /// No description provided for @info_overlay_dismiss_hint.

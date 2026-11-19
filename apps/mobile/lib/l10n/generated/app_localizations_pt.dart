@@ -4311,7 +4311,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Atualize para obter melhorias e correções';
 
   @override
-  String get update_available_button => 'ATUALIZAR';
+  String get update_available_button => 'Atualizar';
 
   @override
   String get update_dialog_title => 'Atualização Disponível';
@@ -4331,7 +4331,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Recomendamos atualizar para obter as melhorias mais recentes e correções de bugs.';
 
   @override
-  String get update_later => 'MAIS TARDE';
+  String get update_later => 'Mais tarde';
 
   @override
   String get info_overlay_dismiss_hint => 'Toque fora desta área para fechar';

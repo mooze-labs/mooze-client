@@ -4319,7 +4319,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Actualiza para obtener mejoras y correcciones';
 
   @override
-  String get update_available_button => 'ACTUALIZAR';
+  String get update_available_button => 'Actualizar';
 
   @override
   String get update_dialog_title => 'Actualización Disponible';
@@ -4338,7 +4338,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Recomendamos actualizar para obtener las mejoras más recientes y correcciones de errores.';
 
   @override
-  String get update_later => 'MÁS TARDE';
+  String get update_later => 'Más tarde';
 
   @override
   String get info_overlay_dismiss_hint => 'Toca fuera de esta área para cerrar';
