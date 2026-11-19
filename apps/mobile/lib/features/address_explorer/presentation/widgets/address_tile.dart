@@ -2,37 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/entities/address_utxo.dart';
 import 'package:mooze_mobile/features/address_explorer/domain/entities/wallet_address.dart';
-import 'package:mooze_mobile/features/address_explorer/domain/enums/address_status.dart';
 import 'package:mooze_mobile/features/address_explorer/presentation/formatters/utxo_amount_formatter.dart';
+import 'package:mooze_mobile/features/address_explorer/presentation/widgets/address_details_sheet.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets/app_snackbar.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
-import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// One address as a row of the address panel. Tapping the row expands it
-/// to the full address and its UTXOs.
-class AddressTile extends StatefulWidget {
+/// One address as a row of the address panel. Tapping the row opens the
+/// address in an [AddressDetailsSheet], with its QR code and its UTXOs.
+/// The copy button copies the address without leaving the list.
+class AddressTile extends StatelessWidget {
   final WalletAddress address;
   final bool highlight;
 
   const AddressTile({super.key, required this.address, this.highlight = false});
 
-  @override
-  State<AddressTile> createState() => _AddressTileState();
-}
-
-class _AddressTileState extends State<AddressTile> {
-  bool _expanded = false;
-
-  void _toggleExpanded() {
-    setState(() => _expanded = !_expanded);
-  }
-
-  Future<void> _copyAddress() async {
-    await Clipboard.setData(ClipboardData(text: widget.address.address));
-    if (!mounted) return;
+  Future<void> _copyAddress(BuildContext context) async {
     final t = AppLocalizations.of(context);
+    await Clipboard.setData(ClipboardData(text: address.address));
+    if (!context.mounted) return;
     AppSnackBar.info(context, t.address_explorer_address_copied);
   }
 
@@ -41,16 +30,13 @@ class _AddressTileState extends State<AddressTile> {
     final colors = context.colors;
     final tt = context.textTheme;
     final t = AppLocalizations.of(context);
-    final isUsed = widget.address.status == AddressStatus.used;
-    final utxoCount = widget.address.utxos.length;
-    final hasUtxos = utxoCount > 0;
 
     // The highlight fill is an ink decoration, so ripples paint above it.
     return Ink(
-      color: widget.highlight ? GlassStyle.of(context).lensFill : null,
+      color: highlight ? GlassStyle.of(context).lensFill : null,
       child: Stack(
         children: [
-          if (widget.highlight)
+          if (highlight)
             Positioned(
               left: 0,
               top: 12,
@@ -66,102 +52,61 @@ class _AddressTileState extends State<AddressTile> {
               ),
             ),
           InkWell(
-            onTap: _toggleExpanded,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 4, 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _StatusDot(used: isUsed),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _expanded
-                                    ? widget.address.address
-                                    : _truncate(widget.address.address),
-                                maxLines: _expanded ? null : 1,
-                                overflow: _expanded
-                                    ? TextOverflow.visible
-                                    : TextOverflow.ellipsis,
-                                style: tt.bodyMedium?.copyWith(
-                                  fontFamily: 'monospace',
-                                  fontFamilyFallback: _monoFallback,
-                                  fontWeight: FontWeight.w500,
-                                  color: colors.textPrimary,
-                                  height: _expanded ? 1.4 : 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              _MetaLine(
-                                isUsed: isUsed,
-                                utxoCount: utxoCount,
-                                utxos: widget.address.utxos,
-                                t: t,
-                              ),
-                            ],
+            onTap: () => showAddressDetailsSheet(context, address),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 4, 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  AddressStatusDot(used: address.isUsed),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _truncate(address.address),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: tt.bodyMedium?.copyWith(
+                              fontFamily: 'monospace',
+                              fontFamilyFallback: _monoFallback,
+                              fontWeight: FontWeight.w500,
+                              color: colors.textPrimary,
+                              height: 1.2,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          _MetaLine(
+                            isUsed: address.isUsed,
+                            utxoCount: address.utxos.length,
+                            utxos: address.utxos,
+                            t: t,
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.copy_rounded,
-                          size: 18,
-                          color: colors.textSecondary,
-                        ),
-                        tooltip: t.address_explorer_address_copied,
-                        onPressed: _copyAddress,
-                      ),
-                      AnimatedRotation(
-                        duration: Motion.of(context, Motion.durationFast),
-                        curve: Motion.curveMove,
-                        turns: _expanded ? 0.5 : 0,
-                        child: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 20,
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                    ],
+                    ),
                   ),
-                ),
-                AnimatedSize(
-                  duration: Motion.of(context, Motion.durationBase),
-                  curve: Motion.curveMove,
-                  alignment: Alignment.topCenter,
-                  child: _expanded && hasUtxos
-                      ? Padding(
-                          padding: const EdgeInsets.fromLTRB(36, 0, 16, 14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Text(
-                                  t.address_explorer_utxo_count(utxoCount),
-                                  style: tt.labelMedium?.copyWith(
-                                    color: colors.textSecondary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              for (final utxo in widget.address.utxos)
-                                _UtxoRow(utxo: utxo),
-                            ],
-                          ),
-                        )
-                      : const SizedBox(width: double.infinity),
-                ),
-              ],
+                  IconButton(
+                    icon: Icon(
+                      Icons.copy_rounded,
+                      size: 18,
+                      color: colors.textSecondary,
+                    ),
+                    tooltip: t.address_explorer_full_address_copy,
+                    onPressed: () => _copyAddress(context),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: colors.textTertiary,
+                  ),
+                  const SizedBox(width: 10),
+                ],
+              ),
             ),
           ),
         ],
@@ -179,9 +124,9 @@ const List<String> _monoFallback = ['Menlo', 'Courier'];
 
 /// Small status signal: a filled positive dot for a used address, a hollow
 /// ring for an unused one.
-class _StatusDot extends StatelessWidget {
+class AddressStatusDot extends StatelessWidget {
   final bool used;
-  const _StatusDot({required this.used});
+  const AddressStatusDot({super.key, required this.used});
 
   @override
   Widget build(BuildContext context) {
@@ -230,46 +175,6 @@ class _MetaLine extends StatelessWidget {
       style: context.textTheme.bodySmall?.copyWith(
         color: context.colors.textSecondary,
         fontFeatures: const [FontFeature.tabularFigures()],
-      ),
-    );
-  }
-}
-
-class _UtxoRow extends StatelessWidget {
-  final AddressUtxo utxo;
-  const _UtxoRow({required this.utxo});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final tt = context.textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Text(
-              shortOutpoint(utxo.outpoint),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: tt.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                fontFamilyFallback: _monoFallback,
-                color: colors.textSecondary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            formatUtxoAmount(utxo.chain, utxo.assetId, utxo.value),
-            style: tt.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colors.textPrimary,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
       ),
     );
   }
