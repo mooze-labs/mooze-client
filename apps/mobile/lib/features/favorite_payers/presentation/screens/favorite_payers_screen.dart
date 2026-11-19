@@ -4,12 +4,16 @@ import 'package:mooze_mobile/features/favorite_payers/domain/entities/favorite_p
 import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/favorite_payers_controller.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/controllers/own_payer_controller.dart';
 import 'package:mooze_mobile/features/favorite_payers/presentation/screens/favorite_payer_edit_screen.dart';
+import 'package:mooze_mobile/features/pix/hub/presentation/widgets/pix_icon_well.dart';
+import 'package:mooze_mobile/features/pix/shared/presentation/widgets/pix_icons.dart';
 import 'package:mooze_mobile/features/settings/presentation/widgets/settings/settings_glass_section.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
+import 'package:mooze_mobile/shared/widgets/glass/glass_menu.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/shared/widgets/motion/staggered_entrance.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 import 'package:shimmer/shimmer.dart';
@@ -97,13 +101,13 @@ class _FavoritePayersScreenState extends ConsumerState<FavoritePayersScreen> {
     final payersAsync = ref.watch(orderedFavoritePayersProvider);
     final ownId = ref.watch(ownPayerIdProvider);
 
-    // The pinned add button exists only when there is a list, as before.
-    // The empty state carries its own add button.
-    final hasPayers = payersAsync.valueOrNull?.isNotEmpty ?? false;
+    // Once the payers load, the add button stays pinned at the bottom, with
+    // a list or without one. Loading and errors have no add button.
+    final loaded = payersAsync.whenOrNull(data: (_) => true) ?? false;
 
     return BackdropPageScaffold(
       title: t.cpf_favorites_title,
-      bottomAction: hasPayers
+      bottomAction: loaded
           ? PrimaryButton(
               text: t.cpf_favorites_add,
               onPressed: () => _openEditor(),
@@ -116,9 +120,7 @@ class _FavoritePayersScreenState extends ConsumerState<FavoritePayersScreen> {
               ref.read(favoritePayersControllerProvider.notifier).refresh(),
         ),
         data: (payers) {
-          if (payers.isEmpty) {
-            return _EmptyState(onAdd: () => _openEditor());
-          }
+          if (payers.isEmpty) return const _EmptyState();
           final filtered = _query.isEmpty
               ? payers
               : payers
@@ -372,73 +374,31 @@ class _PayerTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                PopupMenuButton<_PayerAction>(
+                // The same glass menu as the payment links: it hangs from
+                // the button and runs the action once it has closed.
+                GlassMenuButton(
                   tooltip: t.cpf_favorites_actions,
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    color: colors.textSecondary,
-                  ),
-                  onSelected: (action) => switch (action) {
-                    _PayerAction.edit => onEdit(),
-                    _PayerAction.toggleOwn => onToggleOwn(),
-                    _PayerAction.delete => onDelete(),
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: _PayerAction.edit,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.edit_outlined,
-                            size: 20,
-                            color: colors.textSecondary,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(t.cpf_favorites_edit),
-                        ],
-                      ),
+                  iconColor: colors.textSecondary,
+                  items: [
+                    GlassMenuItem(
+                      icon: Icons.edit_outlined,
+                      label: t.cpf_favorites_edit,
+                      onSelected: onEdit,
                     ),
-                    PopupMenuItem(
-                      value: _PayerAction.toggleOwn,
-                      child: Row(
-                        children: [
-                          Icon(
-                            isOwn
-                                ? Icons.person_off_outlined
-                                : Icons.person_outline_rounded,
-                            size: 20,
-                            color: colors.textSecondary,
-                          ),
-                          const SizedBox(width: 12),
-                          // A long translation shrinks instead of
-                          // overflowing the menu.
-                          Flexible(
-                            child: Text(
-                              isOwn
-                                  ? t.cpf_favorites_own_unmark
-                                  : t.cpf_favorites_own_mark,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
+                    GlassMenuItem(
+                      icon: isOwn
+                          ? Icons.person_off_outlined
+                          : Icons.person_outline_rounded,
+                      label: isOwn
+                          ? t.cpf_favorites_own_unmark
+                          : t.cpf_favorites_own_mark,
+                      onSelected: onToggleOwn,
                     ),
-                    PopupMenuItem(
-                      value: _PayerAction.delete,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.delete_outline_rounded,
-                            size: 20,
-                            color: colors.negativeColor,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            t.cpf_favorites_remove,
-                            style: TextStyle(color: colors.negativeColor),
-                          ),
-                        ],
-                      ),
+                    GlassMenuItem(
+                      icon: Icons.delete_outline_rounded,
+                      label: t.cpf_favorites_remove,
+                      destructive: true,
+                      onSelected: onDelete,
                     ),
                   ],
                 ),
@@ -450,8 +410,6 @@ class _PayerTile extends StatelessWidget {
     );
   }
 }
-
-enum _PayerAction { edit, toggleOwn, delete }
 
 /// The "my user" badge of a payer row: an icon and a label on a tinted pill,
 /// so the mark never depends on color alone.
@@ -541,9 +499,14 @@ class _StateWell extends StatelessWidget {
   }
 }
 
+/// No payer yet: a preview of the list to come, the title, and what payers
+/// are for. Your own payer comes first, because deposits need it. The add
+/// button is pinned at the bottom of the screen, as with a list.
+///
+/// The parts enter one after the other, once per app session, unless
+/// reduced motion is on.
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onAdd;
-  const _EmptyState({required this.onAdd});
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
@@ -554,38 +517,188 @@ class _EmptyState extends StatelessWidget {
           horizontal: BackdropPageScaffold.gutter,
           vertical: 24,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: StaggeredEntrance(
+          sessionKey: _EmptyState,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: _StateWell(
-                icon: Icons.contacts_outlined,
-                color: context.colors.textSecondary,
+          sections: [
+            const Center(child: _PreviewList()),
+            Padding(
+              padding: const EdgeInsets.only(top: 28),
+              child: Semantics(
+                header: true,
+                child: Text(
+                  t.cpf_favorites_empty_title,
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.titleMedium?.copyWith(
+                    color: context.colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              t.cpf_favorites_empty_title,
-              textAlign: TextAlign.center,
-              style: context.textTheme.titleMedium?.copyWith(
-                color: context.colors.textPrimary,
-                fontWeight: FontWeight.w600,
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: Column(
+                children: [
+                  _Purpose(
+                    icon: PixIcons.person,
+                    title: t.cpf_favorites_empty_own_title,
+                    body: t.cpf_favorites_empty_own_body,
+                  ),
+                  const SizedBox(height: 16),
+                  _Purpose(
+                    icon: PixIcons.people,
+                    title: t.cpf_favorites_empty_others_title,
+                    body: t.cpf_favorites_empty_subtitle,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              t.cpf_favorites_empty_subtitle,
-              textAlign: TextAlign.center,
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 32),
-            PrimaryButton(text: t.cpf_favorites_add, onPressed: onAdd),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A preview of the list to come, as decoration: three payer rows in a
+/// small glass panel. The first one carries the "my user" badge; the next
+/// ones fade out.
+class _PreviewList extends StatelessWidget {
+  const _PreviewList();
+
+  static const double _width = 260;
+
+  @override
+  Widget build(BuildContext context) {
+    // A drawing, not text to read: it keeps its proportions at any text
+    // size, and screen readers skip it.
+    return ExcludeSemantics(
+      child: MediaQuery.withNoTextScaling(
+        child: SizedBox(
+          width: _width,
+          child: GlassPanel(
+            child: Column(
+              children: [
+                const _PreviewRow(fade: 1, own: true),
+                const PanelDivider(indent: _PreviewRow.textInset),
+                const _PreviewRow(fade: 0.6),
+                const PanelDivider(indent: _PreviewRow.textInset),
+                const _PreviewRow(fade: 0.3),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One row of the [_PreviewList]: a person in a lens well and two bars for
+/// the name and the document. [fade] scales the strength of the row, from
+/// 0 to 1.
+class _PreviewRow extends StatelessWidget {
+  const _PreviewRow({required this.fade, this.own = false});
+
+  final double fade;
+  final bool own;
+
+  static const double _wellSize = 32;
+  static const double _padding = 12;
+
+  /// Distance from the panel edge to the bars. Hairlines start here.
+  static const double textInset = _padding + _wellSize + _padding;
+
+  @override
+  Widget build(BuildContext context) {
+    // A neutral ink at low strength reads as a placeholder on both themes,
+    // without looking like a loading skeleton.
+    final ink = context.colors.textPrimary;
+    Widget bar(double width, double height, double strength) => Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: ink.withValues(alpha: strength * fade),
+        borderRadius: BorderRadius.circular(height / 2),
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(_padding),
+      child: Row(
+        children: [
+          Container(
+            width: _wellSize,
+            height: _wellSize,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: GlassStyle.of(context).lensFill,
+              border: Border.all(color: AppSurfaces.hairline(context)),
+            ),
+            child: PixIcon(
+              PixIcons.person,
+              size: 16,
+              color: context.colors.textSecondary.withValues(alpha: fade),
+            ),
+          ),
+          const SizedBox(width: _padding),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                bar(own ? 64 : 88, 9, 0.22),
+                const SizedBox(height: 7),
+                bar(own ? 80 : 64, 7, 0.12),
+              ],
+            ),
+          ),
+          if (own) ...[const SizedBox(width: 8), const _OwnPayerBadge()],
+        ],
+      ),
+    );
+  }
+}
+
+/// One use of the payers: an icon in a neutral well, a title, and a line.
+class _Purpose extends StatelessWidget {
+  const _Purpose({required this.icon, required this.title, required this.body});
+
+  final PixIconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return MergeSemantics(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PixIconWell(icon: icon),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: context.colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  body,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.colors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

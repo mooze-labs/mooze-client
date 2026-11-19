@@ -5590,6 +5590,24 @@ abstract class AppLocalizations {
   /// **'Adicione um pagador para reutilizar o CPF nas próximas cobranças.'**
   String get cpf_favorites_empty_subtitle;
 
+  /// No description provided for @cpf_favorites_empty_own_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seus depósitos'**
+  String get cpf_favorites_empty_own_title;
+
+  /// No description provided for @cpf_favorites_empty_own_body.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastre o titular da conta que paga os seus depósitos e marque como \"Meu usuário\".'**
+  String get cpf_favorites_empty_own_body;
+
+  /// No description provided for @cpf_favorites_empty_others_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quem paga você'**
+  String get cpf_favorites_empty_others_title;
+
   /// No description provided for @cpf_favorites_add.
   ///
   /// In pt, this message translates to:

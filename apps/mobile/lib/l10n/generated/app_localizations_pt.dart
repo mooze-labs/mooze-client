@@ -3102,6 +3102,16 @@ class AppLocalizationsPt extends AppLocalizations {
       'Adicione um pagador para reutilizar o CPF nas próximas cobranças.';
 
   @override
+  String get cpf_favorites_empty_own_title => 'Seus depósitos';
+
+  @override
+  String get cpf_favorites_empty_own_body =>
+      'Cadastre o titular da conta que paga os seus depósitos e marque como \"Meu usuário\".';
+
+  @override
+  String get cpf_favorites_empty_others_title => 'Quem paga você';
+
+  @override
   String get cpf_favorites_add => 'Adicionar pagador';
 
   @override

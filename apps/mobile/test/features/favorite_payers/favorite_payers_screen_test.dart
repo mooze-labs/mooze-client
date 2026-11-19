@@ -10,6 +10,7 @@ import 'package:mooze_mobile/features/favorite_payers/presentation/screens/favor
 import 'package:mooze_mobile/features/favorite_payers/presentation/screens/favorite_payers_screen.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
 import 'package:mooze_mobile/shared/widgets.dart';
+import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/shared/user/providers/user_service_provider.dart';
 import 'package:mooze_mobile/themes/app_extra_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -113,11 +114,86 @@ void main() {
     expect(find.text('Add payer'), findsWidgets);
   });
 
+  group('empty state', () {
+    testWidgets('says what payers are for, own deposits first, and pins the '
+        'add button at the bottom', (tester) async {
+      await tester.pumpWidget(_app(_FakeRepo(items: const [])));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Your deposits'), findsOneWidget);
+      expect(
+        find.text(
+          'Add the holder of the account that pays your deposits and mark '
+          'them as "My user".',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('People who pay you'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Your deposits')).dy,
+        lessThan(tester.getTopLeft(find.text('People who pay you')).dy),
+      );
+      // One add button, pinned at the bottom as with a list.
+      expect(find.byType(PrimaryButton), findsOneWidget);
+      expect(
+        tester.getBottomLeft(find.byType(PrimaryButton)).dy,
+        greaterThan(tester.getBottomLeft(find.text('People who pay you')).dy),
+      );
+    });
+
+    testWidgets('the preview of the list is decoration for screen readers', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(_app(_FakeRepo(items: const [])));
+      await tester.pumpAndSettle();
+
+      // The preview shows the badge, but a screen reader skips it.
+      expect(find.text('My user'), findsOneWidget);
+      expect(find.bySemanticsLabel('My user'), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('^No saved payers')), findsOne);
+      semantics.dispose();
+    });
+
+    testWidgets('the add button opens the editor that offers to mark the '
+        'payer as me', (tester) async {
+      await tester.pumpWidget(_app(_FakeRepo(items: const [])));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Add payer'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FavoritePayerEditScreen), findsOneWidget);
+      expect(find.text('This payer is me'), findsOneWidget);
+    });
+
+    testWidgets('fits a 320 pt screen at 200% text', (tester) async {
+      tester.view.physicalSize = const Size(320, 640) * 3;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpWidget(_app(_FakeRepo(items: const [])));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      // The text did grow to twice its size.
+      expect(
+        MediaQuery.textScalerOf(
+          tester.element(find.text('Your deposits')),
+        ).scale(10),
+        20,
+      );
+    });
+  });
+
   testWidgets('error state shows the message and retry', (tester) async {
     await tester.pumpWidget(_app(_FakeRepo(throwOnGet: true)));
     await tester.pumpAndSettle();
     expect(find.text("Couldn't load payers"), findsOneWidget);
     expect(find.text('Try again'), findsOneWidget);
+    // Nothing to add to while the payers fail to load.
+    expect(find.byType(PrimaryButton), findsNothing);
   });
 
   testWidgets('data state lists payers with masked CPF', (tester) async {
@@ -189,6 +265,64 @@ void main() {
 
       expect(find.text('My user'), findsNothing);
       expect(_prefs.containsKey('favorite_payer_own_id'), isFalse);
+    });
+
+    testWidgets('the menu is the glass menu of the app, with remove in the '
+        'negative color', (tester) async {
+      await _prefs.setInt('favorite_payer_own_id', 1);
+      await tester.pumpWidget(_app(_FakeRepo(items: payers)));
+      await tester.pumpAndSettle();
+
+      await openMenuOf(tester, 'João');
+
+      expect(find.byType(PopupMenuItem), findsNothing);
+      final panel = find.byWidgetPredicate((w) => w is LiquidGlass && w.opaque);
+      expect(panel, findsOneWidget);
+      for (final label in ['Edit', 'Unmark as my user', 'Remove']) {
+        expect(
+          find.descendant(of: panel, matching: find.text(label)),
+          findsOneWidget,
+        );
+      }
+      final remove = tester.widget<Text>(
+        find.descendant(of: panel, matching: find.text('Remove')),
+      );
+      expect(
+        remove.style?.color,
+        Theme.of(tester.element(panel)).colorScheme.error,
+      );
+    });
+
+    testWidgets('remove asks first, once the menu has closed', (tester) async {
+      await tester.pumpWidget(_app(_FakeRepo(items: payers)));
+      await tester.pumpAndSettle();
+
+      await openMenuOf(tester, 'Maria');
+      await tester.tap(find.text('Remove'));
+      await tester.pumpAndSettle();
+
+      // The menu is gone: the only opaque glass left is the confirm
+      // dialog, and it names the payer.
+      expect(
+        find.byWidgetPredicate((w) => w is LiquidGlass && w.opaque),
+        findsOneWidget,
+      );
+      expect(find.byType(GlassAlertDialog), findsOneWidget);
+      expect(find.text('Remove Maria from favorite payers?'), findsOneWidget);
+    });
+
+    testWidgets('edit opens the editor of that payer', (tester) async {
+      await tester.pumpWidget(_app(_FakeRepo(items: payers)));
+      await tester.pumpAndSettle();
+
+      await openMenuOf(tester, 'Maria');
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+
+      final editor = tester.widget<FavoritePayerEditScreen>(
+        find.byType(FavoritePayerEditScreen),
+      );
+      expect(editor.initial?.label, 'Maria');
     });
   });
 

@@ -3083,6 +3083,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add a payer to reuse their CPF on future charges.';
 
   @override
+  String get cpf_favorites_empty_own_title => 'Your deposits';
+
+  @override
+  String get cpf_favorites_empty_own_body =>
+      'Add the holder of the account that pays your deposits and mark them as \"My user\".';
+
+  @override
+  String get cpf_favorites_empty_others_title => 'People who pay you';
+
+  @override
   String get cpf_favorites_add => 'Add payer';
 
   @override

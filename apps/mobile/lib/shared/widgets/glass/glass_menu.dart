@@ -26,8 +26,9 @@ class GlassMenuItem {
   final bool destructive;
 }
 
-/// The "more" button of an app bar. Its menu opens as a floating panel of
-/// opaque Liquid Glass, as the sheets and dialogs of the app.
+/// The "more" button of an app bar or of a list row. Its menu opens as a
+/// floating panel of opaque Liquid Glass, as the sheets and dialogs of the
+/// app. A row passes a quieter [iconColor].
 ///
 /// The panel hangs from the button, at the end of the bar. It grows from
 /// the button and fades in over [Motion.durationEmphasis], and closes over
@@ -40,12 +41,16 @@ class GlassMenuButton extends StatelessWidget {
     super.key,
     required this.tooltip,
     required this.items,
+    this.iconColor,
   });
 
   /// Name of the button for screen readers, and of the menu it opens.
   final String tooltip;
 
   final List<GlassMenuItem> items;
+
+  /// Color of the "more" icon. Defaults to the primary text color.
+  final Color? iconColor;
 
   Future<void> _open(BuildContext context) async {
     final navigator = Navigator.of(context);
@@ -73,7 +78,10 @@ class GlassMenuButton extends StatelessWidget {
       // The builder context is the button, so the menu hangs from it.
       builder: (context) => IconButton(
         tooltip: tooltip,
-        icon: Icon(Icons.more_vert_rounded, color: context.colors.textPrimary),
+        icon: Icon(
+          Icons.more_vert_rounded,
+          color: iconColor ?? context.colors.textPrimary,
+        ),
         onPressed: () => _open(context),
       ),
     );
