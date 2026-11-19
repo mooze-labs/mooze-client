@@ -4931,6 +4931,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wallet_all_assets_unpin => 'Remove from home';
 
   @override
+  String get wallet_all_assets_hint_one =>
+      'The home screen shows 1 or 2 assets. Star another one to see both.';
+
+  @override
+  String get wallet_all_assets_hint_two =>
+      'Drag the handle to choose which one comes first on the home screen.';
+
+  @override
+  String get wallet_all_assets_reorder => 'Drag to reorder';
+
+  @override
+  String get wallet_all_assets_keep_one =>
+      'The home screen shows at least 1 asset';
+
+  @override
   String get wallet_asset_chart_load_error => 'Could not load the chart';
 
   @override

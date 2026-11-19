@@ -57,40 +57,54 @@ class AssetRowPanel extends StatelessWidget {
 
   final List<Widget> rows;
 
+  /// Returns the slice of [row] at [index] of [count] rows: its sheet
+  /// origin, the panel inset at the ends, and the hairline above it, from
+  /// [dividerIndent]. A list that lays out the rows itself, such as a
+  /// reorderable one, puts each row in its slice.
+  static Widget slice({
+    Key? key,
+    required int index,
+    required int count,
+    required Widget row,
+    double dividerIndent = AssetRowView.textInset,
+  }) {
+    const corner = AppSurfaces.panelRadius;
+    final last = count - 1;
+    return GlassSheetOrigin(
+      key: key,
+      borderRadius: BorderRadius.only(
+        topLeft: index == 0 ? corner.topLeft : Radius.zero,
+        topRight: index == 0 ? corner.topRight : Radius.zero,
+        bottomLeft: index == last ? corner.bottomLeft : Radius.zero,
+        bottomRight: index == last ? corner.bottomRight : Radius.zero,
+      ),
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: index == 0 ? inset : 0,
+          bottom: index == last ? inset : 0,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (index > 0) PanelDivider(indent: dividerIndent),
+            row,
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    const corner = AppSurfaces.panelRadius;
-    final last = rows.length - 1;
     return GlassPanel(
-      borderRadius: corner,
+      borderRadius: AppSurfaces.panelRadius,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         // Every slice spans the full panel width.
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i <= last; i++)
-            GlassSheetOrigin(
-              borderRadius: BorderRadius.only(
-                topLeft: i == 0 ? corner.topLeft : Radius.zero,
-                topRight: i == 0 ? corner.topRight : Radius.zero,
-                bottomLeft: i == last ? corner.bottomLeft : Radius.zero,
-                bottomRight: i == last ? corner.bottomRight : Radius.zero,
-              ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: i == 0 ? inset : 0,
-                  bottom: i == last ? inset : 0,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (i > 0)
-                      const PanelDivider(indent: AssetRowView.textInset),
-                    rows[i],
-                  ],
-                ),
-              ),
-            ),
+          for (var i = 0; i < rows.length; i++)
+            slice(index: i, count: rows.length, row: rows[i]),
         ],
       ),
     );
@@ -101,10 +115,14 @@ class AssetRowPanel extends StatelessWidget {
 ///
 /// A tap opens the market sheet of the asset. Put the row in a
 /// [GlassSheetOrigin], so the sheet grows out of it.
+///
+/// A [compact] row has no sparkline and a narrower price, for a row that
+/// shares its width with more controls, such as a drag handle and a star.
 class AssetRow extends ConsumerWidget {
-  const AssetRow({super.key, required this.asset});
+  const AssetRow({super.key, required this.asset, this.compact = false});
 
   final Asset asset;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -139,12 +157,28 @@ class AssetRow extends ConsumerWidget {
       );
     }
 
-    return AssetRowView(
+    final view = AssetRowView(
       asset: asset,
       trailing: trailing,
+      trailingWidthShare: compact
+          ? AssetRowView.compactTrailingShare
+          : AssetRowView.trailingShare,
       onTap: () => showAssetMarketSheet(context, asset: asset),
     );
+    return compact ? _CompactRowScope(child: view) : view;
   }
+}
+
+/// Marks a [AssetRow.compact] row, so its trailing parts leave the
+/// sparkline out.
+class _CompactRowScope extends InheritedWidget {
+  const _CompactRowScope({required super.child});
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_CompactRowScope>() != null;
+
+  @override
+  bool updateShouldNotify(_CompactRowScope oldWidget) => false;
 }
 
 /// The layout of an asset row. The icon and the names stay in place while
@@ -158,6 +192,7 @@ class AssetRowView extends StatelessWidget {
     required this.asset,
     required this.trailing,
     required this.onTap,
+    this.trailingWidthShare = trailingShare,
   });
 
   static const double iconSize = 40;
@@ -173,6 +208,14 @@ class AssetRowView extends StatelessWidget {
   /// The trailing part has a fixed width, so the sparklines of all rows
   /// line up. A wider price scales down inside it.
   static const double trailingShare = 0.7;
+
+  /// Share of the free row width for the [trailing] of a compact row: the
+  /// price and its change, without the sparkline. The name keeps room to
+  /// show in full.
+  static const double compactTrailingShare = 0.45;
+
+  /// Share of the free row width this row gives [trailing].
+  final double trailingWidthShare;
 
   final Asset asset;
   final Widget trailing;
@@ -232,7 +275,7 @@ class AssetRowView extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   SizedBox(
-                    width: freeWidth * trailingShare,
+                    width: freeWidth * trailingWidthShare,
                     child: AnimatedSwitcher(
                       duration: Motion.of(context, Motion.durationBase),
                       switchInCurve: Motion.curveMove,
@@ -257,8 +300,9 @@ class AssetRowView extends StatelessWidget {
 /// Returns true when the row has room for a sparkline.
 ///
 /// Large text scales and narrow screens drop the sparkline, so that the
-/// price keeps its full size.
+/// price keeps its full size. A compact row never shows it.
 bool _showSparkline(BuildContext context) {
+  if (_CompactRowScope.of(context)) return false;
   final textScale = MediaQuery.textScalerOf(context).scale(1);
   final width = MediaQuery.sizeOf(context).width;
   return textScale <= 1.3 && width >= 360;

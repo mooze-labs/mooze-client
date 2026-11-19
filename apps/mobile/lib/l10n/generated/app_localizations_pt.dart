@@ -4966,6 +4966,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get wallet_all_assets_unpin => 'Remover da tela inicial';
 
   @override
+  String get wallet_all_assets_hint_one =>
+      'A tela inicial mostra 1 ou 2 ativos. Marque outro com a estrela para ver os dois.';
+
+  @override
+  String get wallet_all_assets_hint_two =>
+      'Arraste pela alça para escolher qual aparece primeiro na tela inicial.';
+
+  @override
+  String get wallet_all_assets_reorder => 'Arrastar para reordenar';
+
+  @override
+  String get wallet_all_assets_keep_one =>
+      'A tela inicial mostra pelo menos 1 ativo';
+
+  @override
   String get wallet_asset_chart_load_error =>
       'Não foi possível carregar o gráfico';
 

@@ -406,17 +406,20 @@ class FavouriteAssetsNotifier extends StateNotifier<List<Asset>> {
   }
 
   /// Toggle a single asset; clamps to `maxFavourites` (2 by default) using
-  /// "drop-oldest" semantics — same as legacy.
+  /// "replace-second" semantics: the first pin stays first — same as legacy.
   Future<void> toggleFavourite(Asset asset) async {
     final current = state;
+    // The last pinned asset stays: the home screen shows at least one.
+    if (current.contains(asset) && current.length <= 1) return;
     final next = current.contains(asset)
         ? current.where((a) => a != asset).toList()
-        : (current.length < 2 ? [...current, asset] : [current[1], asset]);
+        : (current.length < 2 ? [...current, asset] : [current[0], asset]);
     state = next;
     await _store.save(next);
   }
 
   Future<void> setFavourites(List<Asset> next) async {
+    if (next.isEmpty) return;
     final clipped = next.take(2).toList();
     state = clipped;
     await _store.save(clipped);

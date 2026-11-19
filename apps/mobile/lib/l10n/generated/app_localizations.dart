@@ -8854,6 +8854,30 @@ abstract class AppLocalizations {
   /// **'Remover da tela inicial'**
   String get wallet_all_assets_unpin;
 
+  /// No description provided for @wallet_all_assets_hint_one.
+  ///
+  /// In pt, this message translates to:
+  /// **'A tela inicial mostra 1 ou 2 ativos. Marque outro com a estrela para ver os dois.'**
+  String get wallet_all_assets_hint_one;
+
+  /// No description provided for @wallet_all_assets_hint_two.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arraste pela alça para escolher qual aparece primeiro na tela inicial.'**
+  String get wallet_all_assets_hint_two;
+
+  /// No description provided for @wallet_all_assets_reorder.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arrastar para reordenar'**
+  String get wallet_all_assets_reorder;
+
+  /// No description provided for @wallet_all_assets_keep_one.
+  ///
+  /// In pt, this message translates to:
+  /// **'A tela inicial mostra pelo menos 1 ativo'**
+  String get wallet_all_assets_keep_one;
+
   /// No description provided for @wallet_asset_chart_load_error.
   ///
   /// In pt, this message translates to:
