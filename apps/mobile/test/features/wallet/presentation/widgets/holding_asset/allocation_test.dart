@@ -87,25 +87,16 @@ void main() {
       expect(_reveal(tester), 1);
     });
 
-    testWidgets('the largest holding uses the brand color', (tester) async {
-      late Color first;
-      late Color second;
-      late Color primary;
-      await tester.pumpWidget(
-        wrapForTest(
-          Builder(
-            builder: (context) {
-              first = allocationColor(context, 0);
-              second = allocationColor(context, 1);
-              primary = Theme.of(context).colorScheme.primary;
-              return const SizedBox();
-            },
-          ),
-        ),
-      );
+    test('each asset takes the color of its icon', () {
+      // The orange disc of the Bitcoin icon.
+      expect(allocationColor(Asset.btc), const Color(0xFFF7931A));
+      // The green disc of the USDT icon.
+      expect(allocationColor(Asset.usdt), const Color(0xFF26A17B));
+    });
 
-      expect(first, primary);
-      expect(second, isNot(primary));
+    test('no two assets share a color', () {
+      final colors = {for (final asset in Asset.values) allocationColor(asset)};
+      expect(colors, hasLength(Asset.values.length));
     });
   });
 

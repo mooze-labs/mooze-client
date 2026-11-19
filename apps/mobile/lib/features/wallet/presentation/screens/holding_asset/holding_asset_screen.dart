@@ -213,8 +213,8 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
       return Center(child: Text(t.wallet_holding_empty));
     }
 
-    // Shares of the total fiat value, largest first. Rank 0 takes the brand
-    // color in the bar and in the legend.
+    // Shares of the total fiat value, largest first. Each share takes the
+    // color of its asset in the bar and in the legend.
     final valued = [
       for (final holding in holdings)
         if ((holding.fiatValue ?? 0) > 0) holding,
@@ -251,7 +251,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                                   : valued[i].fiatValue! / total,
                               color: isHidden
                                   ? AppSurfaces.hairline(context)
-                                  : allocationColor(context, i),
+                                  : allocationColor(valued[i].asset),
                             ),
                         ],
                       ),
@@ -263,7 +263,7 @@ class _HoldingsAsseetScreenState extends ConsumerState<HoldingsAsseetScreen> {
                             AllocationEntry(
                               label: valued[i].asset.ticker,
                               share: valued[i].fiatValue! / total,
-                              color: allocationColor(context, i),
+                              color: allocationColor(valued[i].asset),
                             ),
                         ],
                       ),

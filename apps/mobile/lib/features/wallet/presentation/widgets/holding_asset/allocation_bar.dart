@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
+import 'package:mooze_mobile/shared/entities/asset.dart';
+import 'package:mooze_mobile/shared/widgets/stage/glyph_colors.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
@@ -14,17 +16,13 @@ class AllocationSegment {
   final Color color;
 }
 
-/// Returns the color of the holding with [rank] in the allocation.
+/// Returns the color of [asset] in the allocation.
 ///
-/// Rank 0 is the largest holding. It uses the brand color. The other
-/// holdings use neutral tones that get lighter by rank, so the chart has
-/// one accent hue.
-Color allocationColor(BuildContext context, int rank) {
-  if (rank == 0) return context.colors.primaryColor;
-  const alphas = [0.6, 0.36, 0.2, 0.12];
-  final alpha = alphas[(rank - 1).clamp(0, alphas.length - 1)];
-  return context.colors.textPrimary.withValues(alpha: alpha);
-}
+/// Each asset keeps the color of its icon, the one its coins use too, so a
+/// segment reads as its asset at a glance. The color follows the asset, not
+/// its rank, so it stays the same when the order of the holdings changes.
+/// The legend still names each asset, so the color is never the only cue.
+Color allocationColor(Asset asset) => CoinGlyphColors.colorOf(asset);
 
 /// A thin bar that shows the share of each holding in the total.
 ///
