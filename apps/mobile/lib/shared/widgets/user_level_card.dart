@@ -1,33 +1,54 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:mooze_mobile/features/wallet_level/presentation/utils/wallet_level_ui_helpers.dart';
+import 'package:mooze_mobile/features/wallet_level/presentation/widgets/level_celebration.dart';
+import 'package:mooze_mobile/features/wallet_level/presentation/widgets/level_emblem.dart';
 import 'package:mooze_mobile/l10n/generated/app_localizations.dart';
-import 'package:mooze_mobile/shared/user/level_names.dart';
 import 'package:mooze_mobile/shared/models/user_levels.dart';
+import 'package:mooze_mobile/shared/user/level_names.dart';
 import 'package:mooze_mobile/shared/widgets/app_backdrop.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
+import 'package:mooze_mobile/shared/widgets/motion/skeleton.dart';
 import 'package:mooze_mobile/themes/app_surfaces.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
 
-/// The levels of the wallet in a glass panel: a header with the current
-/// level, a track of every level, and the progress to the next level.
+/// Size of a level marker on the track.
+const double _markerSize = 40;
+
+/// Size of the emblem in a marker.
+const double _emblemSize = 20;
+
+/// Thickness of the line between two markers.
+const double _connectorThickness = 3;
+
+/// Space between a marker and the line that leaves it.
+const double _connectorGap = 4;
+
+/// Thickness of the progress bar to the next level.
+const double _barThickness = 6;
+
+/// The levels of the wallet: a track of every level, and the progress to
+/// the next one.
 ///
-/// Each level keeps its own color as a signal: the tint of its marker, the
-/// line to the next marker, and the progress bar. The panel stays glass.
-/// The progress fills in when the card appears, unless reduced motion is
-/// on.
-class UserLevelCard extends StatefulWidget {
-  final int currentLevel;
-
-  final double currentProgress;
-
-  final VoidCallback? onTap;
-
+/// The track draws each level as a small medal, in the hexagon and with the
+/// emblem of the medals of the level change screens. A level takes its tint
+/// once it is reached, and the current level has a full rim and a soft glow
+/// in its tint. The line to the next level, and the bar under the track,
+/// fill with the progress when the card shows, unless reduced motion is on.
+///
+/// [UserLevelCard.new] is a glass panel with a header, for a screen.
+/// [UserLevelCard.plain] has no panel and no header, for a surface that
+/// already frames it and names it, such as a glass sheet.
+class UserLevelCard extends StatelessWidget {
   const UserLevelCard({
     super.key,
     required this.currentLevel,
     this.currentProgress = 0.0,
     this.onTap,
-  }) : assert(
+  }) : _framed = true,
+       assert(
          currentLevel >= 0 && currentLevel <= 3,
          'Current level must be between 0 and 3',
        ),
@@ -36,147 +57,176 @@ class UserLevelCard extends StatefulWidget {
          'Progress must be between 0.0 and 1.0',
        );
 
-  @override
-  State<UserLevelCard> createState() => _UserLevelCardState();
-}
+  const UserLevelCard.plain({
+    super.key,
+    required this.currentLevel,
+    this.currentProgress = 0.0,
+    this.onTap,
+  }) : _framed = false,
+       assert(
+         currentLevel >= 0 && currentLevel <= 3,
+         'Current level must be between 0 and 3',
+       ),
+       assert(
+         currentProgress >= 0.0 && currentProgress <= 1.0,
+         'Progress must be between 0.0 and 1.0',
+       );
 
-class _UserLevelCardState extends State<UserLevelCard>
-    with SingleTickerProviderStateMixin {
-  final ScrollController _scrollController = ScrollController();
-  late final AnimationController _progressAnimationController =
-      AnimationController(duration: Motion.durationChartDraw, vsync: this);
-  late Animation<double> _progressAnimation = _progressTween(
-    0,
-    widget.currentProgress,
-  );
+  final int currentLevel;
 
-  /// Width of one level on the track.
-  static const double _markerWidth = 104;
+  /// Progress from the current level to the next one, from 0 to 1.
+  final double currentProgress;
 
-  /// Diameter of a level marker.
-  static const double _markerSize = 44;
+  final VoidCallback? onTap;
 
-  bool _started = false;
-
-  Animation<double> _progressTween(double begin, double end) =>
-      Tween<double>(begin: begin, end: end).animate(
-        CurvedAnimation(
-          parent: _progressAnimationController,
-          curve: Motion.curveEnter,
-        ),
-      );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    if (Motion.isReduced(context)) {
-      _progressAnimationController.value = 1;
-    } else {
-      _progressAnimationController.forward();
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToCurrentLevel();
-    });
-  }
-
-  @override
-  void didUpdateWidget(UserLevelCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.currentProgress != widget.currentProgress) {
-      _progressAnimation = _progressTween(
-        oldWidget.currentProgress,
-        widget.currentProgress,
-      );
-      if (Motion.isReduced(context)) {
-        _progressAnimationController.value = 1;
-      } else {
-        _progressAnimationController
-          ..reset()
-          ..forward();
-      }
-    }
-
-    if (oldWidget.currentLevel != widget.currentLevel) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToCurrentLevel();
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _progressAnimationController.dispose();
-    super.dispose();
-  }
-
-  /// Scrolls the track so the current level sits near its middle.
-  void _scrollToCurrentLevel() {
-    if (!mounted || !_scrollController.hasClients) return;
-    final position = _scrollController.position;
-    final target =
-        (widget.currentLevel + 0.5) * _markerWidth -
-        position.viewportDimension / 2;
-    final offset = target.clamp(0.0, position.maxScrollExtent);
-    final duration = Motion.of(context, Motion.durationSlow);
-    if (duration == Duration.zero) {
-      _scrollController.jumpTo(offset);
-    } else {
-      _scrollController.animateTo(
-        offset,
-        duration: duration,
-        curve: Motion.curveLargeMove,
-      );
-    }
-  }
+  /// Whether the card is a glass panel with a header.
+  final bool _framed;
 
   @override
   Widget build(BuildContext context) {
-    final panel = GlassPanel(
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_framed)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _Header(level: currentLevel),
+          ),
+        Padding(
+          padding: _framed
+              ? const EdgeInsets.fromLTRB(8, 20, 8, 16)
+              : const EdgeInsets.fromLTRB(0, 8, 0, 16),
+          child: _LevelTrack(
+            currentLevel: currentLevel,
+            progress: currentProgress,
+          ),
+        ),
+        const PanelDivider(),
+        Padding(
+          padding: _framed
+              ? const EdgeInsets.all(16)
+              : const EdgeInsets.only(top: 16, bottom: 4),
+          child: _LevelProgress(
+            currentLevel: currentLevel,
+            progress: currentProgress,
+          ),
+        ),
+      ],
+    );
+
+    if (_framed) {
+      return GlassPanel(
+        child: onTap == null ? body : InkWell(onTap: onTap, child: body),
+      );
+    }
+    if (onTap == null) return body;
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(onTap: onTap, child: body),
+    );
+  }
+}
+
+/// A skeleton in the shape of a [UserLevelCard], while the level loads.
+///
+/// [UserLevelCardSkeleton.new] matches [UserLevelCard.new], and
+/// [UserLevelCardSkeleton.plain] matches [UserLevelCard.plain].
+class UserLevelCardSkeleton extends StatelessWidget {
+  const UserLevelCardSkeleton({super.key}) : _framed = true;
+
+  const UserLevelCardSkeleton.plain({super.key}) : _framed = false;
+
+  final bool _framed;
+
+  @override
+  Widget build(BuildContext context) {
+    final skeleton = SkeletonShimmer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: _buildHeader(),
+          if (_framed) ...[
+            const Row(
+              children: [
+                SkeletonBox(width: 120, height: 18, radius: 9),
+                Spacer(),
+                SkeletonBox(width: 72, height: 26, radius: 13),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+          Row(
+            children: [
+              for (final _ in UserLevels.levels)
+                const Expanded(
+                  child: Column(
+                    children: [
+                      _SkeletonMedal(),
+                      SizedBox(height: 10),
+                      SkeletonBox(width: 44, height: 10, radius: 5),
+                    ],
+                  ),
+                ),
+            ],
           ),
-          _buildLevelProgressBar(),
-          const PanelDivider(indent: 16),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: _buildCurrentLevelInfo(),
+          const SizedBox(height: 32),
+          const Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: SkeletonBox(width: 140, height: 14, radius: 7),
+          ),
+          const SizedBox(height: 14),
+          const SkeletonBox(
+            width: double.infinity,
+            height: _barThickness,
+            radius: _barThickness / 2,
+          ),
+          const SizedBox(height: 10),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SkeletonBox(width: 88, height: 10, radius: 5),
+              SkeletonBox(width: 88, height: 10, radius: 5),
+            ],
           ),
         ],
       ),
     );
-    if (widget.onTap == null) return panel;
-    return GestureDetector(onTap: widget.onTap, child: panel);
-  }
 
-  Widget _buildHeader() {
+    if (!_framed) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 4),
+        child: skeleton,
+      );
+    }
+    return GlassPanel(padding: const EdgeInsets.all(16), child: skeleton);
+  }
+}
+
+/// The title of the card and a pill with the emblem and the number of the
+/// current level.
+class _Header extends StatelessWidget {
+  const _Header({required this.level});
+
+  final int level;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final level = UserLevels.getLevelByOrder(widget.currentLevel);
     return Row(
       children: [
-        Icon(
-          Icons.military_tech_outlined,
-          color: context.colors.textSecondary,
-          size: 20,
-        ),
-        const SizedBox(width: 8),
         Expanded(
-          child: Text(
-            t.level_my_levels,
-            style: context.textTheme.titleMedium?.copyWith(
-              color: context.colors.textPrimary,
-              fontWeight: FontWeight.w600,
+          child: Semantics(
+            header: true,
+            child: Text(
+              t.level_my_levels,
+              style: context.textTheme.titleMedium?.copyWith(
+                color: context.colors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
-        // A neutral pill: the dot carries the level color.
+        const SizedBox(width: 12),
+        // A neutral lens: the emblem carries the color of the level.
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
@@ -187,19 +237,10 @@ class _UserLevelCardState extends State<UserLevelCard>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (level != null) ...[
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: level.color,
-                  ),
-                ),
-                const SizedBox(width: 6),
-              ],
+              LevelEmblem(level, size: 14),
+              const SizedBox(width: 6),
               Text(
-                t.level_label(widget.currentLevel + 1),
+                t.level_label(level + 1),
                 style: context.textTheme.labelMedium?.copyWith(
                   color: context.colors.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -211,128 +252,170 @@ class _UserLevelCardState extends State<UserLevelCard>
       ],
     );
   }
+}
 
-  Widget _buildLevelProgressBar() {
-    return SizedBox(
-      height: 96,
-      child: ListView.builder(
-        controller: _scrollController,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        itemCount: UserLevels.levels.length,
-        itemBuilder: (context, index) {
-          final level = UserLevels.levels[index];
-          return _buildLevelMarker(
-            level: level,
-            isCurrentLevel: level.order == widget.currentLevel,
-            isCompleted: level.order < widget.currentLevel,
-            index: index,
-          );
-        },
-      ),
-    );
-  }
+/// Where a level is on the way of the user.
+enum _Reach { completed, current, upcoming }
 
-  Widget _buildLevelMarker({
-    required UserLevel level,
-    required bool isCurrentLevel,
-    required bool isCompleted,
-    required int index,
-  }) {
-    final reached = isCompleted || isCurrentLevel;
-    final hairline = AppSurfaces.hairline(context);
-    final isLast = index == UserLevels.levels.length - 1;
+/// Every level in a row of equal slots, with a line between two markers.
+///
+/// The line that leaves a level fills with the tint of that level: full
+/// once the level is behind, up to the progress for the current level, and
+/// empty ahead of it.
+class _LevelTrack extends StatelessWidget {
+  const _LevelTrack({required this.currentLevel, required this.progress});
 
-    return SizedBox(
-      width: _markerWidth,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: _markerSize,
-            child: Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                // The line to the next level fills with this level's color
-                // as the user progresses.
-                if (!isLast)
-                  Positioned(
-                    // The stack is as wide as the marker, so the line
-                    // starts just past its right edge and stops short of
-                    // the next marker.
-                    left: _markerSize + 6,
-                    width: _markerWidth - _markerSize - 12,
-                    child: AnimatedBuilder(
-                      animation: _progressAnimation,
-                      builder: (context, _) {
-                        final value = isCompleted
-                            ? 1.0
-                            : isCurrentLevel
-                            ? _progressAnimation.value
-                            : 0.0;
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(1),
-                          child: LinearProgressIndicator(
-                            value: value,
-                            minHeight: 2,
-                            backgroundColor: hairline,
-                            valueColor: AlwaysStoppedAnimation(level.color),
-                          ),
-                        );
-                      },
+  final int currentLevel;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final levels = UserLevels.levels;
+    final brightness = Theme.of(context).brightness;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final slot = constraints.maxWidth / levels.length;
+        final lineWidth = math.max(0.0, slot - _markerSize - 2 * _connectorGap);
+
+        return Stack(
+          children: [
+            // The lines sit behind the markers, between their centers.
+            for (var i = 0; i < levels.length - 1; i++)
+              PositionedDirectional(
+                start: slot * (i + 0.5) + _markerSize / 2 + _connectorGap,
+                top: (_markerSize - _connectorThickness) / 2,
+                width: lineWidth,
+                height: _connectorThickness,
+                child: ExcludeSemantics(
+                  child: _Groove(
+                    value: i < currentLevel
+                        ? 1
+                        : i == currentLevel
+                        ? progress
+                        : 0,
+                    color: WalletLevelUiHelpers.getLevelTint(
+                      levels[i].order,
+                      brightness,
                     ),
-                  ),
-                Container(
-                  width: _markerSize,
-                  height: _markerSize,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: reached
-                        ? level.color.withValues(alpha: 0.16)
-                        : GlassStyle.of(context).lensFill,
-                    border: Border.all(
-                      color: isCurrentLevel
-                          ? level.color
-                          : reached
-                          ? level.color.withValues(alpha: 0.3)
-                          : hairline,
-                      width: isCurrentLevel ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Icon(
-                    level.icon,
-                    size: 20,
-                    color: reached ? level.color : context.colors.textTertiary,
+                    thickness: _connectorThickness,
+                    animate: i == currentLevel,
                   ),
                 ),
+              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final level in levels)
+                  Expanded(
+                    child: _LevelMarker(
+                      level: level.order,
+                      reach: level.order < currentLevel
+                          ? _Reach.completed
+                          : level.order == currentLevel
+                          ? _Reach.current
+                          : _Reach.upcoming,
+                    ),
+                  ),
               ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// One level on the track: a small medal with the emblem of the level, and
+/// its name under it.
+class _LevelMarker extends StatelessWidget {
+  const _LevelMarker({required this.level, required this.reach});
+
+  final int level;
+  final _Reach reach;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tint = WalletLevelUiHelpers.getLevelTint(
+      level,
+      Theme.of(context).brightness,
+    );
+    final isCurrent = reach == _Reach.current;
+    final reached = reach != _Reach.upcoming;
+
+    final rim = switch (reach) {
+      _Reach.current => tint,
+      _Reach.completed => tint.withValues(alpha: 0.35),
+      _Reach.upcoming => AppSurfaces.hairline(context),
+    };
+
+    return MergeSemantics(
+      child: Column(
+        children: [
+          Container(
+            width: _markerSize,
+            height: _markerSize,
+            alignment: Alignment.center,
+            decoration: ShapeDecoration(
+              shape: LevelCelebration.medalShape.copyWith(
+                side: BorderSide(color: rim, width: isCurrent ? 1.5 : 1),
+              ),
+              color: reached
+                  ? tint.withValues(alpha: 0.16)
+                  : GlassStyle.of(context).lensFill,
+              // The glow marks where the user is.
+              shadows: isCurrent
+                  ? [
+                      BoxShadow(
+                        color: tint.withValues(alpha: isDark ? 0.4 : 0.28),
+                        blurRadius: 14,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: LevelEmblem(
+              level,
+              size: _emblemSize,
+              color: reached ? tint : context.colors.textTertiary,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            AppLocalizations.of(context).levelName(level.order),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.textTheme.labelMedium?.copyWith(
-              color: isCurrentLevel
-                  ? context.colors.textPrimary
-                  : context.colors.textSecondary,
-              fontWeight: isCurrentLevel ? FontWeight.w600 : FontWeight.w500,
+          // A level name is one word: it shrinks to fit a narrow slot
+          // rather than break or cut.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              t.levelName(level),
+              maxLines: 1,
+              style: context.textTheme.labelMedium?.copyWith(
+                color: isCurrent
+                    ? context.colors.textPrimary
+                    : context.colors.textSecondary,
+                fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildCurrentLevelInfo() {
+/// The current level, and the progress to the next one: a bar in the tint
+/// of the current level, the percentage, and the name of the next level.
+/// At the last level, only the current level shows.
+class _LevelProgress extends StatelessWidget {
+  const _LevelProgress({required this.currentLevel, required this.progress});
+
+  final int currentLevel;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final currentLevelData = UserLevels.getLevelByOrder(widget.currentLevel);
-    final nextLevelData = UserLevels.getNextLevel(widget.currentLevel);
-
-    if (currentLevelData == null) return const SizedBox.shrink();
+    final hasNext = currentLevel < UserLevels.levels.length - 1;
 
     final muted = context.textTheme.bodyMedium?.copyWith(
       color: context.colors.textSecondary,
@@ -340,6 +423,10 @@ class _UserLevelCardState extends State<UserLevelCard>
     final strong = context.textTheme.bodyMedium?.copyWith(
       color: context.colors.textPrimary,
       fontWeight: FontWeight.w600,
+    );
+    final small = context.textTheme.bodySmall?.copyWith(
+      color: context.colors.textSecondary,
+      fontFeatures: const [FontFeature.tabularFigures()],
     );
 
     return Column(
@@ -349,57 +436,118 @@ class _UserLevelCardState extends State<UserLevelCard>
           TextSpan(
             children: [
               TextSpan(text: t.level_current, style: muted),
-              TextSpan(text: currentLevelData.name, style: strong),
-              if (nextLevelData != null) ...[
-                TextSpan(text: '  →  ', style: muted),
-                TextSpan(text: nextLevelData.name, style: muted),
-              ],
+              TextSpan(text: t.levelName(currentLevel), style: strong),
             ],
           ),
         ),
-        if (nextLevelData != null) ...[
+        if (hasNext) ...[
           const SizedBox(height: 12),
-          AnimatedBuilder(
-            animation: _progressAnimation,
-            builder: (context, child) {
-              final small = context.textTheme.bodySmall?.copyWith(
-                color: context.colors.textSecondary,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              );
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: _progressAnimation.value,
-                      minHeight: 6,
-                      backgroundColor: AppSurfaces.hairline(context),
-                      valueColor: AlwaysStoppedAnimation(
-                        currentLevelData.color,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          t.level_progress(
-                            (_progressAnimation.value * 100).toInt(),
-                          ),
-                          style: small,
-                        ),
-                      ),
-                      Text(t.level_next(nextLevelData.name), style: small),
-                    ],
-                  ),
-                ],
-              );
-            },
+          // The text under the bar says the same to a screen reader.
+          ExcludeSemantics(
+            child: _Groove(
+              value: progress,
+              color: WalletLevelUiHelpers.getLevelTint(
+                currentLevel,
+                Theme.of(context).brightness,
+              ),
+              thickness: _barThickness,
+              animate: true,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Each text keeps to its half and wraps there with large text.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // The final percentage shows at once; only the bar moves.
+              Flexible(
+                child: Text(
+                  t.level_progress((progress * 100).toInt()),
+                  style: small,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  t.level_next(t.levelName(currentLevel + 1)),
+                  textAlign: TextAlign.end,
+                  style: small,
+                ),
+              ),
+            ],
           ),
         ],
       ],
+    );
+  }
+}
+
+/// A groove cut into the glass, filled from the start up to [value] with
+/// [color].
+///
+/// With [animate], the fill grows from empty when the groove first shows,
+/// and moves to a new [value] when it changes. Under reduced motion, the
+/// fill shows at its value at once.
+class _Groove extends StatelessWidget {
+  const _Groove({
+    required this.value,
+    required this.color,
+    required this.thickness,
+    this.animate = false,
+  });
+
+  final double value;
+  final Color color;
+  final double thickness;
+  final bool animate;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(thickness / 2);
+    final groove = GlassStyle.of(context).groove;
+
+    Widget fill(double value) => DecoratedBox(
+      decoration: BoxDecoration(color: groove, borderRadius: radius),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: FractionallySizedBox(
+          widthFactor: value.clamp(0.0, 1.0),
+          heightFactor: 1,
+          child: DecoratedBox(
+            decoration: BoxDecoration(color: color, borderRadius: radius),
+          ),
+        ),
+      ),
+    );
+
+    return SizedBox(
+      height: thickness,
+      child: animate
+          ? TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: value),
+              duration: Motion.of(context, Motion.durationChartDraw),
+              curve: Motion.curveEnter,
+              builder: (context, value, _) => fill(value),
+            )
+          : fill(value),
+    );
+  }
+}
+
+/// A medal-shaped skeleton for a marker of the track.
+class _SkeletonMedal extends StatelessWidget {
+  const _SkeletonMedal();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: _markerSize,
+      height: _markerSize,
+      decoration: ShapeDecoration(
+        shape: LevelCelebration.medalShape,
+        color: context.colors.baseColor,
+      ),
     );
   }
 }

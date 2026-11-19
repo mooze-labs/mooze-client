@@ -14,7 +14,6 @@ import 'package:mooze_mobile/shared/widgets/backdrop_page_scaffold.dart';
 import 'package:mooze_mobile/shared/widgets/glass/liquid_glass.dart';
 import 'package:mooze_mobile/themes/motion.dart';
 import 'package:mooze_mobile/themes/theme_context_x.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:mooze_mobile/shared/widgets/buttons/secondary_button.dart';
 import 'package:mooze_mobile/shared/connectivity/widgets/api_down_indicator.dart';
 
@@ -285,50 +284,7 @@ class _WalletLevelsScreenState extends ConsumerState<WalletLevelsScreen> {
     );
   }
 
-  Widget _buildLoadingUserLevelCard() {
-    final baseColor = context.colors.baseColor;
-
-    Widget box({double? width, required double height}) {
-      return Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: baseColor,
-          borderRadius: BorderRadius.circular(height < 24 ? height / 2 : 12),
-        ),
-      );
-    }
-
-    return GlassPanel(
-      padding: const EdgeInsets.all(16),
-      child: Shimmer.fromColors(
-        baseColor: baseColor,
-        highlightColor: context.colors.highlightColor,
-        period: Motion.durationShimmer,
-        enabled: !Motion.isReduced(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            box(width: 160, height: 18),
-            const SizedBox(height: 16),
-            box(height: 70),
-            const SizedBox(height: 16),
-            box(width: 120, height: 14),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                box(width: 80, height: 10),
-                box(width: 80, height: 10),
-              ],
-            ),
-            const SizedBox(height: 12),
-            box(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildLoadingUserLevelCard() => const UserLevelCardSkeleton();
 
   Widget _buildErrorUserLevelCard() {
     final t = AppLocalizations.of(context);

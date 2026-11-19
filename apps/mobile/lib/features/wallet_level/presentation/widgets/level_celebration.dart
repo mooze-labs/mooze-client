@@ -46,8 +46,9 @@ class LevelCelebration extends StatelessWidget {
   /// Progress at which the new level shows down.
   static const double downRevealAt = StageTurn.downRevealAt;
 
-  /// The shape of the medals: a hexagon with rounded corners.
-  static const _medalShape = StarBorder.polygon(sides: 6, pointRounding: 0.24);
+  /// The shape of the medals: a hexagon with rounded corners. The level
+  /// track of `UserLevelCard` draws its markers in it too.
+  static const medalShape = StarBorder.polygon(sides: 6, pointRounding: 0.24);
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +58,7 @@ class LevelCelebration extends StatelessWidget {
     final newTint = WalletLevelUiHelpers.getLevelTint(newLevel, brightness);
 
     Widget medal(int level, Color tint) => StageFace(
-      shape: _medalShape,
+      shape: medalShape,
       size: medalSize,
       tint: tint,
       palette: palette,
@@ -67,7 +68,7 @@ class LevelCelebration extends StatelessWidget {
     return StageTurn(
       animation: animation,
       upward: isUpgrade,
-      shape: _medalShape,
+      shape: medalShape,
       size: medalSize,
       height: height,
       from: medal(oldLevel, oldTint),
